@@ -1,6 +1,6 @@
 # Game design document: Datacenter Architect
 
-*Versie 0.5, 19 november 2026. Een levend document dat met de game meegroeit.*
+*Versie 0.6, 19 november 2026. Een levend document dat met de game meegroeit.*
 
 ## In één zin
 
@@ -618,6 +618,26 @@ Zonder AI-concurrenten win je aanbestedingen op basis van je eigen prijs en kwal
 - 64-bit Windows-build. Godot rendert op een eigen thread; de simulatie blijft licht genoeg voor grote campussen.
 - De omgeving rond je kavel is gevuld met bos, heuvels, akkers en buren, zodat je kavel in een echte wereld ligt.
 
+## Stroom en koeling in het spel
+
+Zo werkt stap 4 (versie 0.3.0) nu echt in de game:
+
+- **De keten**: elk rack heeft de hele keten nodig: netaansluiting → transformatoren → hoofdschakelkast met ATS → UPS → PDU of busbar in de hal → rack. De zwakste schakel bepaalt hoeveel racks kunnen draaien. Racks die niet gevoed kunnen worden, gaan uit (de nieuwste eerst) en leveren geen huur op.
+- **Netaansluiting**: elk terrein start met een compact station van 2 MVA met een eigen transformator. Upgrades naar 10, 20 en 50 MVA kosten € 1,2 / 2,8 / 7,5 miljoen en duren 30, 60 en 120 speldagen. Vanaf 10 MVA is middenspanning: dan bouw je een transformatorruimte met eigen transformatoren (2,5 MVA per stuk). De netkant draagt de IT-last maal de PUE.
+- **Technische ruimtes**: transformatorruimte, schakelruimte, UPS-ruimte en accuruimte. Transformatoren, schakelkasten, UPS'en (500 kW), accukasten (40 kWh) en vloer-PDU's (150 kW) komen per vrachtwagen, monteurs zetten ze neer en de engineer sluit ze aan.
+- **Busbar**: een hal-upgrade met een A- en een B-rail van elk 400 kW boven de rijen. Een hal heeft **A/B-voeding** als hij na uitval van de grootste voeding nog alle racks aankan.
+- **Redundantie** per schakel: N, N+1 of 2N, en "N-" als de capaciteit tekortschiet.
+- **Generatoren**: 1 MW met een dagtank van 2.000 liter. Zonder schakelkast (ATS) kunnen ze niet overnemen. Bovengrondse tanks (20.000 L) en ondergrondse tanks (50.000 L, je kunt eroverheen rijden) geven meer uren autonomie. Verbruik: 0,27 liter per kWh.
+- **UPS-autonomie** in minuten: accucapaciteit gedeeld door de IT-last.
+- **Energieleveranciers** (verzonnen): Polder Energie (vast), Delta Stroom (variabel, volgt de markt), Noordwind Groen (groen, vast) en Kustlicht (groen, variabel). De stroomrekening is IT-last × PUE × prijs.
+- **Koeling**: CRAH-units in de hal (120 kW, te upgraden naar 162 en 204 kW) brengen de warmte naar koelmachines (600 kW) of koeltorens (1 MW) buiten of op het dak; die zijn ook te upgraden. De effectieve koeling is het minimum van beide.
+- **Zaal-upgrades**: open zaal (PUE 1,65) → warme en koude gangen (+12% CRAH, PUE 1,50, € 120/m², 1 dag) → cold corridor (+35%, PUE 1,30, € 380/m², 3 dagen).
+- **Temperatuur**: elke hal heeft een temperatuur. Te weinig koeling laat de hal opwarmen; vanaf 32 °C schakelen racks uit tot de rest weer gekoeld kan worden. Is de koeling weer op orde, dan gaan ze vanzelf weer aan.
+- **Overlays**: P toont de stroomweergave (amber lijnen en bolletjes van netaansluiting tot rackrij, rood bij overbelasting of uitval, ondergrondse tanks zichtbaar), H de koelweergave (koude lucht naar de rijen, warm water naar de koelmachines, racks gekleurd naar de temperatuur van hun hal).
+- **Overzicht stroom en koeling**: netaansluiting aanvragen, leverancier kiezen, de keten met de zwakste schakel, noodstroom, koeling, PUE, elke hal en advies.
+- In de creatieve modus zetten "stroom geen beperking" en "koeling geen beperking" dit uit; "direct bouwen" maakt ook netverzwaringen en hal-upgrades direct klaar.
+- Later: kelders voor transformatoren, vloerbelasting en een verzwaard dak, onderhoud en storingen (stap 7), en rackstroom als product (16 A, 32 A) bij de klanten (stap 6).
+
 ## Bewust niet in scope
 
 - Geen mailserver en geen backups naar externe servers (FTP/SCP). Het is een offline game.
@@ -629,7 +649,7 @@ Zonder AI-concurrenten win je aanbestedingen op basis van je eigen prijs en kwal
 1. **Fundament en huisstijl** (klaar)
 2. **Technische basis** (klaar): Godot-project, camera, bouwgrid, installer, talen, lokale savegames, Info-scherm
 3. **Bouwen en creatieve modus**: nieuw spel met creatieve modus, terrein indelen (wegen, paden, hekwerk, groen, licht), bouwmaterialenplek met vrachtwagens, bouwvakkers die buitenmuren en dak bouwen, hallen zelf uitmeten met deurkeuze, verdiepingen, kantoren inrichten, racks per rij met de opbouwketen (levering, monteurs, aansluiten), klantruimte met koffie, monitorkarretjes, projectprioriteit, gevels (baksteen, beton, glas; datacenter als betonnen box), automatische verlichting, knipperende lampjes en servergeluid
-4. **Stroom en koeling**: netaansluiting en hoogspanning, transformatorruimtes, UPS, generatoren met N+1, koeling en koeltorens, stroom-overlay met bolletjes
+4. **Stroom en koeling** (testversie 0.3.0): netaansluiting en hoogspanning, transformatorruimtes, UPS, generatoren met N+1, koeling en koeltorens, stroom-overlay met bolletjes. Zie *Stroom en koeling in het spel*.
 5. **Netwerk**: fiberducts, MMR, carriers, peering, verkeersweergave, NOC
 6. **Organisatie, klanten en economie**: CEO-kantoor en unlock-boom (CFO met leningen, HR, salesdirecteur), sales, klanttypes, zones, contracten, energiecontracten, faillissement
 7. **Personeel en gebeurtenissen**: werven, training en budgetten, automatische diensten, onderhoud, storingen en willekeurige gebeurtenissen

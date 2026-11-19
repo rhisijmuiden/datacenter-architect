@@ -40,6 +40,16 @@ public class Room
     public int Priority { get; set; } = 2;
     public int Material { get; set; }
     public double Work { get; set; }
+    /// <summary>Data halls: air management level (open, hot/cold aisles, cold corridor).</summary>
+    public Containment Containment { get; set; }
+    /// <summary>Data halls: overhead busbar with an A and a B run.</summary>
+    public bool Busbar { get; set; }
+    /// <summary>Upgrade in progress: 1 = next containment level, 2 = busbar. Hours left in UpgradeLeft.</summary>
+    public int Upgrade { get; set; }
+    public double UpgradeLeft { get; set; }
+    /// <summary>Data halls: air temperature in °C, and whether racks are shut down to protect them from heat.</summary>
+    public double Temp { get; set; } = 21;
+    public bool Hot { get; set; }
     public bool Contains(int x, int z) => x >= X && z >= Z && x < X + W && z < Z + D;
 }
 
@@ -68,6 +78,8 @@ public class PlacedObject
     public int Rot { get; set; }
     public int Floor { get; set; }
     public ObjStatus Status { get; set; } = ObjStatus.Live;
+    /// <summary>Upgrade level for CRAH units, chillers and cooling towers (1 = as bought).</summary>
+    public int Level { get; set; } = 1;
     /// <summary>Loading dock room where a delivered item waits.</summary>
     public int Dock { get; set; }
     [JsonIgnore] public ObjDef Def => Catalog.Objects[Kind];
@@ -102,7 +114,9 @@ public class NewGameOptions
 /// <summary>All state that goes into a savegame. Workers and trucks are not saved; they restart from this state.</summary>
 public class GameState
 {
-    public const int CurrentFormat = 2;
+    public const int CurrentFormat = 3;
+    /// <summary>Floor value for objects that stand on the roof of a building.</summary>
+    public const int RoofFloor = -1;
     public const double WorkPerMaterial = 0.15;
 
     public int SaveFormat { get; set; } = CurrentFormat;
@@ -123,6 +137,11 @@ public class GameState
     public int Builders { get; set; } = 4;
     public int Fitters { get; set; } = 2;
     public int Engineers { get; set; } = 1;
+    /// <summary>Grid connection level (see Catalog.GridLevels), and a requested upgrade with the days left.</summary>
+    public int GridLevel { get; set; }
+    public int GridRequest { get; set; } = -1;
+    public double GridDaysLeft { get; set; }
+    public int Supplier { get; set; }
     public float CamYaw { get; set; } = 0.6f;
     public float CamPitch { get; set; } = 0.9f;
     public float CamDistance { get; set; } = 60f;
@@ -135,6 +154,9 @@ public class GameState
     /// <summary>Changes to buildings, rooms, doors, fences and paving only (not object status).</summary>
     [JsonIgnore] public int LayoutRevision { get; private set; }
     public void Touch(bool layout = true) { Revision++; if (layout) LayoutRevision++; }
+
+    /// <summary>Notifications from the infrastructure (grid ready, hall too hot), drained by the game screen.</summary>
+    [JsonIgnore] public readonly List<(string key, string arg)> Notes = new();
 
     public static readonly DateTime Epoch = new(2027, 1, 1);
     [JsonIgnore] public DateTime Date => Epoch.AddHours(Hours);
@@ -176,8 +198,14 @@ public class GameState
             }
             foreach (var o in Objects) o.Id = NextId++;
             Foundation = null;
-            SaveFormat = CurrentFormat;
         }
+        if (SaveFormat < 3)
+        {
+            foreach (var o in Objects) if (o.Level < 1) o.Level = 1;
+            foreach (var r in Rooms) r.Temp = 21;
+            GridRequest = -1;
+        }
+        SaveFormat = CurrentFormat;
         Touch();
     }
 
@@ -218,7 +246,7 @@ public class GameState
     /// <summary>Object covering a cell on a floor. Lifts cover every floor of their building.</summary>
     public PlacedObject ObjectAt(int x, int z, int floor = 0) => Objects.FirstOrDefault(o =>
     {
-        if (o.Floor != floor && o.Kind != ObjKind.Lift) return false;
+        if (o.Floor != floor && (o.Kind != ObjKind.Lift || floor < 0)) return false;
         var (w, d) = Footprint(o);
         return x >= o.X && x < o.X + w && z >= o.Z && z < o.Z + d;
     });
@@ -413,8 +441,23 @@ public class GameState
             if (other != null && other != o) return "msg_occupied";
             var b = BuildingAt(x, z);
             var room = RoomAt(x, z, o.Floor);
-            switch (def.Where)
+            var where = def.Where;
+            if (where == Where.OutsideOrRoof)
             {
+                if (o.Floor == RoofFloor)
+                {
+                    if (BuildingAt(o.X, o.Z) != b) return "msg_one_roof";
+                    if (b == null || b.Stage != Stage.Done) return "msg_roof_needs_building";
+                    continue;
+                }
+                where = Where.Outside;
+            }
+            else if (o.Floor == RoofFloor) return "msg_not_on_roof";
+            switch (where)
+            {
+                case Where.Underground:
+                    if (b != null || o.Floor != 0) return "msg_outside_only";
+                    break;
                 case Where.Outside:
                 case Where.Paved:
                     if (b != null || o.Floor > 0) return "msg_outside_only";
@@ -429,7 +472,11 @@ public class GameState
                     if (b.Floors < 2) return "msg_lift_floors";
                     break;
                 case Where.Room:
-                    if (room == null || room.Type == RoomType.DataHall) return "msg_needs_room";
+                    if (def.Rooms != null)
+                    {
+                        if (room == null || !def.Rooms.Contains(room.Type)) return NeedsRoomKey(def);
+                    }
+                    else if (room == null || room.Type == RoomType.DataHall) return "msg_needs_room";
                     break;
                 case Where.Hall:
                     if (room == null || room.Type != RoomType.DataHall) return "msg_needs_hall";
@@ -443,6 +490,22 @@ public class GameState
         }
         if (!CanAfford(def.Cost)) return "msg_no_money";
         return null;
+    }
+
+    /// <summary>"msg_needs_transformer", "msg_needs_switchgear", "msg_needs_upsroom" or "msg_needs_battery".</summary>
+    public static string NeedsRoomKey(ObjDef def) => def.Rooms[0] switch
+    {
+        RoomType.Transformer => "msg_needs_transformer",
+        RoomType.Switchgear => "msg_needs_switchgear",
+        RoomType.Battery => "msg_needs_battery",
+        _ => "msg_needs_upsroom",
+    };
+
+    /// <summary>Floor an object goes on when placed at a cell: roof units go on the roof of a building, else the viewed floor.</summary>
+    public int PlaceFloor(ObjKind k, int x, int z, int viewFloor)
+    {
+        if (Catalog.Objects[k].Where == Where.OutsideOrRoof) return BuildingAt(x, z) != null ? RoofFloor : 0;
+        return viewFloor;
     }
 
     public PlacedObject AddObject(ObjKind k, int x, int z, int rot, int floor)
@@ -474,11 +537,11 @@ public class GameState
 
     // ---------------- erase ----------------
     /// <summary>Remove what lies in a rectangle on a floor: objects, doors, rooms, then buildings and paving.</summary>
-    public bool Erase(int x0, int z0, int w, int d, int floor)
+    public bool Erase(int x0, int z0, int w, int d, int floor, bool roof = false)
     {
         bool In(int x, int z) => x >= x0 && z >= z0 && x < x0 + w && z < z0 + d;
         var changed = false;
-        foreach (var o in Objects.Where(o => (o.Floor == floor || (o.Kind == ObjKind.Lift && floor == 0)) && Cells(o).Any(c => In(c.x, c.z))).ToList())
+        foreach (var o in Objects.Where(o => (o.Floor == floor || (o.Kind == ObjKind.Lift && floor == 0) || (roof && o.Floor == RoofFloor)) && Cells(o).Any(c => In(c.x, c.z))).ToList())
         {
             Objects.Remove(o); Refund(o.Def.Cost / 2); changed = true;
         }
@@ -524,8 +587,7 @@ public class GameState
     IEnumerable<PlacedObject> LiveObjects => Objects.Where(o => o.Status == ObjStatus.Live);
     [JsonIgnore] public double PowerDemandKw => LiveObjects.Sum(o => o.Def.PowerKw);
     [JsonIgnore] public double CoolingDemandKw => LiveObjects.Where(o => o.Kind == ObjKind.Rack).Sum(o => o.Def.PowerKw);
-    [JsonIgnore] public double CoolingCapacityKw => LiveObjects.Sum(o => o.Def.CoolingKw);
-    /// <summary>Backup capacity with N+1: the largest generator is kept in reserve.</summary>
+    /// <summary>Generator capacity with N+1: the largest generator is kept in reserve.</summary>
     [JsonIgnore]
     public double BackupCapacityKw
     {
@@ -535,23 +597,171 @@ public class GameState
             return gens.Count <= 1 ? 0 : gens.Skip(1).Sum();
         }
     }
-    [JsonIgnore] public double GridCapacityKw => 2000; // 2 MVA starting connection from the grid operator
+    [JsonIgnore] public double GridCapacityKw => Catalog.GridLevels[Math.Clamp(GridLevel, 0, Catalog.GridLevels.Length - 1)].Mva * 1000;
     [JsonIgnore] public int Racks => Objects.Count(o => o.Kind == ObjKind.Rack);
     [JsonIgnore] public int LiveRacks => Objects.Count(o => o.Kind == ObjKind.Rack && o.Status == ObjStatus.Live);
     [JsonIgnore] public int FiberPits => Objects.Count(o => o.Kind == ObjKind.FiberPit);
     [JsonIgnore] public long WagesPerDay => Builders * Catalog.WagePerDay[Role.Builder] + Fitters * Catalog.WagePerDay[Role.Fitter] + Engineers * Catalog.WagePerDay[Role.Engineer];
 
-    /// <summary>Advance the clock; costs and income are a placeholder until the economy step.</summary>
+    InfraReport _infra;
+    int _infraRev = -1;
+    double _infraHours = -1;
+
+    /// <summary>Power chain, cooling and PUE. Cached until the layout, the clock or a hall temperature changes.</summary>
+    [JsonIgnore]
+    public InfraReport Infra
+    {
+        get
+        {
+            if (_infra == null || _infraRev != Revision || Math.Abs(_infraHours - Hours) > 0.05)
+            {
+                _infra = Sim.Infra.Analyze(this);
+                _infraRev = Revision; _infraHours = Hours;
+            }
+            return _infra;
+        }
+    }
+
+    public void InvalidateInfra() => _infra = null;
+
+    // ---------------- power and cooling actions ----------------
+    public string CanRequestGrid(int level)
+    {
+        if (level <= GridLevel || level >= Catalog.GridLevels.Length) return "msg_nothing_changed";
+        if (GridRequest >= 0) return "msg_grid_busy";
+        if (!CanAfford(Catalog.GridLevels[level].Cost)) return "msg_no_money";
+        return null;
+    }
+
+    public string RequestGrid(int level)
+    {
+        var why = CanRequestGrid(level);
+        if (why != null) return why;
+        var def = Catalog.GridLevels[level];
+        Spend(def.Cost);
+        if (Creative.InstantBuild) { GridLevel = level; Notes.Add(("msg_grid_ready", def.Mva.ToString(System.Globalization.CultureInfo.InvariantCulture))); }
+        else { GridRequest = level; GridDaysLeft = def.LeadDays; }
+        Touch(false);
+        return null;
+    }
+
+    public void SetSupplier(int id)
+    {
+        if (id < 0 || id >= Catalog.Suppliers.Length) return;
+        Supplier = id; Touch(false);
+    }
+
+    /// <summary>Price per kWh today. Variable contracts follow a market price that moves over the weeks.</summary>
+    public double EnergyPrice(int supplier = -1)
+    {
+        var d = Catalog.Suppliers[supplier < 0 ? Supplier : supplier];
+        if (!d.Variable) return d.PricePerKwh;
+        var day = Hours / 24;
+        return d.PricePerKwh * (1 + 0.15 * Math.Sin(day / 9) + 0.05 * Math.Sin(day / 2.3));
+    }
+
+    public string CanUpgrade(PlacedObject o)
+    {
+        if (o.Level >= o.Def.MaxLevel) return "msg_max_level";
+        if (!CanAfford(Catalog.UpgradeCost(o.Def, o.Level))) return "msg_no_money";
+        return null;
+    }
+
+    public string UpgradeObject(PlacedObject o)
+    {
+        var why = CanUpgrade(o);
+        if (why != null) return why;
+        Spend(Catalog.UpgradeCost(o.Def, o.Level));
+        o.Level++;
+        Touch(false);
+        return null;
+    }
+
+    public static long HallUpgradeCost(Room r) => r.Containment >= Containment.ColdCorridor ? 0 : Catalog.Containments[r.Containment + 1].CostPerM2 * r.W * r.D;
+
+    public string CanUpgradeHall(Room r, bool busbar)
+    {
+        if (r.Type != RoomType.DataHall) return "msg_needs_hall";
+        if (r.Stage != Stage.Done) return "msg_hall_not_ready";
+        if (r.Upgrade != 0) return "msg_upgrade_busy";
+        if (busbar ? r.Busbar : r.Containment >= Containment.ColdCorridor) return "msg_max_level";
+        if (!CanAfford(busbar ? Catalog.BusbarCost : HallUpgradeCost(r))) return "msg_no_money";
+        return null;
+    }
+
+    public string UpgradeHall(Room r, bool busbar)
+    {
+        var why = CanUpgradeHall(r, busbar);
+        if (why != null) return why;
+        Spend(busbar ? Catalog.BusbarCost : HallUpgradeCost(r));
+        r.Upgrade = busbar ? 2 : 1;
+        r.UpgradeLeft = busbar ? Catalog.BusbarHours : Catalog.Containments[r.Containment + 1].Hours;
+        if (Creative.InstantBuild) FinishHallUpgrade(r);
+        Touch();
+        return null;
+    }
+
+    void FinishHallUpgrade(Room r)
+    {
+        if (r.Upgrade == 1) r.Containment++;
+        else if (r.Upgrade == 2) r.Busbar = true;
+        r.Upgrade = 0; r.UpgradeLeft = 0;
+        Touch();
+    }
+
+    /// <summary>Grid works, hall upgrades and hall temperatures move on with the clock.</summary>
+    public void UpdateInfra(double hours)
+    {
+        if (GridRequest >= 0)
+        {
+            GridDaysLeft -= hours / 24;
+            if (GridDaysLeft <= 0 || Creative.InstantBuild)
+            {
+                GridLevel = GridRequest; GridRequest = -1; GridDaysLeft = 0;
+                Notes.Add(("msg_grid_ready", Catalog.GridLevels[GridLevel].Mva.ToString(System.Globalization.CultureInfo.InvariantCulture)));
+                Touch(false);
+            }
+        }
+        foreach (var r in Rooms.Where(r => r.Upgrade != 0))
+        {
+            r.UpgradeLeft -= hours;
+            if (r.UpgradeLeft <= 0 || Creative.InstantBuild)
+            {
+                Notes.Add((r.Upgrade == 2 ? "msg_busbar_done" : "msg_hall_upgrade_done", Catalog.Containments[r.Containment + (r.Upgrade == 1 ? 1 : 0)].NameKey));
+                FinishHallUpgrade(r);
+            }
+        }
+        var report = Infra;
+        foreach (var h in report.Halls)
+        {
+            var r = h.Room;
+            var target = h.Target;
+            var k = Math.Min(1, hours / 1.5);
+            r.Temp += (target - r.Temp) * k;
+            if (!r.Hot && r.Temp >= Sim.Infra.ShutdownTemp && !Creative.NoCoolingLimit)
+            {
+                r.Hot = true; Notes.Add(("msg_hall_hot", null)); InvalidateInfra();
+            }
+            else if (r.Hot && (h.CoolRatio <= 1 || Creative.NoCoolingLimit))
+            {
+                r.Hot = false; Notes.Add(("msg_hall_cool", null)); InvalidateInfra();
+            }
+        }
+    }
+
+        /// <summary>Advance the clock; costs and income are a placeholder until the economy step.</summary>
     public void Advance(double hours)
     {
         var before = (int)(Hours / 24);
         Hours += hours;
+        UpdateInfra(hours);
         var days = (int)(Hours / 24) - before;
         if (Creative.UnlimitedMoney) return;
         for (var i = 0; i < days; i++)
         {
-            var energy = PowerDemandKw * 24 * 0.18;       // €0.18 per kWh
-            var rent = LiveRacks * 900.0 / 30;            // €900 per rack per month
+            var infra = Infra;
+            var energy = infra.FacilityKw * 24 * EnergyPrice(); // IT load times PUE, plus offices
+            var rent = infra.RunningRacks * 900.0 / 30;        // €900 per running rack per month
             Money += (long)Math.Round(rent - energy - 400 - WagesPerDay);
         }
     }

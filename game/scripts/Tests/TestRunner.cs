@@ -26,6 +26,8 @@ public static class TestRunner
             ("semver", SemVerTests), ("updates", UpdateTests), ("translations", TranslationTests),
             ("saves", SaveTests), ("building", BuildTests), ("construction", ConstructionTests),
             ("rack chain", RackChainTests), ("navigation", NavTests), ("creative", CreativeTests), ("demo", DemoTests),
+            ("power chain", PowerTests), ("backup power", BackupTests), ("grid and suppliers", GridTests),
+            ("cooling", CoolingTests), ("roof and underground", RoofTests), ("overlay rows", OverlayTests),
         };
         foreach (var (name, t) in tests)
         {
@@ -89,11 +91,16 @@ public static class TestRunner
         used.AddRange(Enum.GetNames<Stage>().Select(n => "stage_" + n.ToLowerInvariant()));
         used.AddRange(Enum.GetNames<ObjStatus>().Select(n => "status_" + n.ToLowerInvariant()));
         used.AddRange(Enum.GetNames<Facade>().Select(n => "facade_" + n.ToLowerInvariant()));
+        used.AddRange(Enum.GetNames<PowerLink>().Select(n => "link_" + n.ToLowerInvariant()));
+        used.AddRange(Catalog.GridLevels.Select(g => g.NameKey));
+        used.AddRange(Catalog.Suppliers.Select(g => g.DescKey));
+        used.AddRange(Catalog.Containments.Values.Select(g => g.NameKey));
+        used.AddRange(Catalog.Objects.Values.Where(d => d.Rooms != null).Select(GameState.NeedsRoomKey));
         // every msg_/hint_/goal_ key mentioned in the scripts must exist
-        foreach (var file in new[] { "res://scripts/Main.cs", "res://scripts/Sim/GameState.cs", "res://scripts/Sim/Simulation.cs", "res://scripts/UI/Hud.cs", "res://scripts/UI/Menus.cs" })
+        foreach (var file in new[] { "res://scripts/Main.cs", "res://scripts/Sim/GameState.cs", "res://scripts/Sim/Simulation.cs", "res://scripts/UI/Hud.cs", "res://scripts/UI/Menus.cs", "res://scripts/UI/PowerPanel.cs", "res://scripts/World/WorldView.cs" })
         {
             var text = FileAccess.GetFileAsString(file);
-            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(text, "\"((msg|hint|goal|cr|crew|hud|new|inspect|projects|prio|cat)_[a-z0-9_]+)\""))
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(text, "\"((msg|hint|goal|cr|crew|hud|new|inspect|projects|prio|cat|power|grid|supplier|backup|chain|link|cool|halls?|advice|action|res)_[a-z0-9_]+)\""))
                 used.Add(m.Groups[1].Value);
         }
         var absent = used.Distinct().Where(k => !en.ContainsKey(k)).ToList();
@@ -113,11 +120,15 @@ public static class TestRunner
         s.AddRoom(RoomType.Office, 20, 20, 4, 4, 1);
         s.AddDoor(DoorType.Double, 22, 26, 1, 0);
         s.Hours = 1234;
+        s.GridLevel = 1; s.GridRequest = 2; s.GridDaysLeft = 12.5; s.Supplier = 2;
+        s.Rooms[0].Containment = Containment.ColdCorridor; s.Rooms[0].Busbar = true;
         SaveSystem.Save(s, "unit-test");
         var l = SaveSystem.Load("unit-test");
         Check(l != null && l.Options.Company == "Test BV" && !l.Options.AiCompetitors && l.Options.Creative && l.Creative.NoCoolingLimit, "save roundtrip options");
         Check(l != null && l.SurfaceAt(2, 2) == Surface.Asphalt && l.FenceAt(12, 10) == FenceType.Palisade && Math.Abs(l.Hours - 1234) < 1e-6, "save roundtrip site");
         Check(l != null && l.Buildings.Count == 1 && l.Buildings[0].Facade == Facade.Glass && l.Buildings[0].Floors == 2 && l.Rooms[0].Floor == 1 && l.Doors.Count == 1, "save roundtrip buildings");
+        Check(l != null && l.GridLevel == 1 && l.GridRequest == 2 && Math.Abs(l.GridDaysLeft - 12.5) < 1e-6 && l.Supplier == 2, "save roundtrip grid and supplier");
+        Check(l != null && l.Rooms[0].Containment == Containment.ColdCorridor && l.Rooms[0].Busbar && l.SaveFormat == GameState.CurrentFormat, "save roundtrip hall upgrades");
         Check(SaveSystem.List().Any(x => x.Slot == "unit-test"), "save listed");
         for (var i = 0; i < 4; i++) SaveSystem.Autosave(s);
         Check(SaveSystem.List().Count(x => x.IsAutosave) == SaveSystem.AutosaveSlots, "autosave keeps three");
@@ -279,7 +290,199 @@ public static class TestRunner
                     $"status={string.Join(",", s.Objects.Where(o => o.Kind == ObjKind.Rack).GroupBy(o => o.Status).Select(g => g.Key + "=" + g.Count()))} fitters={string.Join(",", sim.Agents.Where(a => a.Role == Role.Fitter).Select(a => a.Phase))} msgs={string.Join(",", sim.Messages.Select(m => m.key))}");
         }
         Check(s.Objects.Count(o => o.Kind == ObjKind.Rack && o.Status == ObjStatus.Live) > 91, "demo racks get delivered and connected");
+        var inf = Infra.Analyze(s);
+        Check(inf.RunningRacks == inf.LiveRacks && inf.LiveRacks > 91, $"demo power chain runs every rack ({inf.RunningRacks}/{inf.LiveRacks}, bottleneck {inf.Bottleneck?.Link})");
+        Check(inf.Ats && inf.BackupKw >= 3000 && inf.FuelHours > 24 && inf.UpsMinutes > 5, "demo has generators, fuel and UPS autonomy");
+        Check(inf.CoolRatio <= 1 && Math.Abs(inf.Pue - 1.5) < 1e-6, "demo cooling copes and PUE is 1.50");
         var json = System.Text.Json.JsonSerializer.Serialize(s);
         Check(json.Length < 200_000, "savegame stays small: " + json.Length);
+    }
+
+    /// <summary>A finished datacenter with a hall, a switchgear room and a UPS room, all built (creative instant build off, money on).</summary>
+    static (GameState s, Room hall, Room swr, Room upsr) PowerSite(CreativeOptions c = null)
+    {
+        var s = GameState.New(new NewGameOptions { Difficulty = 0, Creative = c != null, CreativeOptions = c ?? new CreativeOptions() });
+        var b = s.AddBuilding(BuildingKind.Datacenter, 4, 4, 30, 20, 1);
+        b.Stage = Stage.Done;
+        var hall = s.AddRoom(RoomType.DataHall, 4, 4, 20, 20, 0);
+        var swr = s.AddRoom(RoomType.Switchgear, 24, 4, 5, 5, 0);
+        var upsr = s.AddRoom(RoomType.UpsRoom, 29, 4, 5, 5, 0);
+        foreach (var r in s.Rooms) r.Stage = Stage.Done;
+        return (s, hall, swr, upsr);
+    }
+
+    static PlacedObject Live(GameState s, ObjKind k, int x, int z, int floor = 0)
+    {
+        var o = s.AddObject(k, x, z, 0, floor);
+        if (o != null) { o.Status = ObjStatus.Live; s.Touch(false); }
+        return o;
+    }
+
+    static void PowerTests()
+    {
+        var (s, hall, _, _) = PowerSite();
+        Check(s.CanPlace(new PlacedObject { Kind = ObjKind.Ups, X = 6, Z = 6 }) == "msg_needs_upsroom", "UPS needs a UPS room");
+        Check(s.CanPlace(new PlacedObject { Kind = ObjKind.Switchgear, X = 30, Z = 5 }) == "msg_needs_switchgear", "switchgear needs a switchgear room");
+        Check(s.CanPlace(new PlacedObject { Kind = ObjKind.Battery, X = 30, Z = 7 }) == null, "batteries may stand in the UPS room");
+        Check(s.CanPlace(new PlacedObject { Kind = ObjKind.Pdu, X = 30, Z = 7 }) == "msg_needs_hall", "PDU goes in the hall");
+        var racks = Enumerable.Range(0, 20).Select(i => Live(s, ObjKind.Rack, 6 + i % 10, 6 + i / 10 * 3)).ToList();
+        var r = Infra.Analyze(s);
+        Check(r.LiveRacks == 20 && r.RunningRacks == 0, "without a power chain no rack runs");
+        Check(r.Bottleneck.Link == PowerLink.Switchgear, "missing switchgear is the bottleneck");
+        Live(s, ObjKind.Switchgear, 24, 4);
+        Check(Infra.Analyze(s).RunningRacks == 0 && Infra.Analyze(s).Bottleneck.Link == PowerLink.Ups, "next the UPS is missing");
+        Live(s, ObjKind.Ups, 29, 4);
+        Check(Infra.Analyze(s).Bottleneck.Link == PowerLink.Distribution && Infra.Analyze(s).RunningRacks == 0, "then the hall needs a PDU");
+        var pdu = Live(s, ObjKind.Pdu, 22, 20);
+        r = Infra.Analyze(s);
+        Check(r.RunningRacks == 20 && r.ItRunningKw == 120, "full chain: all 20 racks run (120 kW)");
+        Check(!r.Halls[0].AB && r.Link(PowerLink.Ups).Redundancy == "N", "one PDU and one UPS: no A/B, N");
+        Live(s, ObjKind.Pdu, 22, 18);
+        Live(s, ObjKind.Ups, 31, 4);
+        r = Infra.Analyze(s);
+        Check(r.Halls[0].AB && r.Link(PowerLink.Ups).Redundancy == "2N", "two PDUs and two UPS units: A/B and 2N");
+        // overload: 40 racks = 240 kW on 2 × 150 kW PDUs is fine, 60 racks = 360 kW is not
+        for (var i = 0; i < 40; i++) Live(s, ObjKind.Rack, 6 + i % 10, 12 + i / 10 * 2);
+        r = Infra.Analyze(s);
+        Check(r.LiveRacks == 60 && r.RunningRacks == 50 && r.DownForPower == 10, $"PDUs limit the hall to 300 kW ({r.RunningRacks})");
+        Check(r.Down.Contains(s.Objects.Where(o => o.Kind == ObjKind.Rack).Max(o => o.Id)) && !r.Down.Contains(racks[0].Id), "the newest racks go off first");
+        hall.Busbar = true; s.Touch();
+        r = Infra.Analyze(s);
+        Check(r.RunningRacks == 60 && r.Halls[0].DistributionKw == 1100, "a busbar adds an A and a B run");
+        Check(s.UpgradeHall(hall, true) == "msg_max_level", "busbar only once");
+        var creative = PowerSite(new CreativeOptions { NoPowerLimit = true });
+        Live(creative.s, ObjKind.Rack, 6, 6);
+        Check(Infra.Analyze(creative.s).RunningRacks == 1, "creative: power is no limit");
+        _ = pdu;
+    }
+
+    static void BackupTests()
+    {
+        var (s, _, _, _) = PowerSite();
+        Live(s, ObjKind.Switchgear, 24, 4); Live(s, ObjKind.Ups, 29, 4); Live(s, ObjKind.Pdu, 22, 20); Live(s, ObjKind.Pdu, 22, 18);
+        for (var i = 0; i < 40; i++) Live(s, ObjKind.Rack, 6 + i % 10, 6 + i / 10 * 3);
+        var r = Infra.Analyze(s);
+        Check(r.UpsMinutes == 0 && PowerPanelAdvice(s).Contains("advice_battery"), "UPS without batteries gives no autonomy");
+        Live(s, ObjKind.Battery, 31, 6); Live(s, ObjKind.Battery, 32, 6);
+        r = Infra.Analyze(s);
+        Check(Math.Abs(r.UpsMinutes - 80.0 / 240 * 60) < 1e-6, "UPS autonomy: 80 kWh on 240 kW = 20 minutes");
+        s.Objects.Add(new PlacedObject { Kind = ObjKind.Generator, X = 2, Z = 40, Id = s.NextId++ });
+        r = Infra.Analyze(s);
+        Check(r.BackupKw == 0 && r.GenRedundancy == "N", "one generator: no N+1 backup");
+        s.Objects.Add(new PlacedObject { Kind = ObjKind.Generator, X = 6, Z = 40, Id = s.NextId++ });
+        r = Infra.Analyze(s);
+        Check(r.BackupKw == 1000 && r.GenRedundancy == "2N" && r.Ats, "two 1 MW generators on 396 kW: 2N behind the ATS");
+        var fuel = r.FuelHours;
+        Check(Math.Abs(r.FuelLitres - 4000) < 1e-6 && Math.Abs(fuel - 4000 / (r.ItDemandKw * 1.65 * Catalog.FuelPerKwh)) < 1e-6, "belly tanks: 4000 L of diesel");
+        Check(s.AddObject(ObjKind.UndergroundTank, 10, 40, 0, 0) != null, "underground tank outside");
+        s.Touch();
+        Check(Infra.Analyze(s).FuelHours > fuel * 10, "an underground tank adds days of fuel");
+        Check(s.CanPlace(new PlacedObject { Kind = ObjKind.UndergroundTank, X = 18, Z = 21 }) == "msg_outside_only", "tanks cannot go under a building");
+        Check(!s.Objects.First(o => o.Kind == ObjKind.UndergroundTank).Def.Blocks, "underground tank does not block the way");
+    }
+
+    static List<string> PowerPanelAdvice(GameState s) => DatacenterArchitect.UI.PowerPanel.Advice(s, Infra.Analyze(s));
+
+    static void GridTests()
+    {
+        var s = GameState.New(new NewGameOptions { Difficulty = 0 });
+        Check(s.GridCapacityKw == 2000, "every site starts with 2 MVA");
+        var money = s.Money;
+        Check(s.RequestGrid(1) == null && s.GridRequest == 1 && s.GridDaysLeft == 30, "request 10 MVA: 30 days lead time");
+        Check(s.Money == money - Catalog.GridLevels[1].Cost, "the upgrade is paid up front");
+        Check(s.RequestGrid(2) == "msg_grid_busy", "one request at a time");
+        s.Advance(24 * 29);
+        Check(s.GridLevel == 0, "not ready before the lead time");
+        s.Advance(24 * 2);
+        Check(s.GridLevel == 1 && s.GridRequest == -1 && s.GridCapacityKw == 10000, "after 30 days the site has 10 MVA");
+        Check(s.Notes.Any(n => n.key == "msg_grid_ready"), "player is told the grid is ready");
+        Check(s.RequestGrid(1) == "msg_nothing_changed", "cannot request the same level");
+        var instant = GameState.New(new NewGameOptions { Creative = true, CreativeOptions = new CreativeOptions { InstantBuild = true, UnlimitedMoney = true } });
+        Check(instant.RequestGrid(3) == null && instant.GridLevel == 3, "creative instant build: 50 MVA right away");
+        s.SetSupplier(0);
+        Check(Math.Abs(s.EnergyPrice() - 0.18) < 1e-9, "fixed price supplier");
+        s.SetSupplier(1);
+        var p1 = s.EnergyPrice(); s.Hours += 24 * 14; var p2 = s.EnergyPrice();
+        Check(Math.Abs(p1 - p2) > 1e-4 && p1 > 0.1 && p2 < 0.22, "variable price moves with the market");
+        // the grid side carries the IT load times the PUE
+        var (ps, _, _, _) = PowerSite();
+        ps.GridLevel = 0;
+        Live(ps, ObjKind.Switchgear, 24, 4); Live(ps, ObjKind.Ups, 29, 4); Live(ps, ObjKind.Ups, 31, 4); Live(ps, ObjKind.Ups, 29, 6); Live(ps, ObjKind.Ups, 31, 6);
+        ps.Rooms[0].Busbar = true;
+        foreach (var x in new[] { 18, 20, 22 }) { Live(ps, ObjKind.Pdu, x, 20); Live(ps, ObjKind.Pdu, x, 18); }
+        for (var i = 0; i < 220; i++) Live(ps, ObjKind.Rack, 5 + i % 18, 5 + i / 18);
+        var r = Infra.Analyze(ps);
+        Check(r.Bottleneck.Link is PowerLink.Grid or PowerLink.Transformers && r.RunningRacks == (int)(2000 / 1.65 / 6), $"2 MVA at PUE 1.65 runs {r.RunningRacks} racks");
+    }
+
+    static void CoolingTests()
+    {
+        var (s, hall, _, _) = PowerSite(new CreativeOptions { NoPowerLimit = true });
+        for (var i = 0; i < 40; i++) Live(s, ObjKind.Rack, 6 + i % 10, 6 + i / 10 * 3);
+        Live(s, ObjKind.Crah, 4, 6);
+        var r = Infra.Analyze(s);
+        Check(r.HeatKw == 240 && r.CrahKw == 120 && r.RejectKw == 0 && r.CoolingKw == 0, "CRAH without heat rejection outside cools nothing");
+        Check(s.AddObject(ObjKind.Chiller, 40, 30, 0, 0) != null, "chiller outside");
+        Live(s, ObjKind.Crah, 4, 9);
+        r = Infra.Analyze(s);
+        Check(r.CoolingKw == 240 && r.CoolRatio <= 1, "two CRAH units and a chiller cool 240 kW");
+        Check(r.Pue == 1.65, "open hall: PUE 1.65");
+        for (var i = 0; i < 20; i++) Live(s, ObjKind.Rack, 6 + i % 10, 18 + i / 10);
+        r = Infra.Analyze(s);
+        Check(r.CoolRatio > 1, "more racks than cooling");
+        for (var i = 0; i < 40; i++) s.Advance(0.25);
+        Check(hall.Hot && hall.Temp >= Infra.ShutdownTemp && s.Notes.Any(n => n.key == "msg_hall_hot"), "the hall overheats");
+        r = Infra.Analyze(s);
+        Check(r.DownForHeat > 0 && r.RunningRacks * Catalog.RackKw <= r.Halls[0].CoolKw + 1e-6, "racks shut down until the rest fits the cooling");
+        // upgrade the hall: hot/cold aisles give +12%, a cold corridor +35% and a lower PUE
+        Check(s.UpgradeHall(hall, false) == null && hall.Upgrade == 1, "hall upgrade starts");
+        s.Advance(25);
+        Check(hall.Containment == Containment.HotCold && hall.Upgrade == 0, "hot/cold aisles after a day");
+        r = Infra.Analyze(s);
+        Check(Math.Abs(r.Halls[0].CrahKw - 240 * 1.12) < 1e-6 && Math.Abs(r.Pue - 1.5) < 1e-9, "hot/cold aisles: +12% CRAH, PUE 1.50");
+        var crah = s.Objects.First(o => o.Kind == ObjKind.Crah);
+        Check(s.UpgradeObject(crah) == null && crah.Level == 2, "CRAH upgrade to level 2");
+        Check(s.UpgradeObject(crah) == null && s.UpgradeObject(crah) == "msg_max_level", "CRAH has three levels");
+        s.UpgradeHall(hall, false); s.Advance(73);
+        r = Infra.Analyze(s);
+        Check(hall.Containment == Containment.ColdCorridor && Math.Abs(r.Pue - 1.3) < 1e-9, "cold corridor: PUE 1.30");
+        Live(s, ObjKind.Crah, 4, 12);
+        s.AddObject(ObjKind.CoolingTower, 44, 30, 0, 0);
+        for (var i = 0; i < 20; i++) s.Advance(0.5);
+        r = Infra.Analyze(s);
+        Check(!hall.Hot && r.DownForHeat == 0 && r.RunningRacks == 60, "with enough cooling the racks come back");
+        var creative = PowerSite(new CreativeOptions { NoPowerLimit = true, NoCoolingLimit = true });
+        Live(creative.s, ObjKind.Rack, 6, 6);
+        for (var i = 0; i < 20; i++) creative.s.Advance(0.5);
+        Check(!creative.hall.Hot && Infra.Analyze(creative.s).RunningRacks == 1, "creative: cooling is no limit");
+    }
+
+    static void RoofTests()
+    {
+        var (s, _, _, _) = PowerSite();
+        Check(s.PlaceFloor(ObjKind.Chiller, 10, 10, 0) == GameState.RoofFloor && s.PlaceFloor(ObjKind.Chiller, 50, 50, 0) == 0, "chillers go on the roof over a building");
+        var ch = s.AddObject(ObjKind.Chiller, 10, 10, 0, GameState.RoofFloor);
+        Check(ch != null && s.ObjectAt(11, 11, GameState.RoofFloor) == ch && s.ObjectAt(11, 11, 0) == null, "roof units sit on the roof, not in the hall");
+        Check(s.CanPlace(new PlacedObject { Kind = ObjKind.Chiller, X = 32, Z = 10, Floor = GameState.RoofFloor }) == "msg_one_roof", "roof units fit on one roof");
+        Check(s.CanPlace(new PlacedObject { Kind = ObjKind.Generator, X = 15, Z = 15, Floor = GameState.RoofFloor }) == "msg_not_on_roof", "generators do not go on a roof");
+        Check(s.CanPlace(new PlacedObject { Kind = ObjKind.Chiller, X = 11, Z = 11, Floor = GameState.RoofFloor }) == "msg_occupied", "no overlap on the roof");
+        var unfinished = s.AddBuilding(BuildingKind.Datacenter, 40, 40, 10, 10, 1);
+        Check(s.CanPlace(new PlacedObject { Kind = ObjKind.CoolingTower, X = 42, Z = 42, Floor = GameState.RoofFloor }) == "msg_roof_needs_building", "roofs of unfinished buildings are off limits");
+        var nav = new Nav(s);
+        Check(nav.Walkable(11, 11, 0), "roof units do not block the hall below");
+        Check(!s.Erase(10, 10, 2, 2, 0) && s.ObjectAt(11, 11, GameState.RoofFloor) != null, "erase on the ground leaves the roof alone");
+        Check(s.Erase(10, 10, 2, 2, 0, true) && s.ObjectAt(11, 11, GameState.RoofFloor) == null, "erase with roofs shown removes roof units");
+        _ = unfinished;
+    }
+
+    static void OverlayTests()
+    {
+        var racks = new List<PlacedObject>();
+        for (var x = 0; x < 5; x++) racks.Add(new PlacedObject { Kind = ObjKind.Rack, X = 10 + x, Z = 4 });
+        for (var x = 0; x < 3; x++) racks.Add(new PlacedObject { Kind = ObjKind.Rack, X = 20 + x, Z = 4 });
+        for (var z = 0; z < 4; z++) racks.Add(new PlacedObject { Kind = ObjKind.Rack, X = 30, Z = 4 + z, Rot = 1 });
+        var rows = DatacenterArchitect.World.Overlay.Rows(racks);
+        Check(rows.Count == 3 && rows.Any(r => r.Count == 5) && rows.Any(r => r.Count == 4), "racks group into rows");
+        Check(DatacenterArchitect.World.WorldView.FrontOffset(0) == (0, 1) && DatacenterArchitect.World.WorldView.FrontOffset(2) == (0, -1), "rack fronts face the cold aisle");
     }
 }

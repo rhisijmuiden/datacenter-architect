@@ -39,6 +39,7 @@ public static class SaveSystem
         using var f = FileAccess.Open(PathOf(slot), FileAccess.ModeFlags.Read);
         if (f == null) return null;
         var env = JsonSerializer.Deserialize<SaveEnvelope>(f.GetAsText(), Json);
+        env?.State?.Migrate();
         return env?.State;
     }
 

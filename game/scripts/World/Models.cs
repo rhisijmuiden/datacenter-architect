@@ -210,6 +210,118 @@ public static class Models
                 Box(n, new Vector3(0, 2.15f, 0), new Vector3(1f, 0.08f, 0.08f), Dark);
                 Box(n, new Vector3(-0.45f, 1.3f, 0.08f), new Vector3(0.12f, 0.18f, 0.06f), Brand.Ok, glow: true);
                 break;
+            case ObjKind.Transformer:
+                // oil transformer with cooling fins and HV bushings
+                Box(n, new Vector3(0, 0.1f, 0), new Vector3(1.9f, 0.2f, 1.9f), Brand.Concrete);
+                Box(n, new Vector3(0, 0.95f, 0), new Vector3(1.3f, 1.5f, 1.1f), new Color("#7d8a93"), 0.5f, 0.3f);
+                for (var i = 0; i < 6; i++)
+                {
+                    Box(n, new Vector3(-0.55f + i * 0.22f, 0.9f, 0.68f), new Vector3(0.05f, 1.2f, 0.26f), new Color("#6c7881"));
+                    Box(n, new Vector3(-0.55f + i * 0.22f, 0.9f, -0.68f), new Vector3(0.05f, 1.2f, 0.26f), new Color("#6c7881"));
+                }
+                foreach (var x in new[] { -0.4f, 0f, 0.4f }) Cyl(n, new Vector3(x, 1.95f, 0), 0.07f, 0.5f, new Color("#c9b98f"));
+                Box(n, new Vector3(0, 1.72f, 0.56f), new Vector3(1.32f, 0.08f, 0.02f), Brand.Power, glow: true);
+                break;
+            case ObjKind.Switchgear:
+                Box(n, new Vector3(0, 1.1f, 0), new Vector3(1.95f, 2.2f, 0.85f), new Color("#c8ced3"), 0.5f);
+                for (var i = 0; i < 4; i++)
+                {
+                    Box(n, new Vector3(-0.73f + i * 0.49f, 1.1f, 0.43f), new Vector3(0.44f, 2.0f, 0.01f), new Color("#b2b9bf"));
+                    Box(n, new Vector3(-0.73f + i * 0.49f, 1.6f, 0.44f), new Vector3(0.2f, 0.14f, 0.01f), Dark);
+                    Box(n, new Vector3(-0.66f + i * 0.49f, 1.25f, 0.445f), new Vector3(0.05f, 0.05f, 0.01f), i == 0 ? Brand.Ok : Brand.Power, glow: true);
+                }
+                Box(n, new Vector3(0, 2.15f, 0), new Vector3(1.97f, 0.1f, 0.87f), Brand.Power);
+                break;
+            case ObjKind.Ups:
+                Box(n, new Vector3(0, 1.0f, 0), new Vector3(1.95f, 2.0f, 0.9f), new Color("#2f3740"), 0.5f, 0.2f);
+                Box(n, new Vector3(-0.5f, 1.45f, 0.455f), new Vector3(0.45f, 0.3f, 0.01f), new Color("#5fd49b"), glow: true);
+                for (var i = 0; i < 6; i++) Box(n, new Vector3(0.35f, 0.5f + i * 0.2f, 0.455f), new Vector3(0.9f, 0.04f, 0.01f), new Color("#4a535c"));
+                Box(n, new Vector3(0, 1.98f, 0), new Vector3(1.97f, 0.06f, 0.92f), Brand.Power);
+                break;
+            case ObjKind.Battery:
+                Box(n, new Vector3(0, 1.0f, 0), new Vector3(0.9f, 2.0f, 0.8f), new Color("#dfe4e8"), 0.5f);
+                for (var i = 0; i < 5; i++) Box(n, new Vector3(0, 0.3f + i * 0.36f, 0.405f), new Vector3(0.76f, 0.26f, 0.01f), new Color("#3c4650"));
+                Box(n, new Vector3(0.3f, 1.9f, 0.41f), new Vector3(0.1f, 0.06f, 0.01f), Brand.Ok, glow: true);
+                break;
+            case ObjKind.Pdu:
+                Box(n, new Vector3(0, 0.95f, 0), new Vector3(0.8f, 1.9f, 0.8f), new Color("#3a4149"), 0.5f, 0.2f);
+                Box(n, new Vector3(0, 1.5f, 0.405f), new Vector3(0.4f, 0.22f, 0.01f), new Color("#ffcf7a"), glow: true);
+                Box(n, new Vector3(0, 1.88f, 0), new Vector3(0.82f, 0.06f, 0.82f), Brand.Power);
+                break;
+            case ObjKind.DieselTank:
+                // bunded above-ground tank on saddles
+                Box(n, new Vector3(0, 0.15f, 0), new Vector3(2.95f, 0.3f, 0.95f), new Color("#9ea3a8"));
+                var tank = Cyl(n, new Vector3(0, 0.85f, 0), 0.42f, 2.6f, new Color("#eef1f3"));
+                tank.RotationDegrees = new Vector3(0, 0, 90);
+                Box(n, new Vector3(0, 0.85f, 0.43f), new Vector3(1.2f, 0.18f, 0.01f), Brand.Power);
+                Cyl(n, new Vector3(1.0f, 1.55f, 0), 0.04f, 0.9f, Steel);
+                break;
+            case ObjKind.UndergroundTank:
+                // only the fill point, vent pipe and manholes show above ground
+                Box(n, new Vector3(-0.9f, 0.03f, 0), new Vector3(0.7f, 0.06f, 0.7f), new Color("#6b7177"));
+                Box(n, new Vector3(0.6f, 0.03f, 0.3f), new Vector3(0.6f, 0.06f, 0.6f), new Color("#6b7177"));
+                Box(n, new Vector3(-0.9f, 0.45f, -0.6f), new Vector3(0.4f, 0.8f, 0.3f), Brand.Power);
+                Cyl(n, new Vector3(1.2f, 1.4f, -0.7f), 0.05f, 2.8f, Steel);
+                break;
+            case ObjKind.Chiller:
+                Box(n, new Vector3(0, 0.12f, 0), new Vector3(2.95f, 0.24f, 1.95f), new Color("#9ea3a8"));
+                Box(n, new Vector3(0, 1.0f, 0), new Vector3(2.8f, 1.5f, 1.8f), White, 0.5f);
+                for (var i = 0; i < 6; i++) Box(n, new Vector3(-1.2f + i * 0.48f, 0.95f, 0.905f), new Vector3(0.03f, 1.2f, 0.01f), Steel);
+                foreach (var x in new[] { -0.75f, 0.75f })
+                {
+                    Cyl(n, new Vector3(x, 1.8f, 0), 0.6f, 0.12f, new Color("#3d464f"));
+                    Cyl(n, new Vector3(x, 1.87f, 0), 0.12f, 0.06f, Brand.Cooling, glow: true);
+                    var blade = Box(n, new Vector3(x, 1.88f, 0), new Vector3(1.0f, 0.02f, 0.14f), new Color("#8f989f")); blade.Name = "Fan";
+                }
+                Box(n, new Vector3(0, 0.3f, 0.92f), new Vector3(2.8f, 0.08f, 0.02f), Brand.Cooling);
+                break;
+            case ObjKind.CoolingTower:
+                Box(n, new Vector3(0, 0.15f, 0), new Vector3(1.95f, 0.3f, 1.95f), new Color("#9ea3a8"));
+                Box(n, new Vector3(0, 1.35f, 0), new Vector3(1.8f, 2.1f, 1.8f), new Color("#d6dde2"), 0.6f);
+                for (var i = 0; i < 5; i++) Box(n, new Vector3(0, 0.6f + i * 0.3f, 0.905f), new Vector3(1.6f, 0.06f, 0.02f), new Color("#a9b4bc"));
+                Cyl(n, new Vector3(0, 2.75f, 0), 0.8f, 0.7f, new Color("#c2ccd3"), 0.7f);
+                var fan = Box(n, new Vector3(0, 3.05f, 0), new Vector3(1.3f, 0.03f, 0.16f), new Color("#5d6670")); fan.Name = "Fan";
+                Box(n, new Vector3(0, 0.45f, 0.92f), new Vector3(1.8f, 0.1f, 0.02f), Brand.Cooling, glow: true);
+                break;
+        }
+        return n;
+    }
+
+    /// <summary>The grid operator's connection on the site, growing with the contracted capacity (2, 10, 20 or 50 MVA).</summary>
+    public static Node3D GridStation(int level, float w, float d)
+    {
+        var n = new Node3D();
+        var wall = new Color("#d6dce0");
+        switch (level)
+        {
+            case 0:
+                Box(n, new Vector3(0, 1.4f, 0), new Vector3(w - 0.2f, 2.8f, d - 0.2f), wall);
+                Box(n, new Vector3(0, 2.9f, 0), new Vector3(w, 0.25f, d), Brand.Power);
+                break;
+            case 1:
+                Box(n, new Vector3(0, 1.7f, 0), new Vector3(w - 0.1f, 3.4f, d - 0.1f), new Color("#b5654a"));
+                Box(n, new Vector3(0, 3.5f, 0), new Vector3(w + 0.2f, 0.25f, d + 0.2f), new Color("#4b535b"));
+                Box(n, new Vector3(0, 3.1f, d / 2f), new Vector3(w, 0.15f, 0.02f), Brand.Power, glow: true);
+                for (var i = 0; i < 3; i++) Box(n, new Vector3(-w / 2f + 0.7f + i * 1.2f, 2.6f, d / 2f + 0.01f), new Vector3(0.7f, 0.4f, 0.02f), new Color("#8f989f"));
+                break;
+            default:
+                // switch house with an outdoor transformer yard behind a fence, portals for the incoming lines
+                Box(n, new Vector3(0, 0.05f, 0), new Vector3(w, 0.1f, d), new Color("#b9b2a6"));
+                Box(n, new Vector3(-w / 4f, 1.6f, 0), new Vector3(w / 2f - 0.1f, 3.2f, d - 0.2f), wall);
+                Box(n, new Vector3(-w / 4f, 3.3f, 0), new Vector3(w / 2f + 0.1f, 0.2f, d), Brand.Power);
+                var t = Object(ObjKind.Transformer);
+                t.Position = new Vector3(w / 4f, 0, 0); n.AddChild(t);
+                var poles = level >= 3 ? 9f : 6.5f;
+                foreach (var z in new[] { -d / 2f + 0.2f, d / 2f - 0.2f })
+                    Box(n, new Vector3(w / 4f + 0.9f, poles / 2, z), new Vector3(0.18f, poles, 0.18f), new Color("#7c858d"), 0.5f, 0.6f);
+                Box(n, new Vector3(w / 4f + 0.9f, poles, 0), new Vector3(0.2f, 0.2f, d - 0.2f), new Color("#7c858d"), 0.5f, 0.6f);
+                if (level >= 3)
+                    foreach (var z in new[] { -d / 2f + 0.2f, d / 2f - 0.2f })
+                        Box(n, new Vector3(-w / 2f + 0.3f, poles * 0.7f / 2, z), new Vector3(0.18f, poles * 0.7f, 0.18f), new Color("#7c858d"), 0.5f, 0.6f);
+                // fence around the transformer yard
+                Box(n, new Vector3(w / 4f, 1.0f, d / 2f), new Vector3(w / 2f, 2f, 0.04f), new Color("#a9b2b8", 0.55f));
+                Box(n, new Vector3(w / 2f, 1.0f, 0), new Vector3(0.04f, 2f, d), new Color("#a9b2b8", 0.55f));
+                break;
         }
         return n;
     }

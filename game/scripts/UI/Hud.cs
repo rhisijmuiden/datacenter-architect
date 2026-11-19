@@ -34,12 +34,14 @@ public partial class Hud : Control
     public Action<Role, int> CrewChanged;
     public Action<Facade> FacadeChanged;
     public Action<int> CyclePriority;
-    public Action RotateLeft, RotateRight, ToggleGrid, ToggleRoofs, FloorUp, FloorDown, OpenInfo, OpenMenu, ToggleLanguage;
+    public Action RotateLeft, RotateRight, ToggleGrid, ToggleRoofs, FloorUp, FloorDown, OpenInfo, OpenMenu, ToggleLanguage, OpenPower;
+    public Action<int> ToggleOverlay;
     public Func<GameState> State;
 
     readonly Dictionary<string, (Label value, ProgressBar bar)> _bars = new();
     Label _money, _date, _company, _toolHint, _floorLabel, _creative;
-    Button _langBtn, _roofBtn;
+    Button _langBtn, _roofBtn, _powerBtn, _coolBtn;
+    Label _pue;
     VBoxContainer _notes, _goals, _inspect, _sub;
     PanelContainer _inspectPanel;
     readonly List<Button> _speedBtns = new();
@@ -87,8 +89,13 @@ public partial class Hud : Control
             O(ObjKind.Desk), O(ObjKind.Chair), O(ObjKind.Cabinet), O(ObjKind.Plant), O(ObjKind.MeetingTable),
             O(ObjKind.Sofa), O(ObjKind.Coffee), O(ObjKind.Vending), O(ObjKind.Microwave), O(ObjKind.Terminal),
         }),
-        ("cat_halls", new[] { new BuildItem(Mode.Row, (int)ObjKind.Rack), O(ObjKind.Crah), O(ObjKind.CrashCart) }),
-        ("cat_power", new[] { O(ObjKind.Generator) }),
+        ("cat_halls", new[] { new BuildItem(Mode.Row, (int)ObjKind.Rack), O(ObjKind.Crah), O(ObjKind.Pdu), O(ObjKind.CrashCart) }),
+        ("cat_power", new[]
+        {
+            O(ObjKind.Transformer), O(ObjKind.Switchgear), O(ObjKind.Ups), O(ObjKind.Battery), O(ObjKind.Pdu),
+            O(ObjKind.Generator), O(ObjKind.DieselTank), O(ObjKind.UndergroundTank),
+        }),
+        ("cat_cooling", new[] { O(ObjKind.Crah), O(ObjKind.Chiller), O(ObjKind.CoolingTower) }),
         ("cat_network", new[] { O(ObjKind.FiberPit) }),
         ("cat_staff", Array.Empty<BuildItem>()),
         ("cat_customers", Array.Empty<BuildItem>()),
@@ -133,6 +140,11 @@ public partial class Hud : Control
         AddBar(sh, "res_cooling", Brand.Cooling);
         AddBar(sh, "res_racks", Brand.Ok, false);
         AddBar(sh, "res_material", Brand.Amber, false);
+        var pv = new VBoxContainer { CustomMinimumSize = new Vector2(56, 0) }; pv.AddThemeConstantOverride("separation", 2);
+        pv.AddChild(Ui.Heading("res_pue", 12));
+        _pue = Ui.Number("-", 18); _pue.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
+        pv.AddChild(_pue);
+        sh.AddChild(pv);
         var mv = new VBoxContainer(); mv.AddThemeConstantOverride("separation", 2);
         mv.AddChild(Ui.Heading("res_money", 12));
         _money = Ui.Number("€ 0", 20); _money.AddThemeColorOverride("font_color", Brand.Ok);
@@ -176,14 +188,19 @@ public partial class Hud : Control
         var c = s.Creative;
         _company.Text = s.Options.Company;
         _creative.Visible = s.Options.Creative;
-        if (c.NoPowerLimit) SetBar(_bars["res_power"], $"{s.PowerDemandKw:0} kW · " + Loc.T("hud_unlimited"), 0, Brand.Power);
-        else SetBar(_bars["res_power"], $"{s.PowerDemandKw:0} / {s.GridCapacityKw:0} kW", s.PowerDemandKw / s.GridCapacityKw, Brand.Power);
-        var backupRatio = s.BackupCapacityKw <= 0 ? (s.PowerDemandKw > 0 ? 2 : 0) : s.PowerDemandKw / s.BackupCapacityKw;
-        SetBar(_bars["res_backup"], $"{s.BackupCapacityKw:0} kW N+1", c.NoPowerLimit ? 0 : backupRatio, Brand.Power);
-        var coolRatio = s.CoolingCapacityKw <= 0 ? (s.CoolingDemandKw > 0 ? 2 : 0) : s.CoolingDemandKw / s.CoolingCapacityKw;
-        if (c.NoCoolingLimit) SetBar(_bars["res_cooling"], $"{s.CoolingDemandKw:0} kW · " + Loc.T("hud_unlimited"), 0, Brand.Cooling);
-        else SetBar(_bars["res_cooling"], $"{s.CoolingDemandKw:0} / {s.CoolingCapacityKw:0} kW", coolRatio, Brand.Cooling);
-        SetBar(_bars["res_racks"], $"{s.LiveRacks} / {s.Racks}", 0, Brand.Ok);
+        var inf = s.Infra;
+        if (c.NoPowerLimit) SetBar(_bars["res_power"], $"{inf.ItDemandKw:0} kW · " + Loc.T("hud_unlimited"), 0, Brand.Power);
+        else SetBar(_bars["res_power"], $"{inf.ItDemandKw:0} / {Math.Max(0, inf.UsableItKw):0} kW", inf.UsableItKw <= 0 ? (inf.ItDemandKw > 0 ? 2 : 0) : inf.ItDemandKw / inf.UsableItKw, Brand.Power);
+        var facility = inf.ItDemandKw * (inf.Pue > 0 ? inf.Pue : 1) + inf.OtherKw;
+        var backupRatio = inf.BackupKw <= 0 ? (facility > 0 ? 2 : 0) : facility / inf.BackupKw;
+        var fuel = inf.FuelHours > 0 ? $" · {inf.FuelHours:0} h" : "";
+        SetBar(_bars["res_backup"], $"{inf.BackupKw:0} kW {inf.GenRedundancy}{fuel}", c.NoPowerLimit ? 0 : backupRatio, Brand.Power);
+        if (c.NoCoolingLimit) SetBar(_bars["res_cooling"], $"{inf.HeatKw:0} kW · " + Loc.T("hud_unlimited"), 0, Brand.Cooling);
+        else SetBar(_bars["res_cooling"], $"{inf.HeatKw:0} / {inf.CoolingKw:0} kW", inf.CoolRatio, Brand.Cooling);
+        var down = inf.LiveRacks - inf.RunningRacks;
+        SetBar(_bars["res_racks"], down > 0 ? $"{inf.RunningRacks} / {s.Racks} ⚠" : $"{s.LiveRacks} / {s.Racks}", 0, Brand.Ok);
+        _bars["res_racks"].value.AddThemeColorOverride("font_color", down > 0 ? Brand.Critical : Brand.Ink);
+        _pue.Text = inf.Pue > 0 ? inf.Pue.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) : "-";
         SetBar(_bars["res_material"], s.MaterialStock.ToString(), 0, Brand.Amber);
         _money.Text = c.UnlimitedMoney ? "∞" : Ui.Money(s.Money);
         _money.AddThemeColorOverride("font_color", s.Money < 0 && !c.UnlimitedMoney ? Brand.Critical : Brand.Ok);
@@ -275,6 +292,13 @@ public partial class Hud : Control
             Active(_catBtns[cat], cat == _category);
             if (cat != _category) continue;
             if (cat == "cat_staff") { BuildCrew(); continue; }
+            if (cat is "cat_power" or "cat_cooling")
+            {
+                var ov = Ui.Secondary("power_overview", () => OpenPower?.Invoke());
+                ov.Icon = GD.Load<Texture2D>(cat == "cat_power" ? "res://assets/icons/bolt.svg" : "res://assets/icons/snow.svg");
+                ov.AddThemeConstantOverride("icon_max_width", 18);
+                _sub.AddChild(ov);
+            }
             foreach (var it in items)
             {
                 var row = new Button { Alignment = HorizontalAlignment.Left, CustomMinimumSize = new Vector2(0, 30), AutoTranslateMode = AutoTranslateModeEnum.Disabled, ClipText = true };
@@ -399,6 +423,9 @@ public partial class Hud : Control
         _floorLabel.AutoTranslateMode = AutoTranslateModeEnum.Disabled; _floorLabel.TooltipText = "hud_floor"; _floorLabel.MouseFilter = MouseFilterEnum.Stop;
         h.AddChild(_floorLabel);
         h.AddChild(Ui.IconButton("floor_up", "hud_floor_up", () => FloorUp?.Invoke()));
+        _powerBtn = Ui.IconButton("bolt", "hud_overlay_power", () => ToggleOverlay?.Invoke(1));
+        _coolBtn = Ui.IconButton("snow", "hud_overlay_cooling", () => ToggleOverlay?.Invoke(2));
+        h.AddChild(_powerBtn); h.AddChild(_coolBtn);
         _langBtn = new Button { CustomMinimumSize = new Vector2(44, 38), TooltipText = "hud_language", AutoTranslateMode = AutoTranslateModeEnum.Disabled };
         _langBtn.AddThemeFontOverride("font", Ui.DisplayBold);
         _langBtn.Pressed += () => ToggleLanguage?.Invoke();
@@ -428,6 +455,12 @@ public partial class Hud : Control
     {
         _floorLabel.Text = floor == 0 ? Loc.T("hud_floor_ground") : Loc.T("hud_floor_n", floor);
         Active(_roofBtn, !roofs);
+    }
+
+    public void SetOverlay(int mode)
+    {
+        Active(_powerBtn, mode == 1);
+        Active(_coolBtn, mode == 2);
     }
 
     public void UpdateGoals(IEnumerable<(string key, bool done)> goals)
@@ -473,19 +506,45 @@ public partial class Hud : Control
         }
     }
 
-    public void Inspect(string title, IEnumerable<string> lines)
+    string _inspectSig;
+
+    /// <summary>Show the inspector with info lines and optional action buttons (label, action, enabled).</summary>
+    public void Inspect(string title, IEnumerable<string> lines, IEnumerable<(string label, Action action, bool enabled)> actions = null)
     {
+        var lineList = lines?.ToList() ?? new List<string>();
+        var actList = actions?.ToList() ?? new List<(string, Action, bool)>();
+        var sig = title + "|" + string.Join("|", lineList) + "|" + string.Join("|", actList.Select(a => a.Item1 + a.Item3));
+        if (sig == _inspectSig && _inspectActions.Count == actList.Count)
+        {
+            for (var i = 0; i < actList.Count; i++) _inspectActions[i] = actList[i].Item2;
+            return;
+        }
+        _inspectSig = sig;
         foreach (var c in _inspect.GetChildren()) c.QueueFree();
+        _inspectActions.Clear();
         if (title == null) { _inspectPanel.Visible = false; return; }
         _inspectPanel.Visible = true;
         var t = Ui.Text(title, 17, Brand.Ink, Ui.BodySemi); t.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
         _inspect.AddChild(t);
-        foreach (var line in lines)
+        foreach (var line in lineList)
         {
-            var l = Ui.Text(line, 14, Brand.InkDim); l.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
+            var l = Ui.Text(line, 14, line.StartsWith("⚠") ? Brand.Critical : Brand.InkDim); l.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
             _inspect.AddChild(l);
         }
+        for (var i = 0; i < actList.Count; i++)
+        {
+            var (label, act, enabled) = actList[i];
+            var idx = i;
+            _inspectActions.Add(act);
+            var b = Ui.Secondary(label, () => { if (idx < _inspectActions.Count) _inspectActions[idx]?.Invoke(); });
+            b.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
+            b.Disabled = !enabled;
+            b.AddThemeFontSizeOverride("font_size", 14);
+            _inspect.AddChild(b);
+        }
     }
+
+    readonly List<Action> _inspectActions = new();
 
     public void RefreshLanguage()
     {

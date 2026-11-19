@@ -15,7 +15,7 @@ public enum Facade { Concrete, Brick, Glass, Cladding }
 /// <summary>Construction stage that is being worked on. Done means finished.</summary>
 public enum Stage { Foundation, Walls, Roof, Done }
 
-public enum RoomType { DataHall, MeetMe, UpsRoom, Office, Executive, Meeting, Canteen, Lounge, Reception, Security, LoadingDock, Storage, Corridor }
+public enum RoomType { DataHall, MeetMe, UpsRoom, Office, Executive, Meeting, Canteen, Lounge, Reception, Security, LoadingDock, Storage, Corridor, Transformer, Switchgear, Battery }
 
 public enum DoorType { Single, Double, Fire, Badge, RollUp }
 
@@ -26,16 +26,34 @@ public enum ObjKind
     Vending, Microwave, Coffee, Sofa, Terminal, CrashCart,
     Tree, Shrub, LampPost, Bench, BikeRack,
     GuardBooth, Intercom, Barrier, SlidingGate, PedGate,
+    // power and cooling (step 4)
+    Transformer, Switchgear, Ups, Battery, Pdu, DieselTank, UndergroundTank, Chiller, CoolingTower,
 }
 
 /// <summary>Delivery chain for hall equipment: truck to the dock, fitter places it, engineer connects power and then fiber.</summary>
 public enum ObjStatus { Ordered, Delivered, Placed, Powered, Live }
 
 /// <summary>Where an object may stand.</summary>
-public enum Where { Outside, Room, Hall, Building, Fence, Paved }
+public enum Where { Outside, Room, Hall, Building, Fence, Paved, OutsideOrRoof, Underground }
+
+/// <summary>Links of the power chain, from the grid operator to the racks.</summary>
+public enum PowerLink { Grid, Transformers, Switchgear, Ups, Distribution }
+
+/// <summary>Hall air management, upgraded step by step: more effective cooling and a lower PUE.</summary>
+public enum Containment { Open, HotCold, ColdCorridor }
 
 public record ObjDef(ObjKind Kind, string NameKey, int W, int D, long Cost, Where Where, bool Blocks,
-    double PowerKw = 0, double CoolingKw = 0, double GenKw = 0, bool Chain = false, bool NeedsFiber = false);
+    double PowerKw = 0, double CoolingKw = 0, double GenKw = 0, bool Chain = false, bool NeedsFiber = false,
+    double CapacityKw = 0, double StorageKwh = 0, double FuelLitres = 0, double RejectKw = 0,
+    RoomType[] Rooms = null, int MaxLevel = 1);
+
+/// <summary>Grid connection levels offered by the grid operator. Level 0 is the compact station every site starts with.</summary>
+public record GridLevelDef(int Level, double Mva, long Cost, int LeadDays, string NameKey);
+
+/// <summary>Fictional energy suppliers. Variable contracts follow the market price.</summary>
+public record SupplierDef(int Id, string Name, double PricePerKwh, bool Green, bool Variable, int Years, string DescKey);
+
+public record ContainmentDef(Containment Level, string NameKey, double CoolingBonus, double Pue, long CostPerM2, double Hours);
 
 public record SurfaceDef(Surface Surface, string NameKey, long Cost, bool Trucks);
 public record FenceDef(FenceType Type, string NameKey, long Cost, float Height, int Security, bool NeedsResearch);
@@ -51,8 +69,8 @@ public static class Catalog
     public static readonly Dictionary<ObjKind, ObjDef> Objects = new()
     {
         [ObjKind.Rack] = new(ObjKind.Rack, "obj_rack", 1, 1, 4200, Where.Hall, true, PowerKw: 6, Chain: true, NeedsFiber: true),
-        [ObjKind.Crah] = new(ObjKind.Crah, "obj_crah", 1, 2, 38000, Where.Hall, true, PowerKw: 4, CoolingKw: 120, Chain: true),
-        [ObjKind.Generator] = new(ObjKind.Generator, "obj_generator", 3, 2, 410000, Where.Outside, true, GenKw: 1000),
+        [ObjKind.Crah] = new(ObjKind.Crah, "obj_crah", 1, 2, 38000, Where.Hall, true, PowerKw: 4, CoolingKw: 120, Chain: true, MaxLevel: 3),
+        [ObjKind.Generator] = new(ObjKind.Generator, "obj_generator", 3, 2, 410000, Where.Outside, true, GenKw: 1000, FuelLitres: 2000),
         [ObjKind.FiberPit] = new(ObjKind.FiberPit, "obj_fiberpit", 1, 1, 12000, Where.Outside, false),
         [ObjKind.Lift] = new(ObjKind.Lift, "obj_lift", 2, 2, 85000, Where.Building, false),
         [ObjKind.Desk] = new(ObjKind.Desk, "obj_desk", 2, 1, 900, Where.Room, true),
@@ -76,7 +94,54 @@ public static class Catalog
         [ObjKind.Barrier] = new(ObjKind.Barrier, "obj_barrier", 3, 1, 6500, Where.Paved, false),
         [ObjKind.SlidingGate] = new(ObjKind.SlidingGate, "obj_sliding_gate", 3, 1, 18000, Where.Fence, false),
         [ObjKind.PedGate] = new(ObjKind.PedGate, "obj_ped_gate", 1, 1, 2500, Where.Fence, false),
+        // power chain: transformer room, switchgear room, UPS and battery rooms, PDUs in the hall
+        [ObjKind.Transformer] = new(ObjKind.Transformer, "obj_transformer", 2, 2, 220000, Where.Room, true, CapacityKw: 2500, Chain: true, Rooms: new[] { RoomType.Transformer }),
+        [ObjKind.Switchgear] = new(ObjKind.Switchgear, "obj_switchgear", 2, 1, 120000, Where.Room, true, CapacityKw: 4000, Chain: true, Rooms: new[] { RoomType.Switchgear }),
+        [ObjKind.Ups] = new(ObjKind.Ups, "obj_ups", 2, 1, 160000, Where.Room, true, CapacityKw: 500, Chain: true, Rooms: new[] { RoomType.UpsRoom }),
+        [ObjKind.Battery] = new(ObjKind.Battery, "obj_battery", 1, 1, 30000, Where.Room, true, StorageKwh: 40, Chain: true, Rooms: new[] { RoomType.Battery, RoomType.UpsRoom }),
+        [ObjKind.Pdu] = new(ObjKind.Pdu, "obj_pdu", 1, 1, 18000, Where.Hall, true, CapacityKw: 150, Chain: true),
+        [ObjKind.DieselTank] = new(ObjKind.DieselTank, "obj_diesel_tank", 3, 1, 60000, Where.Outside, true, FuelLitres: 20000),
+        [ObjKind.UndergroundTank] = new(ObjKind.UndergroundTank, "obj_underground_tank", 3, 2, 180000, Where.Underground, false, FuelLitres: 50000),
+        // heat rejection outside or on the roof
+        [ObjKind.Chiller] = new(ObjKind.Chiller, "obj_chiller", 3, 2, 260000, Where.OutsideOrRoof, true, PowerKw: 0, RejectKw: 600, MaxLevel: 3),
+        [ObjKind.CoolingTower] = new(ObjKind.CoolingTower, "obj_cooling_tower", 2, 2, 340000, Where.OutsideOrRoof, true, RejectKw: 1000, MaxLevel: 3),
     };
+
+    /// <summary>Capacity multiplier per upgrade level for CRAH units, chillers and cooling towers.</summary>
+    public static double LevelFactor(int level) => level switch { >= 3 => 1.7, 2 => 1.35, _ => 1.0 };
+    public static long UpgradeCost(ObjDef d, int level) => d.Cost * level / 2;
+
+    public const double GridTransformerKw = 2000;   // the compact station of level 0 has its own transformer
+    public const double FuelPerKwh = 0.27;          // litres of diesel per kWh at the generator
+    public const double RackKw = 6;
+
+    public static readonly GridLevelDef[] GridLevels =
+    {
+        new(0, 2, 0, 0, "grid_level_0"),
+        new(1, 10, 1_200_000, 30, "grid_level_1"),
+        new(2, 20, 2_800_000, 60, "grid_level_2"),
+        new(3, 50, 7_500_000, 120, "grid_level_3"),
+    };
+
+    public static readonly SupplierDef[] Suppliers =
+    {
+        new(0, "Polder Energie", 0.18, false, false, 3, "supplier_fixed"),
+        new(1, "Delta Stroom", 0.16, false, true, 1, "supplier_variable"),
+        new(2, "Noordwind Groen", 0.21, true, false, 5, "supplier_green"),
+        new(3, "Kustlicht", 0.19, true, true, 1, "supplier_green_variable"),
+    };
+
+    public static readonly Dictionary<Containment, ContainmentDef> Containments = new()
+    {
+        [Containment.Open] = new(Containment.Open, "hall_open", 0, 1.65, 0, 0),
+        [Containment.HotCold] = new(Containment.HotCold, "hall_hotcold", 0.12, 1.50, 120, 24),
+        [Containment.ColdCorridor] = new(Containment.ColdCorridor, "hall_cold_corridor", 0.35, 1.30, 380, 72),
+    };
+
+    /// <summary>Overhead busbar in a hall: two runs (A and B), each with this capacity.</summary>
+    public const double BusbarKw = 400;
+    public const long BusbarCost = 140_000;
+    public const double BusbarHours = 24;
 
     public static readonly Dictionary<Surface, SurfaceDef> Surfaces = new()
     {
@@ -119,6 +184,9 @@ public static class Catalog
         [RoomType.LoadingDock] = new(RoomType.LoadingDock, "room_dock", "#B0A89A"),
         [RoomType.Storage] = new(RoomType.Storage, "room_storage", "#ABA397"),
         [RoomType.Corridor] = new(RoomType.Corridor, "room_corridor", "#BFC5C9"),
+        [RoomType.Transformer] = new(RoomType.Transformer, "room_transformer", "#C9A66B"),
+        [RoomType.Switchgear] = new(RoomType.Switchgear, "room_switchgear", "#BFA77E"),
+        [RoomType.Battery] = new(RoomType.Battery, "room_battery", "#B9B08A"),
     };
 
     public static readonly Dictionary<DoorType, DoorDef> Doors = new()
