@@ -132,6 +132,8 @@ public class GameState
     public List<Room> Rooms { get; set; } = new();
     public List<Door> Doors { get; set; } = new();
     public List<PlacedObject> Objects { get; set; } = new();
+    /// <summary>Curved roads and paths drawn with the curve tool (their cells are also in Surfaces).</summary>
+    public List<CurvePath> Curves { get; set; } = new();
     public int NextId { get; set; } = 1;
     public int MaterialStock { get; set; }
     public int Builders { get; set; } = 4;
@@ -310,8 +312,45 @@ public class GameState
                 if (!Spend(cost)) { Touch(); return "msg_no_money"; }
                 Surfaces[Idx(x, z)] = (byte)s; changed++;
             }
-        if (changed > 0) Touch();
+        if (changed > 0) { PruneCurves(); Touch(); }
         return changed == 0 ? "msg_nothing_changed" : null;
+    }
+
+    /// <summary>
+    /// Paves a curve: every cell its strip covers gets the surface (paid per m² like painting), and the
+    /// curve is kept so it is drawn smooth. Cells with a building or the grid station are left out.
+    /// </summary>
+    public string AddCurve(CurvePath c)
+    {
+        if (!CurvePath.DefaultWidth.ContainsKey(c.Surface)) return "msg_nothing_changed";
+        c.Width = Math.Clamp(c.Width, CurvePath.MinWidth, CurvePath.MaxWidth);
+        var cost = Catalog.Surfaces[c.Surface].Cost;
+        c.Cells.Clear();
+        string why = null;
+        foreach (var (x, z) in c.Covered(PlotSize))
+        {
+            if (InStation(x, z) || BuildingAt(x, z) != null) continue;
+            if (SurfaceAt(x, z) == c.Surface) continue;
+            if (!Spend(cost)) { why = "msg_no_money"; break; }
+            Surfaces[Idx(x, z)] = (byte)c.Surface;
+            c.Cells.Add(Idx(x, z));
+        }
+        if (c.Cells.Count == 0) { Touch(); return why ?? "msg_nothing_changed"; }
+        Curves.Add(c);
+        PruneCurves();
+        Touch();
+        return why;
+    }
+
+    /// <summary>The curve's paving cost before it is built.</summary>
+    public long CurveCost(CurvePath c) =>
+        c.Covered(PlotSize).Count(p => !InStation(p.x, p.z) && BuildingAt(p.x, p.z) == null && SurfaceAt(p.x, p.z) != c.Surface) * Catalog.Surfaces[c.Surface].Cost;
+
+    /// <summary>Forgets cells of curves that were repainted or erased, and curves with none left.</summary>
+    void PruneCurves()
+    {
+        foreach (var c in Curves) c.Cells.RemoveAll(i => i < 0 || i >= Surfaces.Length || Surfaces[i] != (byte)c.Surface);
+        Curves.RemoveAll(c => c.Cells.Count == 0);
     }
 
     /// <summary>Cells for a fence drag: a straight line, or the outline of the dragged rectangle.</summary>
@@ -570,7 +609,7 @@ public class GameState
                     if (Fences[Idx(x, z)] != 0) { Fences[Idx(x, z)] = 0; changed = true; }
                     else if (Surfaces[Idx(x, z)] != 0) { Surfaces[Idx(x, z)] = 0; changed = true; }
                 }
-        if (changed) Touch();
+        if (changed) { PruneCurves(); Touch(); }
         return changed;
     }
 

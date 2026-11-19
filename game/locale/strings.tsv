@@ -457,3 +457,8 @@ opt_autosave_help	The last three autosaves are kept.	De laatste drie automatisch
 opt_minutes_n	{0} min	{0} min
 opt_reset	Reset to defaults	Standaardwaarden
 opt_done	Done	Klaar
+curve_asphalt	Curved road	Gebogen weg
+curve_footpath	Curved footpath	Gebogen voetpad
+curve_bikepath	Curved bike path	Gebogen fietspad
+hint_curve	Click the start, click the end, then move the mouse to bend it and click to build. [ and ] change the width, Esc cancels.	Klik het begin, klik het eind, beweeg de muis om te buigen en klik om te bouwen. [ en ] veranderen de breedte, Esc annuleert.
+curve_width	{0} m wide	{0} m breed

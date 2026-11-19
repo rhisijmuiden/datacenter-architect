@@ -334,19 +334,19 @@ public partial class WorldView : Node3D
             [Surface.Asphalt] = Brand.Asphalt, [Surface.Parking] = new Color("#575d66"), [Surface.Footpath] = new Color("#d8ccb4"),
             [Surface.BikePath] = new Color("#b4544a"), [Surface.Yard] = new Color("#b9aa8c"),
         };
-        var lists = cols.Keys.ToDictionary(k => k, _ => new List<Transform3D>());
+        _curveCells = _state.Curves.SelectMany(c => c.Cells).ToHashSet();
         var stripes = new List<Transform3D>();
         var tiles = new List<Transform3D>();
         for (var z = 0; z < s; z++)
             for (var x = 0; x < s; x++)
             {
                 var t = _state.SurfaceAt(x, z);
-                if (t == Surface.Grass) continue;
-                lists[t].Add(new Transform3D(Basis.Identity, new Vector3(x + 0.5f, 0.012f, z + 0.5f)));
+                if (t == Surface.Grass || _curveCells.Contains(z * s + x)) continue;
                 if (t == Surface.Parking && (x % 3 == 0)) stripes.Add(new Transform3D(Basis.Identity, new Vector3(x + 0.04f, 0.02f, z + 0.5f)));
                 if (t == Surface.Footpath) tiles.Add(new Transform3D(Basis.Identity, new Vector3(x + 0.5f, 0.016f, z + 0.5f)));
             }
-        foreach (var (k, _) in lists) SmoothSurface(root, k, cols[k]);
+        foreach (var k in cols.Keys) SmoothSurface(root, k, cols[k]);
+        foreach (var c in _state.Curves) CurveStrip(root, c, cols[c.Surface]);
         Driveways(root, s);
         Multi(root, new PlaneMesh { Size = new Vector2(0.08f, 1) }, stripes, new Color("#f2f2ee"), false);
         Multi(root, new PlaneMesh { Size = new Vector2(0.46f, 0.46f) }, tiles, new Color("#e4dac5"), false);
@@ -381,7 +381,8 @@ public partial class WorldView : Node3D
             for (var x = 0; x < n; x++)
             {
                 var ctr = new Vector2(x + 0.5f, z + 0.5f);
-                var mine = _state.SurfaceAt(x, z) == t;
+                // cells paved by a curve are drawn by its smooth strip instead
+                var mine = _state.SurfaceAt(x, z) == t && !_curveCells.Contains(z * n + x);
                 if (!mine && !Open(x, z)) continue;
                 foreach (var (sx, sz) in new[] { (1, 1), (-1, 1), (1, -1), (-1, -1) })
                 {
@@ -405,9 +406,101 @@ public partial class WorldView : Node3D
         if (!any) return;
         root.AddChild(new MeshInstance3D { Mesh = st.Commit(), MaterialOverride = Mat(c, 0.9f), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
 
-        bool Is(int x, int z) => _state.InPlot(x, z) && _state.SurfaceAt(x, z) == t;
+        bool Is(int x, int z) => _state.InPlot(x, z) && _state.SurfaceAt(x, z) == t && !_curveCells.Contains(z * n + x);
         // grass with nothing on it; outside the plot counts as closed so edges stay straight
         bool Open(int x, int z) => _state.InPlot(x, z) && _state.SurfaceAt(x, z) == Surface.Grass && _state.BuildingAt(x, z) == null && !_state.InStation(x, z);
+    }
+
+    HashSet<int> _curveCells = new();
+
+    /// <summary>A curve drawn as a smooth strip with round ends, only where its cells are still paved.</summary>
+    void CurveStrip(Node3D root, CurvePath c, Color col, float y = 0.013f)
+    {
+        var n = _state.PlotSize;
+        var mesh = StripMesh(c, y, t =>
+        {
+            var (px, pz) = c.At(t);
+            int x = (int)Math.Floor(px), z = (int)Math.Floor(pz);
+            // keep the strip where this curve, or other paving of the same kind, still lies
+            return _state.InPlot(x, z) && _state.SurfaceAt(x, z) == c.Surface;
+        });
+        if (mesh == null) return;
+        root.AddChild(new MeshInstance3D { Mesh = mesh, MaterialOverride = Mat(col, 0.9f), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+        if (c.Surface == Surface.Asphalt && c.Width >= 3)
+        {
+            // dashed centre line on wider roads
+            var dash = new CurvePath { Ax = c.Ax, Az = c.Az, Cx = c.Cx, Cz = c.Cz, Bx = c.Bx, Bz = c.Bz, Width = 0.14 };
+            var len = c.Length;
+            var line = StripMesh(dash, y + 0.004f, t => (t * len / 1.5) % 2 < 1 && t > 0.04 && t < 0.96, caps: false);
+            if (line != null) root.AddChild(new MeshInstance3D { Mesh = line, MaterialOverride = Mat(new Color("#ece6cc"), 0.9f), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+        }
+    }
+
+    /// <summary>Triangle strip along a curve, with half-disc caps at both ends.</summary>
+    static ArrayMesh StripMesh(CurvePath c, float y, Func<double, bool> keep, bool caps = true)
+    {
+        var st = new SurfaceTool();
+        st.Begin(Mesh.PrimitiveType.Triangles);
+        st.SetNormal(Vector3.Up);
+        var any = false;
+        void Tri(Vector2 a, Vector2 b, Vector2 d)
+        {
+            if ((b - a).Cross(d - a) < 0) (b, d) = (d, b);
+            st.AddVertex(new Vector3(a.X, y, a.Y)); st.AddVertex(new Vector3(b.X, y, b.Y)); st.AddVertex(new Vector3(d.X, y, d.Y));
+            any = true;
+        }
+        var hw = (float)c.Width / 2;
+        (Vector2 l, Vector2 r, Vector2 p, Vector2 dir) Edge(double t)
+        {
+            var (px, pz) = c.At(t); var (dx, dz) = c.Tangent(t);
+            var p = new Vector2((float)px, (float)pz); var d = new Vector2((float)dx, (float)dz);
+            var nrm = new Vector2(-d.Y, d.X) * hw;
+            return (p + nrm, p - nrm, p, d);
+        }
+        var ts = c.Steps();
+        for (var i = 0; i + 1 < ts.Count; i++)
+        {
+            if (!keep((ts[i] + ts[i + 1]) / 2)) continue;
+            var a = Edge(ts[i]); var b = Edge(ts[i + 1]);
+            Tri(a.l, a.r, b.r); Tri(a.l, b.r, b.l);
+        }
+        if (caps)
+            foreach (var (t, sign) in new[] { (0.0, -1f), (1.0, 1f) })
+            {
+                if (!keep(t)) continue;
+                var e = Edge(t);
+                var nrm = new Vector2(-e.dir.Y, e.dir.X);
+                for (var k = 0; k < 8; k++)
+                {
+                    float a0 = Mathf.Pi * k / 8, a1 = Mathf.Pi * (k + 1) / 8;
+                    var v0 = e.p + (nrm * Mathf.Cos(a0) + e.dir * sign * Mathf.Sin(a0)) * hw;
+                    var v1 = e.p + (nrm * Mathf.Cos(a1) + e.dir * sign * Mathf.Sin(a1)) * hw;
+                    Tri(e.p, v0, v1);
+                }
+            }
+        return any ? st.Commit() : null;
+    }
+
+    /// <summary>Preview of a curve being drawn: a see-through strip, its control handle, and a label.</summary>
+    public void ShowGhostCurve(CurvePath c, bool ok, string text, Vector2? handle)
+    {
+        ClearGhost();
+        var mesh = StripMesh(c, 0.07f, _ => true);
+        if (mesh != null) _ghost.AddChild(new MeshInstance3D { Mesh = mesh, MaterialOverride = GhostMat(ok ? Brand.Ok : Brand.Critical) });
+        foreach (var p in new[] { new Vector2((float)c.Ax, (float)c.Az), new Vector2((float)c.Bx, (float)c.Bz) })
+            _ghost.AddChild(new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = 0.25f, BottomRadius = 0.25f, Height = 0.3f }, Position = new Vector3(p.X, 0.15f, p.Y), MaterialOverride = GhostMat(Brand.Amber) });
+        if (handle is { } h)
+            _ghost.AddChild(new MeshInstance3D { Mesh = new SphereMesh { Radius = 0.3f, Height = 0.6f }, Position = new Vector3(h.X, 0.4f, h.Y), MaterialOverride = GhostMat(Brand.Amber) });
+        if (text != null)
+        {
+            var (mx, mz) = c.At(0.5);
+            _ghost.AddChild(new Label3D
+            {
+                Text = text, Font = _font, FontSize = 64, PixelSize = 0.014f, OutlineSize = 14, OutlineModulate = new Color("#111D2B"),
+                Modulate = Brand.Ink, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = true,
+                Position = new Vector3((float)mx, 2.2f, (float)mz),
+            });
+        }
     }
 
     /// <summary>Vehicle surface that gets a driveway onto the public road.</summary>

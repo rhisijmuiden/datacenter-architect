@@ -28,6 +28,9 @@ public partial class Main : Node3D
     int _rot, _floors = 1;
     Facade _facade = Facade.Brick;
     Vector2I? _dragStart;
+    // curve tool: first click sets the start, second the end, the mouse bends it, the third click builds
+    Vector2? _curveA, _curveB;
+    int _curveWidth = 4;
     Vector2I _hoverCell;
     Vector2 _hoverPoint;
     /// <summary>Game hours per real second for pause, normal, fast and fastest.</summary>
@@ -147,11 +150,12 @@ public partial class Main : Node3D
 
     void OnTool(BuildItem item)
     {
-        _item = item; _rot = 0; _dragStart = null; _world.ClearGhost();
+        _item = item; _rot = 0; _dragStart = null; _curveA = _curveB = null; _world.ClearGhost();
+        if (item.Mode == Mode.Curve) _curveWidth = CurvePath.DefaultWidth[(Surface)item.Arg];
         var inside = item.Mode is Mode.Room or Mode.Door or Mode.Row ||
             (item.Mode == Mode.Object && Catalog.Objects[(ObjKind)item.Arg].Where is Where.Room or Where.Hall or Where.Building);
         if (inside && _world.Roofs) SetView(_world.ViewFloor, false);
-        if (item.Mode is Mode.Surface or Mode.Fence or Mode.Building && _world.ViewFloor > 0) SetView(0, _world.Roofs);
+        if (item.Mode is Mode.Surface or Mode.Curve or Mode.Fence or Mode.Building && _world.ViewFloor > 0) SetView(0, _world.Roofs);
     }
 
     void ChangeCrew(Role role, int delta)
@@ -366,7 +370,8 @@ public partial class Main : Node3D
         if (!_playing || _state == null) return;
         if (e.IsActionPressed("ui_cancel"))
         {
-            if (_dragStart != null) { _dragStart = null; UpdateGhost(); }
+            if (_curveA != null) { _curveA = _curveB = null; UpdateGhost(); }
+            else if (_dragStart != null) { _dragStart = null; UpdateGhost(); }
             else if (_item.Mode != Mode.Select) _hud.Pick(BuildItem.Select);
             else OpenPause();
             GetViewport().SetInputAsHandled(); return;
@@ -374,6 +379,11 @@ public partial class Main : Node3D
         if (e is InputEventKey { Pressed: true, Echo: false } k)
         {
             if (k.Keycode == Key.R) { _rot = (_rot + 1) % 4; UpdateGhost(); }
+            if (_item.Mode == Mode.Curve && k.Keycode is Key.Bracketleft or Key.Bracketright)
+            {
+                _curveWidth = Math.Clamp(_curveWidth + (k.Keycode == Key.Bracketright ? 1 : -1), CurvePath.MinWidth, CurvePath.MaxWidth);
+                UpdateGhost();
+            }
             if (k.Keycode == Key.Space) { var s = _speed == 0 ? 1 : 0; _speed = s; _hud.SetSpeed(s); }
             if (k.Keycode is Key.Key1 or Key.Key2 or Key.Key3) { _speed = (int)(k.Keycode - Key.Key0); _hud.SetSpeed(_speed); }
             if (k.Keycode == Key.F5) { Autosave(); _hud.Notify(Loc.T("msg_autosaved"), Brand.Ok); }
@@ -390,7 +400,8 @@ public partial class Main : Node3D
             var cell = RoofItem ? RoofCell(mm.Position) ?? CellOf(p.Value) : CellOf(p.Value);
             var doorMoved = _item.Mode == Mode.Door && DoorAt(p.Value) is var a && DoorAt(_hoverPoint) is var b && (a.X != b.X || a.Z != b.Z || a.Dir != b.Dir);
             _hoverPoint = p.Value;
-            if (cell != _hoverCell || doorMoved) { _hoverCell = cell; UpdateGhost(); }
+            if (_item.Mode == Mode.Curve) { _hoverCell = cell; UpdateGhost(); }
+            else if (cell != _hoverCell || doorMoved) { _hoverCell = cell; UpdateGhost(); }
         }
         if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left } mb)
         {
@@ -407,6 +418,7 @@ public partial class Main : Node3D
                         break;
                     case Mode.Object: PlaceObject(RoofItem ? RoofCell(mb.Position) ?? c : c); break;
                     case Mode.Door: PlaceDoor(DoorAt(p.Value)); break;
+                    case Mode.Curve: CurveClick(Snap(p.Value)); break;
                     default: _dragStart = c; break;
                 }
                 UpdateGhost();
@@ -455,6 +467,17 @@ public partial class Main : Node3D
         {
             case Mode.Select: _world.ClearGhost(); break;
             case Mode.Erase: _world.ShowGhostRect(r, Brand.Critical, y); break;
+            case Mode.Curve:
+                var mouse = Snap(_hoverPoint);
+                if (_curveA == null)
+                {
+                    _world.ShowGhostCurve(new CurvePath { Ax = mouse.X, Az = mouse.Y, Bx = mouse.X + 0.01, Bz = mouse.Y, Cx = mouse.X, Cz = mouse.Y, Width = _curveWidth }, true, Loc.T("curve_width", _curveWidth), null);
+                    break;
+                }
+                var cv = CurveAt(mouse);
+                var ccost = _state.CurveCost(cv);
+                _world.ShowGhostCurve(cv, _state.Money >= ccost || _state.Creative.UnlimitedMoney, $"{Loc.T("curve_width", _curveWidth)} · {cv.Length:0} m · {Ui.Money(ccost)}", _curveB == null ? null : mouse);
+                break;
             case Mode.Surface:
                 var sc = Catalog.Surfaces[(Surface)_item.Arg].Cost * r.Size.X * r.Size.Y;
                 _world.ShowGhostRect(r, Brand.Ok, 0, _dragStart == null ? null : $"{Dim(r)} · {Ui.Money(sc)}");
@@ -498,6 +521,29 @@ public partial class Main : Node3D
     }
 
     void Fail(string why) { if (why != null) _hud.Notify(Loc.T(why), Brand.Critical); }
+
+    /// <summary>Curve points snap to half metres.</summary>
+    static Vector2 Snap(Vector2 p) => new(Mathf.Round(p.X * 2) / 2, Mathf.Round(p.Y * 2) / 2);
+
+    /// <summary>The curve as it would be built with the mouse at <paramref name="mouse"/>.</summary>
+    CurvePath CurveAt(Vector2 mouse)
+    {
+        var a = _curveA ?? mouse;
+        var b = _curveB ?? mouse;
+        // before the end is set the line is straight; after it, the mouse is the bend
+        var c = _curveB == null ? (a + b) / 2 : mouse;
+        return new CurvePath { Surface = (Surface)_item.Arg, Ax = a.X, Az = a.Y, Bx = b.X, Bz = b.Y, Cx = c.X, Cz = c.Y, Width = _curveWidth };
+    }
+
+    void CurveClick(Vector2 p)
+    {
+        if (_curveA == null) { _curveA = p; return; }
+        if (_curveB == null) { if ((p - _curveA.Value).Length() >= 1) _curveB = p; return; }
+        var why = _state.AddCurve(CurveAt(p));
+        if (why is "msg_no_money") Fail(why);
+        _curveA = _curveB = null;
+        _hud.UpdateStats(_state);
+    }
 
     void ApplyDrag(Vector2I a, Vector2I b, Rect2I r)
     {
@@ -687,7 +733,7 @@ public partial class Main : Node3D
     }
 
     // ---------------- dev helpers ----------------
-    /// <summary>--screenshot path [--in-game] [--interior] [--new-game] [--info] [--options TAB] [--nl] [--hours N] [--driveway] [--curves] [--gate] [--barrier]</summary>
+    /// <summary>--screenshot path [--in-game] [--interior] [--new-game] [--info] [--options TAB] [--nl] [--hours N] [--driveway] [--curves] [--curvetool] [--gate] [--barrier]</summary>
     async System.Threading.Tasks.Task Screenshot(string path, string[] args)
     {
         if (args.Contains("--nl")) Loc.SetLanguage("nl");
@@ -722,6 +768,17 @@ public partial class Main : Node3D
                         if (_sim.GateOpen.TryGetValue(g.Id, out var v) && v > 0.45 && v < 0.75 && _sim.Agents.Any(a => a.Role == Role.Truck && a.Phase == 1)) break;
                     }
                     _cam.SetView(0.9f, 0.7f, 22, new Vector3(g.X + 1.5f, 0, g.Z + 1));
+                }
+                if (args.Contains("--curvetool"))
+                {
+                    // a curved road off the driveway and a winding footpath, plus one being drawn
+                    _state.AddCurve(new CurvePath { Surface = Surface.Asphalt, Ax = 28, Az = 52.5, Cx = 11, Cz = 52.5, Bx = 11, Bz = 38, Width = 4 });
+                    _state.AddCurve(new CurvePath { Surface = Surface.Footpath, Ax = 14, Az = 35, Cx = 5, Cz = 35, Bx = 6, Bz = 50, Width = 2 });
+                    _state.AddCurve(new CurvePath { Surface = Surface.BikePath, Ax = 7, Az = 52, Cx = 8, Cz = 58.5, Bx = 16, Bz = 58.5, Width = 2 });
+                    _hud.Pick(new BuildItem(Mode.Curve, (int)Surface.Asphalt));
+                    _curveA = new Vector2(31, 38); _curveB = new Vector2(50, 30); _hoverPoint = new Vector2(48, 40);
+                    UpdateGhost();
+                    _cam.SetView(0.6f, 1.0f, 52, new Vector3(26, 0, 46));
                 }
                 if (args.Contains("--curves"))
                 {

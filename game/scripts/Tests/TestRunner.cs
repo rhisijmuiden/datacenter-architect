@@ -25,7 +25,7 @@ public static class TestRunner
         {
             ("semver", SemVerTests), ("updates", UpdateTests), ("translations", TranslationTests),
             ("saves", SaveTests), ("building", BuildTests), ("construction", ConstructionTests),
-            ("rack chain", RackChainTests), ("gates", GateTests), ("navigation", NavTests), ("creative", CreativeTests), ("demo", DemoTests),
+            ("rack chain", RackChainTests), ("gates", GateTests), ("curves", CurveTests), ("navigation", NavTests), ("creative", CreativeTests), ("demo", DemoTests),
             ("power chain", PowerTests), ("backup power", BackupTests), ("grid and suppliers", GridTests),
             ("cooling", CoolingTests), ("roof and underground", RoofTests), ("overlay rows", OverlayTests),
             ("options", OptionsTests),
@@ -345,6 +345,34 @@ public static class TestRunner
         Check(hall.Stage == Stage.Done && r.Status == ObjStatus.Live, "instant build skips the delivery chain");
         var career = GameState.New(new NewGameOptions());
         Check(career.PlaceFence(0, 40, 10, 1, FenceType.Electric, out _) == "msg_needs_research", "career mode locks the electric fence");
+    }
+
+    static void CurveTests()
+    {
+        var s = GameState.New(new NewGameOptions { Difficulty = 0 });
+        var money = s.Money;
+        // a quarter bend from the road edge up and round to the west
+        var c = new CurvePath { Surface = Surface.Asphalt, Ax = 40, Az = 63.5, Cx = 40, Cz = 40, Bx = 20, Bz = 40, Width = 4 };
+        Check(Math.Abs(c.At(0).x - 40) < 1e-9 && Math.Abs(c.At(1).x - 20) < 1e-9 && c.Length > 30 && c.Length < 40, "curve runs from start to end with a sensible length");
+        var cost = s.CurveCost(c);
+        Check(s.AddCurve(c) == null && s.Curves.Count == 1, "curve is built");
+        Check(c.Cells.Count > 80 && c.Cells.All(i => s.Surfaces[i] == (byte)Surface.Asphalt), "curve paves the cells under it");
+        Check(money - s.Money == cost && cost == c.Cells.Count * Catalog.Surfaces[Surface.Asphalt].Cost, "curve costs its paved m²");
+        var (mx, mz) = c.At(0.5);
+        Check(s.SurfaceAt((int)mx, (int)mz) == Surface.Asphalt && s.SurfaceAt(40, 40) == Surface.Grass, "the bend is paved, the control point corner is not");
+        // trucks can use it: a path along the curve from the road edge to its far end
+        var nav = new Nav(s);
+        var path = nav.FindOnFloor(new List<(int, int)> { (40, 63) }, 0, (x, z) => x == 20 && z == 40, NavMode.Truck);
+        Check(path != null, "trucks can drive along a curved road");
+        // erasing part keeps the rest, painting it all over removes the curve
+        s.Erase(30, 35, 20, 4, 0);
+        Check(s.Curves.Count == 1 && c.Cells.All(i => s.Surfaces[i] == (byte)Surface.Asphalt), "erasing part of a curve keeps the rest");
+        var json = System.Text.Json.JsonSerializer.Serialize(s);
+        var l = System.Text.Json.JsonSerializer.Deserialize<GameState>(json);
+        Check(l.Curves.Count == 1 && l.Curves[0].Cells.Count == c.Cells.Count && Math.Abs(l.Curves[0].Cx - 40) < 1e-9, "curve survives save and load");
+        s.PaintSurface(0, 0, 64, 64, Surface.Grass, out _);
+        Check(s.Curves.Count == 0, "repaving all its cells removes the curve");
+        Check(s.AddCurve(new CurvePath { Surface = Surface.Yard, Ax = 1, Az = 1, Bx = 9, Bz = 9, Cx = 1, Cz = 9 }) != null, "only roads and paths can be curved");
     }
 
     static void GateTests()

@@ -199,6 +199,7 @@ Het hekwerk kies en bouw je zelf, bijvoorbeeld hoge stalen spijlenhekken. In het
 - **Poorten gaan echt open (0.3.0-test.3):** er is een schuifpoort van 3 m en een **grote schuifpoort van 6 m** voor brede opritten. Het hek schuift opzij langs het hekwerk en de slagboom gaat omhoog. Voertuigen stoppen ervoor en wachten tot hek of slagboom helemaal open is; daarna gaat alles weer dicht.
 - **Laadperron:** een vrachtwagen keert een paar meter voor het perron en rijdt achteruit tegen de roldeur, met de neus van het gebouw af. Hij rijdt nooit het pand in.
 - **Bestrating vloeit:** asfalt, parkeren, paden en fietspaden krijgen automatisch ronde hoeken en afgeronde binnenbochten, en asfalt aan de rand van het terrein krijgt een afrit met verlaagde stoeprand naar de openbare weg.
+- **Curve-tool (0.3.0-test.5):** gebogen weg, gebogen voetpad en gebogen fietspad. Klik het begin, klik het eind, beweeg de muis om de bocht te maken en klik om te bouwen; [ en ] veranderen de breedte (1 tot 8 m, weg standaard 4 m). De bocht wordt als vloeiende strook getekend (weg met middenstreep), de cellen eronder worden gewoon bestraat zodat vrachtwagens erover rijden. Je betaalt per bestrate m²; wegslopen of overschilderen haalt dat stuk van de bocht weg.
 
 Volgorde van een bezoek: openbare weg → oprit → meldzuil → poort open (vanuit het hok) → parkeren → check-in bij de beveiliging → begeleid of met badge naar de eigen ruimte → terug langs de beveiliging → poort uit.
 
