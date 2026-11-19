@@ -48,7 +48,7 @@ public class Nav
                     if (ok && f == 0 && _s.FenceAt(x, z) != FenceType.None)
                     {
                         var g = _s.ObjectAt(x, z);
-                        ok = g != null && g.Kind is ObjKind.SlidingGate or ObjKind.PedGate;
+                        ok = g != null && Catalog.IsGate(g.Kind);
                     }
                     w[z * _n + x] = ok;
                 }
@@ -71,7 +71,7 @@ public class Nav
                 var surf = _s.SurfaceAt(x, z);
                 _cost[i] = surf == Surface.Grass ? 1f : 0.8f;
                 var t = _walk[0][i] && Catalog.Surfaces[surf].Trucks && _s.BuildingAt(x, z) == null;
-                if (t && _s.FenceAt(x, z) != FenceType.None) t = _s.ObjectAt(x, z)?.Kind == ObjKind.SlidingGate;
+                if (t && _s.FenceAt(x, z) != FenceType.None) t = _s.ObjectAt(x, z) is { } gate && Catalog.IsVehicleGate(gate.Kind);
                 _truck[i] = t;
             }
     }

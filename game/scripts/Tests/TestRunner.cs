@@ -25,7 +25,7 @@ public static class TestRunner
         {
             ("semver", SemVerTests), ("updates", UpdateTests), ("translations", TranslationTests),
             ("saves", SaveTests), ("building", BuildTests), ("construction", ConstructionTests),
-            ("rack chain", RackChainTests), ("navigation", NavTests), ("creative", CreativeTests), ("demo", DemoTests),
+            ("rack chain", RackChainTests), ("gates", GateTests), ("navigation", NavTests), ("creative", CreativeTests), ("demo", DemoTests),
             ("power chain", PowerTests), ("backup power", BackupTests), ("grid and suppliers", GridTests),
             ("cooling", CoolingTests), ("roof and underground", RoofTests), ("overlay rows", OverlayTests),
         };
@@ -274,6 +274,53 @@ public static class TestRunner
         Check(hall.Stage == Stage.Done && r.Status == ObjStatus.Live, "instant build skips the delivery chain");
         var career = GameState.New(new NewGameOptions());
         Check(career.PlaceFence(0, 40, 10, 1, FenceType.Electric, out _) == "msg_needs_research", "career mode locks the electric fence");
+    }
+
+    static void GateTests()
+    {
+        // a dock at the end of a driveway with a barrier and a sliding gate in a fence across it
+        var (s, sim) = Site();
+        var b = s.AddBuilding(BuildingKind.Datacenter, 22, 26, 14, 10, 1);
+        b.Stage = Stage.Done;
+        var hall = s.AddRoom(RoomType.DataHall, 22, 26, 8, 10, 0);
+        var dock = s.AddRoom(RoomType.LoadingDock, 30, 26, 6, 10, 0);
+        hall.Stage = dock.Stage = Stage.Done;
+        s.PaintSurface(30, 36, 3, 4, Surface.Asphalt, out _);
+        s.AddDoor(DoorType.RollUp, 30, 36, 1, 0);
+        s.AddDoor(DoorType.Double, 30, 30, 0, 0);
+        s.PlaceFence(20, 54, 30, 1, FenceType.Palisade, out _);
+        var gate = s.AddObject(ObjKind.SlidingGate, 30, 54, 0, 0);
+        var barrier = s.AddObject(ObjKind.Barrier, 30, 48, 0, 0);
+        Check(gate != null && barrier != null, "gate and barrier placed on the driveway");
+        Check(s.AddObject(ObjKind.SlidingGateLarge, 40, 54, 0, 0) != null, "large sliding gate fits in a fence");
+        s.AddObject(ObjKind.Rack, 24, 28, 0, 0);
+        var waited = false; var crashed = false; var parked = false; var poked = false;
+        for (var t = 0.0; t < 20 && !parked; t += 0.02)
+        {
+            var before = sim.Agents.Where(a => a.Role == Role.Truck).ToDictionary(a => a.Id, a => a.Z);
+            sim.Tick(0.02);
+            foreach (var a in sim.Agents.Where(a => a.Role == Role.Truck && a.Phase == 1))
+            {
+                if (!before.TryGetValue(a.Id, out var z0)) continue;
+                if (Math.Abs(a.Z - z0) < 1e-9 && a.Z > 48) waited = true;
+                foreach (var (o, row) in new[] { (gate, 54.5), (barrier, 48.5) })
+                {
+                    var open = sim.GateOpen.TryGetValue(o.Id, out var v) ? v : 0;
+                    // the nose is TruckNose ahead of the centre while driving north
+                    if (a.Z - Simulation.TruckNose < row && z0 - Simulation.TruckNose >= row && open < 0.98) crashed = true;
+                }
+                // nose (forwards) or tail (backing up) never past the dock wall at z = 36
+                if (a.Z + Math.Cos(a.Heading) * 3.2 < 36 - 0.05 || a.Z - Math.Cos(a.Heading) * 2.7 < 36 - 0.05) poked = true;
+            }
+            parked = sim.Agents.Any(a => a.Role == Role.Truck && a.Phase == 2 && a.Load == TruckLoad.Equipment);
+        }
+        Check(parked, "truck reaches the dock through the gate and barrier");
+        Check(waited, "truck waits for the gate to open");
+        Check(!crashed, "truck never drives through a closed gate or barrier");
+        var tr = sim.Agents.First(a => a.Role == Role.Truck && a.Phase == 2 && a.Load == TruckLoad.Equipment);
+        Check(!poked && Math.Abs(tr.Z - (36 + 2.75)) < 0.01 && Math.Abs(Math.Cos(tr.Heading) - 1) < 1e-6, $"truck backs up to the dock door, nose away from the building ({tr.X:0.00},{tr.Z:0.00} h{tr.Heading:0.00})");
+        Run(sim, 6, () => sim.Agents.All(a => a.Role != Role.Truck));
+        Check(sim.GateOpen[gate.Id] < 0.01 && sim.GateOpen[barrier.Id] < 0.01, "gate and barrier close after the trucks have left");
     }
 
     static void DemoTests()

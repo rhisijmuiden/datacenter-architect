@@ -19,6 +19,7 @@ public partial class WorldView : Node3D
 
     Node3D _static, _layout, _objects, _sites, _agentsRoot, _ghost, _pallets;
     readonly List<Node3D> _fans = new();
+    readonly Dictionary<int, (Node3D node, ObjKind kind, int width)> _gates = new();
     public Overlay Overlay { get; private set; }
     MeshInstance3D _grid;
     GameState _state;
@@ -328,10 +329,68 @@ public partial class WorldView : Node3D
                 if (t == Surface.Parking && (x % 3 == 0)) stripes.Add(new Transform3D(Basis.Identity, new Vector3(x + 0.04f, 0.02f, z + 0.5f)));
                 if (t == Surface.Footpath) tiles.Add(new Transform3D(Basis.Identity, new Vector3(x + 0.5f, 0.016f, z + 0.5f)));
             }
-        foreach (var (k, l) in lists) Multi(root, new PlaneMesh { Size = new Vector2(1, 1) }, l, cols[k], false);
+        foreach (var (k, _) in lists) SmoothSurface(root, k, cols[k]);
         Driveways(root, s);
         Multi(root, new PlaneMesh { Size = new Vector2(0.08f, 1) }, stripes, new Color("#f2f2ee"), false);
         Multi(root, new PlaneMesh { Size = new Vector2(0.46f, 0.46f) }, tiles, new Color("#e4dac5"), false);
+    }
+
+    /// <summary>
+    /// Draws one surface type as a single mesh with rounded edges: a cell corner that sticks out into grass
+    /// becomes a quarter circle, and a grass corner tucked between two cells of the surface gets a fillet.
+    /// Painted squares, L-turns and diagonal steps so read as flowing paths and roads.
+    /// </summary>
+    void SmoothSurface(Node3D root, Surface t, Color c)
+    {
+        var n = _state.PlotSize;
+        const int seg = 6; const float r = 0.5f, y = 0.012f;
+        var st = new SurfaceTool();
+        st.Begin(Mesh.PrimitiveType.Triangles);
+        st.SetNormal(Vector3.Up);
+        var any = false;
+        void Tri(Vector2 a, Vector2 b, Vector2 d)
+        {
+            // clockwise seen from above is Godot's front face
+            if ((b - a).Cross(d - a) < 0) (b, d) = (d, b);
+            st.AddVertex(new Vector3(a.X, y, a.Y)); st.AddVertex(new Vector3(b.X, y, b.Y)); st.AddVertex(new Vector3(d.X, y, d.Y));
+            any = true;
+        }
+        Vector2 Arc(Vector2 ctr, int sx, int sz, int i)
+        {
+            var ang = Mathf.Pi / 2 * i / seg;
+            return ctr + new Vector2(sx * r * Mathf.Cos(ang), sz * r * Mathf.Sin(ang));
+        }
+        for (var z = 0; z < n; z++)
+            for (var x = 0; x < n; x++)
+            {
+                var ctr = new Vector2(x + 0.5f, z + 0.5f);
+                var mine = _state.SurfaceAt(x, z) == t;
+                if (!mine && !Open(x, z)) continue;
+                foreach (var (sx, sz) in new[] { (1, 1), (-1, 1), (1, -1), (-1, -1) })
+                {
+                    var corner = ctr + new Vector2(sx * 0.5f, sz * 0.5f);
+                    if (mine)
+                    {
+                        // round only a corner that sticks out into open grass on both sides and diagonally
+                        if (Open(x + sx, z) && Open(x, z + sz) && Open(x + sx, z + sz))
+                            for (var i = 0; i < seg; i++) Tri(ctr, Arc(ctr, sx, sz, i), Arc(ctr, sx, sz, i + 1));
+                        else
+                        {
+                            var ex = ctr + new Vector2(sx * 0.5f, 0); var ez = ctr + new Vector2(0, sz * 0.5f);
+                            Tri(ctr, ex, corner); Tri(ctr, corner, ez);
+                        }
+                    }
+                    else if (Is(x + sx, z) && Is(x, z + sz))
+                        // fillet in a grass corner between two cells of this surface
+                        for (var i = 0; i < seg; i++) Tri(corner, Arc(ctr, sx, sz, i), Arc(ctr, sx, sz, i + 1));
+                }
+            }
+        if (!any) return;
+        root.AddChild(new MeshInstance3D { Mesh = st.Commit(), MaterialOverride = Mat(c, 0.9f), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+
+        bool Is(int x, int z) => _state.InPlot(x, z) && _state.SurfaceAt(x, z) == t;
+        // grass with nothing on it; outside the plot counts as closed so edges stay straight
+        bool Open(int x, int z) => _state.InPlot(x, z) && _state.SurfaceAt(x, z) == Surface.Grass && _state.BuildingAt(x, z) == null && !_state.InStation(x, z);
     }
 
     /// <summary>Vehicle surface that gets a driveway onto the public road.</summary>
@@ -403,7 +462,7 @@ public partial class WorldView : Node3D
                 {
                     if (_state.FenceAt(x, z) != type) continue;
                     var gate = _state.ObjectAt(x, z);
-                    if (gate != null && gate.Kind is ObjKind.SlidingGate or ObjKind.PedGate) continue;
+                    if (gate != null && Catalog.IsGate(gate.Kind)) continue;
                     posts.Add(new Transform3D(Basis.Identity, new Vector3(x + 0.5f, def.Height / 2, z + 0.5f)));
                     if (Linked(x + 1, z)) panels.Add(new Transform3D(Basis.Identity, new Vector3(x + 1f, def.Height / 2, z + 0.5f)));
                     if (Linked(x, z + 1)) panels.Add(new Transform3D(Basis.Identity.Rotated(Vector3.Up, Mathf.Pi / 2), new Vector3(x + 0.5f, def.Height / 2, z + 1f)));
@@ -422,7 +481,7 @@ public partial class WorldView : Node3D
             Multi(root, new BoxMesh { Size = new Vector3(1f, def.Height * 0.92f, thick) }, panels, panelCol);
         }
         bool Linked(int x, int z) => _state.FenceAt(x, z) != FenceType.None;
-        bool Gate(int x, int z) { var g = _state.ObjectAt(x, z); return g != null && g.Kind is ObjKind.SlidingGate or ObjKind.PedGate; }
+        bool Gate(int x, int z) { var g = _state.ObjectAt(x, z); return g != null && Catalog.IsGate(g.Kind); }
     }
 
     void DoneBuilding(Node3D root, Building b)
@@ -693,7 +752,7 @@ public partial class WorldView : Node3D
     void RebuildObjects()
     {
         foreach (var c in _objects.GetChildren()) c.QueueFree();
-        _leds = null; _fans.Clear();
+        _leds = null; _fans.Clear(); _gates.Clear();
         if (_state == null) return;
         GridStationModel();
         HallDecor();
@@ -721,6 +780,7 @@ public partial class WorldView : Node3D
             n.Position = pos;
             n.Basis = basis;
             foreach (var f in n.GetChildren().OfType<Node3D>().Where(c => c.Name.ToString().StartsWith("Fan"))) _fans.Add(f);
+            if (Catalog.IsVehicleStop(o.Kind)) _gates[o.Id] = (n, o.Kind, o.Def.W);
             if (o.Def.Chain && o.Status <= ObjStatus.Delivered) Tint(n, Brand.Ink);
             else if (o.Def.Chain && o.Status != ObjStatus.Live) AddMarker(o, pos);
             _objects.AddChild(n);
@@ -811,6 +871,27 @@ public partial class WorldView : Node3D
         }
     }
 
+    /// <summary>Sliding gates roll their leaf aside and barriers lift their arm, as far as the simulation has them open.</summary>
+    void AnimateGates()
+    {
+        foreach (var (id, (node, kind, width)) in _gates)
+        {
+            if (!IsInstanceValid(node)) continue;
+            var open = _sim != null && _sim.GateOpen.TryGetValue(id, out var v) ? (float)v : 0f;
+            var eased = open * open * (3 - 2 * open);
+            if (kind == ObjKind.Barrier)
+            {
+                var arm = node.GetNodeOrNull<Node3D>("Arm");
+                if (arm != null) arm.RotationDegrees = new Vector3(0, 0, 82 * eased);
+            }
+            else
+            {
+                var leaf = node.GetNodeOrNull<Node3D>("Leaf");
+                if (leaf != null) leaf.Position = new Vector3((width - 0.1f) * eased, 0, 0);
+            }
+        }
+    }
+
     void Animate(double delta)
     {
         foreach (var c in _cranes)
@@ -821,6 +902,7 @@ public partial class WorldView : Node3D
         foreach (var m in _objects.GetChildren().OfType<Node3D>().Where(n => n.Name.ToString().StartsWith("Marker")))
             m.RotateY((float)delta * 2f);
         foreach (var f in _fans) if (IsInstanceValid(f)) f.RotateY((float)delta * 9f);
+        AnimateGates();
         // blinking status lights: flip a few LEDs a few times a second, cheap on any PC
         _blinkTimer -= delta;
         if (_leds != null && _blinkTimer <= 0)

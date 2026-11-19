@@ -196,6 +196,9 @@ Het hekwerk kies en bouw je zelf, bijvoorbeeld hoge stalen spijlenhekken. In het
 - **Check-in:** de beveiliging controleert legitimatie en afspraak, geeft een bezoekersbadge en geeft toegang tot het datacenter. De toegang is per klant beperkt tot de ruimtes waar hij spullen heeft staan: zijn rack, kooi, suite of de MMR.
 - **Wachttijd telt mee:** te weinig beveiligers, een te lange looproute of een volle parkeerplaats geven wachttijd. Dat kost klanttevredenheid en is zichtbaar in de rapportage.
 - **Leveranciers en vrachtwagens** gebruiken dezelfde poort maar rijden door naar het **laadperron**. Je kunt ook een aparte leveranciersingang met een eigen hok bouwen.
+- **Poorten gaan echt open (0.3.0-test.3):** er is een schuifpoort van 3 m en een **grote schuifpoort van 6 m** voor brede opritten. Het hek schuift opzij langs het hekwerk en de slagboom gaat omhoog. Voertuigen stoppen ervoor en wachten tot hek of slagboom helemaal open is; daarna gaat alles weer dicht.
+- **Laadperron:** een vrachtwagen keert een paar meter voor het perron en rijdt achteruit tegen de roldeur, met de neus van het gebouw af. Hij rijdt nooit het pand in.
+- **Bestrating vloeit:** asfalt, parkeren, paden en fietspaden krijgen automatisch ronde hoeken en afgeronde binnenbochten, en asfalt aan de rand van het terrein krijgt een afrit met verlaagde stoeprand naar de openbare weg.
 
 Volgorde van een bezoek: openbare weg → oprit → meldzuil → poort open (vanuit het hok) → parkeren → check-in bij de beveiliging → begeleid of met badge naar de eigen ruimte → terug langs de beveiliging → poort uit.
 
