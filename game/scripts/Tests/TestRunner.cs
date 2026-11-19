@@ -28,6 +28,7 @@ public static class TestRunner
             ("rack chain", RackChainTests), ("gates", GateTests), ("navigation", NavTests), ("creative", CreativeTests), ("demo", DemoTests),
             ("power chain", PowerTests), ("backup power", BackupTests), ("grid and suppliers", GridTests),
             ("cooling", CoolingTests), ("roof and underground", RoofTests), ("overlay rows", OverlayTests),
+            ("options", OptionsTests),
         };
         foreach (var (name, t) in tests)
         {
@@ -97,10 +98,10 @@ public static class TestRunner
         used.AddRange(Catalog.Containments.Values.Select(g => g.NameKey));
         used.AddRange(Catalog.Objects.Values.Where(d => d.Rooms != null).Select(GameState.NeedsRoomKey));
         // every msg_/hint_/goal_ key mentioned in the scripts must exist
-        foreach (var file in new[] { "res://scripts/Main.cs", "res://scripts/Sim/GameState.cs", "res://scripts/Sim/Simulation.cs", "res://scripts/UI/Hud.cs", "res://scripts/UI/Menus.cs", "res://scripts/UI/PowerPanel.cs", "res://scripts/World/WorldView.cs" })
+        foreach (var file in new[] { "res://scripts/Main.cs", "res://scripts/Sim/GameState.cs", "res://scripts/Sim/Simulation.cs", "res://scripts/UI/Hud.cs", "res://scripts/UI/Menus.cs", "res://scripts/UI/PowerPanel.cs", "res://scripts/World/WorldView.cs", "res://scripts/UI/OptionsDialog.cs" })
         {
             var text = FileAccess.GetFileAsString(file);
-            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(text, "\"((msg|hint|goal|cr|crew|hud|new|inspect|projects|prio|cat|power|grid|supplier|backup|chain|link|cool|halls?|advice|action|res)_[a-z0-9_]+)\""))
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(text, "\"((msg|hint|goal|cr|crew|hud|new|inspect|projects|prio|cat|power|grid|supplier|backup|chain|link|cool|halls?|advice|action|res|opt|menu|tool)_[a-z0-9_]+)\""))
                 used.Add(m.Groups[1].Value);
         }
         var absent = used.Distinct().Where(k => !en.ContainsKey(k)).ToList();
@@ -108,6 +109,76 @@ public static class TestRunner
         TranslationServer.SetLocale("nl");
         Check(Loc.T("menu_new_game") != "menu_new_game", "Dutch lookup works");
         TranslationServer.SetLocale("en");
+    }
+
+    static void OptionsTests()
+    {
+        // settings survive a save and load
+        const string path = "user://test-settings.cfg";
+        var a = new AppSettings
+        {
+            WindowMode = WindowModeSetting.Windowed, Resolution = new Vector2I(2560, 1080), Monitor = 1, VSync = false, MaxFps = 144, UiScale = 1.25f,
+            Shadows = false, AmbientOcclusion = false, Fog = false, Msaa = 4, BlinkingLights = false, MovingParts = false, SmoothCamera = false,
+            MasterVolume = 55, AmbienceVolume = 10, InterfaceVolume = 0, AmbienceSound = false, ClickSounds = false, NotificationSounds = false, MuteInBackground = false,
+            Language = "nl", AutosaveMinutes = 15,
+        };
+        a.Save(path);
+        var b = AppSettings.Load(path);
+        Check(b.WindowMode == WindowModeSetting.Windowed && b.Resolution == new Vector2I(2560, 1080) && b.Monitor == 1, "display settings round-trip");
+        Check(!b.VSync && b.MaxFps == 144 && Mathf.IsEqualApprox(b.UiScale, 1.25f), "performance settings round-trip");
+        Check(!b.Shadows && !b.AmbientOcclusion && !b.Fog && b.Msaa == 4 && !b.BlinkingLights && !b.MovingParts && !b.SmoothCamera, "effect switches round-trip");
+        Check(b.MasterVolume == 55 && b.AmbienceVolume == 10 && b.InterfaceVolume == 0 && !b.AmbienceSound && !b.ClickSounds && !b.NotificationSounds && !b.MuteInBackground, "audio round-trip");
+        Check(b.Language == "nl" && b.AutosaveMinutes == 15, "general settings round-trip");
+
+        // broken values fall back to something safe
+        var cfg = new ConfigFile();
+        cfg.SetValue("display", "window_mode", 9); cfg.SetValue("display", "ui_scale", 7.0f); cfg.SetValue("graphics", "msaa", 3);
+        cfg.SetValue("audio", "master", 400); cfg.SetValue("display", "vsync", "banana");
+        cfg.Save(path);
+        var c = AppSettings.Load(path);
+        Check((int)c.WindowMode <= 2 && c.UiScale <= 1.5f && c.Msaa == 2 && c.MasterVolume == 100 && c.VSync, "invalid settings are clamped");
+        DirAccess.RemoveAbsolute(ProjectSettings.GlobalizePath(path));
+
+        // reset keeps language and update channel
+        b.UpdateChannel = "test";
+        b.ResetOptions();
+        Check(b.Language == "nl" && b.UpdateChannel == "test" && b.Shadows && b.MasterVolume == new AppSettings().MasterVolume && b.WindowMode == WindowModeSetting.Borderless, "reset to defaults");
+
+        // resolutions for 4:3, 16:9, ultrawide and 4K monitors
+        var uw = DisplaySettings.ResolutionsFor(new Vector2I(3440, 1440));
+        Check(uw[0] == new Vector2I(3440, 1440) && uw.Contains(new Vector2I(2560, 1080)) && uw.Contains(new Vector2I(1920, 1080)) && !uw.Contains(new Vector2I(3840, 2160)), "ultrawide resolution list");
+        Check(uw.All(r => r.X <= 3440 && r.Y <= 1440), "only resolutions that fit");
+        var k4 = DisplaySettings.ResolutionsFor(new Vector2I(3840, 2160));
+        Check(k4[0] == new Vector2I(3840, 2160) && k4.Contains(new Vector2I(2560, 1440)) && k4.Contains(new Vector2I(1600, 1200)), "4K resolution list");
+        var old = DisplaySettings.ResolutionsFor(new Vector2I(1024, 768));
+        Check(old.Count == 1 && old[0] == new Vector2I(1024, 768), "4:3 1024x768 monitor");
+        var odd = DisplaySettings.ResolutionsFor(new Vector2I(1700, 1000));
+        Check(odd[0] == new Vector2I(1700, 1000), "unusual monitor size is offered as native");
+        Check(DisplaySettings.AspectName(new Vector2I(1600, 1200)) == "4:3" && DisplaySettings.AspectName(new Vector2I(3840, 2160)) == "16:9"
+            && DisplaySettings.AspectName(new Vector2I(3440, 1440)) == "21:9" && DisplaySettings.AspectName(new Vector2I(2560, 1080)) == "21:9"
+            && DisplaySettings.AspectName(new Vector2I(1920, 1200)) == "16:10" && DisplaySettings.AspectName(new Vector2I(5120, 1440)) == "32:9", "aspect names");
+        Check(Mathf.IsEqualApprox(DisplaySettings.RenderScaleFor(new Vector2I(1920, 1080), new Vector2I(3840, 2160)), 0.5f), "1080p on a 4K screen renders 3D at half size");
+        Check(Mathf.IsEqualApprox(DisplaySettings.RenderScaleFor(Vector2I.Zero, new Vector2I(3840, 2160)), 1f), "native renders at full size");
+        Check(DisplaySettings.RenderScaleFor(new Vector2I(1600, 1200), new Vector2I(3440, 1440)) <= 1f, "render scale never above 1");
+
+        // volume curve
+        Check(AudioMixer.ToDb(0) <= -79 && Mathf.IsEqualApprox(AudioMixer.ToDb(100), 0f) && AudioMixer.ToDb(50) < AudioMixer.ToDb(80), "volume curve");
+        AudioMixer.Apply(new AppSettings { MasterVolume = 0, AmbienceSound = false });
+        Check(AudioServer.GetBusIndex(AudioMixer.Ambience) > 0 && AudioServer.GetBusIndex(AudioMixer.Interface) > 0, "audio buses exist");
+        Check(AudioServer.IsBusMute(0) && AudioServer.IsBusMute(AudioServer.GetBusIndex(AudioMixer.Ambience)), "zero volume and switched-off sound mute their bus");
+        AudioMixer.Apply(new AppSettings());
+        Check(!AudioServer.IsBusMute(0), "default volume is audible");
+
+        // quality presets
+        var p = new AppSettings();
+        UI.OptionsDialog.ApplyPreset(p, 0);
+        Check(!p.Shadows && !p.AmbientOcclusion && p.Msaa == 0, "performance preset");
+        UI.OptionsDialog.ApplyPreset(p, 2);
+        Check(p.Shadows && p.AmbientOcclusion && p.Fog && p.Msaa == 4, "quality preset");
+
+        // the generated interface sounds are real audio
+        var tone = World.UiSounds.Tone(new[] { 880f, 1320f }, 0.3f, 0.2f);
+        Check(tone.Data.Length > 1000 && tone.Data.Any(x => x != 0), "interface sounds generated");
     }
 
     static void SaveTests()

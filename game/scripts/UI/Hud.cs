@@ -26,7 +26,7 @@ public readonly record struct BuildItem(Mode Mode, int Arg = 0)
     };
 }
 
-/// <summary>In-game HUD: build menu left, resource bars top, camera/info and site checklist right, notifications and time bottom.</summary>
+/// <summary>In-game HUD: build bar along the bottom with the bulldozer bottom-right, resource bars top, camera/info and site checklist right, notifications and time bottom.</summary>
 public partial class Hud : Control
 {
     public Action<BuildItem> ToolChanged;
@@ -34,7 +34,7 @@ public partial class Hud : Control
     public Action<Role, int> CrewChanged;
     public Action<Facade> FacadeChanged;
     public Action<int> CyclePriority;
-    public Action RotateLeft, RotateRight, ToggleGrid, ToggleRoofs, FloorUp, FloorDown, OpenInfo, OpenMenu, ToggleLanguage, OpenPower;
+    public Action RotateLeft, RotateRight, ToggleGrid, ToggleRoofs, FloorUp, FloorDown, OpenInfo, OpenOptions, OpenMenu, ToggleLanguage, OpenPower;
     public Action<int> ToggleOverlay;
     public Func<GameState> State;
 
@@ -42,7 +42,8 @@ public partial class Hud : Control
     Label _money, _date, _company, _toolHint, _floorLabel, _creative;
     Button _langBtn, _roofBtn, _powerBtn, _coolBtn;
     Label _pue;
-    VBoxContainer _notes, _goals, _inspect, _sub;
+    VBoxContainer _notes, _goals, _inspect;
+    HBoxContainer _sub;
     PanelContainer _inspectPanel;
     readonly List<Button> _speedBtns = new();
     readonly Dictionary<string, Button> _catBtns = new();
@@ -58,7 +59,7 @@ public partial class Hud : Control
 
     static BuildItem O(ObjKind k) => new(Mode.Object, (int)k);
 
-    // Categories follow the brand guide; the build menu sits on the left.
+    // Categories follow the brand guide; the build bar sits along the bottom of the screen.
     static readonly (string cat, BuildItem[] items)[] Categories =
     {
         ("cat_land", new[]
@@ -133,7 +134,7 @@ public partial class Hud : Control
         top.AddChild(brand);
 
         var stats = new PanelContainer();
-        var sh = new HBoxContainer(); sh.AddThemeConstantOverride("separation", 18);
+        var sh = new HBoxContainer(); sh.AddThemeConstantOverride("separation", 14);
         stats.AddChild(sh);
         AddBar(sh, "res_power", Brand.Power);
         AddBar(sh, "res_backup", Brand.Power);
@@ -156,7 +157,7 @@ public partial class Hud : Control
 
     void AddBar(HBoxContainer parent, string key, Color c, bool bar = true)
     {
-        var v = new VBoxContainer { CustomMinimumSize = new Vector2(bar ? 130 : 80, 0) };
+        var v = new VBoxContainer { CustomMinimumSize = new Vector2(bar ? 118 : 72, 0) };
         v.AddThemeConstantOverride("separation", 2);
         v.AddChild(Ui.Heading(key, 12));
         var value = Ui.Number("0", 18);
@@ -209,66 +210,174 @@ public partial class Hud : Control
         if (_category == "cat_staff") RefreshCrewValues(s);
     }
 
-    // ---------------- left: build menu ----------------
+    // ---------------- bottom: build bar ----------------
+    /// <summary>Category icon and accent: power = amber, cooling = cyan, fiber = orange, as everywhere.</summary>
+    static (string icon, Color accent) CatStyle(string cat) => cat switch
+    {
+        "cat_land" => ("cat_land", Brand.Ok),
+        "cat_security" => ("cat_security", Brand.Critical),
+        "cat_buildings" => ("cat_buildings", Brand.Wall),
+        "cat_rooms" => ("cat_rooms", Brand.Wall),
+        "cat_interior" => ("cat_interior", Brand.Wall),
+        "cat_halls" => ("cat_halls", Brand.Ok),
+        "cat_power" => ("bolt", Brand.Power),
+        "cat_cooling" => ("snow", Brand.Cooling),
+        "cat_network" => ("cat_network", Brand.Fiber),
+        "cat_staff" => ("crew", Brand.Wall),
+        _ => ("cat_customers", Brand.Wall),
+    };
+
+    const float BarHeight = 66, TrayHeight = 136;
+    PanelContainer _tray;
+    Label _trayTitle;
+
     void BuildLeft()
     {
-        var panel = new PanelContainer { CustomMinimumSize = new Vector2(286, 0) };
-        panel.AnchorTop = 0; panel.AnchorBottom = 1;
-        panel.OffsetLeft = 12; panel.OffsetRight = 298; panel.OffsetTop = 96; panel.OffsetBottom = -70;
-        AddChild(panel);
-        var v = new VBoxContainer(); v.AddThemeConstantOverride("separation", 4);
-        panel.AddChild(v);
-        v.AddChild(Ui.Heading("hud_build"));
-        var tools = new HBoxContainer(); tools.AddThemeConstantOverride("separation", 4);
-        _selectBtn = ToolButton("tool_select", "select", () => Pick(BuildItem.Select));
-        _eraseBtn = ToolButton("tool_erase", "erase", () => Pick(new BuildItem(Mode.Erase)));
-        tools.AddChild(_selectBtn); tools.AddChild(_eraseBtn);
-        v.AddChild(tools);
-        v.AddChild(new HSeparator());
-        var grid = new GridContainer { Columns = 2 };
-        grid.AddThemeConstantOverride("h_separation", 4); grid.AddThemeConstantOverride("v_separation", 2);
+        // category bar along the bottom edge; the select tool is the first entry
+        var bar = new PanelContainer();
+        bar.AnchorTop = bar.AnchorBottom = 1;
+        bar.OffsetLeft = 12; bar.OffsetBottom = -12; bar.OffsetTop = -12 - BarHeight;
+        bar.GrowVertical = GrowDirection.Begin;
+        bar.AddThemeStyleboxOverride("panel", Ui.Box(Brand.Panel, 10, Brand.Line, 1, 6, true));
+        AddChild(bar);
+        var h = new HBoxContainer(); h.AddThemeConstantOverride("separation", 2);
+        bar.AddChild(h);
+        _selectBtn = CatButton("tool_select", "select", Brand.Amber, () => Pick(BuildItem.Select));
+        h.AddChild(_selectBtn);
+        h.AddChild(new VSeparator());
         foreach (var (cat, items) in Categories)
         {
-            var b = new Button { Text = cat, Alignment = HorizontalAlignment.Left, CustomMinimumSize = new Vector2(0, 30), SizeFlagsHorizontal = SizeFlags.ExpandFill, ClipText = true };
-            b.AddThemeFontOverride("font", Ui.DisplaySemi); b.AddThemeFontSizeOverride("font_size", 16);
-            if (items.Length == 0 && cat != "cat_staff") { b.Disabled = true; b.TooltipText = "hud_coming_soon"; }
+            var (icon, accent) = CatStyle(cat);
             var c = cat;
-            b.Pressed += () => { _category = c; RefreshCategory(); };
+            var b = CatButton(cat, icon, accent, () => { _category = _category == c ? null : c; RefreshCategory(); });
+            if (items.Length == 0 && cat != "cat_staff") { b.Disabled = true; b.TooltipText = "hud_coming_soon"; }
             _catBtns[cat] = b;
-            grid.AddChild(b);
+            h.AddChild(b);
         }
-        v.AddChild(grid);
-        v.AddChild(new HSeparator());
-        var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
-        _sub = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill }; _sub.AddThemeConstantOverride("separation", 1);
-        scroll.AddChild(_sub);
-        v.AddChild(scroll);
+
+        // tray with the items of the open category, just above the bar
+        _tray = new PanelContainer();
+        _tray.AnchorTop = _tray.AnchorBottom = 1;
+        _tray.OffsetLeft = 12; _tray.OffsetBottom = -12 - BarHeight - 6; _tray.OffsetTop = _tray.OffsetBottom - TrayHeight;
+        _tray.OffsetRight = 12 + 1000;
+        _tray.GrowVertical = GrowDirection.Begin;
+        AddChild(_tray);
+        var tv = new VBoxContainer(); tv.AddThemeConstantOverride("separation", 6);
+        _tray.AddChild(tv);
+        var head = new HBoxContainer(); head.AddThemeConstantOverride("separation", 10);
+        _trayTitle = Ui.Heading("", 14, Brand.Ink);
+        _trayTitle.VerticalAlignment = VerticalAlignment.Center;
+        head.AddChild(_trayTitle);
+        _toolHint = Ui.Text("", 13, Brand.InkDim);
+        _toolHint.AutowrapMode = TextServer.AutowrapMode.Off; _toolHint.ClipText = true;
+        _toolHint.SizeFlagsHorizontal = SizeFlags.ExpandFill; _toolHint.VerticalAlignment = VerticalAlignment.Center;
+        _toolHint.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
+        head.AddChild(_toolHint);
         _floorsRow = new HBoxContainer(); _floorsRow.AddThemeConstantOverride("separation", 6);
-        var fl = Ui.Heading("hud_floors", 13); fl.SizeFlagsHorizontal = SizeFlags.ExpandFill; fl.VerticalAlignment = VerticalAlignment.Center;
+        var fl = Ui.Heading("hud_floors", 13); fl.VerticalAlignment = VerticalAlignment.Center;
         _floorsRow.AddChild(fl);
         _floors = new SpinBox { MinValue = 1, MaxValue = Catalog.MaxFloors, Value = 1, CustomMinimumSize = new Vector2(90, 0) };
         _floors.ValueChanged += val => FloorsChanged?.Invoke((int)val);
         _floorsRow.AddChild(_floors);
-        v.AddChild(_floorsRow);
+        head.AddChild(_floorsRow);
         _facadeRow = new HBoxContainer(); _facadeRow.AddThemeConstantOverride("separation", 6);
-        var fa = Ui.Heading("hud_facade", 13); fa.SizeFlagsHorizontal = SizeFlags.ExpandFill; fa.VerticalAlignment = VerticalAlignment.Center;
+        var fa = Ui.Heading("hud_facade", 13); fa.VerticalAlignment = VerticalAlignment.Center;
         _facadeRow.AddChild(fa);
         _facade = new OptionButton { CustomMinimumSize = new Vector2(120, 0) };
         _facade.ItemSelected += i => FacadeChanged?.Invoke(OfficeFacades[i]);
         _facadeRow.AddChild(_facade);
-        v.AddChild(_facadeRow);
-        _toolHint = Ui.Text("", 13, Brand.InkDim);
-        _toolHint.CustomMinimumSize = new Vector2(256, 0);
-        _toolHint.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
-        v.AddChild(_toolHint);
+        head.AddChild(_facadeRow);
+        tv.AddChild(head);
+        var scroll = new ScrollContainer { SizeFlagsVertical = SizeFlags.ExpandFill, VerticalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        _sub = new HBoxContainer { SizeFlagsVertical = SizeFlags.ExpandFill }; _sub.AddThemeConstantOverride("separation", 6);
+        scroll.AddChild(_sub);
+        tv.AddChild(scroll);
+
+        // demolish: a big bulldozer button in the bottom-right corner
+        _eraseBtn = new Button { Icon = GD.Load<Texture2D>("res://assets/icons/bulldozer.svg"), TooltipText = "tool_erase", ExpandIcon = true, CustomMinimumSize = new Vector2(BarHeight + 12, BarHeight), IconAlignment = HorizontalAlignment.Center };
+        _eraseBtn.AnchorLeft = _eraseBtn.AnchorRight = _eraseBtn.AnchorTop = _eraseBtn.AnchorBottom = 1;
+        _eraseBtn.OffsetLeft = _eraseBtn.OffsetRight = -12; _eraseBtn.OffsetTop = _eraseBtn.OffsetBottom = -12;
+        _eraseBtn.GrowHorizontal = GrowDirection.Begin; _eraseBtn.GrowVertical = GrowDirection.Begin;
+        _eraseBtn.AddThemeConstantOverride("icon_max_width", 52);
+        _eraseBtn.AddThemeStyleboxOverride("normal", Ui.Box(Brand.Panel, 12, Brand.Line, 1, 10, true));
+        _eraseBtn.AddThemeStyleboxOverride("hover", Ui.Box(Brand.PanelHover, 12, Brand.Critical, 1, 10, true));
+        _eraseBtn.AddThemeStyleboxOverride("pressed", Ui.Box(new Color(Brand.Critical, 0.35f), 12, Brand.Critical, 2, 10, true));
+        _eraseBtn.Pressed += () => Pick(_item.Mode == Mode.Erase ? BuildItem.Select : new BuildItem(Mode.Erase));
+        AddChild(_eraseBtn);
         RefreshCategory();
     }
 
-    Button ToolButton(string key, string icon, Action a)
+    Button CatButton(string key, string icon, Color accent, Action a)
     {
-        var b = new Button { Text = key, Icon = GD.Load<Texture2D>($"res://assets/icons/{icon}.svg"), ExpandIcon = false, SizeFlagsHorizontal = SizeFlags.ExpandFill, Alignment = HorizontalAlignment.Left };
-        b.AddThemeConstantOverride("icon_max_width", 18);
+        var b = new Button
+        {
+            Text = key, Icon = GD.Load<Texture2D>($"res://assets/icons/{icon}.svg"), ExpandIcon = true,
+            IconAlignment = HorizontalAlignment.Center, VerticalIconAlignment = VerticalAlignment.Top,
+            CustomMinimumSize = new Vector2(80, BarHeight - 12), ClipText = true,
+        };
+        b.AddThemeConstantOverride("icon_max_width", 22);
+        b.AddThemeFontOverride("font", Ui.DisplaySemi); b.AddThemeFontSizeOverride("font_size", 14);
+        b.AddThemeColorOverride("icon_normal_color", new Color(accent, 0.85f));
+        b.AddThemeColorOverride("icon_hover_color", accent);
+        b.AddThemeColorOverride("icon_pressed_color", accent);
+        b.SetMeta("accent", accent);
         b.Pressed += a;
+        return b;
+    }
+
+    /// <summary>Highlight for a category tab: a coloured line along the top in the category's accent.</summary>
+    static void ActiveTab(Button b, bool on)
+    {
+        if (on)
+        {
+            var accent = b.HasMeta("accent") ? b.GetMeta("accent").AsColor() : Brand.Amber;
+            var s = Ui.Box(Brand.PanelHover, 7, null, 0, 6);
+            s.BorderColor = accent; s.BorderWidthTop = 3;
+            b.AddThemeStyleboxOverride("normal", s);
+            b.AddThemeStyleboxOverride("hover", s);
+            b.AddThemeColorOverride("font_color", Brand.Ink);
+            b.AddThemeColorOverride("icon_normal_color", accent);
+        }
+        else
+        {
+            b.RemoveThemeStyleboxOverride("normal"); b.RemoveThemeStyleboxOverride("hover");
+            b.RemoveThemeColorOverride("font_color");
+            if (b.HasMeta("accent")) b.AddThemeColorOverride("icon_normal_color", new Color(b.GetMeta("accent").AsColor(), 0.85f));
+        }
+    }
+
+    /// <summary>A card in the tray: name on top, price below, colour swatch for rooms.</summary>
+    Button ItemCard(BuildItem it, bool locked)
+    {
+        var b = new Button { CustomMinimumSize = new Vector2(150, 0), SizeFlagsVertical = SizeFlags.ExpandFill, AutoTranslateMode = AutoTranslateModeEnum.Disabled, ClipText = true };
+        b.AddThemeStyleboxOverride("normal", Ui.Box(new Color(1, 1, 1, 0.04f), 8, Brand.Line, 1, 8));
+        var v = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+        v.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        v.OffsetLeft = 10; v.OffsetRight = -8; v.OffsetTop = 6; v.OffsetBottom = -6;
+        v.AddThemeConstantOverride("separation", 2);
+        var top = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore }; top.AddThemeConstantOverride("separation", 6);
+        if (it.Mode == Mode.Room)
+            top.AddChild(new TextureRect { Texture = Swatch(new Color(Catalog.Rooms[(RoomType)it.Arg].Color)), StretchMode = TextureRect.StretchModeEnum.KeepCentered, MouseFilter = MouseFilterEnum.Ignore });
+        var name = Ui.Text(Loc.T(it.NameKey), 14, Brand.Ink, Ui.BodySemi);
+        name.AutoTranslateMode = AutoTranslateModeEnum.Disabled; name.MouseFilter = MouseFilterEnum.Ignore;
+        name.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        top.AddChild(name);
+        v.AddChild(top);
+        v.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore });
+        var cost = CostText(it);
+        var price = Ui.Number(cost == "" ? " " : cost, 15);
+        price.AddThemeColorOverride("font_color", Brand.Ok);
+        price.AutoTranslateMode = AutoTranslateModeEnum.Disabled; price.MouseFilter = MouseFilterEnum.Ignore;
+        v.AddChild(price);
+        b.AddChild(v);
+        if (it.Mode == Mode.Fence && Catalog.Fences[(FenceType)it.Arg].NeedsResearch && locked) { b.Disabled = true; b.TooltipText = Loc.T("hud_needs_research"); b.Modulate = new Color(1, 1, 1, 0.5f); }
+        var item = it;
+        b.Pressed += () => Pick(item);
+        if (_item == it)
+        {
+            var s = Ui.Box(Brand.PanelHover, 8, Brand.Amber, 2, 8);
+            b.AddThemeStyleboxOverride("normal", s); b.AddThemeStyleboxOverride("hover", s);
+        }
         return b;
     }
 
@@ -287,33 +396,28 @@ public partial class Hud : Control
     {
         foreach (var c in _sub.GetChildren()) c.QueueFree();
         var locked = State?.Invoke()?.Creative.AllUnlocks != true;
+        _tray.Visible = _category != null;
         foreach (var (cat, items) in Categories)
         {
-            Active(_catBtns[cat], cat == _category);
+            ActiveTab(_catBtns[cat], cat == _category);
             if (cat != _category) continue;
+            _trayTitle.Text = Loc.T(cat);
+            _trayTitle.AddThemeColorOverride("font_color", CatStyle(cat).accent);
             if (cat == "cat_staff") { BuildCrew(); continue; }
             if (cat is "cat_power" or "cat_cooling")
             {
                 var ov = Ui.Secondary("power_overview", () => OpenPower?.Invoke());
                 ov.Icon = GD.Load<Texture2D>(cat == "cat_power" ? "res://assets/icons/bolt.svg" : "res://assets/icons/snow.svg");
                 ov.AddThemeConstantOverride("icon_max_width", 18);
+                ov.CustomMinimumSize = new Vector2(150, 0); ov.SizeFlagsVertical = SizeFlags.ExpandFill;
                 _sub.AddChild(ov);
             }
-            foreach (var it in items)
-            {
-                var row = new Button { Alignment = HorizontalAlignment.Left, CustomMinimumSize = new Vector2(0, 30), AutoTranslateMode = AutoTranslateModeEnum.Disabled, ClipText = true };
-                var cost = CostText(it);
-                row.Text = Loc.T(it.NameKey) + (cost == "" ? "" : "   " + cost);
-                if (it.Mode == Mode.Room) row.Icon = Swatch(new Color(Catalog.Rooms[(RoomType)it.Arg].Color));
-                if (it.Mode == Mode.Fence && Catalog.Fences[(FenceType)it.Arg].NeedsResearch && locked) { row.Disabled = true; row.TooltipText = Loc.T("hud_needs_research"); }
-                var item = it;
-                row.Pressed += () => Pick(item);
-                Active(row, _item == it);
-                _sub.AddChild(row);
-            }
+            foreach (var it in items) _sub.AddChild(ItemCard(it, locked));
         }
-        Active(_selectBtn, _item.Mode == Mode.Select);
-        Active(_eraseBtn, _item.Mode == Mode.Erase);
+        ActiveTab(_selectBtn, _item.Mode == Mode.Select);
+        var erasing = _item.Mode == Mode.Erase;
+        _eraseBtn.AddThemeStyleboxOverride("normal", erasing ? Ui.Box(new Color(Brand.Critical, 0.35f), 12, Brand.Critical, 2, 10, true) : Ui.Box(Brand.Panel, 12, Brand.Line, 1, 10, true));
+        _eraseBtn.AddThemeColorOverride("icon_normal_color", erasing ? Brand.Ink : Brand.InkDim);
         _floorsRow.Visible = _item.Mode == Mode.Building;
         _facadeRow.Visible = _item.Mode == Mode.Building && _item.Arg == (int)BuildingKind.Office;
         var sel = Math.Max(0, _facade.Selected);
@@ -325,6 +429,20 @@ public partial class Hud : Control
             Mode.Erase => "hint_erase", Mode.Surface => "hint_surface", Mode.Fence => "hint_fence", Mode.Building => "hint_building",
             Mode.Room => "hint_room", Mode.Door => "hint_door", Mode.Row => "hint_row", Mode.Object => "hint_place", _ => "hint_select",
         });
+        FitTray();
+    }
+
+    /// <summary>The tray spans from the left edge to just before the bulldozer, never wider than its content needs.</summary>
+    void FitTray()
+    {
+        if (_tray == null) return;
+        var avail = Size.X - 24;
+        _tray.OffsetRight = 12 + Math.Min(avail, 1400);
+    }
+
+    public override void _Notification(int what)
+    {
+        if (what == NotificationResized) FitTray();
     }
 
     static ImageTexture Swatch(Color c)
@@ -340,10 +458,11 @@ public partial class Hud : Control
     void BuildCrew()
     {
         _crewLabels.Clear();
-        _sub.AddChild(Ui.Text("crew_help", 13, Brand.InkDim));
+        var help = Ui.Text("crew_help", 13, Brand.InkDim); help.CustomMinimumSize = new Vector2(260, 0);
+        _sub.AddChild(help);
         foreach (var role in new[] { Role.Builder, Role.Fitter, Role.Engineer })
         {
-            var box = new VBoxContainer(); box.AddThemeConstantOverride("separation", 0);
+            var box = new VBoxContainer { CustomMinimumSize = new Vector2(190, 0) }; box.AddThemeConstantOverride("separation", 0);
             var h = new HBoxContainer(); h.AddThemeConstantOverride("separation", 4);
             var name = Ui.Text("crew_" + role.ToString().ToLowerInvariant(), 15, Brand.Ink, Ui.BodySemi);
             name.SizeFlagsHorizontal = SizeFlags.ExpandFill;
@@ -430,6 +549,7 @@ public partial class Hud : Control
         _langBtn.AddThemeFontOverride("font", Ui.DisplayBold);
         _langBtn.Pressed += () => ToggleLanguage?.Invoke();
         h.AddChild(_langBtn);
+        h.AddChild(Ui.IconButton("settings", "hud_options", () => OpenOptions?.Invoke()));
         h.AddChild(Ui.IconButton("info", "hud_info", () => OpenInfo?.Invoke()));
         h.AddChild(Ui.IconButton("menu", "hud_menu", () => OpenMenu?.Invoke()));
 
@@ -557,19 +677,21 @@ public partial class Hud : Control
     {
         _notes = new VBoxContainer { Alignment = BoxContainer.AlignmentMode.End };
         _notes.AnchorTop = _notes.AnchorBottom = 1;
-        _notes.OffsetTop = _notes.OffsetBottom = -12; _notes.OffsetLeft = 312;
+        _notes.OffsetTop = _notes.OffsetBottom = -12 - BarHeight - 6 - TrayHeight - 10; _notes.OffsetLeft = 12;
         _notes.GrowVertical = GrowDirection.Begin;
         _notes.MouseFilter = MouseFilterEnum.Ignore;
         AddChild(_notes);
 
         var time = new PanelContainer();
         time.AnchorLeft = time.AnchorRight = time.AnchorTop = time.AnchorBottom = 1;
-        time.OffsetLeft = time.OffsetRight = -12; time.OffsetTop = time.OffsetBottom = -12;
+        // time panel sits on the bottom row, between the build bar and the bulldozer
+        time.OffsetLeft = time.OffsetRight = -12 - (BarHeight + 12) - 8; time.OffsetTop = time.OffsetBottom = -12;
+        time.CustomMinimumSize = new Vector2(0, BarHeight);
         time.GrowHorizontal = GrowDirection.Begin; time.GrowVertical = GrowDirection.Begin;
         AddChild(time);
         var h = new HBoxContainer(); h.AddThemeConstantOverride("separation", 4);
         time.AddChild(h);
-        _date = Ui.Number("", 17); _date.CustomMinimumSize = new Vector2(200, 0); _date.VerticalAlignment = VerticalAlignment.Center;
+        _date = Ui.Number("", 17); _date.CustomMinimumSize = new Vector2(180, 0); _date.VerticalAlignment = VerticalAlignment.Center;
         _date.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
         h.AddChild(_date);
         string[] icons = { "pause", "play", "fast", "faster" };
@@ -599,6 +721,7 @@ public partial class Hud : Control
         p.MouseFilter = MouseFilterEnum.Ignore;
         p.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
         _notes.AddChild(p);
+        World.UiSounds.Instance?.Chime();
         while (_notes.GetChildCount() > 4) _notes.GetChild(0).QueueFree();
         var tw = CreateTween();
         tw.TweenInterval(7);

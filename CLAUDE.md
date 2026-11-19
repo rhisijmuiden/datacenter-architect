@@ -4,7 +4,8 @@
 - Default language English; every player-facing string must also have a Dutch translation. Keep technical terms (rack, CRAH, UPS, N+1) untranslated.
 - Branches: `main` = stable channel, `test` = test channel. Work lands on `test` first, then is promoted to `main`.
 - Follow the brand in `brand/BRAND.md` and `brand/tokens.json`. Power = amber, cooling = cyan, fiber = orange, everywhere.
-- Build menus sit on the left side of the screen.
+- The in-game build menu is a bar along the bottom of the screen (categories with icons, item tray above), the bulldozer (demolish) sits bottom-right. Reinder asked for this on 2026-11-19; menus inside dialogs (Options) keep their tabs on the left.
+- Player settings live in `Core/AppSettings.cs` (user://settings.cfg) and are edited in `UI/OptionsDialog.cs`; display logic in `Core/DisplaySettings.cs`, audio buses in `Core/AudioMixer.cs`.
 - Game rules live in `docs/game-design.md`; update it when gameplay decisions change.
 - Godot project lives in `game/` (Godot 4.5.1 .NET, C#, net8.0). Build: `dotnet build game/DatacenterArchitect.csproj`; tests: `godot --headless --path game -- --run-tests`.
 - Player-facing text goes through keys in `game/locale/strings.tsv` (key, en, nl). The translation test fails when a Dutch text is missing.

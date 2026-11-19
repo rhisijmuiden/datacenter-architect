@@ -15,6 +15,7 @@ public partial class Main : Node3D
     WorldView _world;
     CameraRig _cam;
     Ambience _sound;
+    UiSounds _uiSounds;
     Control _ui;
     Hud _hud;
     MainMenu _menu;
@@ -42,6 +43,8 @@ public partial class Main : Node3D
         _world = new WorldView(); AddChild(_world);
         _cam = new CameraRig(); AddChild(_cam);
         _sound = new Ambience(); AddChild(_sound);
+        _uiSounds = new UiSounds(); AddChild(_uiSounds);
+        ApplyDisplay(); ApplyOther();
         var layer = new CanvasLayer(); AddChild(layer);
         _ui = new Control { Theme = Ui.BuildTheme(), MouseFilter = Control.MouseFilterEnum.Ignore };
         _ui.SetAnchorsAndOffsetsPreset(Control.LayoutPreset.FullRect);
@@ -67,6 +70,7 @@ public partial class Main : Node3D
             Continue = () => LoadSlot(SaveSystem.List().First().Slot),
             NewGame = () => _ui.AddChild(new NewGameDialog(StartNew)),
             LoadGame = () => _ui.AddChild(new SaveLoadDialog(false, () => null, LoadSlot)),
+            Options = OpenOptions,
             Info = OpenInfo,
             ToggleLanguage = ToggleLanguage,
             Quit = () => GetTree().Quit(),
@@ -116,7 +120,7 @@ public partial class Main : Node3D
             ToggleRoofs = () => SetView(_world.ViewFloor, !_world.Roofs),
             FloorUp = () => SetView(_world.ViewFloor + 1, false),
             FloorDown = () => SetView(_world.ViewFloor - 1, _world.ViewFloor - 1 <= 0 && _world.Roofs),
-            OpenInfo = OpenInfo, OpenMenu = OpenPause, ToggleLanguage = ToggleLanguage,
+            OpenInfo = OpenInfo, OpenOptions = OpenOptions, OpenMenu = OpenPause, ToggleLanguage = ToggleLanguage,
             OpenPower = OpenPower, ToggleOverlay = m => SetOverlay(_world.Overlay.Mode == (OverlayMode)m ? OverlayMode.None : (OverlayMode)m),
         };
         _ui.AddChild(_hud);
@@ -182,6 +186,26 @@ public partial class Main : Node3D
         _hud?.SetOverlay((int)m);
     }
 
+    void OpenOptions(int tab)
+    {
+        if (_ui.GetChildren().OfType<OptionsDialog>().Any()) return;
+        _ui.AddChild(new OptionsDialog(ApplyDisplay, ApplyOther, SetLanguage, tab));
+    }
+
+    void OpenOptions() => OpenOptions(0);
+
+    /// <summary>Window mode, resolution, monitor, V-Sync, frame cap and interface size.</summary>
+    void ApplyDisplay() => DisplaySettings.Apply(AppSettings.Instance, GetTree().Root);
+
+    /// <summary>Graphics, visual effects, camera and audio.</summary>
+    void ApplyOther()
+    {
+        var s = AppSettings.Instance;
+        _world?.ApplyEffects(s);
+        if (_cam != null) _cam.Smooth = s.SmoothCamera;
+        AudioMixer.Apply(s);
+    }
+
     void OpenInfo() => _ui.AddChild(new InfoDialog(() => { if (_playing) Autosave(); }));
 
     void OpenPause()
@@ -191,6 +215,7 @@ public partial class Main : Node3D
         var m = new PauseMenu(
             save: () => _ui.AddChild(new SaveLoadDialog(true, () => { SyncCamera(); return _state; }, LoadSlot)),
             load: () => _ui.AddChild(new SaveLoadDialog(false, () => _state, LoadSlot)),
+            options: OpenOptions,
             info: OpenInfo,
             toMenu: () => { Autosave(); ShowTitle(); },
             quit: () => { Autosave(); GetTree().Quit(); });
@@ -198,9 +223,11 @@ public partial class Main : Node3D
         _ui.AddChild(m);
     }
 
-    void ToggleLanguage()
+    void ToggleLanguage() => SetLanguage(Loc.Language == "en" ? "nl" : "en");
+
+    void SetLanguage(string lang)
     {
-        Loc.SetLanguage(Loc.Language == "en" ? "nl" : "en");
+        Loc.SetLanguage(lang);
         _hud?.RefreshLanguage();
         _menu?.Refresh();
         _world.Invalidate();
@@ -233,6 +260,8 @@ public partial class Main : Node3D
     public override void _Notification(int what)
     {
         if (what == NotificationWMCloseRequest) Autosave();
+        if (what == NotificationApplicationFocusOut) AudioMixer.SetInBackground(true, AppSettings.Instance);
+        if (what == NotificationApplicationFocusIn) AudioMixer.SetInBackground(false, AppSettings.Instance);
     }
 
     // ---------------- loop ----------------
@@ -320,6 +349,17 @@ public partial class Main : Node3D
     }
 
     static Vector2I CellOf(Vector2 p) => new(Mathf.FloorToInt(p.X), Mathf.FloorToInt(p.Y));
+
+    /// <summary>Alt+Enter and F11 switch between windowed and fullscreen, on any screen.</summary>
+    public override void _Input(InputEvent e)
+    {
+        if (_ui == null) return;
+        if (e is InputEventKey { Pressed: true, Echo: false } k && (k.Keycode == Key.F11 || (k.Keycode == Key.Enter && k.AltPressed)))
+        {
+            DisplaySettings.ToggleFullscreen(AppSettings.Instance, GetTree().Root);
+            GetViewport().SetInputAsHandled();
+        }
+    }
 
     public override void _UnhandledInput(InputEvent e)
     {
@@ -647,7 +687,7 @@ public partial class Main : Node3D
     }
 
     // ---------------- dev helpers ----------------
-    /// <summary>--screenshot path [--in-game] [--interior] [--new-game] [--info] [--nl] [--hours N] [--driveway] [--curves] [--gate] [--barrier]</summary>
+    /// <summary>--screenshot path [--in-game] [--interior] [--new-game] [--info] [--options TAB] [--nl] [--hours N] [--driveway] [--curves] [--gate] [--barrier]</summary>
     async System.Threading.Tasks.Task Screenshot(string path, string[] args)
     {
         if (args.Contains("--nl")) Loc.SetLanguage("nl");
@@ -699,6 +739,8 @@ public partial class Main : Node3D
         }
         if (args.Contains("--new-game")) _ui.AddChild(new NewGameDialog(_ => { }));
         if (args.Contains("--info")) OpenInfo();
+        var oi = Array.IndexOf(args, "--options");
+        if (oi >= 0) OpenOptions(oi + 1 < args.Length && int.TryParse(args[oi + 1], out var tab) ? tab : 0);
         if (args.Contains("--power")) { _playing = true; OpenPower(); }
         for (var i = 0; i < 50; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         if (args.Contains("--new-game"))
