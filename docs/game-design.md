@@ -843,6 +843,7 @@ Goedgekeurd door Reinder op 19 november 2026; ze komen in de genoemde stap.
 8. **Beveiliging, research en reputatie**: camera's, videowall, glazen loge, beveiligingspolicies, research tree, voorstellen van NOC en netwerkarchitect, recensies, certificeringen, overheidsklanten
 9. **Groei**: campus, office manager en kantoren of kantoorlocaties verhuren, warehouse, hostingbedrijf (cloud, dedicated servers met voorraad, grote contracten, dashboard), meerdere locaties en landen, markt en concurrentie (aanbestedingen, overnames, beursgang, marktnieuws), dynamische energieprijzen, ESG-score met waterverbruik, cyberaanvallen en SOC, rampen en verzekering, leveringsproblemen, sleutelpersoneel
 10. **Uiterlijk**: rondere 3D-poppetjes, first-person rondlopen door je datacenter (alleen kijken en luisteren), klantmigraties met vrachtwagens, seizoenen en weer, dag en nacht
+   - *Speelronde na stap 10*: Reinder speelt het spel een tijdje en geeft bugs en verbeteringen door in een aparte thread; die worden opgelost voordat stap 11 begint.
 11. **Afwerking en extra's**: tutorial met een begeleide eerste kavel, scenario's en uitdagingen met medailles ("red een failliet datacenter", "haal binnen 5 jaar 10 MW"), statistieken en grafieken door de tijd (omzet, PUE, uptime, verbruik), fotomodus, timelapse van je campus, achievements en later Steam-ondersteuning, mod-ondersteuning (eigen gebouwen en objecten)
 
 Bij elke stap horen ook de uitbreidingen uit *Uitbreidingen en ideeën per stap*.
