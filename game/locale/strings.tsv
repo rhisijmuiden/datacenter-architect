@@ -1274,3 +1274,414 @@ prop_securitytech	Security kit from {0}	Beveiligingstechniek van {0}
 prop_securitytech_quote	"With the new access system from {1} for {0} our security level rises by {2}."	"Met het nieuwe toegangssysteem van {1} voor {0} stijgt ons beveiligingsniveau met {2}."
 prop_crm	Sales campaign with {0}	Salescampagne met {0}
 prop_crm_quote	"A campaign with {1} for {0} brings {2}% more customer requests."	"Een campagne met {1} voor {0} brengt {2}% meer klantaanvragen."
+cat_growth	Growth	Groei
+hud_growth	Growth: locations, hosting, market, energy and risks	Groei: locaties, hosting, markt, energie en risico's
+hud_news	News	Nieuws
+hud_news_tip	Market news. Click for the market overview.	Marktnieuws. Klik voor het marktoverzicht.
+gr_title	Growth	Groei
+gr_tab_locations	Locations	Locaties
+gr_tab_offices	Offices	Kantoren
+gr_tab_hosting	Hosting	Hosting
+gr_tab_market	Market	Markt
+gr_tab_energy	Energy and ESG	Energie en ESG
+gr_tab_risks	Risks	Risico's
+gr_tab_people	Key people	Sleutelfiguren
+gr_share_short	Market share {0}	Marktaandeel {0}
+gr_esg_short	ESG score {0}	ESG-score {0}
+gr_sites_short	Locations: {0}	Locaties: {0}
+obj_solar	Solar panels	Zonnepanelen
+obj_wind	Wind turbine	Windmolen
+obj_battery_container	Battery container	Batterijcontainer
+obj_dry_cooler	Dry cooler	Dry cooler
+obj_pallet_rack	Pallet rack	Palletstelling
+obj_workbench	Workbench	Werkbank
+obj_pallet_jack	Pallet jack	Palletwagen
+obj_shredder	Disk shredder	Schijvenvernietiger
+obj_soc_desk	SOC desk	SOC-werkplek
+room_soc	SOC	SOC
+room_warehouse	Warehouse store	Magazijn
+exec_hosting	Hosting director	Directeur hosting
+exec_hosting_unlocks	Starts and runs your own hosting company: VPS, dedicated servers, GPU servers, storage and backup. Hires hosting engineers.	Start en leidt je eigen hostingbedrijf: VPS, dedicated servers, GPU-servers, opslag en back-up. Neemt hosting engineers aan.
+exec_hosting_train_1	Cloud product management (+10% sign-ups)	Productmanagement cloud (+10% aanmeldingen)
+exec_hosting_train_2	Hyperscale operations (+10% sign-ups)	Hyperscale operations (+10% aanmeldingen)
+exec_sustainability	Sustainability manager	Duurzaamheidsmanager
+exec_sustainability_unlocks	Raises your ESG score: reports, green purchasing and less water. Green customers and investors notice.	Verhoogt je ESG-score: rapportages, groene inkoop en minder water. Groene klanten en investeerders merken het.
+exec_sustainability_train_1	CSRD reporting (+2 ESG)	CSRD-rapportage (+2 ESG)
+exec_sustainability_train_2	Science-based targets (+2 ESG)	Science-based targets (+2 ESG)
+exec_international	International director	Internationaal directeur
+exec_international_unlocks	Opens country offices abroad and runs your other locations. Needed for more than one extra datacenter.	Opent landenkantoren in het buitenland en beheert je andere locaties. Nodig voor meer dan één extra datacenter.
+exec_international_train_1	Cross-border tax and permits	Internationale belasting en vergunningen
+exec_international_train_2	Global expansion programme	Programma wereldwijde expansie
+staff_soc	SOC analyst	SOC-analist
+staff_soc_desc	Watches the networks for attacks from a desk in the SOC. More analysts and 24/7 monitoring stop more attacks.	Bewaakt de netwerken op aanvallen vanaf een werkplek in het SOC. Meer analisten en 24/7 bewaking houden meer aanvallen tegen.
+staff_hosting	Hosting engineer	Hosting engineer
+staff_hosting_desc	Prepares servers from the warehouse, installs them in your own-cloud halls and answers hosting tickets.	Haalt servers uit het warehouse, installeert ze in je eigen cloudzalen en beantwoordt hostingtickets.
+msg_needs_soc	Build a SOC room first.	Bouw eerst een SOC-ruimte.
+msg_growth_new	New in this version: growth. Buy land, open other locations, start a hosting company and watch the market (globe button top right).	Nieuw in deze versie: groei. Koop grond, open andere locaties, start een hostingbedrijf en volg de markt (wereldbol rechtsboven).
+msg_tender_lost_to	Tender lost: {0} chose {1}.	Aanbesteding verloren: {0} koos voor {1}.
+msg_land_bought	Land bought: your campus is now {0} × {0} m.	Grond gekocht: je campus is nu {0} × {0} m.
+msg_needs_international	Hire an international director first.	Neem eerst een internationaal directeur aan.
+msg_needs_country	Open a country office there first.	Open daar eerst een landenkantoor.
+msg_country_open	Country office opened: {0}.	Landenkantoor geopend: {0}.
+msg_site_started	Construction of the new location in {0} has started.	De bouw van de nieuwe locatie in {0} is begonnen.
+msg_site_ready	The datacenter in {0} is open. The local team starts selling racks.	Het datacenter in {0} is open. Het lokale team begint racks te verkopen.
+msg_site_expanded	The location in {0} has been expanded.	De locatie in {0} is uitgebreid.
+msg_site_sold	Location {0} sold.	Locatie {0} verkocht.
+msg_site_disaster	Disaster at the location in {0}: it is offline for a few days.	Ramp bij de locatie in {0}: die is een paar dagen offline.
+msg_office_bought	Office building bought in {0}. The office manager looks for tenants.	Kantoorpand gekocht in {0}. De officemanager zoekt huurders.
+msg_office_let_customer	Your customer {0} rents an office on your campus.	Je klant {0} huurt een kantoor op je campus.
+msg_office_let_other	{0} rents an office on your campus.	{0} huurt een kantoor op je campus.
+msg_rival_for_sale	{0} is in trouble and up for sale.	{0} zit in de problemen en staat te koop.
+msg_offer_new	A datacenter is for sale: {0}. See Growth, Locations.	Er staat een datacenter te koop: {0}. Zie Groei, Locaties.
+msg_acquired	Acquired: {0} is now one of your locations.	Overgenomen: {0} is nu een van je locaties.
+msg_ipo_done	Listed on the stock exchange! € {0} raised.	Naar de beurs! € {0} opgehaald.
+msg_ipo_needs_cfo	A trained CFO is needed for a stock market listing.	Voor een beursgang is een getrainde CFO nodig.
+msg_ipo_revenue	Not enough revenue yet for a stock market listing.	Nog niet genoeg omzet voor een beursgang.
+msg_ipo_value	The company is not worth enough yet.	Het bedrijf is nog niet genoeg waard.
+msg_ipo_shares	Investors already own too much of the company.	Investeerders bezitten al te veel van het bedrijf.
+msg_energy_spike	Energy prices shoot up. Variable contracts pay more; batteries earn more.	De energieprijzen schieten omhoog. Variabele contracten betalen meer; batterijen verdienen meer.
+msg_energy_cheap	Energy is cheap for a while thanks to lots of wind and sun.	Energie is een tijdje goedkoop dankzij veel wind en zon.
+msg_cyber_blocked	Attack blocked: {0}.	Aanval tegengehouden: {0}.
+msg_cyber_hit	Cyberattack: {0}. It cost money and reputation.	Cyberaanval: {0}. Dat kostte geld en reputatie.
+msg_insurance_paid	The insurer pays € {0}.	De verzekeraar betaalt € {0}.
+msg_disaster_storm	A heavy storm damaged equipment outside.	Een zware storm heeft apparatuur buiten beschadigd.
+msg_disaster_lightning	Lightning strike! Power equipment is damaged.	Blikseminslag! Stroomapparatuur is beschadigd.
+msg_disaster_flood	Flooding: a ground floor hall is shut down until it is dry.	Wateroverlast: een zaal op de begane grond ligt stil tot hij droog is.
+msg_disaster_substation	Fire at the grid substation: a long power cut.	Brand in het onderstation: een lange stroomstoring.
+msg_disaster_fire	Fire in an office or warehouse building.	Brand in een kantoor- of warehousegebouw.
+msg_supply_0	Chip shortage: racks and network gear take {0} days longer.	Chiptekort: racks en netwerkapparatuur duren {0} dagen langer.
+msg_supply_1	Transformer shortage: power equipment takes {0} days longer.	Tekort aan transformatoren: stroomapparatuur duurt {0} dagen langer.
+msg_supply_2	Port strike: all deliveries take {0} days longer.	Havenstaking: alle leveringen duren {0} dagen langer.
+msg_hosting_started	{0} is open for business.	{0} is open voor klanten.
+msg_hosting_full	Your own cloud is full. Add racks to an own-cloud hall.	Je eigen cloud zit vol. Zet meer racks in een eigen-cloudzaal.
+msg_hosting_no_racks	The hosting company has no racks. Mark a hall as own cloud and fill it with racks.	Het hostingbedrijf heeft geen racks. Markeer een zaal als eigen cloud en zet er racks in.
+msg_needs_hosting	Start the hosting company first.	Start eerst het hostingbedrijf.
+msg_needs_hosting_dir	Hire a hosting director first.	Neem eerst een directeur hosting aan.
+msg_campaign_busy	A campaign is already running.	Er loopt al een campagne.
+msg_host_deal_new	A big hosting customer wants {0} servers. See Growth, Hosting.	Een grote hostingklant wil {0} servers. Zie Groei, Hosting.
+msg_host_deal_signed	Big contract signed: {0}.	Groot contract getekend: {0}.
+msg_host_deal_done	All servers delivered for {0}.	Alle servers geleverd voor {0}.
+msg_host_deal_late	Late with the servers for {0}: a penalty.	Te laat met de servers voor {0}: een boete.
+msg_host_deal_end	The big contract with {0} has ended.	Het grote contract met {0} is afgelopen.
+msg_key_candidate	The headhunter found {0}, a possible {1}.	De headhunter heeft {0} gevonden, een mogelijke {1}.
+msg_key_have	You already have someone in this role.	Je hebt al iemand in deze rol.
+msg_key_hired	{0} has joined the company.	{0} is in dienst gekomen.
+msg_key_left	{0} has left the company.	{0} heeft het bedrijf verlaten.
+msg_key_stays	{0} stays with the company.	{0} blijft bij het bedrijf.
+msg_key_poach	{1} tries to poach {0}! See Growth, Key people.	{1} probeert {0} weg te kapen! Zie Groei, Sleutelfiguren.
+event_flood	Flooding	Wateroverlast
+event_flood_desc	A hall on the ground floor is shut down until the water is gone.	Een zaal op de begane grond ligt stil tot het water weg is.
+book_inc_sites	Other locations	Andere locaties
+book_inc_office_property	Office buildings	Kantoorpanden
+book_cost_sites	Locations and countries	Locaties en landen
+book_inc_hosting	Hosting company	Hostingbedrijf
+book_cost_hosting	Hosting servers and licences	Hostingservers en licenties
+book_inc_battery	Battery trading	Batterijhandel
+book_cost_water	Water	Water
+book_cost_insurance	Insurance	Verzekering
+book_inc_insurance	Insurance payouts	Uitkeringen verzekering
+book_cost_security_ops	SOC monitoring	SOC-bewaking
+book_cost_cyber	Cyberattacks	Cyberaanvallen
+book_cost_disaster	Disaster damage	Schade door rampen
+book_cost_land	Land	Grond
+book_cost_acquisition	Acquisitions	Overnames
+book_fin_ipo	Stock market listing	Beursgang
+book_fin_sale	Locations sold	Verkochte locaties
+new_rivals	Rivals	Concurrenten
+new_aggression	Aggression	Agressiviteit
+new_aggr_0	Calm	Rustig
+new_aggr_1	Normal	Normaal
+new_aggr_2	Aggressive	Agressief
+new_world	The world around you	De wereld om je heen
+new_news	News ticker	Nieuwsticker
+new_news_help	Market news scrolls along the top of the screen.	Marktnieuws loopt bovenin het scherm voorbij.
+new_prices	Dynamic energy prices	Dynamische energieprijzen
+new_prices_help	Prices change by the hour and the season, with shocks now and then.	Prijzen veranderen per uur en per seizoen, met af en toe een schok.
+new_disasters	Disasters	Rampen
+new_disasters_help	Storms, lightning, floods and fires. Insurance helps.	Stormen, blikseminslag, wateroverlast en brand. Een verzekering helpt.
+new_supply	Supply delays	Leveringsvertragingen
+new_supply_help	Shortages now and then make deliveries slower.	Af en toe maken tekorten leveringen trager.
+new_world_help	Each switch can be turned off for a calmer game.	Elke schakelaar kun je uitzetten voor een rustiger spel.
+country_nl	Netherlands	Nederland
+country_be	Belgium	België
+country_de	Germany	Duitsland
+country_fr	France	Frankrijk
+country_ie	Ireland	Ierland
+country_dk	Denmark	Denemarken
+country_se	Sweden	Zweden
+country_es	Spain	Spanje
+size_edge	Edge (48 racks)	Edge (48 racks)
+size_medium	Medium (192 racks)	Middelgroot (192 racks)
+size_large	Large (768 racks)	Groot (768 racks)
+size_hyperscale	Hyperscale (1,920 racks)	Hyperscale (1.920 racks)
+loc_help	Grow beyond your first plot: buy the land around your campus, open datacenters in other cities and countries, or buy one that is for sale. Each location has its own team that builds, sells and runs it.	Groei verder dan je eerste kavel: koop de grond rond je campus, open datacenters in andere steden en landen, of koop er een die te koop staat. Elke locatie heeft een eigen team dat bouwt, verkoopt en beheert.
+loc_campus	Campus {0}	Campus {0}
+loc_plot	{0} × {0} m	{0} × {0} m
+loc_land_help	Buy the land to the north and west. Everything you built stays in its place along the road.	Koop de grond aan de noord- en westkant. Alles wat je hebt gebouwd blijft op zijn plek langs de weg.
+loc_buy_land	Buy land up to {0} × {0} m for {1}	Koop grond tot {0} × {0} m voor {1}
+loc_land_max	Your campus has its largest size.	Je campus heeft zijn grootste formaat.
+loc_country_open	Open for you	Open voor jou
+loc_country_closed	No country office yet	Nog geen landenkantoor
+loc_country_stats	Energy {0} · building {1} · demand {2} · green grid {3} · grid connection {4} days	Energie {0} · bouwen {1} · vraag {2} · groen net {3} · netaansluiting {4} dagen
+loc_water_stress	Water is scarce here: cooling towers hurt your ESG score more.	Water is hier schaars: koeltorens drukken je ESG-score extra.
+loc_open_country	Open a country office ({0})	Open een landenkantoor ({0})
+loc_build_site	Build a datacenter here	Bouw hier een datacenter
+loc_size_line	{0} racks · {1} MW IT	{0} racks · {1} MW IT
+loc_size_days	Ready in about {0} days	Klaar in ongeveer {0} dagen
+loc_buy_office	Buy an office building to let	Koop een kantoorpand om te verhuren
+loc_office_size	{0} m² · {1}	{0} m² · {1}
+loc_yours	Your locations	Jouw locaties
+loc_none	Only your campus so far.	Nog alleen je campus.
+loc_office_name	Office building {0}	Kantoorpand {0}
+loc_office_line	{0} m² · {1} let · {2} per month	{0} m² · {1} verhuurd · {2} per maand
+loc_building	Under construction ({0}) · about {1} days left	In aanbouw ({0}) · nog ongeveer {1} dagen
+loc_racks	{0} / {1} racks sold	{0} / {1} racks verkocht
+loc_net_month	{0} per month	{0} per maand
+loc_acquired	acquired	overgenomen
+loc_linked	own fiber to the campus	eigen glasvezel naar de campus
+loc_expanding	expanding, {0} days left	wordt uitgebreid, nog {0} dagen
+loc_offline	offline after a disaster	offline na een ramp
+loc_expand	Expand to {0} ({1})	Uitbreiden naar {0} ({1})
+loc_link	Lay own fiber ({0})	Eigen glasvezel leggen ({0})
+loc_sell	Sell	Verkopen
+loc_for_sale	For sale	Te koop
+loc_for_sale_help	Datacenters come up for sale now and then: independent ones the CFO hears about, and rivals in trouble. Buying one brings its customers along.	Af en toe komen datacenters te koop: zelfstandige waar de CFO over hoort en concurrenten in de problemen. Een overname neemt de klanten mee.
+loc_no_offers	Nothing for sale at the moment.	Op dit moment staat er niets te koop.
+loc_offer_ends	{0} days left	Nog {0} dagen
+loc_offer_rival	Rival in {0}, {1}: {2} racks, {3} rented out.	Concurrent in {0}, {1}: {2} racks, {3} verhuurd.
+loc_offer_indie	Independent datacenter in {0}, {1}: {2} racks, {3} rented out.	Zelfstandig datacenter in {0}, {1}: {2} racks, {3} verhuurd.
+loc_offer_buy	Buy for {0}	Kopen voor {0}
+off_help	Office rooms without desks can be let. Your datacenter customers like an office close to their racks and pay a little more; with the research Office rental other companies rent them too. A whole office building with one tenant earns 10% extra.	Kantoorruimtes zonder bureaus kun je verhuren. Je datacenterklanten willen graag een kantoor dicht bij hun racks en betalen iets meer; met de research Kantoorverhuur huren ook andere bedrijven ze. Een heel kantoorpand met één huurder levert 10% extra op.
+off_only_customers	Without the research Office rental only your customers rent offices.	Zonder de research Kantoorverhuur huren alleen je klanten kantoren.
+off_policy	Who may rent	Wie mag huren
+off_policy_0	Customers first	Klanten eerst
+off_policy_1	Only customers	Alleen klanten
+off_policy_2	Anyone	Iedereen
+off_rooms	Rentable offices	Verhuurbare kantoren
+off_let	Let	Verhuurd
+off_to_customers	To customers	Aan klanten
+off_rent	Rent per month	Huur per maand
+off_no_rooms	Build office rooms (without desks) in an office building to let them.	Bouw kantoorruimtes (zonder bureaus) in een kantoorpand om ze te verhuren.
+off_room	{0} · {1} m²	{0} · {1} m²
+off_free	Free, the office manager looks for a tenant	Vrij, de officemanager zoekt een huurder
+off_customer	customer	klant
+off_whole	whole building	heel pand
+off_month	{0} / month	{0} / maand
+off_end	End lease	Huur opzeggen
+host_help	Your own hosting company sells VPS, dedicated and GPU servers, storage and backup. It runs on racks in halls you mark as own cloud. Dedicated servers come from the warehouse: the team prepares them at the workbenches and a hosting engineer installs them. You choose prices, stock and campaigns; the team does the rest.	Je eigen hostingbedrijf verkoopt VPS'en, dedicated en GPU-servers, opslag en back-up. Het draait op racks in zalen die je als eigen cloud markeert. Dedicated servers komen uit het warehouse: het team maakt ze klaar aan de werkbanken en een hosting engineer installeert ze. Jij kiest prijzen, voorraad en campagnes; het team doet de rest.
+host_start	Start the hosting company ({0})	Start het hostingbedrijf ({0})
+host_customers	Customers	Klanten
+host_revenue	Revenue / month	Omzet / maand
+host_servers	Servers / room	Servers / ruimte
+host_stock	In stock	Op voorraad
+host_uptime	Uptime	Uptime
+host_satisfaction	Satisfaction	Tevredenheid
+host_tickets	Tickets / day	Tickets / dag
+host_churn	Customers lost	Klanten vertrokken
+host_revenue_chart	Revenue per month	Omzet per maand
+host_no_racks	No racks yet: mark a hall as own cloud (hall zones) and place racks in it.	Nog geen racks: markeer een zaal als eigen cloud (zalen) en zet er racks in.
+host_racks_line	Own cloud: {0} of {1} racks working · {2} servers per rack	Eigen cloud: {0} van {1} racks werken · {2} servers per rack
+host_warehouse_line	Warehouse: {0} workbenches, {1} pallet racks, {2} warehouse workers → {3} servers prepared per day · {4} hosting engineers	Warehouse: {0} werkbanken, {1} palletstellingen, {2} magazijnmedewerkers → {3} servers per dag klaargemaakt · {4} hosting engineers
+host_products	Products	Producten
+host_product_line	{0} customers · {1} servers · {2} / month	{0} klanten · {1} servers · {2} / maand
+host_needs_research	Needs research: {0}	Vereist research: {0}
+host_price_0	Budget	Budget
+host_price_1	Normal	Normaal
+host_price_2	Premium	Premium
+host_waiting	{0} customers wait for a server	{0} klanten wachten op een server
+host_vps	VPS	VPS
+host_vps_desc	Virtual servers: 40 customers per server. Many small customers.	Virtuele servers: 40 klanten per server. Veel kleine klanten.
+host_dedicated	Dedicated servers	Dedicated servers
+host_dedicated_desc	One prepared server per customer, from the warehouse stock.	Eén klaargemaakte server per klant, uit de warehousevoorraad.
+host_gpu	GPU servers	GPU-servers
+host_gpu_desc	Dedicated GPU servers for AI work. Few customers, high prices.	Dedicated GPU-servers voor AI. Weinig klanten, hoge prijzen.
+host_storage	Cloud storage	Cloudopslag
+host_storage_desc	Storage servers: 25 customers per server.	Opslagservers: 25 klanten per server.
+host_backup	Backup as a service	Back-up as a service
+host_backup_desc	Backup servers: 60 customers per server.	Back-upservers: 60 klanten per server.
+host_stock_title	Server stock	Servervoorraad
+host_stock_help	Servers are bought from fictional brands and delivered to the warehouse. The team reorders by itself below the minimum stock. Pallet racks hold 24 servers each.	Servers worden ingekocht bij verzonnen merken en geleverd in het warehouse. Het team bestelt zelf bij onder de minimumvoorraad. Een palletstelling houdt 24 servers.
+host_min_stock	Minimum stock: {0}	Minimumvoorraad: {0}
+host_order	Order {0} now ({1})	Bestel nu {0} ({1})
+host_order_line	{0} servers from {1}, arrive in {2} days	{0} servers van {1}, over {2} dagen binnen
+host_unpacked	{0} servers waiting to be prepared	{0} servers wachten om klaargemaakt te worden
+host_campaigns	Campaigns	Campagnes
+camp_black_friday	Black Friday · {0} · {1} days	Black Friday · {0} · {1} dagen
+camp_black_friday_name	Black Friday	Black Friday
+camp_students	Student discount · {0} · {1} days	Studentenkorting · {0} · {1} dagen
+camp_students_name	Student discount	Studentenkorting
+camp_trial	Free trial · {0} · {1} days	Gratis proefperiode · {0} · {1} dagen
+camp_trial_name	Free trial	Gratis proefperiode
+host_campaign_on	{0} runs for {1} more days.	{0} loopt nog {1} dagen.
+host_big	Big contracts	Grote contracten
+host_big_none	No big customers at the moment. They come once you have some customers.	Op dit moment geen grote klanten. Die komen als je wat klanten hebt.
+host_big_quote	{0}: "We want {1} servers within two months." {2} per month for {3} months.	{0}: "Wij willen {1} servers binnen twee maanden." {2} per maand voor {3} maanden.
+host_big_0	Streaming service {0}	Streamingdienst {0}
+host_big_1	Game studio {0}	Gamestudio {0}
+host_big_2	Webshop {0}	Webshop {0}
+host_big_3	AI start-up {0}	AI-start-up {0}
+host_big_sign	Sign	Tekenen
+host_big_decline	Decline	Afwijzen
+host_big_expires	{0} days to decide	Nog {0} dagen om te beslissen
+host_big_delivered	{0} / {1} servers delivered	{0} / {1} servers geleverd
+host_big_deadline	{0} days to the deadline	Nog {0} dagen tot de deadline
+mk_help	Rival datacenters build, set prices and bid on the same tenders. Your market share counts what you sell against them. A strong company can go public, or buy a rival that is in trouble.	Concurrerende datacenters bouwen, bepalen prijzen en schrijven in op dezelfde aanbestedingen. Je marktaandeel zet wat jij verkoopt af tegen hen. Een sterk bedrijf kan naar de beurs, of een concurrent in de problemen kopen.
+mk_share	Market share	Marktaandeel
+mk_sold	You sell	Jij verkoopt
+mk_demand	Market demand	Marktvraag
+mk_value	Company value	Bedrijfswaarde
+mk_no_rivals	No rival datacenters in this game.	Geen concurrerende datacenters in dit spel.
+mk_gone	Gone (acquired or bankrupt)	Verdwenen (overgenomen of failliet)
+mk_rival_share	{0} of the market	{0} van de markt
+mk_rival_line	{0} MW built · {1} sold · {2} · quality {3} · {4} locations	{0} MW gebouwd · {1} verkocht · {2} · kwaliteit {3} · {4} locaties
+mk_price_low	low prices	lage prijzen
+mk_price_mid	market prices	marktprijzen
+mk_price_high	high prices	hoge prijzen
+mk_stock	Stock exchange	Beurs
+mk_ipo_help	Go public with a trained CFO, a legal counsel and at least {0} revenue a year. The money comes in at once; shareholders then get 40% of their share of the profit as a dividend each month.	Ga naar de beurs met een getrainde CFO, een bedrijfsjurist en minstens {0} omzet per jaar. Het geld komt meteen binnen; aandeelhouders krijgen daarna elke maand 40% van hun deel van de winst als dividend.
+mk_revenue_year	Revenue in the last twelve months: {0}	Omzet in de afgelopen twaalf maanden: {0}
+mk_ipo	Sell {0}% ({1})	Verkoop {0}% ({1})
+mk_share_price	Share price	Koers
+mk_public	In public hands	In handen van de beurs
+mk_listed_help	The share price follows your company value: revenue, profit, reputation, ESG and market share. Results come out every quarter.	De koers volgt je bedrijfswaarde: omzet, winst, reputatie, ESG en marktaandeel. Elk kwartaal komen de resultaten.
+mk_news	News	Nieuws
+mk_news_off	The news ticker is off in this game.	De nieuwsticker staat uit in dit spel.
+mk_news_none	No news yet.	Nog geen nieuws.
+en_help	Energy prices change by the hour: cheap at night and at midday, dear in the evening, higher in winter, with shocks now and then. Fixed contracts are not affected; variable ones are. Solar and wind lower your bill, and a battery container trades: it charges when cheap and sells back when dear.	Energieprijzen veranderen per uur: goedkoop 's nachts en rond het middaguur, duur in de avond, hoger in de winter, met af en toe een schok. Vaste contracten merken er niets van; variabele wel. Zon en wind verlagen je rekening, en een batterijcontainer handelt: laden als het goedkoop is en terugleveren als het duur is.
+en_help_static	Dynamic energy prices are off in this game: prices move gently over the weeks. Solar, wind and battery containers still help.	Dynamische energieprijzen staan uit in dit spel: prijzen bewegen rustig over de weken. Zon, wind en batterijcontainers helpen nog steeds.
+en_now	Price now / kWh	Prijs nu / kWh
+en_index	Market level	Marktniveau
+en_solar	Solar today	Zon vandaag
+en_wind	Wind today	Wind vandaag
+en_battery	Battery trading / month	Batterijhandel / maand
+en_renewable	Green share	Groen aandeel
+en_today	Market price today, per hour	Marktprijs vandaag, per uur
+en_history	Market price, last 60 days	Marktprijs, afgelopen 60 dagen
+en_trading	Battery containers trade on the energy market	Batterijcontainers handelen op de energiemarkt
+en_trading_help	{0} kWh of storage buys the four cheapest hours and sells the four dearest. Peak shaving research and an energy trader earn more.	{0} kWh opslag koopt de vier goedkoopste uren in en verkoopt de vier duurste. De research peak shaving en een energiehandelaar leveren meer op.
+en_objects	{0} solar fields · {1} wind turbines · {2} battery containers	{0} zonnevelden · {1} windmolens · {2} batterijcontainers
+esg_title	ESG score	ESG-score
+esg_help	Environment, social and governance in one score. Green customers, investors and the share price look at it.	Milieu, mens en bestuur in één score. Groene klanten, investeerders en de koers kijken ernaar.
+esg_water_line	Water: {0} m³ per day · WUE {1} l/kWh · {2} per month	Water: {0} m³ per dag · WUE {1} l/kWh · {2} per maand
+esg_renewable	Green energy	Groene energie
+esg_renewable_tip	A green supplier, or your own solar and wind.	Een groene leverancier, of je eigen zon en wind.
+esg_pue	Energy efficiency (PUE)	Energie-efficiëntie (PUE)
+esg_pue_tip	Containment, free cooling and EC fans lower the PUE.	Containment, free cooling en EC-fans verlagen de PUE.
+esg_water	Water use	Waterverbruik
+esg_water_tip	Cooling towers evaporate water; chillers and dry coolers use none.	Koeltorens verdampen water; chillers en dry coolers gebruiken niets.
+esg_heat	Waste heat reused	Restwarmte hergebruikt
+esg_heat_tip	Sell waste heat to the district heating (research).	Verkoop restwarmte aan de stadsverwarming (research).
+esg_waste	Data-safe recycling	Dataveilig recyclen
+esg_waste_tip	A disk shredder in the warehouse destroys old disks with a certificate.	Een schijvenvernietiger in het warehouse vernietigt oude schijven met certificaat.
+esg_team	Sustainability team	Duurzaamheidsteam
+esg_team_tip	A sustainability manager (and the ESG research) report and improve.	Een duurzaamheidsmanager (en de research ESG) rapporteren en verbeteren.
+esg_lead	Sustainability lead	Duurzaamheidsleider
+esg_lead_tip	A key person for sustainability.	Een sleutelfiguur voor duurzaamheid.
+risk_help	Attacks, disasters and shortages happen. You cannot stop all of them, but a SOC, insurance and spare stock soften the blow.	Aanvallen, rampen en tekorten gebeuren. Je kunt ze niet allemaal voorkomen, maar een SOC, een verzekering en voorraad verzachten de klap.
+risk_soc	Security operations centre (SOC)	Security operations centre (SOC)
+risk_soc_level	Protection {0}	Bescherming {0}
+risk_soc_help	Build a SOC room with SOC desks; the security manager hires analysts. 24/7 monitoring, DDoS protection research, ISO 27001 and a SOC lead help too.	Bouw een SOC-ruimte met SOC-werkplekken; de securitymanager neemt analisten aan. 24/7 bewaking, de research DDoS-bescherming, ISO 27001 en een SOC-leider helpen ook.
+risk_soc_line	{0} SOC desks · {1} analysts · {2} attacks blocked · {3} got through	{0} SOC-werkplekken · {1} analisten · {2} aanvallen tegengehouden · {3} kwamen erdoor
+risk_soc247	24/7 SOC monitoring ({0} / month)	24/7 SOC-bewaking ({0} / maand)
+risk_events_off	Random events are off in this game: no cyberattacks.	Willekeurige gebeurtenissen staan uit in dit spel: geen cyberaanvallen.
+risk_insurance	Insurance	Verzekering
+risk_insurance_help	Basic pays 60% of damage after a high deductible. Full pays all damage and lost income after a small deductible.	Basis betaalt 60% van de schade na een hoog eigen risico. Volledig betaalt alle schade en gemiste inkomsten na een klein eigen risico.
+risk_ins_0	None	Geen
+risk_ins_1	Basic	Basis
+risk_ins_2	Full	Volledig
+risk_ins_line	Premium {0} per month · insured value {1} · deductible {2}	Premie {0} per maand · verzekerde waarde {1} · eigen risico {2}
+risk_ins_year	This year: damage {0} · paid out {1}	Dit jaar: schade {0} · uitgekeerd {1}
+risk_disasters_off	Disasters are off in this game.	Rampen staan uit in dit spel.
+risk_supply	Supply chain	Leveringsketen
+risk_supply_off	Supply delays are off in this game.	Leveringsvertragingen staan uit in dit spel.
+risk_supply_ok	Deliveries are on time.	Leveringen zijn op tijd.
+risk_supply_on	{0}: deliveries take {1} days longer, for about {2} more days.	{0}: leveringen duren {1} dagen langer, nog ongeveer {2} dagen.
+risk_supply_help	In a shortage racks, power equipment, spare parts and servers take longer. Keep more spare parts and server stock.	Bij een tekort duren racks, stroomapparatuur, reserveonderdelen en servers langer. Houd meer reserveonderdelen en servervoorraad aan.
+risk_log	Recent	Recent
+supply_0	Chip shortage	Chiptekort
+supply_1	Transformer shortage	Tekort aan transformatoren
+supply_2	Port strike	Havenstaking
+cyber_ddos	DDoS attack	DDoS-aanval
+cyber_ransomware	ransomware	ransomware
+cyber_phishing	phishing on staff	phishing op personeel
+cyber_intrusion	break-in attempt on the network	inbraakpoging op het netwerk
+ev_cyber_blocked	Attack blocked: {0}	Aanval tegengehouden: {0}
+ev_cyber_hit	Cyberattack: {0}	Cyberaanval: {0}
+ev_disaster_storm	Storm damage	Stormschade
+ev_disaster_lightning	Lightning strike	Blikseminslag
+ev_disaster_flood	Flooding	Wateroverlast
+ev_disaster_substation	Substation fire	Brand in het onderstation
+ev_disaster_fire	Fire in a building	Brand in een gebouw
+ev_supply_0	Chip shortage	Chiptekort
+ev_supply_1	Transformer shortage	Tekort aan transformatoren
+ev_supply_2	Port strike	Havenstaking
+key_help	Key people are named experts with a lasting bonus. The headhunter brings a candidate now and then (HR needed). Rivals try to poach them when they feel underpaid: match the offer or let them go.	Sleutelfiguren zijn experts met een naam en een blijvende bonus. De headhunter brengt af en toe een kandidaat (HR nodig). Concurrenten proberen ze weg te kapen als ze zich onderbetaald voelen: bied hetzelfde of laat ze gaan.
+key_none	No key people yet. The headhunter will come with someone.	Nog geen sleutelfiguren. De headhunter komt met iemand.
+key_candidate_line	Salary {0} per month · headhunter fee {1} · decides in {2} days	Salaris {0} per maand · fee headhunter {1} · beslist over {2} dagen
+key_hire	Hire	Aannemen
+key_line	Salary {0} per month	Salaris {0} per maand
+key_loyalty	Loyalty	Loyaliteit
+key_poach	{0} offers a job. A decision in {1} days.	{0} biedt een baan aan. Een beslissing over {1} dagen.
+key_match	Match the offer ({0} / month)	Bied hetzelfde ({0} / maand)
+key_let_go	Let go	Laten gaan
+key_dismiss	Dismiss	Ontslaan
+key_architect	Lead network architect	Lead netwerkarchitect
+key_architect_desc	Designs the network: better network quality and faster builds.	Ontwerpt het netwerk: betere netwerkkwaliteit en sneller bouwen.
+key_starsales	Star salesperson	Topverkoper
+key_starsales_desc	Wins more tenders against the rivals.	Wint meer aanbestedingen van de concurrenten.
+key_energytrader	Energy trader	Energiehandelaar
+key_energytrader_desc	Battery trading earns 25% more.	Batterijhandel levert 25% meer op.
+key_soclead	SOC lead	SOC-leider
+key_soclead_desc	Raises your protection against cyberattacks.	Verhoogt je bescherming tegen cyberaanvallen.
+key_sustainability	Sustainability lead	Duurzaamheidsleider
+key_sustainability_desc	Adds to the ESG score.	Telt mee in de ESG-score.
+key_countrymanager	Country manager	Landenmanager
+key_countrymanager_desc	New locations are built 30% faster and fill up faster.	Nieuwe locaties worden 30% sneller gebouwd en lopen sneller vol.
+key_hostinglead	Head of hosting	Hoofd hosting
+key_hostinglead_desc	The hosting company gets 15% more sign-ups.	Het hostingbedrijf krijgt 15% meer aanmeldingen.
+news_tech_0	New 800G optics promise cheaper backbones.	Nieuwe 800G-optics beloven goedkopere backbones.
+news_tech_1	AI demand drives racks above 50 kW.	Vraag naar AI drijft racks boven de 50 kW.
+news_tech_2	Liquid cooling wins ground in new halls.	Vloeistofkoeling wint terrein in nieuwe zalen.
+news_tech_3	Hyperscalers announce new regions in Europe.	Hyperscalers kondigen nieuwe regio's in Europa aan.
+news_tech_4	Study: datacenters can heat whole neighbourhoods.	Onderzoek: datacenters kunnen hele wijken verwarmen.
+news_tech_5	Solid-state batteries move closer to datacenters.	Solid-state accu's komen dichter bij datacenters.
+news_tech_6	Regulator wants every datacenter to report its PUE.	Toezichthouder wil dat elk datacenter zijn PUE rapporteert.
+news_tech_7	Edge computing brings small sites to the cities.	Edge computing brengt kleine sites naar de steden.
+news_market_0	Demand for colocation keeps rising this quarter.	De vraag naar colocatie blijft dit kwartaal stijgen.
+news_market_1	Grid operator warns of congestion around the cities.	Netbeheerder waarschuwt voor netcongestie rond de steden.
+news_market_2	Interest rates steady: building stays affordable.	Rente stabiel: bouwen blijft betaalbaar.
+news_market_3	Streaming platforms look for capacity close to users.	Streamingplatforms zoeken capaciteit dicht bij gebruikers.
+news_market_4	Banks move more systems to certified datacenters.	Banken verhuizen meer systemen naar gecertificeerde datacenters.
+news_market_5	Municipalities ask datacenters for their waste heat.	Gemeenten vragen datacenters om hun restwarmte.
+news_energy_spike	Energy market: prices up {0}% after a cold snap and low wind.	Energiemarkt: prijzen {0}% hoger na een koudegolf en weinig wind.
+news_energy_cheap	Energy market: lots of sun and wind, prices {0}% lower.	Energiemarkt: veel zon en wind, prijzen {0}% lager.
+news_supply_0	Chip shortage hits server and switch makers.	Chiptekort raakt server- en switchfabrikanten.
+news_supply_1	Waiting lists for transformers grow longer.	Wachtlijsten voor transformatoren worden langer.
+news_supply_2	Port strike: containers stuck at the quay.	Havenstaking: containers staan vast aan de kade.
+news_rival_expands	{0} builds {1} MW of new capacity.	{0} bouwt {1} MW nieuwe capaciteit.
+news_rival_price_cut	{0} cuts its prices to win customers.	{0} verlaagt zijn prijzen om klanten te winnen.
+news_rival_for_sale	{0} is looking for a buyer.	{0} zoekt een koper.
+news_rival_bankrupt	{0} is bankrupt.	{0} is failliet.
+news_tender_won_by	{0} wins the tender of {1}.	{0} wint de aanbesteding van {1}.
+news_you_acquire	{0} has been taken over.	{0} is overgenomen.
+news_you_ipo	{0} goes public.	{0} gaat naar de beurs.
+news_you_results_good	{0} beats expectations; the share rises.	{0} doet het beter dan verwacht; het aandeel stijgt.
+news_you_results_bad	{0} disappoints; the share falls.	{0} valt tegen; het aandeel daalt.
+news_you_land	{0} buys extra land for its campus.	{0} koopt extra grond voor zijn campus.
+news_you_country	New country office in {0}.	Nieuw landenkantoor in {0}.
+news_you_site	A new datacenter is being built in {0}.	In {0} wordt een nieuw datacenter gebouwd.
+news_you_site_open	New datacenter opens in {0}.	Nieuw datacenter opent in {0}.
+news_you_hosting	{0} starts selling cloud and dedicated servers.	{0} begint met de verkoop van cloud en dedicated servers.
+news_key_hired	{0} joins {1}.	{0} komt bij {1} werken.
+news_key_left	{0} leaves {1}.	{0} vertrekt bij {1}.
+news_key_poached	{0} moves to {1}.	{0} stapt over naar {1}.
+news_cyber_ddos	DDoS attack on {0}: customers notice it.	DDoS-aanval op {0}: klanten merken het.
+news_cyber_ransomware	Ransomware hits {0}.	Ransomware treft {0}.
+news_cyber_phishing	Phishing at {0}: data of staff leaked.	Phishing bij {0}: gegevens van personeel gelekt.
+news_cyber_intrusion	Hackers broke into the network of {0}.	Hackers zijn binnengedrongen in het netwerk van {0}.
+news_disaster_storm	Storm damage at {0}.	Stormschade bij {0}.
+news_disaster_lightning	Lightning strikes at {0}.	Bliksem slaat in bij {0}.
+news_disaster_flood	Flooding at {0}.	Wateroverlast bij {0}.
+news_disaster_substation	Substation fire cuts power at {0}.	Brand in onderstation legt stroom plat bij {0}.
+news_disaster_fire	Fire in a building of {0}.	Brand in een gebouw van {0}.
+news_disaster_site	Disaster at the datacenter in {0}.	Ramp bij het datacenter in {0}.

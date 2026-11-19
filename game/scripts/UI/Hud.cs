@@ -36,7 +36,7 @@ public partial class Hud : Control
     public Action<Facade> FacadeChanged;
     public Action<int> CyclePriority;
     public Action RotateLeft, RotateRight, ToggleGrid, ToggleRoofs, FloorUp, FloorDown, OpenInfo, OpenOptions, OpenMenu, ToggleLanguage, OpenPower, OpenNetwork;
-    public Action<int> ToggleOverlay, OpenCompany, OpenStaff, OpenReputation;
+    public Action<int> ToggleOverlay, OpenCompany, OpenStaff, OpenReputation, OpenGrowth;
     public Func<GameState> State;
 
     readonly Dictionary<string, (Label value, ProgressBar bar)> _bars = new();
@@ -95,18 +95,21 @@ public partial class Hud : Control
         ("cat_interior", new[]
         {
             O(ObjKind.Desk), O(ObjKind.Chair), O(ObjKind.Cabinet), O(ObjKind.Plant), O(ObjKind.MeetingTable),
-            O(ObjKind.Sofa), O(ObjKind.Coffee), O(ObjKind.Vending), O(ObjKind.Microwave), O(ObjKind.Terminal), O(ObjKind.LabBench),
+            O(ObjKind.Sofa), O(ObjKind.Coffee), O(ObjKind.Vending), O(ObjKind.Microwave), O(ObjKind.Terminal), O(ObjKind.LabBench), O(ObjKind.SocDesk),
+            O(ObjKind.PalletRack), O(ObjKind.Workbench), O(ObjKind.PalletJack), O(ObjKind.Shredder),
         }),
         ("cat_halls", new[] { new BuildItem(Mode.Row, (int)ObjKind.Rack), O(ObjKind.Crah), O(ObjKind.Pdu), O(ObjKind.CrashCart), O(ObjKind.CameraDome) }),
         ("cat_power", new[]
         {
             O(ObjKind.Transformer), O(ObjKind.Switchgear), O(ObjKind.Ups), O(ObjKind.Battery), O(ObjKind.Pdu),
             O(ObjKind.Generator), O(ObjKind.DieselTank), O(ObjKind.UndergroundTank),
+            O(ObjKind.SolarPanel), O(ObjKind.WindTurbine), O(ObjKind.BatteryContainer),
         }),
-        ("cat_cooling", new[] { O(ObjKind.Crah), O(ObjKind.Chiller), O(ObjKind.CoolingTower) }),
+        ("cat_cooling", new[] { O(ObjKind.Crah), O(ObjKind.Chiller), O(ObjKind.CoolingTower), O(ObjKind.DryCooler) }),
         ("cat_network", new[] { O(ObjKind.FiberPit), O(ObjKind.Odf), O(ObjKind.CoreRouter), O(ObjKind.Spine), O(ObjKind.NocWall) }),
         ("cat_staff", Array.Empty<BuildItem>()),
         ("cat_customers", Array.Empty<BuildItem>()),
+        ("cat_growth", Array.Empty<BuildItem>()),
     };
 
     public override void _Ready()
@@ -176,6 +179,54 @@ public partial class Hud : Control
         mv.AddChild(_money);
         sh.AddChild(mv);
         top.AddChild(stats);
+        BuildTicker();
+    }
+
+    // ---------------- news ticker (step 9) ----------------
+    PanelContainer _ticker;
+    Control _tickerClip;
+    Label _tickerText;
+    string _tickerSig;
+    float _tickerX;
+
+    void BuildTicker()
+    {
+        _ticker = new PanelContainer { Position = new Vector2(12, 0), MouseFilter = MouseFilterEnum.Stop, TooltipText = "hud_news_tip", MouseDefaultCursorShape = CursorShape.PointingHand, Visible = false };
+        _ticker.AddThemeStyleboxOverride("panel", Ui.Box(Brand.Panel, 8, Brand.Line, 1, 6));
+        _ticker.GuiInput += e => { if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) OpenGrowth?.Invoke(GrowthPanel.TabMarket); };
+        var h = new HBoxContainer(); h.AddThemeConstantOverride("separation", 8);
+        var tag = Ui.Heading("hud_news", 12, Brand.Amber); tag.MouseFilter = MouseFilterEnum.Ignore;
+        h.AddChild(tag);
+        _tickerClip = new Control { ClipContents = true, CustomMinimumSize = new Vector2(520, 20), MouseFilter = MouseFilterEnum.Ignore };
+        _tickerText = Ui.Text("", 13, Brand.Ink); _tickerText.AutowrapMode = TextServer.AutowrapMode.Off; _tickerText.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
+        _tickerText.MouseFilter = MouseFilterEnum.Ignore;
+        _tickerClip.AddChild(_tickerText);
+        h.AddChild(_tickerClip);
+        _ticker.AddChild(h);
+        AddChild(_ticker);
+    }
+
+    public override void _Process(double delta)
+    {
+        if (_ticker == null || !_ticker.Visible) return;
+        _tickerX -= (float)delta * 60;
+        var w = _tickerText.GetMinimumSize().X;
+        if (_tickerX < -w) _tickerX = _tickerClip.Size.X;
+        _tickerText.Position = new Vector2(_tickerX, 0);
+    }
+
+    void UpdateTicker(GameState s)
+    {
+        if (_ticker == null) return;
+        var on = s.Options.News && s.News.Count > 0;
+        _ticker.Visible = on;
+        if (!on) return;
+        _ticker.Position = new Vector2(12, _topRow.Position.Y + _topRow.Size.Y + 6);
+        _tickerClip.CustomMinimumSize = new Vector2(Math.Max(320, _topRow.Size.X - 90), 20);
+        var sig = Loc.Language + s.News.Count + s.News[0].Day + s.News[0].Key;
+        if (sig == _tickerSig) return;
+        _tickerSig = sig;
+        _tickerText.Text = string.Join("     ◆     ", s.News.Take(6).Select(GrowthPanel.NewsText));
     }
 
     void AddBar(HBoxContainer parent, string key, Color c, bool bar = true)
@@ -247,6 +298,7 @@ public partial class Hud : Control
         var culture = new System.Globalization.CultureInfo(Loc.Language == "nl" ? "nl-NL" : "en-GB");
         _date.Text = s.Date.ToString("ddd d MMM yyyy · HH:mm", culture);
         if (_category == "cat_staff") RefreshCrewValues(s);
+        UpdateTicker(s);
         AvoidOverlap();
     }
 
@@ -273,6 +325,7 @@ public partial class Hud : Control
         "cat_cooling" => ("snow", Brand.Cooling),
         "cat_network" => ("cat_network", Brand.Fiber),
         "cat_staff" => ("crew", Brand.Wall),
+        "cat_growth" => ("globe", Brand.Amber),
         _ => ("cat_customers", Brand.Wall),
     };
 
@@ -299,7 +352,7 @@ public partial class Hud : Control
             var (icon, accent) = CatStyle(cat);
             var c = cat;
             var b = CatButton(cat, icon, accent, () => { _category = _category == c ? null : c; RefreshCategory(); });
-            if (items.Length == 0 && cat is not ("cat_staff" or "cat_customers")) { b.Disabled = true; b.TooltipText = "hud_coming_soon"; }
+            if (items.Length == 0 && cat is not ("cat_staff" or "cat_customers" or "cat_growth")) { b.Disabled = true; b.TooltipText = "hud_coming_soon"; }
             _catBtns[cat] = b;
             h.AddChild(b);
         }
@@ -488,6 +541,13 @@ public partial class Hud : Control
                 }
                 continue;
             }
+            if (cat == "cat_growth")
+            {
+                string[] keys = { "gr_tab_locations", "gr_tab_offices", "gr_tab_hosting", "gr_tab_market", "gr_tab_energy", "gr_tab_risks", "gr_tab_people" };
+                string[] icons = { "globe", "office", "cloud", "chart", "leaf", "shield", "key" };
+                for (var i = 0; i < keys.Length; i++) { var tab = i; _sub.AddChild(TrayButton(keys[i], icons[i], () => OpenGrowth?.Invoke(tab))); }
+                continue;
+            }
             if (cat == "cat_network")
             {
                 var nv = Ui.Secondary("net_overview", () => OpenNetwork?.Invoke());
@@ -665,6 +725,7 @@ public partial class Hud : Control
         h.AddChild(Ui.IconButton("crew", "hud_staff", () => OpenStaff?.Invoke(StaffPanel.TabTeam)));
         h.AddChild(Ui.IconButton("star", "hud_reputation", () => OpenReputation?.Invoke(ReputationPanel.TabReputation)));
         h.AddChild(Ui.IconButton("flask", "hud_research", () => OpenReputation?.Invoke(ReputationPanel.TabResearch)));
+        h.AddChild(Ui.IconButton("globe", "hud_growth", () => OpenGrowth?.Invoke(GrowthPanel.TabLocations)));
         h.AddChild(Ui.IconButton("settings", "hud_options", () => OpenOptions?.Invoke()));
         h.AddChild(Ui.IconButton("info", "hud_info", () => OpenInfo?.Invoke()));
         h.AddChild(Ui.IconButton("menu", "hud_menu", () => OpenMenu?.Invoke()));

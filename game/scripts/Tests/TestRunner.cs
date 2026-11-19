@@ -34,6 +34,8 @@ public static class TestRunner
             ("servers in racks", ServerTests), ("large halls", LargeHallTests),
             ("staff", StaffTests), ("faults and repairs", FaultTests), ("maintenance and parts", MaintenanceTests), ("events", EventTests), ("old saves get staff", StaffMigrationTests),
             ("research", ResearchTests), ("security", SecurityTests), ("certificates", CertTests), ("reputation", ReputationTests), ("old saves get research", ResearchMigrationTests),
+            ("market and rivals", MarketTests), ("campus land", LandTests), ("locations", SiteTests), ("office tenants", OfficeLeaseTests),
+            ("hosting company", HostingTests), ("energy and ESG", EnergyTests), ("risks", RiskTests), ("key people", KeyPeopleTests), ("old saves get growth", GrowthMigrationTests),
         };
         foreach (var (name, t) in tests)
         {
@@ -128,7 +130,7 @@ public static class TestRunner
         foreach (var file in new[] { "res://scripts/Main.cs", "res://scripts/Sim/GameState.cs", "res://scripts/Sim/Simulation.cs", "res://scripts/UI/Hud.cs", "res://scripts/UI/Menus.cs", "res://scripts/UI/PowerPanel.cs", "res://scripts/UI/NetworkPanel.cs", "res://scripts/Sim/GameState.Network.cs", "res://scripts/Sim/Network.cs", "res://scripts/World/WorldView.cs", "res://scripts/UI/OptionsDialog.cs", "res://scripts/UI/CompanyPanel.cs", "res://scripts/Sim/Org.cs", "res://scripts/Sim/Research.cs", "res://scripts/Sim/Security.cs", "res://scripts/Sim/Reputation.cs", "res://scripts/UI/ReputationPanel.cs" })
         {
             var text = FileAccess.GetFileAsString(file);
-            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(text, "\"((msg|hint|goal|cr|crew|hud|new|inspect|projects|prio|cat|power|grid|supplier|backup|chain|link|cool|halls?|advice|action|res|opt|menu|tool|net|spof|carrier|co|org|sales|zones?|leads|prod|deal|req|contracts|tenders?|fin|book|cust|bankrupt|customers|rp|rs|sec|cert|prop|pol|rev|ev|exec|staff)_[a-z0-9_]+)\""))
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(text, "\"((msg|hint|goal|cr|crew|hud|new|inspect|projects|prio|cat|power|grid|supplier|backup|chain|link|cool|halls?|advice|action|res|opt|menu|tool|net|spof|carrier|co|org|sales|zones?|leads|prod|deal|req|contracts|tenders?|fin|book|cust|bankrupt|customers|rp|rs|sec|cert|prop|pol|rev|ev|exec|staff|gr|loc|off|host|mk|en|esg|risk|key|news|cyber|supply|camp|country|size)_[a-z0-9_]+)\""))
                 if (!ResearchTree.ById.ContainsKey(m.Groups[1].Value) && !m.Groups[1].Value.EndsWith('_')) used.Add(m.Groups[1].Value);
         }
         var absent = used.Distinct().Where(k => !en.ContainsKey(k)).ToList();
@@ -1135,6 +1137,7 @@ public static class TestRunner
         var s = Demo.Build();
         s.Options.Creative = false; s.Options.CreativeOptions = new CreativeOptions();
         s.Options.Events = false;
+        s.Options.Disasters = false; s.Options.SupplyDelays = false;
         s.Seed = 4242;
         return s;
     }
@@ -1379,6 +1382,8 @@ public static class TestRunner
         s.Execs.Add(new ExecHire { Role = Exec.OfficeManager });
         var empty = s.AddRoom(RoomType.Office, 38, 18, 8, 6, 1);
         if (empty != null) empty.Stage = Stage.Done;
+        Check(s.RentableOffices.Any(), "the empty office can be let");
+        for (var d = 0; d < 120 && s.OfficeRentPerMonth == 0; d++) s.Advance(24);
         Check(s.OfficeRentPerMonth > 0, "empty offices are let out");
         // creative mode with all unlocks has everything researched
         var c = Quiet(); c.Options.Creative = true; c.Options.CreativeOptions = new CreativeOptions { AllUnlocks = true };
@@ -1545,5 +1550,153 @@ public static class TestRunner
         Check(s.Staff != null && s.ActiveEvents != null && s.PartStock != null, "older saves get empty staff and events");
         Check(s.Objects.All(o => Math.Abs(o.Installed - 400) < 1e-6), "existing equipment counts as installed on load");
         Check(s.Notes.Any(n => n.key == "msg_staff_new"), "players are told about staff");
+    }
+
+    static void MarketTests()
+    {
+        var s = Quiet();
+        Check(s.Competitors.Count(c => !c.Gone) == s.Options.Competitors, "a new game has the chosen number of rivals");
+        var a = new Random(5); var b = new Random(5);
+        Check(Math.Abs(s.RivalBid(a, out var w1) - s.RivalBid(b, out var w2)) < 1e-9 && w1 == w2, "rival bids are deterministic");
+        for (var d = 0; d < 60; d++) s.Advance(24);
+        Check(s.MarketShare >= 0 && s.MarketShare <= 1, $"market share is a fraction ({s.MarketShare:0.000})");
+        Check(s.News.Count <= Market.MaxNews, "the news list stays short");
+        var n = s.News.Count;
+        s.Options.News = false; s.AddNews("news_tech_0");
+        Check(s.News.Count == n, "no news when the ticker is off");
+        var off = Quiet(); off.Options.AiCompetitors = false;
+        Check(off.RivalBid(new Random(1), out _) >= 0, "rival bids work without AI rivals");
+        Check(s.CanIpo() != null, "a small company cannot go public");
+    }
+
+    static void LandTests()
+    {
+        var s = Quiet();
+        s.Money = 100_000_000;
+        var size = s.PlotSize;
+        var o = s.Objects.First();
+        var (x, z) = (o.X, o.Z);
+        var pit = s.StreetPit(0);
+        Check(s.NextLandSize > size && s.NextLandCost > 0, "bigger land is for sale");
+        Check(s.BuyLand() == null && s.PlotSize > size, "buying land grows the plot");
+        var d = s.PlotSize - size;
+        Check(o.X == x + d && o.Z == z + d, "everything keeps its place by the road");
+        Check(s.StreetPit(0) == pit + d && s.LandRevision > 0, "street pits move along");
+        Check(s.Surfaces.Length == s.PlotSize * s.PlotSize, "the ground grows too");
+        s.InvalidateInfra();
+        Check(s.Infra != null, "the infra still works after growing");
+    }
+
+    static void SiteTests()
+    {
+        var s = Quiet(); Unlock(s);
+        s.Money = 500_000_000;
+        Check(s.CanBuildSite("de", 0) == "msg_needs_country", "other countries open first");
+        Check(s.BuildSite("nl", 0) == null && s.Sites.Count == 1, "a new location is started");
+        Check(s.OpenCountry("de") == null && s.CountryOpen("de"), "a country can be opened");
+        var site = s.Sites[0];
+        for (var d = 0; d < 260 && site.Occupied < 1; d++) s.Advance(24);
+        Check(site.Built && site.Occupied > 0, $"the location is built and fills ({site.Occupied}/{site.Racks})");
+        Check(s.CanUpgradeSite(site) != "msg_nothing_changed", "a location can grow");
+        Check(s.MySoldMw > 0, "the location counts in the market");
+        var before = s.Money;
+        Check(s.SellSite(site) == null && s.Sites.Count == 0 && s.Money > before, "a location can be sold");
+    }
+
+    static void OfficeLeaseTests()
+    {
+        var s = Quiet(); Unlock(s);
+        s.Execs.Add(new ExecHire { Role = Exec.OfficeManager });
+        var r = s.AddRoom(RoomType.Office, 38, 18, 8, 6, 1);
+        if (r != null) r.Stage = Stage.Done;
+        Check(s.CanLetToCustomers, "the office manager can let offices to customers");
+        s.SetTenantPolicy(1);
+        for (var d = 0; d < 200 && s.Leases.Count == 0; d++) s.Advance(24);
+        Check(s.Leases.Count > 0 && s.Leases.All(l => l.DealId != 0), "with 'only customers' the offices go to datacenter customers");
+        var l = s.Leases[0];
+        var room = s.Rooms.First(x => x.Id == l.RoomId);
+        Check(l.Monthly >= s.Rent(room, false), "customers pay a premium for an office near their racks");
+        s.EndLease(room);
+        Check(s.LeaseOf(room) == null, "a lease can be ended");
+    }
+
+    static void HostingTests()
+    {
+        var s = Quiet(); Unlock(s);
+        s.Money = 100_000_000;
+        Check(s.OrderServers(10) == "msg_needs_hosting", "no servers without a hosting company");
+        Check(s.StartHosting("Test Cloud") == null && s.Hosting.Started, "the hosting company starts");
+        foreach (var h in s.Rooms.Where(x => x.Type == RoomType.DataHall)) h.Zone = HallZone.OwnCloud;
+        Check(s.CloudRacksBuilt > 0, "racks in own cloud halls host servers");
+        Check(s.OrderServers(30) == null && s.Hosting.Orders.Count == 1, "servers are ordered");
+        for (var d = 0; d < 40; d++) s.Advance(24);
+        Check(s.Hosting.TotalServers + s.Hosting.Stock > 0, $"servers arrive, get prepared and installed ({s.Hosting.TotalServers} live, {s.Hosting.Stock} in stock)");
+        Check(s.Hosting.TotalCustomers > 0 && s.HostingMonthly > 0, "customers sign up and pay");
+        s.SetHostPrice(HostProduct.Vps, 2);
+        Check(s.HostPrice(HostProduct.Vps) > HostingCatalog.Def(HostProduct.Vps).Price, "a premium price is higher");
+        Check(s.HostingEngineersWanted >= 1, "the hosting team asks for engineers");
+    }
+
+    static void EnergyTests()
+    {
+        var s = Quiet();
+        s.Options.DynamicPrices = true;
+        Check(s.SpotPrice(3) < s.SpotPrice(18), "night power is cheaper than the evening peak");
+        s.Options.DynamicPrices = false;
+        Check(Math.Abs(s.SpotPrice(3) - s.SpotPrice(18)) < 1e-9, "a flat price without dynamic prices");
+        Check(s.Esg >= 0 && s.Esg <= 100 && s.EsgLines().Sum(l => l.Max) == 100, $"ESG is a score out of 100 ({s.Esg:0})");
+        Check(s.WaterM3PerDay >= 0, "water use is known");
+        Check(s.BatteryProfit() == 0, "no battery, no trading profit");
+        Check(s.SolarKwh(6) == 0 && s.RenewableShare >= 0, "no panels, no solar power");
+    }
+
+    static void RiskTests()
+    {
+        var s = Quiet();
+        s.Money = 10_000_000;
+        s.SetInsurance(0); var m0 = s.Money; s.Damage(200_000); var lost0 = m0 - s.Money;
+        s.SetInsurance(2); var m2 = s.Money; s.Damage(200_000); var lost2 = m2 - s.Money;
+        Check(lost0 == 200_000 && lost2 < lost0, $"insurance pays out ({lost2} instead of {lost0})");
+        Check(s.InsurancePerMonth > 0, "insurance costs a premium");
+        var before = s.DamageThisYear;
+        s.Disaster("storm", new Random(3));
+        Check(s.DamageThisYear > before, "a storm causes damage");
+        s.Options.SupplyDelays = true; s.SupplyUntil = s.Day + 20; s.SupplyKind = 0; s.SupplyDays = 10;
+        Check(s.SupplyCrunch && s.SupplyDelay(ObjKind.Rack) == 10 && s.SupplyDelay(ObjKind.Ups) == 0, "a chip shortage delays racks, not power");
+        s.Options.SupplyDelays = false;
+        Check(!s.SupplyCrunch, "no delays when switched off");
+        Check(s.SocLevel >= 0, "the SOC level is known");
+    }
+
+    static void KeyPeopleTests()
+    {
+        var s = Quiet(); Unlock(s);
+        s.Money = 10_000_000;
+        var k = new KeyPerson { Id = s.NextId++, Name = "Test Person", Role = KeyRole.Architect, Salary = 11000, Candidate = true, ExpiresDay = s.Day + 20 };
+        s.KeyPeople.Add(k);
+        Check(s.HireKey(k) == null && s.Has(KeyRole.Architect) && s.KeySalaries == 11000, "a key person is hired");
+        k.PoachedBy = "Rival"; k.PoachDay = s.Day + 10;
+        s.AnswerPoach(k, true);
+        Check(k.PoachedBy == null && k.Salary > 11000, "matching an offer keeps the person at a higher salary");
+        k.PoachedBy = "Rival";
+        s.AnswerPoach(k, false);
+        Check(!s.Has(KeyRole.Architect), "letting go means the person leaves");
+    }
+
+    static void GrowthMigrationTests()
+    {
+        var s = Quiet();
+        s.Competitors = null; s.Sites = null; s.Hosting = null; s.KeyPeople = null; s.News = null;
+        s.SaveFormat = 7;
+        s.Migrate();
+        Check(s.Competitors != null && s.Sites != null && s.Hosting != null && s.KeyPeople != null && s.SaveFormat == GameState.CurrentFormat, "old saves get the growth systems");
+        Check(!s.Options.Disasters && !s.Options.SupplyDelays && !s.Options.DynamicPrices, "old saves are not surprised by disasters");
+        Check(s.Notes.Any(n => n.key == "msg_growth_new"), "and hear about growth");
+        // save roundtrip
+        var t = Quiet(); Unlock(t); t.Money = 500_000_000;
+        t.BuildSite("nl", 1); t.StartHosting(); t.SetInsurance(1);
+        SaveSystem.Save(t, "unit-test-growth");
+        var l = SaveSystem.Load("unit-test-growth");
+        Check(l != null && l.Sites.Count == 1 && l.Hosting.Started && l.Insurance == 1 && l.Competitors.Count == t.Competitors.Count, "save roundtrip growth");
     }
 }

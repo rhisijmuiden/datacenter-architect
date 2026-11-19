@@ -119,14 +119,38 @@ public partial class NewGameDialog : Modal
         var ai = new CheckButton { Text = "new_ai", ButtonPressed = true };
         Body.AddChild(ai);
         Body.AddChild(Ui.Text("new_ai_help", 13, Brand.InkDim));
+        var rivalRow = new HBoxContainer(); rivalRow.AddThemeConstantOverride("separation", 8);
+        rivalRow.AddChild(Ui.Text("new_rivals", 14, Brand.Ink));
+        var count = new SpinBox { MinValue = 1, MaxValue = 5, Value = 3, CustomMinimumSize = new Vector2(90, 0) };
+        rivalRow.AddChild(count);
+        rivalRow.AddChild(Ui.Text("new_aggression", 14, Brand.Ink));
+        var aggr = new OptionButton();
+        aggr.AddItem(Loc.T("new_aggr_0")); aggr.AddItem(Loc.T("new_aggr_1")); aggr.AddItem(Loc.T("new_aggr_2"));
+        aggr.Selected = 1;
+        rivalRow.AddChild(aggr);
+        Body.AddChild(rivalRow);
+        ai.Toggled += on => rivalRow.Visible = on;
         var events = new CheckButton { Text = "new_events", ButtonPressed = true };
         Body.AddChild(events);
         Body.AddChild(Ui.Text("new_events_help", 13, Brand.InkDim));
+        // step 9: the world around you
+        var world = new GridContainer { Columns = 2 };
+        world.AddThemeConstantOverride("h_separation", 12);
+        var news = new CheckBox { Text = "new_news", ButtonPressed = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "new_news_help" };
+        var prices = new CheckBox { Text = "new_prices", ButtonPressed = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "new_prices_help" };
+        var disasters = new CheckBox { Text = "new_disasters", ButtonPressed = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "new_disasters_help" };
+        var supply = new CheckBox { Text = "new_supply", ButtonPressed = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "new_supply_help" };
+        world.AddChild(news); world.AddChild(prices); world.AddChild(disasters); world.AddChild(supply);
+        Body.AddChild(Ui.Heading("new_world"));
+        Body.AddChild(world);
+        Body.AddChild(Ui.Text("new_world_help", 13, Brand.InkDim));
         Body.AddChild(new HSeparator());
         Body.AddChild(Ui.Primary("new_start", () =>
         {
             o.Company = string.IsNullOrWhiteSpace(name.Text) ? Loc.T("new_company_default") : name.Text.Trim();
             o.Difficulty = diff.Selected; o.AiCompetitors = ai.ButtonPressed; o.Events = events.ButtonPressed;
+            o.Competitors = (int)count.Value; o.Aggression = aggr.Selected;
+            o.News = news.ButtonPressed; o.DynamicPrices = prices.ButtonPressed; o.Disasters = disasters.ButtonPressed; o.SupplyDelays = supply.ButtonPressed;
             o.Creative = creative.ButtonPressed;
             o.CreativeOptions = o.Creative ? c : new CreativeOptions();
             if (o.Creative && c.UnlimitedMoney) o.Difficulty = 0;

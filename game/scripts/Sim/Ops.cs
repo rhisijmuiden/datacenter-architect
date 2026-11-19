@@ -5,7 +5,7 @@ using System.Text.Json.Serialization;
 
 namespace DatacenterArchitect.Sim;
 
-public enum EventKind { CityOutage, Heatwave, CableCut, CustomerBankrupt, FireAlarm, PressVisit }
+public enum EventKind { CityOutage, Heatwave, CableCut, CustomerBankrupt, FireAlarm, PressVisit, Flood }
 
 /// <summary>A random event that is running: a city-wide power cut, a heatwave, or a hall after a fire alarm.</summary>
 public class GameEvent
@@ -46,7 +46,7 @@ public partial class GameState
     /// <summary>Heat rejection outside works less well in a heatwave.</summary>
     [JsonIgnore] public double RejectFactor => Heatwave ? 0.8 : 1;
     /// <summary>A hall where the gas extinguishing system went off: its racks stay down until it is reset.</summary>
-    public bool Suppressed(Room r) => ActiveEvents.Any(e => e.Kind == EventKind.FireAlarm && e.Target == r.Id && Hours < e.EndHour);
+    public bool Suppressed(Room r) => ActiveEvents.Any(e => e.Kind is EventKind.FireAlarm or EventKind.Flood && e.Target == r.Id && Hours < e.EndHour);
     /// <summary>The generators run out of diesel in a long outage, unless a generator technician arranges extra deliveries.</summary>
     public bool GeneratorsDry(double fuelHours) => GridDown && OutageElapsed > fuelHours && !HasStaff(StaffRole.GeneratorTech);
 
@@ -310,7 +310,7 @@ public partial class GameState
     public bool NeedsPart(Part p) => Objects.Any(o => Staffing.Breaks(o.Kind) && Staffing.PartFor(o.Kind) == p);
     public int MinParts(Part p) => PartMin.TryGetValue(p, out var m) ? m : DefaultMinParts;
     public void SetMinParts(Part p, int n) { PartMin[p] = Math.Clamp(n, 0, 20); Touch(false); }
-    public int PartLeadDays => Math.Max(1, 4 - Staff.Count(e => e.Role == StaffRole.Logistics));
+    public int PartLeadDays => Math.Max(1, 4 - Staff.Count(e => e.Role == StaffRole.Logistics)) * (SupplyCrunch ? 2 : 1);
 
     public string OrderParts(Part p, int qty)
     {

@@ -122,6 +122,13 @@ public class NewGameOptions
     public int Difficulty { get; set; } = 1;
     public bool Creative { get; set; }
     public CreativeOptions CreativeOptions { get; set; } = new();
+    /// <summary>Step 9 switches: how many rivals (1-5) and how aggressive (0-2), the news ticker, dynamic energy prices, disasters and supply delays.</summary>
+    public int Competitors { get; set; } = 3;
+    public int Aggression { get; set; } = 1;
+    public bool News { get; set; } = true;
+    public bool DynamicPrices { get; set; } = true;
+    public bool Disasters { get; set; } = true;
+    public bool SupplyDelays { get; set; } = true;
     public long StartMoney => Difficulty switch { 0 => 25_000_000, 2 => 6_000_000, _ => 12_000_000 };
     [JsonIgnore] public CreativeOptions C => Creative ? CreativeOptions : None;
     static readonly CreativeOptions None = new();
@@ -130,7 +137,7 @@ public class NewGameOptions
 /// <summary>All state that goes into a savegame. Workers and trucks are not saved; they restart from this state.</summary>
 public partial class GameState
 {
-    public const int CurrentFormat = 7;
+    public const int CurrentFormat = 8;
     /// <summary>Floor value for objects that stand on the roof of a building.</summary>
     public const int RoofFloor = -1;
     public const double WorkPerMaterial = 0.15;
@@ -192,6 +199,7 @@ public partial class GameState
     {
         var s = new GameState { Options = o, Money = o.StartMoney };
         s.EnsureGrids();
+        s.EnsureCompetitors();
         return s;
     }
 
@@ -267,6 +275,14 @@ public partial class GameState
         Staff ??= new(); Candidates ??= new(); StaffingLevel ??= new(); TrainingPoints ??= new();
         ActiveEvents ??= new(); Incidents ??= new(); PartStock ??= new(); PartMin ??= new(); PartOrders ??= new();
         foreach (var k in Contracts) k.Samples ??= new();
+        if (SaveFormat < 8)
+        {
+            // step 9: growth. Older games keep their settings: no disasters or supply delays they did not choose, prices as before.
+            Options.DynamicPrices = false; Options.Disasters = false; Options.SupplyDelays = false;
+            Notes.Add(("msg_growth_new", null));
+        }
+        MigrateGrowth();
+        EnsureCompetitors();
         SaveFormat = CurrentFormat;
         Touch();
     }
@@ -838,8 +854,7 @@ public partial class GameState
     {
         var d = Catalog.Suppliers[supplier < 0 ? Supplier : supplier];
         if (!d.Variable) return d.PricePerKwh;
-        var day = Hours / 24;
-        return d.PricePerKwh * (1 + 0.15 * Math.Sin(day / 9) + 0.05 * Math.Sin(day / 2.3));
+        return d.PricePerKwh * EnergyIndex;
     }
 
     public string CanUpgrade(PlacedObject o)
@@ -954,6 +969,7 @@ public partial class GameState
             ResearchDay();
             CertDay();
             ReputationDay(day, rng);
+            GrowthDay(day);
             MoneyDay(day);
         }
     }
