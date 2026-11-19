@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 namespace DatacenterArchitect.Sim;
 
 /// <summary>Directors and managers. Each one needs its own furnished office (an executive room with a desk and a chair).</summary>
-public enum Exec { Ceo, Cfo, Hr, Sales, Legal, CustomerSuccess, Procurement, Operations, Facility, Network, Security, ProjectManager, Marketing, Compliance, Research, OfficeManager }
+public enum Exec { Ceo, Cfo, Hr, Sales, Legal, CustomerSuccess, Procurement, Operations, Facility, Network, Security, ProjectManager, Marketing, Compliance, Research, OfficeManager, Hosting, Sustainability, International }
 
 /// <summary>A director or manager: what it needs first, salary per month, one-off hiring fee and two training levels (cost, days).</summary>
 public record ExecDef(Exec Role, string Key, Exec[] Requires, long Salary, long HireFee, long[] TrainingCost, int[] TrainingDays);
@@ -57,6 +57,8 @@ public class Deal
     public double Gbps { get; set; }
     public int Carriers { get; set; }
     public bool Green { get; set; }
+    /// <summary>Lost tenders: the rival that won.</summary>
+    public string LostTo { get; set; }
     public bool Security { get; set; }
     public long Monthly { get; set; }
     public int Months { get; set; }
@@ -123,10 +125,15 @@ public static class Org
         [Exec.Research] = new(Exec.Research, "exec_research", new[] { Exec.Ceo }, 7000, 10000, new long[] { 35000, 80000 }, new[] { 12, 24 }),
         // office manager (Reinder, step 8): runs the offices; with research he rents out office space to other companies
         [Exec.OfficeManager] = new(Exec.OfficeManager, "exec_office", new[] { Exec.Operations }, 5500, 7000, new long[] { 20000, 45000 }, new[] { 8, 16 }),
+        // step 9: the hosting director starts the own hosting company, the sustainability manager raises the ESG score,
+        // the international director opens other countries and runs the locations there
+        [Exec.Hosting] = new(Exec.Hosting, "exec_hosting", new[] { Exec.Ceo, Exec.Sales }, 8000, 12000, new long[] { 35000, 80000 }, new[] { 12, 24 }),
+        [Exec.Sustainability] = new(Exec.Sustainability, "exec_sustainability", new[] { Exec.Operations }, 6000, 8000, new long[] { 25000, 55000 }, new[] { 10, 20 }),
+        [Exec.International] = new(Exec.International, "exec_international", new[] { Exec.Ceo, Exec.Cfo }, 9000, 15000, new long[] { 40000, 90000 }, new[] { 12, 24 }),
     };
 
     /// <summary>Order in the organisation chart: CEO, then the directors, then what sits under them.</summary>
-    public static readonly Exec[] Chart = { Exec.Ceo, Exec.Cfo, Exec.Procurement, Exec.Hr, Exec.Sales, Exec.Legal, Exec.CustomerSuccess, Exec.Marketing, Exec.Compliance, Exec.Research, Exec.Operations, Exec.Facility, Exec.Network, Exec.Security, Exec.ProjectManager, Exec.OfficeManager };
+    public static readonly Exec[] Chart = { Exec.Ceo, Exec.Cfo, Exec.Procurement, Exec.Hr, Exec.Sales, Exec.Legal, Exec.CustomerSuccess, Exec.Marketing, Exec.Compliance, Exec.Research, Exec.Hosting, Exec.International, Exec.Operations, Exec.Facility, Exec.Network, Exec.Security, Exec.ProjectManager, Exec.OfficeManager, Exec.Sustainability };
 
     public const long SalesRepSalary = 4200;
     public const int MaxLeads = 8;
@@ -175,6 +182,11 @@ public static class Org
     };
     static readonly string[] Cities = { "Lindedam", "Vlietstad", "Eikenburg", "Waalhoven", "Duinwijk", "Molendorp" };
     static readonly string[] Ministries = { "min_digital", "min_infrastructure", "min_finance", "min_health" };
+
+    public static string City(Random rng) => Cities[rng.Next(Cities.Length)];
+    static readonly string[] CompanySuffix = { "Advocaten", "Consultancy", "Software", "Media", "Engineering", "Logistics", "Design", "Finance" };
+    /// <summary>A fictional company name, for office tenants and big hosting customers.</summary>
+    public static string Company(Random rng) => Prefix[rng.Next(Prefix.Length)] + " " + CompanySuffix[rng.Next(CompanySuffix.Length)];
 
     public static void Name(Deal d, Random rng)
     {
@@ -481,7 +493,7 @@ public partial class GameState
             list.Add(new Req("req_carriers", n.ToString(), d.Carriers.ToString(), n >= d.Carriers ? ReqStatus.Ok : ReqStatus.Fail));
         }
         if (d.Green)
-            list.Add(new Req("req_green", Catalog.Suppliers[Supplier].Name, "", Catalog.Suppliers[Supplier].Green ? ReqStatus.Ok : ReqStatus.Fail));
+            list.Add(new Req("req_green", Catalog.Suppliers[Supplier].Green ? Catalog.Suppliers[Supplier].Name : $"{RenewableShare * 100:0}%", "", GreenPower ? ReqStatus.Ok : ReqStatus.Fail));
         if (d.Security)
         {
             var need = SecurityNeed(d.Type);
@@ -764,7 +776,8 @@ public partial class GameState
     public bool ResolveBid(Deal d, Random rng)
     {
         var mine = 0.35 + Reputation / 250 + (1 - d.BidPercent / 100.0) * 2.2 + 0.05 * Training(Exec.Legal) + (Meets(d) ? 0.1 : 0) + 0.05 * CertsWanted(d.Type).Count(c => HasCert(c.kind)) + rng.NextDouble() * 0.15;
-        var best = Options.AiCompetitors ? Catalog.Rivals.Max(_ => 0.3 + rng.NextDouble() * 0.45) : 0.45;
+        mine += Has(KeyRole.StarSales) ? 0.06 : 0;
+        var best = RivalBid(rng, out var winner);
         if (mine >= best)
         {
             d.Monthly = (long)Math.Round(d.Monthly * d.BidPercent / 100.0 / 100) * 100;
@@ -775,8 +788,9 @@ public partial class GameState
             if (Meets(d)) { Activate(d); Reputation = Math.Min(100, Reputation + 3); }
             return true;
         }
-        d.State = DealState.Lost; d.EndDay = Day;
-        Notes.Add(("msg_tender_lost", DisplayArg(d)));
+        d.State = DealState.Lost; d.EndDay = Day; d.LostTo = winner;
+        if (winner != null) { Notes.Add(("msg_tender_lost_to", $"{DisplayArg(d)}¦{winner}")); AddNews("news_tender_won_by", $"{winner}¦{DisplayArg(d)}", 2); }
+        else Notes.Add(("msg_tender_lost", DisplayArg(d)));
         return false;
     }
 
@@ -838,7 +852,7 @@ public partial class GameState
     {
         if (Creative.UnlimitedMoney) { DaysInRed = 0; return; }
         var infra = Infra;
-        var energy = infra.FacilityKw * 24 * EnergyPrice() * (1 - EnergyDiscount);
+        var energy = EnergyCostDay(infra);
         var rent = 0.0; var sla = 0.0; var support = 0.0;
         foreach (var d in Deals.Where(d => d.State == DealState.Active))
         {
@@ -852,7 +866,7 @@ public partial class GameState
         {
             ("inc_contracts", rent), ("inc_network", netIn), ("cost_network", net - netIn), ("cost_energy", -energy),
             ("cost_crew", -WagesPerDay), ("cost_salaries", -SalariesPerMonth / 30.0), ("cost_staff", -(StaffPayPerMonth + PlansPerMonth) / 30.0), ("inc_remote_hands", RemoteHandsIncome / 30.0), ("inc_heat", HeatIncomePerMonth / 30.0), ("inc_office_rent", OfficeRentPerMonth / 30.0), ("cost_site", -400 - support), ("cost_sla", -sla),
-        };
+        }.Concat(GrowthMoney()).ToArray();
         foreach (var (key, v) in lines)
         {
             var amount = (long)Math.Round(v);
@@ -889,5 +903,7 @@ public partial class GameState
                 Money -= div; Book("fin_dividend", -div);
             }
         }
+        var lastMonth = Books.FirstOrDefault(b => b.Month == MonthIndex - 1);
+        GrowthMonthEnd(lastMonth?.Lines.Where(kv => kv.Key.StartsWith("inc_") || kv.Key.StartsWith("cost_")).Sum(kv => kv.Value) ?? 0);
     }
 }

@@ -116,7 +116,7 @@ public static class Network
         var best = 0; var bd = double.MaxValue;
         for (var i = 0; i < Catalog.StreetPits.Length; i++)
         {
-            double dx = Catalog.StreetPits[i] - pit.X, dz = s.PlotSize + 1.6 - pit.Z;
+            double dx = s.StreetPit(i) - pit.X, dz = s.PlotSize + 1.6 - pit.Z;
             var d = dx * dx + dz * dz;
             if (d < bd) { bd = d; best = i; }
         }

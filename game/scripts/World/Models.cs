@@ -392,6 +392,113 @@ public static class Models
                 Box(n, new Vector3(0.45f, 1.06f, -0.045f), new Vector3(0.41f, 0.24f, 0.01f), new Color("#5fd49b"), glow: true);
                 Cyl(n, new Vector3(0.82f, 0.98f, 0.2f), 0.05f, 0.14f, new Color("#9fd3ee", 0.6f));
                 break;
+            case ObjKind.SolarPanel:
+            {
+                // two tilted panels on a low frame
+                var dark = new Color("#1d3550");
+                foreach (var z in new[] { -0.5f, 0.5f })
+                {
+                    Box(n, new Vector3(0, 0.25f, z), new Vector3(1.8f, 0.05f, 0.05f), Steel);
+                    var p = Box(n, new Vector3(0, 0.5f, z), new Vector3(1.9f, 0.04f, 0.85f), dark, 0.2f, 0.4f);
+                    p.RotationDegrees = new Vector3(-22, 0, 0);
+                    for (var i = 0; i < 4; i++) { var l = Box(n, new Vector3(-0.71f + i * 0.475f, 0.525f, z), new Vector3(0.015f, 0.01f, 0.83f), new Color("#6f8aa6")); l.RotationDegrees = new Vector3(-22, 0, 0); }
+                    foreach (var x in new[] { -0.8f, 0.8f }) Box(n, new Vector3(x, 0.22f, z + 0.2f), new Vector3(0.05f, 0.44f, 0.05f), Steel);
+                }
+                break;
+            }
+            case ObjKind.WindTurbine:
+            {
+                Cyl(n, new Vector3(0, 0.1f, 0), 0.9f, 0.2f, Brand.Concrete);
+                Cyl(n, new Vector3(0, 4.2f, 0), 0.16f, 8.2f, White, 0.1f);
+                Box(n, new Vector3(0, 8.4f, -0.1f), new Vector3(0.38f, 0.38f, 1.0f), White);
+                var hub = new Node3D { Name = "FanRotor", Position = new Vector3(0, 8.4f, 0.45f), RotationDegrees = new Vector3(90, 0, 0) };
+                n.AddChild(hub);
+                Ball(hub, Vector3.Zero, 0.2f, Brand.Power);
+                for (var i = 0; i < 3; i++)
+                {
+                    var arm = new Node3D { RotationDegrees = new Vector3(0, i * 120, 0) }; hub.AddChild(arm);
+                    Box(arm, new Vector3(1.6f, 0, 0), new Vector3(3.1f, 0.06f, 0.26f), White);
+                }
+                break;
+            }
+            case ObjKind.BatteryContainer:
+                // a shipping container full of battery racks, with doors and a cooling unit
+                Box(n, new Vector3(0, 0.08f, 0), new Vector3(2.98f, 0.16f, 0.98f), Brand.Concrete);
+                Box(n, new Vector3(0, 0.75f, 0), new Vector3(2.9f, 1.2f, 0.9f), new Color("#f1f3f4"), 0.5f, 0.2f);
+                for (var i = 0; i < 9; i++) Box(n, new Vector3(-1.3f + i * 0.325f, 0.75f, 0.455f), new Vector3(0.03f, 1.1f, 0.01f), new Color("#c9cfd4"));
+                Box(n, new Vector3(0, 1.38f, 0), new Vector3(2.92f, 0.06f, 0.92f), Brand.Power);
+                Box(n, new Vector3(1.0f, 0.85f, 0.465f), new Vector3(0.5f, 0.4f, 0.02f), new Color("#3b4148"));
+                Box(n, new Vector3(-1.1f, 1.0f, 0.465f), new Vector3(0.12f, 0.05f, 0.01f), Brand.Ok, glow: true);
+                Box(n, new Vector3(-0.95f, 1.0f, 0.465f), new Vector3(0.12f, 0.05f, 0.01f), Brand.Power, glow: true);
+                break;
+            case ObjKind.DryCooler:
+            {
+                // a low frame with two big fans on top: rejects heat with air, no water
+                Box(n, new Vector3(0, 0.1f, 0), new Vector3(1.95f, 0.2f, 0.95f), new Color("#9ea3a8"));
+                Box(n, new Vector3(0, 0.55f, 0), new Vector3(1.85f, 0.7f, 0.85f), new Color("#dfe5e9"), 0.5f);
+                for (var i = 0; i < 7; i++) Box(n, new Vector3(-0.78f + i * 0.26f, 0.55f, 0.43f), new Vector3(0.03f, 0.6f, 0.01f), Brand.Cooling);
+                foreach (var x in new[] { -0.47f, 0.47f })
+                {
+                    Cyl(n, new Vector3(x, 0.93f, 0), 0.38f, 0.08f, new Color("#3d464f"));
+                    var blade = Box(n, new Vector3(x, 0.98f, 0), new Vector3(0.66f, 0.02f, 0.1f), new Color("#8f989f")); blade.Name = "Fan";
+                }
+                break;
+            }
+            case ObjKind.PalletRack:
+            {
+                // orange uprights, blue beams, boxes on pallets on three levels
+                foreach (var x in new[] { -1.45f, 0f, 1.45f }) foreach (var z in new[] { -0.4f, 0.4f })
+                    Box(n, new Vector3(x, 1.2f, z), new Vector3(0.07f, 2.4f, 0.07f), Brand.Fiber);
+                for (var lvl = 0; lvl < 3; lvl++)
+                {
+                    var y = 0.1f + lvl * 0.8f;
+                    foreach (var z in new[] { -0.4f, 0.4f }) Box(n, new Vector3(0, y, z), new Vector3(2.95f, 0.08f, 0.06f), new Color("#2f5fa0"));
+                    foreach (var x in new[] { -0.72f, 0.72f })
+                    {
+                        Box(n, new Vector3(x, y + 0.08f, 0), new Vector3(1.1f, 0.08f, 0.75f), Wood);
+                        if ((lvl + (x > 0 ? 1 : 0)) % 3 != 2) Box(n, new Vector3(x, y + 0.38f, 0), new Vector3(1.0f, 0.5f, 0.68f), new Color("#c79a5b"));
+                    }
+                }
+                break;
+            }
+            case ObjKind.Workbench:
+                // ESD workbench with a server on it being prepared, a monitor and a parts tray
+                Box(n, new Vector3(0, 0.85f, 0), new Vector3(1.9f, 0.06f, 0.8f), new Color("#4b6b88"));
+                foreach (var x in new[] { -0.88f, 0.88f }) Box(n, new Vector3(x, 0.42f, 0), new Vector3(0.08f, 0.84f, 0.72f), Steel);
+                Box(n, new Vector3(-0.2f, 0.95f, 0.05f), new Vector3(0.9f, 0.12f, 0.6f), Brand.Rack, 0.5f, 0.4f);
+                Box(n, new Vector3(-0.2f, 0.96f, 0.355f), new Vector3(0.84f, 0.08f, 0.01f), new Color("#55606b"));
+                Box(n, new Vector3(0.05f, 0.97f, 0.36f), new Vector3(0.04f, 0.02f, 0.01f), Brand.Ok, glow: true);
+                Box(n, new Vector3(0.6f, 1.12f, -0.2f), new Vector3(0.5f, 0.32f, 0.03f), Dark);
+                Box(n, new Vector3(0.6f, 1.12f, -0.18f), new Vector3(0.46f, 0.28f, 0.01f), new Color("#7fa6b8"), glow: true);
+                Box(n, new Vector3(0.65f, 0.9f, 0.2f), new Vector3(0.4f, 0.04f, 0.3f), new Color("#ffd23e"));
+                break;
+            case ObjKind.PalletJack:
+                // hand pallet truck: forks, the pump and a long handle (no forklifts on this site)
+                foreach (var x in new[] { -0.15f, 0.15f }) Box(n, new Vector3(x, 0.05f, 0.05f), new Vector3(0.12f, 0.08f, 0.8f), Brand.Fiber);
+                Box(n, new Vector3(0, 0.18f, -0.38f), new Vector3(0.42f, 0.26f, 0.12f), Brand.Fiber);
+                var handle = Box(n, new Vector3(0, 0.6f, -0.48f), new Vector3(0.04f, 0.8f, 0.04f), Dark); handle.RotationDegrees = new Vector3(-18, 0, 0);
+                Box(n, new Vector3(0, 0.98f, -0.6f), new Vector3(0.28f, 0.05f, 0.05f), Dark);
+                break;
+            case ObjKind.Shredder:
+                // disk shredder: a heavy box with a hopper and a green status light
+                Box(n, new Vector3(0, 0.5f, 0), new Vector3(0.8f, 1.0f, 0.8f), new Color("#3b4652"), 0.5f, 0.3f);
+                Box(n, new Vector3(0, 1.08f, 0.05f), new Vector3(0.6f, 0.16f, 0.5f), new Color("#55606b"));
+                Box(n, new Vector3(0, 0.75f, 0.405f), new Vector3(0.5f, 0.12f, 0.01f), Brand.Power);
+                Box(n, new Vector3(0.28f, 0.92f, 0.405f), new Vector3(0.06f, 0.06f, 0.01f), Brand.Ok, glow: true);
+                break;
+            case ObjKind.SocDesk:
+                // analyst desk with three screens of dashboards
+                Box(n, new Vector3(0, 0.75f, 0.1f), new Vector3(1.9f, 0.05f, 0.75f), new Color("#2b3036"));
+                foreach (var x in new[] { -0.85f, 0.85f }) Box(n, new Vector3(x, 0.37f, 0.1f), new Vector3(0.06f, 0.74f, 0.7f), Dark);
+                for (var i = -1; i <= 1; i++)
+                {
+                    var scr = Box(n, new Vector3(i * 0.58f, 1.08f, -0.18f), new Vector3(0.55f, 0.34f, 0.03f), Dark);
+                    scr.RotationDegrees = new Vector3(0, -i * 14, 0);
+                    var glow = Box(n, new Vector3(i * 0.58f, 1.08f, -0.16f), new Vector3(0.5f, 0.3f, 0.01f), i == 0 ? Brand.Critical : Brand.Cooling, glow: true);
+                    glow.RotationDegrees = new Vector3(0, -i * 14, 0);
+                }
+                Box(n, new Vector3(0, 0.45f, 0.75f), new Vector3(0.5f, 0.08f, 0.5f), Dark);
+                break;
             case ObjKind.CoolingTower:
                 Box(n, new Vector3(0, 0.15f, 0), new Vector3(1.95f, 0.3f, 1.95f), new Color("#9ea3a8"));
                 Box(n, new Vector3(0, 1.35f, 0), new Vector3(1.8f, 2.1f, 1.8f), new Color("#d6dde2"), 0.6f);

@@ -71,11 +71,13 @@ public partial class Simulation
             StaffRole.Receptionist => new[] { RoomType.Reception },
             StaffRole.Canteen => new[] { RoomType.Canteen },
             StaffRole.Helpdesk => new[] { RoomType.Office },
-            StaffRole.Logistics => new[] { RoomType.LoadingDock, RoomType.Storage },
+            StaffRole.Logistics => new[] { RoomType.LoadingDock, RoomType.Storage, RoomType.Warehouse },
+            StaffRole.SocAnalyst => new[] { RoomType.Soc },
+            StaffRole.HostingEngineer => HostingAreas(),
             StaffRole.Researcher => new[] { RoomType.Lab },
             _ => Array.Empty<RoomType>(),
         };
-        foreach (var room in S.Rooms.Where(x => rooms.Contains(x.Type) && x.Stage == Stage.Done && S.BuildingOf(x)?.Stage == Stage.Done))
+        foreach (var room in S.Rooms.Where(x => rooms.Contains(x.Type) && x.Stage == Stage.Done && S.BuildingOf(x)?.Stage == Stage.Done && (r != StaffRole.HostingEngineer || x.Type != RoomType.DataHall || x.Zone == HallZone.OwnCloud)))
             for (var z = room.Z; z < room.Z + room.D; z++)
                 for (var x = room.X; x < room.X + room.W; x++)
                     if (Nav.Walkable(x, z, room.Floor)) list.Add((x, z, room.Floor));
@@ -93,6 +95,9 @@ public partial class Simulation
         _areas[r] = list;
         return list;
     }
+
+    /// <summary>Hosting engineers walk between the warehouse workbenches, where servers are prepared, and the own-cloud halls where they install them.</summary>
+    RoomType[] HostingAreas() => new[] { RoomType.Warehouse, RoomType.Storage, RoomType.DataHall };
 
     void StaffWalk(Agent a, double dt)
     {
@@ -123,7 +128,7 @@ public partial class Simulation
                 return;
             case 1:
                 if (!Move(a, dt, WalkSpeed * (a.Staff == StaffRole.Guard ? 0.6 : 0.85))) return;
-                a.Phase = 2; a.Timer = a.Target != 0 ? 0 : 0.3 + _rng.NextDouble() * (a.Staff is StaffRole.Noc or StaffRole.Receptionist or StaffRole.Helpdesk or StaffRole.Researcher ? 3 : 0.8);
+                a.Phase = 2; a.Timer = a.Target != 0 ? 0 : 0.3 + _rng.NextDouble() * (a.Staff is StaffRole.Noc or StaffRole.Receptionist or StaffRole.Helpdesk or StaffRole.Researcher or StaffRole.SocAnalyst ? 3 : 0.8);
                 return;
             case 2:
                 if (a.Target != 0)
@@ -134,7 +139,7 @@ public partial class Simulation
                     a.Heading = Math.Atan2(o.X + 0.5 - a.X, o.Z + 0.5 - a.Z);
                     return;
                 }
-                a.Working = a.Staff is StaffRole.Cleaner or StaffRole.Gardener or StaffRole.Noc or StaffRole.Helpdesk or StaffRole.Researcher;
+                a.Working = a.Staff is StaffRole.Cleaner or StaffRole.Gardener or StaffRole.Noc or StaffRole.Helpdesk or StaffRole.Researcher or StaffRole.SocAnalyst or StaffRole.HostingEngineer or StaffRole.Logistics;
                 a.Timer -= dt;
                 if (a.Timer <= 0) a.Phase = 0;
                 return;

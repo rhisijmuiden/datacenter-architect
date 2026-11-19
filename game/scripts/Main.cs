@@ -89,6 +89,7 @@ public partial class Main : Node3D
         _state = s;
         _sim = new Simulation(s);
         _world.Build(s, _sim);
+        _landRev = s.LandRevision;
     }
 
     void StartNew(NewGameOptions o) => StartGame(GameState.New(o), true);
@@ -105,7 +106,6 @@ public partial class Main : Node3D
     {
         _menu?.QueueFree(); _menu = null;
         _hud?.QueueFree();
-        SetState(s);
         _world.GridVisible = true;
         _world.Roofs = true; _world.ViewFloor = 0;
         _cam.InputEnabled = true;
@@ -127,7 +127,7 @@ public partial class Main : Node3D
             FloorUp = () => SetView(_world.ViewFloor + 1, false),
             FloorDown = () => SetView(_world.ViewFloor - 1, _world.ViewFloor - 1 <= 0 && _world.Roofs),
             OpenInfo = OpenInfo, OpenOptions = OpenOptions, OpenMenu = OpenPause, ToggleLanguage = ToggleLanguage,
-            OpenPower = OpenPower, OpenNetwork = OpenNetwork, OpenCompany = OpenCompany, OpenStaff = OpenStaff, OpenReputation = OpenReputation, ToggleOverlay = m => SetOverlay(_world.Overlay.Mode == (OverlayMode)m ? OverlayMode.None : (OverlayMode)m),
+            OpenPower = OpenPower, OpenNetwork = OpenNetwork, OpenCompany = OpenCompany, OpenStaff = OpenStaff, OpenReputation = OpenReputation, OpenGrowth = OpenGrowth, ToggleOverlay = m => SetOverlay(_world.Overlay.Mode == (OverlayMode)m ? OverlayMode.None : (OverlayMode)m),
         };
         _ui.AddChild(_hud);
         _ui.MoveChild(_hud, 0);
@@ -196,6 +196,27 @@ public partial class Main : Node3D
         foreach (var p in _ui.GetChildren().OfType<ReputationPanel>()) p.Close();
         _ui.AddChild(new ReputationPanel(() => _state, Fail, tab));
     }
+
+    void OpenGrowth(int tab)
+    {
+        if (!_playing) return;
+        foreach (var p in _ui.GetChildren().OfType<GrowthPanel>()) p.Close();
+        _ui.AddChild(new GrowthPanel(() => _state, Fail, tab));
+    }
+
+    /// <summary>Bought land: the plot grew, so the world and the people on it are rebuilt and the camera follows the shift.</summary>
+    void CheckLand()
+    {
+        if (_state.LandRevision == _landRev) return;
+        _landRev = _state.LandRevision;
+        var d = _state.LastLandShift;
+        var t = _cam.TargetPoint;
+        _sim = new Simulation(_state);
+        _world.Build(_state, _sim);
+        _cam.Bounds = new Rect2(-30, -30, _state.PlotSize + 60, _state.PlotSize + 60);
+        _cam.SetView(_cam.Yaw, _cam.Pitch, _cam.Distance, new Vector3(t.X + d, t.Y, t.Z + d));
+    }
+    int _landRev;
 
     void OpenStaff(int tab)
     {
@@ -338,7 +359,7 @@ public partial class Main : Node3D
         }
         foreach (var (key, arg) in _sim.Messages.Concat(_state.Notes))
         {
-            var text = Loc.T(key, ArgText(arg));
+            var text = arg != null && arg.Contains('¦') ? Loc.T(key, arg.Split('¦').Select(ArgText).ToArray<object>()) : Loc.T(key, ArgText(arg));
             var accent = key is "msg_signed" or "msg_tender_won" or "msg_tender_delivered" or "msg_hired" or "msg_renewed" or "msg_trained" or "msg_staff_hired" or "msg_staff_trained"
                     or "msg_repaired" or "msg_replaced" or "msg_ev_press_good" or "msg_ev_fire_false" or "msg_ev_outage_gen" or "msg_parts_arrived" ? Brand.Ok
                 : key is "msg_bankrupt" or "msg_in_red" or "msg_tender_failed" or "msg_customer_left" or "msg_tender_lost" or "msg_fault" or "msg_ev_outage_dark" or "msg_ev_cable_cut"
@@ -347,6 +368,7 @@ public partial class Main : Node3D
         }
         _sim.Messages.Clear(); _state.Notes.Clear();
         if (_state.Bankrupt) ShowBankrupt();
+        CheckLand();
         _hud.UpdateStats(_state);
         _goalTimer -= delta;
         if (_goalTimer <= 0) { _goalTimer = 1; UpdateGoals(); UpdateProjects(); RefreshInspect(); }
@@ -365,7 +387,7 @@ public partial class Main : Node3D
     }
 
     /// <summary>Message arguments are keys, plain names, or "@key|arg" for translated customer names.</summary>
-    static string ArgText(string arg)
+    public static string ArgText(string arg)
     {
         if (arg == null) return "";
         if (arg.StartsWith('@')) { var p = arg[1..].Split('|'); return Loc.T(p[0], p.Length > 1 ? p[1] : ""); }
@@ -994,6 +1016,9 @@ public partial class Main : Node3D
             if (args.Contains("--interior")) { _cam.SetView(0.35f, 0.75f, 22, new Vector3((float)crah.X, 0, (float)crah.Z + 2)); Inspect(new Vector2I(crah.X, crah.Z)); }
         }
         if (args.Contains("--rep-demo")) RepDemo();
+        if (args.Contains("--growth-demo")) GrowthDemo();
+        var gri = Array.IndexOf(args, "--growth");
+        if (gri >= 0 && gri + 1 < args.Length) { _playing = true; OpenGrowth(int.Parse(args[gri + 1])); }
         var rpi = Array.IndexOf(args, "--reputation");
         if (rpi >= 0 && rpi + 1 < args.Length) { _playing = true; OpenReputation(int.Parse(args[rpi + 1])); }
         var sti = Array.IndexOf(args, "--staff");
@@ -1023,6 +1048,27 @@ public partial class Main : Node3D
     }
 
     /// <summary>Screenshots of step 8: managers in place, policies on, a certificate, research running, reviews and a proposal.</summary>
+    /// <summary>Screenshot setup for step 9: a second location, a hosting company, a key person and some months of market news.</summary>
+    void GrowthDemo()
+    {
+        var s = _state;
+        s.Options.Creative = false; s.Options.Events = false;
+        s.Grandfathered = Enum.GetValues<Exec>().ToList();
+        s.Money = 400_000_000;
+        foreach (var o in s.Objects) if (o.Status != ObjStatus.Live && o.Kind != ObjKind.Rack) o.Status = ObjStatus.Live;
+        s.OpenCountry("de");
+        s.BuildSite("nl", 1); s.BuildSite("de", 0);
+        s.StartHosting();
+        var hall = s.Rooms.FirstOrDefault(r => r.Type == RoomType.DataHall);
+        if (hall != null) hall.Zone = HallZone.OwnCloud;
+        s.OrderServers(40);
+        s.KeyPeople.Add(new KeyPerson { Id = s.NextId++, Name = "Sanne Visser", Role = KeyRole.EnergyTrader, Salary = 10200, Candidate = true, ExpiresDay = s.Day + 400 });
+        s.HireKey(s.KeyPeople[^1]);
+        s.SetInsurance(1);
+        for (var d = 0; d < 200; d++) s.Advance(24);
+        SetState(s);
+    }
+
     void RepDemo()
     {
         var s = _state;

@@ -189,21 +189,4 @@ public partial class GameState
     /// <summary>Waste heat sold to the district heating: euros per month per kW of IT load.</summary>
     public const double HeatPerKwMonth = 4;
     [JsonIgnore] public long HeatIncomePerMonth => Done("cool_heat") ? (long)Math.Round(Infra.ItRunningKw * HeatPerKwMonth) : 0;
-
-    /// <summary>
-    /// Office rental (office manager + research): finished office rooms without desks are let to other companies.
-    /// The office manager finds the tenants; more training, higher rent. Renting whole buildings and other locations follows in step 9.
-    /// </summary>
-    public const long OfficeRentPerM2 = 22;
-    [JsonIgnore]
-    public long OfficeRentPerMonth
-    {
-        get
-        {
-            if (!Done("biz_office_rent") || !Has(Exec.OfficeManager)) return 0;
-            var m2 = RentableOffices.Sum(r => r.W * r.D);
-            return (long)Math.Round(m2 * OfficeRentPerM2 * (1 + 0.1 * Training(Exec.OfficeManager)));
-        }
-    }
-    [JsonIgnore] public IEnumerable<Room> RentableOffices => Rooms.Where(r => r.Type == RoomType.Office && r.Stage == Stage.Done && !Objects.Any(o => o.Kind == ObjKind.Desk && o.Floor == r.Floor && r.Contains(o.X, o.Z)));
 }

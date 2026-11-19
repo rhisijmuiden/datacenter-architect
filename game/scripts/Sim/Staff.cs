@@ -12,6 +12,8 @@ public enum StaffRole
     Receptionist, Cleaner, RemoteHands, FireSafety, Canteen, GeneratorTech, Gardener, Helpdesk,
     // step 8
     Researcher,
+    // step 9: SOC analysts watch for cyberattacks, hosting engineers run the own hosting company
+    SocAnalyst, HostingEngineer,
 }
 
 /// <summary>Department that hires the role: its manager must be in place (and HR for any hire).</summary>
@@ -90,6 +92,8 @@ public static class Staffing
         [StaffRole.Gardener] = new(StaffRole.Gardener, "staff_gardener", Dept.Operations, 3000, false, null, "#4f8a3c", Nothing, 0, false),
         [StaffRole.Helpdesk] = new(StaffRole.Helpdesk, "staff_helpdesk", Dept.Operations, 3800, false, null, "#6c5aa8", Nothing, 0, true),
         [StaffRole.Researcher] = new(StaffRole.Researcher, "staff_researcher", Dept.Research, 5600, false, RoomType.Lab, "#f4f6f8", Nothing, 0, false),
+        [StaffRole.SocAnalyst] = new(StaffRole.SocAnalyst, "staff_soc", Dept.Security, 5200, true, RoomType.Soc, "#26324a", Nothing, 0, false),
+        [StaffRole.HostingEngineer] = new(StaffRole.HostingEngineer, "staff_hosting", Dept.Operations, 4700, false, null, "#2f6f9a", Nothing, 0, false),
     };
 
     /// <summary>Order in the staff screen: technical roles first, then services.</summary>
@@ -97,7 +101,7 @@ public static class Staffing
     {
         StaffRole.Electrical, StaffRole.Cooling, StaffRole.GeneratorTech, StaffRole.FireSafety, StaffRole.NetworkEng, StaffRole.Noc,
         StaffRole.Support, StaffRole.RemoteHands, StaffRole.Guard, StaffRole.Receptionist, StaffRole.Logistics, StaffRole.Cleaner,
-        StaffRole.Canteen, StaffRole.Gardener, StaffRole.Helpdesk, StaffRole.Researcher,
+        StaffRole.Canteen, StaffRole.Gardener, StaffRole.Helpdesk, StaffRole.Researcher, StaffRole.SocAnalyst, StaffRole.HostingEngineer,
     };
 
     public static Exec Manager(Dept d) => d switch { Dept.Facility => Exec.Facility, Dept.Network => Exec.Network, Dept.Security => Exec.Security, Dept.Research => Exec.Research, _ => Exec.Operations };
@@ -167,9 +171,9 @@ public static class Staffing
     public const double LifeDays = 1800;
     public static bool Ages(ObjKind k) => k is ObjKind.Ups or ObjKind.Battery;
 
-    static readonly string[] First = { "Sanne", "Daan", "Fatima", "Luuk", "Noor", "Bram", "Yara", "Thijs", "Eva", "Mohamed", "Lisa", "Jesse", "Emma", "Sem", "Anouk", "Ruben",
+    public static readonly string[] First = { "Sanne", "Daan", "Fatima", "Luuk", "Noor", "Bram", "Yara", "Thijs", "Eva", "Mohamed", "Lisa", "Jesse", "Emma", "Sem", "Anouk", "Ruben",
         "Iris", "Milan", "Femke", "Kevin", "Priya", "Joris", "Esra", "Tom", "Lotte", "Ahmed", "Mila", "Niels", "Sophie", "Stijn", "Jasmijn", "Wouter" };
-    static readonly string[] Last = { "de Vries", "Jansen", "Bakker", "Visser", "Smit", "Meijer", "de Boer", "Mulder", "de Groot", "Bos", "Vos", "Peters", "Hendriks",
+    public static readonly string[] Last = { "de Vries", "Jansen", "Bakker", "Visser", "Smit", "Meijer", "de Boer", "Mulder", "de Groot", "Bos", "Vos", "Peters", "Hendriks",
         "van Dijk", "Kaya", "Yilmaz", "El Amrani", "Dekker", "Brouwer", "Kok", "Willems", "van Leeuwen", "Postma", "Huisman" };
 
     public static Employee Candidate(StaffRole role, int id, double day, Random rng)
@@ -243,7 +247,7 @@ public partial class GameState
             if (r == StaffRole.Guard) ok |= Objects.Any(o => o.Kind == ObjKind.GuardBooth);
             if (!ok) return room switch
             {
-                RoomType.Noc => "msg_staff_needs_noc", RoomType.Security => "msg_needs_security_room", RoomType.Reception => "msg_needs_reception", RoomType.Lab => "msg_needs_lab", _ => "msg_needs_canteen",
+                RoomType.Noc => "msg_staff_needs_noc", RoomType.Security => "msg_needs_security_room", RoomType.Reception => "msg_needs_reception", RoomType.Lab => "msg_needs_lab", RoomType.Soc => "msg_needs_soc", _ => "msg_needs_canteen",
             };
         }
         return null;
@@ -275,7 +279,9 @@ public partial class GameState
                 StaffRole.Canteen => Staff.Count + Execs.Count + SalesReps >= 15 ? 1 : 0,
                 StaffRole.Gardener => Objects.Count(o => o.Kind is ObjKind.Tree or ObjKind.Shrub) >= 20 ? 1 : 0,
                 StaffRole.Helpdesk => Staff.Count(e => e.Def.Desk) + Execs.Count + SalesReps >= 12 ? 1 : 0,
-                StaffRole.Logistics => LiveRacks >= 80 ? 1 : 0,
+                StaffRole.Logistics => Math.Max(LiveRacks >= 80 ? 1 : 0, WarehouseWorkersWanted),
+                StaffRole.SocAnalyst => SocDesks > 0 ? Math.Max(Soc247 ? 3 : 1, SocDesks) : 0,
+                StaffRole.HostingEngineer => HostingEngineersWanted,
                 _ => 0,
             };
         }

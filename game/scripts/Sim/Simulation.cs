@@ -563,7 +563,7 @@ public partial class Simulation
         }
         // racks and cooling units (and customers moving in) to the loading dock
         var onTruck = trucks.SelectMany(t => t.Items).ToHashSet();
-        var waiting = S.Objects.Where(o => o.Status == ObjStatus.Ordered && !onTruck.Contains(o.Id) && HallReady(o)).OrderBy(o => o.Id).ToList();
+        var waiting = S.Objects.Where(o => o.Status == ObjStatus.Ordered && !onTruck.Contains(o.Id) && HallReady(o) && !S.SupplyHeld(o)).OrderBy(o => o.Id).ToList();
         if (waiting.Count > 0 && trucks.Count(t => t.Load == TruckLoad.Equipment) < 2 && !Cooling(-2))
         {
             var docks = Docks();

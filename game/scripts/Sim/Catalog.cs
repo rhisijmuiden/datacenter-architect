@@ -15,7 +15,7 @@ public enum Facade { Concrete, Brick, Glass, Cladding }
 /// <summary>Construction stage that is being worked on. Done means finished.</summary>
 public enum Stage { Foundation, Walls, Roof, Done }
 
-public enum RoomType { DataHall, MeetMe, UpsRoom, Office, Executive, Meeting, Canteen, Lounge, Reception, Security, LoadingDock, Storage, Corridor, Transformer, Switchgear, Battery, Noc, Lab }
+public enum RoomType { DataHall, MeetMe, UpsRoom, Office, Executive, Meeting, Canteen, Lounge, Reception, Security, LoadingDock, Storage, Corridor, Transformer, Switchgear, Battery, Noc, Lab, Soc, Warehouse }
 
 public enum DoorType { Single, Double, Fire, Badge, RollUp, Mantrap }
 
@@ -33,6 +33,8 @@ public enum ObjKind
     Odf, CoreRouter, Spine, NocWall,
     // security and research (step 8)
     CameraPole, CameraDome, SecurityWall, GlassLodge, LabBench, Bollard,
+    // growth (step 9): own energy, dry coolers, the warehouse and the SOC
+    SolarPanel, WindTurbine, BatteryContainer, DryCooler, PalletRack, Workbench, PalletJack, Shredder, SocDesk,
 }
 
 /// <summary>Delivery chain for hall equipment: truck to the dock, fitter places it, engineer connects power and then fiber.</summary>
@@ -138,6 +140,17 @@ public static class Catalog
         [ObjKind.Bollard] = new(ObjKind.Bollard, "obj_bollard", 1, 1, 1200, Where.Outside, true),
         // research: a lab bench in the R&D lab, one researcher each
         [ObjKind.LabBench] = new(ObjKind.LabBench, "obj_lab_bench", 2, 1, 14000, Where.Room, true, PowerKw: 0.5, Rooms: new[] { RoomType.Lab }),
+        // step 9: solar panels on a roof or field, a small wind turbine, a battery container that trades on the energy market,
+        // dry coolers that reject heat without water, the warehouse (pallet racks, workbenches, pallet jacks, a disk shredder) and SOC desks
+        [ObjKind.SolarPanel] = new(ObjKind.SolarPanel, "obj_solar", 2, 2, 26000, Where.OutsideOrRoof, false),
+        [ObjKind.WindTurbine] = new(ObjKind.WindTurbine, "obj_wind", 2, 2, 380000, Where.Outside, true),
+        [ObjKind.BatteryContainer] = new(ObjKind.BatteryContainer, "obj_battery_container", 3, 1, 420000, Where.Outside, true),
+        [ObjKind.DryCooler] = new(ObjKind.DryCooler, "obj_dry_cooler", 2, 1, 150000, Where.OutsideOrRoof, true, RejectKw: 450, MaxLevel: 3),
+        [ObjKind.PalletRack] = new(ObjKind.PalletRack, "obj_pallet_rack", 3, 1, 3200, Where.Room, true, Rooms: new[] { RoomType.Warehouse, RoomType.Storage }),
+        [ObjKind.Workbench] = new(ObjKind.Workbench, "obj_workbench", 2, 1, 2800, Where.Room, true, PowerKw: 0.3, Rooms: new[] { RoomType.Warehouse, RoomType.Storage }),
+        [ObjKind.PalletJack] = new(ObjKind.PalletJack, "obj_pallet_jack", 1, 1, 650, Where.Room, false, Rooms: new[] { RoomType.Warehouse, RoomType.Storage, RoomType.LoadingDock }),
+        [ObjKind.Shredder] = new(ObjKind.Shredder, "obj_shredder", 1, 1, 18000, Where.Room, true, PowerKw: 1, Rooms: new[] { RoomType.Warehouse, RoomType.Storage }),
+        [ObjKind.SocDesk] = new(ObjKind.SocDesk, "obj_soc_desk", 2, 1, 9000, Where.Room, true, PowerKw: 0.4, Rooms: new[] { RoomType.Soc }),
     };
 
     /// <summary>Capacity multiplier per upgrade level for CRAH units, chillers and cooling towers.</summary>
@@ -270,6 +283,8 @@ public static class Catalog
         [RoomType.Battery] = new(RoomType.Battery, "room_battery", "#B9B08A"),
         [RoomType.Noc] = new(RoomType.Noc, "room_noc", "#7F8FA8"),
         [RoomType.Lab] = new(RoomType.Lab, "room_lab", "#9FC2B8"),
+        [RoomType.Soc] = new(RoomType.Soc, "room_soc", "#7C8CB0"),
+        [RoomType.Warehouse] = new(RoomType.Warehouse, "room_warehouse", "#B7A98F"),
     };
 
     public static readonly Dictionary<DoorType, DoorDef> Doors = new()
