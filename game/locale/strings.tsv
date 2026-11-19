@@ -110,7 +110,7 @@ hud_unlimited	no limit	geen limiet
 hud_floors	Floors	Verdiepingen
 hud_floors_n	{0} floor(s)	{0} verdieping(en)
 hud_facade	Facade	Gevel
-hud_needs_research	Needs research (step 8), or creative mode with everything unlocked.	Vraagt research (stap 8), of de creatieve modus met alles ontgrendeld.
+hud_needs_research	Needs research first (Research tree), or creative mode with everything unlocked.	Vraagt eerst research (Research tree), of de creatieve modus met alles ontgrendeld.
 hud_roofs	Show or hide roofs (T)	Daken tonen of verbergen (T)
 hud_floor	Floor you are looking at	Verdieping die je bekijkt
 hud_floor_up	Floor up (Page Up)	Verdieping omhoog (Page Up)
@@ -690,7 +690,7 @@ exec_network_unlocks	Network team: carrier ports, the internet exchange and peer
 exec_network_train_1	Routing course	Routeringscursus
 exec_network_train_2	Peering coordinator	Peeringcoördinator
 exec_security	Security manager	Security manager
-exec_security_unlocks	Security staff and clearance: together with a guard booth this lets you serve municipalities, ministries and banks.	Beveiliging en screening: samen met een portiersloge kun je gemeentes, ministeries en banken bedienen.
+exec_security_unlocks	Guards, security policies and proposals for security kit. Municipalities, ministries and banks need a security manager and a minimum security level.	Beveiligers, beveiligingsbeleid en voorstellen voor beveiligingstechniek. Gemeentes, ministeries en banken vragen een security manager en een minimaal beveiligingsniveau.
 exec_security_train_1	Security officer course	Cursus beveiligingsmanagement
 exec_security_train_2	Risk management	Risicomanagement
 sales_team	Sales team	Salesteam
@@ -730,7 +730,7 @@ req_backup	Generators N+1	Generatoren N+1
 req_bandwidth	Unsold transit bandwidth	Onverkochte transitcapaciteit
 req_carriers	Carriers	Carriers
 req_green	Green energy contract	Groen energiecontract
-req_security	Security manager and guard booth	Security manager en portiersloge
+req_security	Security manager and security level	Security manager en beveiligingsniveau
 contracts_title	Active contracts	Lopende contracten
 contracts_building	To deliver	Op te leveren
 contracts_deadline	Deadline in {0} days · {1} per month once delivered	Deadline over {0} dagen · {1} per maand na oplevering
@@ -1024,3 +1024,253 @@ st_tab_policy	Policy	Beleid
 staffing_0	Lean	Krap
 staffing_1	Normal	Normaal
 staffing_2	Generous	Ruim
+exec_marketing	Marketing manager	Marketingmanager
+exec_marketing_unlocks	20% more customer requests (+10% per training) and good reviews lift your reputation a quarter more. Sends proposals for sales tools.	20% meer klantaanvragen (+10% per training) en goede recensies tillen je reputatie een kwart meer op. Stuurt voorstellen voor salestools.
+exec_marketing_train_1	Content marketing course	Cursus contentmarketing
+exec_marketing_train_2	Brand strategy	Merkstrategie
+exec_compliance	Compliance manager	Compliance-manager
+exec_compliance_unlocks	Books audits for ISO 27001, Tier III, PCI DSS, the government seal and the green label, and renews them by himself.	Regelt audits voor ISO 27001, Tier III, PCI DSS, het overheidskeurmerk en het groene label, en verlengt ze zelf.
+exec_compliance_train_1	Lead auditor course (audits 25% faster)	Cursus lead auditor (audits 25% sneller)
+exec_compliance_train_2	Risk and governance	Risico en governance
+exec_research	R&D manager	R&D-manager
+exec_research_unlocks	Opens the research tree. Hires researchers for the lab benches in your R&D lab.	Opent de research tree. Neemt onderzoekers aan voor de labtafels in je R&D-lab.
+exec_research_train_1	Innovation management (+15% research)	Innovatiemanagement (+15% research)
+exec_research_train_2	Technology roadmapping (+15% research)	Technologie-roadmaps (+15% research)
+exec_office	Office manager	Officemanager
+exec_office_unlocks	Runs your offices. With the research Office rental, empty office rooms are let to other companies (more locations follow later).	Beheert je kantoren. Met de research Kantoorverhuur worden lege kantoorruimtes verhuurd aan andere bedrijven (meer locaties volgen later).
+exec_office_train_1	Facility services course (+10% rent)	Cursus facilitaire dienstverlening (+10% huur)
+exec_office_train_2	Real estate management (+10% rent)	Vastgoedbeheer (+10% huur)
+staff_researcher	Researcher	Onderzoeker
+staff_researcher_desc	Works at a lab bench in the R&D lab and earns research points. One per bench.	Werkt aan een labtafel in het R&D-lab en verdient onderzoekspunten. Eén per tafel.
+cust_ai	AI and GPU company	AI- en GPU-bedrijf
+room_lab	R&D lab	R&D-lab
+door_mantrap	Mantrap	Sluisdeur
+obj_camera_pole	Camera on a pole	Camera op paal
+obj_camera_dome	Dome camera	Dome-camera
+obj_security_wall	Security video wall	Videowall beveiliging
+obj_glass_lodge	Glass lodge	Glazen loge
+obj_bollard	Bollard	Anti-rampaal
+obj_lab_bench	Lab bench	Labtafel
+book_inc_heat	Waste heat sold	Restwarmte verkocht
+book_inc_office_rent	Office rent	Kantoorverhuur
+book_cost_compliance	Audits and certificates	Audits en certificaten
+book_cost_proposals	Proposals	Voorstellen
+book_cost_research	Research	Research
+hud_reputation	Reputation, security and certificates	Reputatie, beveiliging en certificaten
+hud_reputation_tip	Your reputation. Click for reviews, security, certificates and proposals.	Je reputatie. Klik voor recensies, beveiliging, certificaten en voorstellen.
+hud_research	Research tree	Research tree
+res_reputation	Reputation	Reputatie
+inspect_corridor_research	Cold corridor: needs research first	Cold corridor: eerst onderzoeken
+inspect_lab	{0} lab benches · {1} researchers	{0} labtafels · {1} onderzoekers
+msg_audit_busy	The auditors are already busy with this one.	De auditors zijn hier al mee bezig.
+msg_cert_valid	This certificate is still valid for a long time.	Dit certificaat is nog lang geldig.
+msg_cert_passed	Certificate passed: {0}.	Certificaat behaald: {0}.
+msg_cert_renewed	Certificate renewed: {0}.	Certificaat verlengd: {0}.
+msg_cert_failed	Audit failed: {0}. Check what the auditors miss.	Audit gezakt: {0}. Kijk wat de auditors missen.
+msg_cert_withdrawn	Certificate withdrawn: {0}.	Certificaat ingetrokken: {0}.
+msg_needs_compliance	You need a compliance manager for audits.	Voor audits heb je een compliance-manager nodig.
+msg_needs_lab	This role needs an R&D lab with lab benches.	Deze functie vraagt om een R&D-lab met labtafels.
+msg_needs_office_mgr	This needs an office manager.	Hiervoor heb je een officemanager nodig.
+msg_needs_research_mgr	Hire an R&D manager to start research.	Neem een R&D-manager aan om te kunnen onderzoeken.
+msg_proposal	New proposal from your {0}.	Nieuw voorstel van je {0}.
+msg_research_done	Research finished: {0}.	Research klaar: {0}.
+msg_research_needs	Research what comes before it first.	Onderzoek eerst wat ervoor komt.
+msg_research_new	New: security, research and reputation. Build an R&D lab, hire an R&D manager and pick research in the research tree (star and flask icons top right).	Nieuw: beveiliging, research en reputatie. Bouw een R&D-lab, neem een R&D-manager aan en kies onderzoek in de research tree (ster- en kolf-icoon rechtsboven).
+msg_research_queue_full	The research queue is full.	De researchwachtrij is vol.
+msg_research_year	This technology is not available yet in this year.	Deze techniek is dit jaar nog niet beschikbaar.
+msg_review_good	A customer wrote a 5-star review about {0}.	Een klant schreef een recensie van 5 sterren over {0}.
+msg_review_bad	A customer wrote a 1-star review about {0}.	Een klant schreef een recensie van 1 ster over {0}.
+ev_cert_passed	Certificate passed: {0}	Certificaat behaald: {0}
+ev_cert_failed	Audit failed: {0}	Audit gezakt: {0}
+ev_cert_checked	Yearly check passed: {0}	Jaarlijkse controle geslaagd: {0}
+ev_cert_withdrawn	Certificate withdrawn: {0}	Certificaat ingetrokken: {0}
+ev_proposal_accepted	Proposal accepted: {0}	Voorstel goedgekeurd: {0}
+ev_research_done	Research finished: {0}	Research klaar: {0}
+rp_title	Reputation and research	Reputatie en research
+rp_tab_reputation	Reputation	Reputatie
+rp_tab_security	Security	Beveiliging
+rp_tab_certs	Certificates	Certificaten
+rp_tab_research	Research	Research
+rp_tab_proposals	Proposals	Voorstellen
+rp_reputation_short	Reputation {0}	Reputatie {0}
+rp_security_short	Security level {0}	Beveiligingsniveau {0}
+rp_points_day	{0} research points/day	{0} onderzoekspunten/dag
+rp_reputation_help	Reputation (0 to 100) grows with good reviews, certificates, renewals and delivered tenders, and drops when customers leave or deadlines are missed. A better name brings more and bigger customers.	Reputatie (0 tot 100) groeit met goede recensies, certificaten, verlengingen en opgeleverde aanbestedingen, en daalt als klanten vertrekken of deadlines worden gemist. Een betere naam brengt meer en grotere klanten.
+rp_out_of	out of 100	van de 100
+rp_trend_up	Up {0} over the last months	{0} gestegen de afgelopen maanden
+rp_trend_down	Down {0} over the last months	{0} gedaald de afgelopen maanden
+rp_unlocks	Social media from 30, cloud services from 40 and ministries from 45; a higher reputation also wins tenders and lowers the bank's interest from 60.	Social media vanaf 30, clouddiensten vanaf 40 en ministeries vanaf 45; een hogere reputatie wint ook aanbestedingen en verlaagt vanaf 60 de rente bij de bank.
+rp_quality	What customers feel	Wat klanten merken
+rp_quality_power_help	Generators N+1, UPS N+1 or 2N, A/B power in every hall and no outages.	Generatoren N+1, UPS N+1 of 2N, A/B-voeding in elke hal en geen uitval.
+rp_quality_network_help	Several carriers, a NOC, peering, DDoS protection and no lost traffic.	Meerdere carriers, een NOC, peering, DDoS-bescherming en geen verloren verkeer.
+rp_quality_support_help	24/7 support, remote hands, a customer lounge, a receptionist, customer success and happy staff.	24/7 support, remote hands, een klantruimte, een receptionist, customer success en tevreden personeel.
+rp_quality_security_help	Follows your security level.	Volgt je beveiligingsniveau.
+rp_certs_list	Certificates: {0}	Certificaten: {0}
+rp_no_certs	No certificates yet. A compliance manager can have audits done.	Nog geen certificaten. Een compliance-manager kan audits laten doen.
+rp_marketing_on	Marketing manager: +{0}% customer requests, good reviews count more.	Marketingmanager: +{0}% klantaanvragen, goede recensies tellen zwaarder.
+rp_marketing_off	Tip: a marketing manager (under the sales director) brings more requests and makes good reviews count more.	Tip: een marketingmanager (onder de salesdirecteur) brengt meer aanvragen en laat goede recensies zwaarder tellen.
+rp_reviews	Reviews	Recensies
+rp_no_reviews	No reviews yet. Customers write them now and then once they have a contract.	Nog geen recensies. Klanten schrijven ze af en toe zodra ze een contract hebben.
+rev_who	{0}	{0}
+rev_topic_power	Power	Stroom
+rev_topic_network	Network	Netwerk
+rev_topic_support	Support	Support
+rev_topic_security	Security	Beveiliging
+rev_power_good	"Not one second without power, even when the city went dark. Rock solid."	"Geen seconde zonder stroom, zelfs toen de stad donker was. IJzersterk."
+rev_power_ok	"Power is fine, but we would like a bit more redundancy."	"De stroom is prima, maar we zouden graag wat meer redundantie zien."
+rev_power_bad	"Our racks went down. That cannot happen in a datacenter."	"Onze racks gingen uit. Dat mag in een datacenter niet gebeuren."
+rev_network_good	"Low latency, lots of carriers and the NOC is always on top of it."	"Lage latency, veel carriers en de NOC zit er altijd bovenop."
+rev_network_ok	"The network does the job. More carriers would be nice."	"Het netwerk doet wat het moet doen. Meer carriers zou fijn zijn."
+rev_network_bad	"Packet loss in the evening peak. Our users noticed."	"Pakketverlies in de avondpiek. Onze gebruikers merkten het."
+rev_support_good	"Remote hands swapped a disk at 3 at night within twenty minutes. Fantastic."	"Remote hands wisselde om 3 uur 's nachts binnen twintig minuten een schijf. Fantastisch."
+rev_support_ok	"Support answers, but not always quickly."	"Support reageert, maar niet altijd snel."
+rev_support_bad	"Nobody picked up the phone when we needed help."	"Niemand nam op toen we hulp nodig hadden."
+rev_security_good	"Badge, mantrap, a guard who walks along: our auditors were impressed."	"Pasje, sluisdeur, een beveiliger die meeloopt: onze auditors waren onder de indruk."
+rev_security_ok	"Security is decent, but it could be stricter."	"De beveiliging is redelijk, maar het kan strenger."
+rev_security_bad	"We walked into the hall without anyone checking us. Worrying."	"We liepen de hal in zonder dat iemand ons controleerde. Zorgwekkend."
+sec_help	The security level (0 to 100) adds up everything you build and run for security. Municipalities, banks and ministries need a minimum level and a security manager; certificates check it too.	Het beveiligingsniveau (0 tot 100) telt alles op wat je bouwt en regelt voor beveiliging. Gemeentes, banken en ministeries vragen een minimumniveau en een security manager; certificaten controleren het ook.
+sec_level_of	security level out of 100	beveiligingsniveau van de 100
+sec_needs_line	Municipalities need {0}, banks {1}, ministries {2}.	Gemeentes vragen {0}, banken {1}, ministeries {2}.
+sec_fence	Perimeter fence	Hekwerk rondom
+sec_fence_tip	Fence the plot: the more of the edge and the stronger the fence, the better. Electric fences need research.	Omhein het terrein: hoe meer van de rand en hoe sterker het hek, hoe beter. Een schrikdraadhek vraagt research.
+sec_gate	Entrance	Toegangspoort
+sec_gate_tip	Guard booth, a barrier (number plate recognition after research), an intercom and at least four bollards against vehicles.	Portiersloge, een slagboom (kentekenherkenning na research), een intercom en minstens vier anti-rampalen tegen voertuigen.
+sec_cameras	Cameras	Camera's
+sec_cameras_tip	Cameras on poles outside, and a dome camera in every hall and meet-me room. AI video analysis (research) adds more.	Camera's op palen buiten, en een dome-camera in elke hal en meet-me room. AI-videoanalyse (research) voegt meer toe.
+sec_access	Access control	Toegangscontrole
+sec_access_tip	Only badge doors (or fire doors) into halls and meet-me rooms, biometric readers (research) and a mantrap at the entrance (research).	Alleen badgedeuren (of branddeuren) naar hallen en meet-me rooms, biometrische lezers (research) en een sluisdeur bij de ingang (research).
+sec_room	Security room	Beveiligingsruimte
+sec_room_tip	A security video wall in the security room and a glass lodge where the guard sits.	Een videowall in de beveiligingsruimte en een glazen loge waar de beveiliger zit.
+sec_people	Guards and management	Beveiligers en leiding
+sec_people_tip	A security manager, and guards on every shift (three or more).	Een security manager, en beveiligers in elke dienst (drie of meer).
+sec_policies	Policies	Beleid
+sec_policies_tip	Each policy adds points; security kit from proposals too.	Elke policy telt mee; beveiligingstechniek uit voorstellen ook.
+sec_policies_title	Security policies	Beveiligingsbeleid
+sec_policies_help	Stricter policies raise the security level and count for certificates, but need more guards. The security manager hires them by himself.	Strengere policies verhogen het beveiligingsniveau en tellen mee voor certificaten, maar vragen meer beveiligers. De security manager neemt ze zelf aan.
+pol_id_check	Customers always show ID to a guard	Klant meldt zich altijd met ID bij een beveiliger
+pol_id_check_desc	Two more guards around the clock. Needed for ISO 27001.	Twee extra beveiligers rond de klok. Nodig voor ISO 27001.
+pol_escort	A guard walks along to open the rack	Beveiliger loopt mee om het rack te openen
+pol_escort_desc	You see a guard walk in with every visitor. One more guard, plus one per 150 rented racks. Needed for PCI DSS.	Je ziet bij elk bezoek een beveiliger meelopen. Eén beveiliger extra, plus één per 150 verhuurde racks. Nodig voor PCI DSS.
+pol_office_hours	No visits outside office hours	Geen bezoek buiten kantooruren
+pol_office_hours_desc	Customers only come between 07:00 and 19:00. Commercial customers like that a little less; needed for the government seal.	Klanten komen alleen tussen 07:00 en 19:00. Commerciële klanten vinden dat iets minder fijn; nodig voor het overheidskeurmerk.
+sec_guards	Guards: {0} of {1} wanted	Beveiligers: {0} van {1} gewenst
+cert_help	Certificates open doors to banks, ministries and big tenders, and add reputation. The compliance manager books the audit; the auditors check the site when they finish. Certificates last three years with a yearly check, and are renewed automatically.	Certificaten openen de deur naar banken, ministeries en grote aanbestedingen, en leveren reputatie op. De compliance-manager boekt de audit; de auditors controleren het terrein als ze klaar zijn. Certificaten gelden drie jaar met een jaarlijkse controle, en worden automatisch verlengd.
+cert_iso27001	ISO 27001	ISO 27001
+cert_iso27001_desc	Information security. Municipalities, clouds and hyperscalers like it; ministries need it.	Informatiebeveiliging. Gemeentes, clouds en hyperscalers waarderen het; ministeries eisen het.
+cert_tier3	Tier III	Tier III
+cert_tier3_desc	Concurrently maintainable: redundant power and cooling paths. Banks, clouds and AI customers want it.	Onderhoud zonder uitval: redundante stroom- en koelpaden. Banken, clouds en AI-klanten willen het.
+cert_pci	PCI DSS	PCI DSS
+cert_pci_desc	Card payment security. Banks will not sign without it.	Beveiliging voor betaalkaarten. Banken tekenen niet zonder.
+cert_gov	Government seal	Overheidskeurmerk
+cert_gov_desc	Strict security for ministries and government agencies. They will not sign without it.	Strenge beveiliging voor ministeries en overheidsdiensten. Zij tekenen niet zonder.
+cert_green	Green datacenter label	Groen datacenterlabel
+cert_green_desc	Green energy and a low PUE.	Groene stroom en een lage PUE.
+cert_none	Not certified	Niet gecertificeerd
+cert_auditing	Audit running: {0} days left	Audit loopt: nog {0} dagen
+cert_valid_until	Valid until {0}	Geldig tot {0}
+cert_audit	Request audit ({0}, {1} days)	Audit aanvragen ({0}, {1} dagen)
+cert_renew	Renew now ({0}, {1} days)	Nu verlengen ({0}, {1} dagen)
+cert_reward	+{0} reputation when passed	+{0} reputatie bij slagen
+cert_req_security	Security level	Beveiligingsniveau
+cert_req_security_mgr	Security manager	Security manager
+cert_req_id_check	Policy: ID check	Policy: ID-controle
+cert_req_ups	UPS redundancy	UPS-redundantie
+cert_req_gen	Generators	Generatoren
+cert_req_ab	Every hall with racks on A/B power	Elke hal met racks op A/B-voeding
+cert_req_carriers	Carriers	Carriers
+cert_req_iso	ISO 27001 certificate	ISO 27001-certificaat
+cert_req_escort	Policy: guard walks along	Policy: beveiliger loopt mee
+cert_req_mantrap	A mantrap	Een sluisdeur
+cert_req_office_hours	Policy: no visits outside office hours	Policy: geen bezoek buiten kantooruren
+cert_req_green_energy	Green energy contract	Groen energiecontract
+cert_req_pue	PUE	PUE
+req_cert_iso27001	Certificate: ISO 27001	Certificaat: ISO 27001
+req_cert_tier3	Certificate: Tier III	Certificaat: Tier III
+req_cert_pci	Certificate: PCI DSS	Certificaat: PCI DSS
+req_cert_gov	Certificate: government seal	Certificaat: overheidskeurmerk
+req_cert_green	Certificate: green label	Certificaat: groen label
+rs_help	Pick what your researchers work on. Each project costs money when you queue it and research points to finish. Points come from researchers at lab benches in an R&D lab, a little more with certificates and happy customers. Some technology only arrives in later years.	Kies waar je onderzoekers aan werken. Elk project kost geld bij het in de wachtrij zetten en onderzoekspunten om af te ronden. Punten komen van onderzoekers aan labtafels in een R&D-lab, iets meer met certificaten en tevreden klanten. Sommige techniek komt pas in latere jaren.
+rs_needs_lab	Build an R&D lab (Rooms) with lab benches (Interior); the R&D manager hires a researcher per bench.	Bouw een R&D-lab (Ruimtes) met labtafels (Inrichting); de R&D-manager neemt per tafel een onderzoeker aan.
+rs_status	{0} researchers at {1} lab benches · {2} points per day	{0} onderzoekers aan {1} labtafels · {2} punten per dag
+rs_queue	Queue	Wachtrij
+rs_days	{0} days	{0} dagen
+rs_cancel	Cancel	Annuleren
+rs_cost	{0} points · {1}	{0} punten · {1}
+rs_requires	Needs: {0}	Vereist: {0}
+rs_from_year	Available from {0}	Beschikbaar vanaf {0}
+rs_in_queue	In the queue (#{0})	In de wachtrij (#{0})
+rs_start	Research	Onderzoeken
+branch_power	Power	Stroom
+branch_cooling	Cooling	Koeling
+branch_network	Network	Netwerk
+branch_construction	Construction	Bouw
+branch_security	Security	Beveiliging
+branch_business	Business	Bedrijf
+rs_pwr_lithium	Lithium batteries	Lithium-accu's
+rs_pwr_lithium_desc	Battery cabinets hold 50% more energy: longer UPS autonomy.	Accukasten slaan 50% meer energie op: langere UPS-autonomie.
+rs_pwr_ups_eco	Eco-mode UPS	UPS met eco-modus
+rs_pwr_ups_eco_desc	Every UPS carries 20% more load.	Elke UPS draagt 20% meer last.
+rs_pwr_busbar	Heavy busbar	Zware busbar
+rs_pwr_busbar_desc	Busbar runs carry 600 kW instead of 400 kW.	Busbar-rails dragen 600 kW in plaats van 400 kW.
+rs_pwr_peak	Peak shaving	Peak shaving
+rs_pwr_peak_desc	Batteries cover price peaks: energy 6% cheaper.	Accu's vangen prijspieken op: energie 6% goedkoper.
+rs_cool_corridor	Cold corridor	Cold corridor
+rs_cool_corridor_desc	Unlocks the cold corridor hall upgrade: +35% CRAH capacity and PUE 1.30. Hot/cold aisles are available from the start.	Ontgrendelt de cold corridor als hal-upgrade: +35% CRAH-capaciteit en PUE 1,30. Warme/koude gangen zijn vanaf het begin beschikbaar.
+rs_cool_ecfans	EC fans	EC-ventilatoren
+rs_cool_ecfans_desc	CRAH units cool 10% more.	CRAH-units koelen 10% meer.
+rs_cool_free	Free cooling	Vrije koeling
+rs_cool_free_desc	Outside air cools when it is cold enough: PUE 0.08 lower in every hall.	Buitenlucht koelt als het koud genoeg is: PUE 0,08 lager in elke hal.
+rs_cool_heat	Sell waste heat	Restwarmte verkopen
+rs_cool_heat_desc	A heat exchanger to the district heating: € 4 per kW of IT load per month.	Een warmtewisselaar naar de stadsverwarming: € 4 per kW IT-last per maand.
+rs_cool_liquid	Liquid cooling	Vloeistofkoeling
+rs_cool_liquid_desc	Direct-to-chip cooling for dense racks: AI and GPU companies start asking for space.	Direct-to-chip-koeling voor dichte racks: AI- en GPU-bedrijven gaan om ruimte vragen.
+rs_net_optics	Coherent optics	Coherente optiek
+rs_net_optics_desc	Carrier ports and commits 10% cheaper.	Carrierpoorten en commits 10% goedkoper.
+rs_net_sdn	Route optimisation	Route-optimalisatie
+rs_net_sdn_desc	5% more traffic goes over the exchange instead of paid transit.	5% meer verkeer gaat via de exchange in plaats van betaalde transit.
+rs_net_ddos	DDoS protection	DDoS-bescherming
+rs_net_ddos_desc	Scrubbing in front of your network: customers rate the network higher.	Filtering voor je netwerk: klanten waarderen het netwerk hoger.
+rs_bld_prefab	Prefab modules	Prefab-modules
+rs_bld_prefab_desc	Builders and fitters work 20% faster.	Bouwvakkers en monteurs werken 20% sneller.
+rs_bld_rows	Long rows	Lange rijen
+rs_bld_rows_desc	Place rows of up to 48 racks in one go.	Plaats rijen tot 48 racks in één keer.
+rs_bld_logistics	Site logistics	Bouwlogistiek
+rs_bld_logistics_desc	All crews work 15% faster.	Alle ploegen werken 15% sneller.
+rs_sec_biometrics	Biometric readers	Biometrische lezers
+rs_sec_biometrics_desc	Fingerprint readers on the badge doors: +3 security.	Vingerafdruklezers op de badgedeuren: +3 beveiliging.
+rs_sec_anpr	Number plate recognition	Kentekenherkenning
+rs_sec_anpr_desc	Barriers recognise known vehicles: +3 security.	Slagbomen herkennen bekende voertuigen: +3 beveiliging.
+rs_sec_mantrap	Mantrap	Sluisdeur
+rs_sec_mantrap_desc	Unlocks the mantrap door: one person at a time. +7 security.	Ontgrendelt de sluisdeur: één persoon tegelijk. +7 beveiliging.
+rs_sec_electric	Electric fence	Schrikdraadhek
+rs_sec_electric_desc	Unlocks the electric fence, the strongest fence.	Ontgrendelt het schrikdraadhek, het sterkste hek.
+rs_sec_ai_video	AI video analysis	AI-videoanalyse
+rs_sec_ai_video_desc	Cameras spot unusual behaviour by themselves: +4 security.	Camera's zien zelf afwijkend gedrag: +4 beveiliging.
+rs_biz_crm	CRM system	CRM-systeem
+rs_biz_crm_desc	Sales follows up better: 15% more customer requests.	Sales volgt beter op: 15% meer klantaanvragen.
+rs_biz_sla	Premium SLA	Premium SLA
+rs_biz_sla_desc	New contracts are 5% more expensive for the same service.	Nieuwe contracten zijn 5% duurder voor dezelfde dienst.
+rs_biz_esg	Sustainability report	Duurzaamheidsverslag
+rs_biz_esg_desc	With a green energy contract your reputation slowly rises.	Met een groen energiecontract stijgt je reputatie langzaam.
+rs_biz_gov	Government framework	Raamcontract overheid
+rs_biz_gov_desc	Municipalities and ministries come more often and with 15 less reputation.	Gemeentes en ministeries komen vaker en al met 15 minder reputatie.
+rs_biz_office_rent	Office rental	Kantoorverhuur
+rs_biz_office_rent_desc	Needs an office manager. Office rooms without desks are let to other companies: € 22 per m² per month.	Vraagt een officemanager. Kantoorruimtes zonder bureaus worden verhuurd aan andere bedrijven: € 22 per m² per maand.
+prop_help	Now and then your managers propose new kit from (fictional) suppliers. Accepting costs money once and gives a lasting improvement. Proposals expire after 20 days.	Af en toe stellen je managers nieuwe apparatuur voor van (verzonnen) leveranciers. Goedkeuren kost eenmalig geld en geeft een blijvende verbetering. Voorstellen vervallen na 20 dagen.
+prop_none	No proposals right now. Network, facility, security and marketing managers send them.	Er liggen nu geen voorstellen. Netwerk-, facility-, security- en marketingmanagers sturen ze.
+prop_expires	{0} days left	nog {0} dagen
+prop_accept	Approve	Goedkeuren
+prop_decline	Decline	Afwijzen
+prop_accepted	Approved earlier	Eerder goedgekeurd
+prop_router	New core routers from {0}	Nieuwe core-routers van {0}
+prop_router_quote	"For {0} we get the newest routers from {1}. Latency drops and customers rate our network {2} points higher."	"Voor {0} krijgen we de nieuwste routers van {1}. De latency daalt en klanten waarderen ons netwerk {2} punten hoger."
+prop_ddos	DDoS scrubbing from {0}	DDoS-filtering van {0}
+prop_ddos_quote	"{1} offers DDoS scrubbing for {0}. Attacks no longer reach customers: network rating +{2}."	"{1} biedt DDoS-filtering voor {0}. Aanvallen bereiken klanten niet meer: netwerkwaardering +{2}."
+prop_crahfans	New CRAH fans from {0}	Nieuwe CRAH-ventilatoren van {0}
+prop_crahfans_quote	"If we fit the new fans from {1} for {0}, every CRAH cools {2}% more."	"Als we voor {0} de nieuwe ventilatoren van {1} plaatsen, koelt elke CRAH {2}% meer."
+prop_upsfirmware	UPS service contract with {0}	UPS-servicecontract met {0}
+prop_upsfirmware_quote	"{1} upgrades our UPS firmware and checks the batteries for {0}. Customers rate our power {2} points higher."	"{1} werkt voor {0} onze UPS-firmware bij en controleert de accu's. Klanten waarderen onze stroom {2} punten hoger."
+prop_securitytech	Security kit from {0}	Beveiligingstechniek van {0}
+prop_securitytech_quote	"With the new access system from {1} for {0} our security level rises by {2}."	"Met het nieuwe toegangssysteem van {1} voor {0} stijgt ons beveiligingsniveau met {2}."
+prop_crm	Sales campaign with {0}	Salescampagne met {0}
+prop_crm_quote	"A campaign with {1} for {0} brings {2}% more customer requests."	"Een campagne met {1} voor {0} brengt {2}% meer klantaanvragen."

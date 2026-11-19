@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 namespace DatacenterArchitect.Sim;
 
 /// <summary>Directors and managers. Each one needs its own furnished office (an executive room with a desk and a chair).</summary>
-public enum Exec { Ceo, Cfo, Hr, Sales, Legal, CustomerSuccess, Procurement, Operations, Facility, Network, Security, ProjectManager }
+public enum Exec { Ceo, Cfo, Hr, Sales, Legal, CustomerSuccess, Procurement, Operations, Facility, Network, Security, ProjectManager, Marketing, Compliance, Research, OfficeManager }
 
 /// <summary>A director or manager: what it needs first, salary per month, one-off hiring fee and two training levels (cost, days).</summary>
 public record ExecDef(Exec Role, string Key, Exec[] Requires, long Salary, long HireFee, long[] TrainingCost, int[] TrainingDays);
@@ -26,7 +26,7 @@ public enum HallZone { FullRacks, PerU, Cage, PrivateHall, OwnCloud }
 /// <summary>What a customer rents.</summary>
 public enum Product { PerU, Rack, Cage, Hall }
 
-public enum CustomerType { Startup, Smb, Hosting, WebHosting, Streaming, Social, Crypto, Cloud, Municipality, Government, Bank, Hyperscaler }
+public enum CustomerType { Startup, Smb, Hosting, WebHosting, Streaming, Social, Crypto, Cloud, Municipality, Government, Bank, Hyperscaler, Ai }
 
 /// <summary>
 /// A customer type: products it buys, size range in racks (units for per-U), traffic per rack in Gbit/s, carriers it wants,
@@ -117,10 +117,16 @@ public static class Org
         [Exec.Network] = new(Exec.Network, "exec_network", new[] { Exec.Operations }, 6500, 9000, new long[] { 30000, 70000 }, new[] { 10, 20 }),
         [Exec.Security] = new(Exec.Security, "exec_security", new[] { Exec.Operations }, 5500, 8000, new long[] { 25000, 60000 }, new[] { 10, 20 }),
         [Exec.ProjectManager] = new(Exec.ProjectManager, "exec_pm", new[] { Exec.Operations }, 6000, 8000, new long[] { 25000, 55000 }, new[] { 10, 20 }),
+        // step 8: marketing (more leads, good reviews count more), compliance (audits and certificates), R&D (the research tree)
+        [Exec.Marketing] = new(Exec.Marketing, "exec_marketing", new[] { Exec.Sales }, 6000, 8000, new long[] { 25000, 55000 }, new[] { 10, 20 }),
+        [Exec.Compliance] = new(Exec.Compliance, "exec_compliance", new[] { Exec.Ceo }, 6500, 9000, new long[] { 30000, 60000 }, new[] { 12, 20 }),
+        [Exec.Research] = new(Exec.Research, "exec_research", new[] { Exec.Ceo }, 7000, 10000, new long[] { 35000, 80000 }, new[] { 12, 24 }),
+        // office manager (Reinder, step 8): runs the offices; with research he rents out office space to other companies
+        [Exec.OfficeManager] = new(Exec.OfficeManager, "exec_office", new[] { Exec.Operations }, 5500, 7000, new long[] { 20000, 45000 }, new[] { 8, 16 }),
     };
 
     /// <summary>Order in the organisation chart: CEO, then the directors, then what sits under them.</summary>
-    public static readonly Exec[] Chart = { Exec.Ceo, Exec.Cfo, Exec.Procurement, Exec.Hr, Exec.Sales, Exec.Legal, Exec.CustomerSuccess, Exec.Operations, Exec.Facility, Exec.Network, Exec.Security, Exec.ProjectManager };
+    public static readonly Exec[] Chart = { Exec.Ceo, Exec.Cfo, Exec.Procurement, Exec.Hr, Exec.Sales, Exec.Legal, Exec.CustomerSuccess, Exec.Marketing, Exec.Compliance, Exec.Research, Exec.Operations, Exec.Facility, Exec.Network, Exec.Security, Exec.ProjectManager, Exec.OfficeManager };
 
     public const long SalesRepSalary = 4200;
     public const int MaxLeads = 8;
@@ -139,6 +145,8 @@ public static class Org
         [CustomerType.Government] = new(CustomerType.Government, "cust_government", new[] { Product.Cage }, 6, 20, 0.3, 2, 0.3, true, false, true, 45, 1.3, 0.6),
         [CustomerType.Bank] = new(CustomerType.Bank, "cust_bank", new[] { Product.Cage, Product.Hall }, 24, 80, 0.5, 2, 0.5, true, false, true, 0, 1.25, 1, true),
         [CustomerType.Hyperscaler] = new(CustomerType.Hyperscaler, "cust_hyperscaler", new[] { Product.Hall }, 60, 200, 1.2, 3, 1, true, true, false, 0, 1.0, 1, true),
+        // step 8: AI and GPU customers with dense 32 A racks, once liquid cooling is researched
+        [CustomerType.Ai] = new(CustomerType.Ai, "cust_ai", new[] { Product.Rack, Product.Cage }, 8, 30, 0.6, 2, 1, false, false, false, 25, 1.3, 1.4),
     };
 
     /// <summary>List prices per month: per U, per 16 A rack and per 32 A rack. Cages and halls add a premium for the space.</summary>
@@ -163,6 +171,7 @@ public static class Org
         [CustomerType.Cloud] = new[] { "Cloud", "Compute", "Stack" },
         [CustomerType.Bank] = new[] { "Bank", "Finance", "Capital" },
         [CustomerType.Hyperscaler] = new[] { "Scale", "Global", "Cloud" },
+        [CustomerType.Ai] = new[] { "AI", "Neural", "Tensor", "GPU" },
     };
     static readonly string[] Cities = { "Lindedam", "Vlietstad", "Eikenburg", "Waalhoven", "Duinwijk", "Molendorp" };
     static readonly string[] Ministries = { "min_digital", "min_infrastructure", "min_finance", "min_health" };
@@ -340,7 +349,7 @@ public partial class GameState
     /// <summary>The operations manager makes the crews work faster (10% plus 10% per training level).</summary>
     [JsonIgnore] public double WorkSpeed => (Has(Exec.Operations) && !Grandfathered.Contains(Exec.Operations) ? 1.1 + 0.1 * Training(Exec.Operations) : 1) * BuildSpeed;
     /// <summary>The construction project manager: builders and fitters 15% faster (+10% per training), and fitters place equipment in parallel.</summary>
-    [JsonIgnore] public double BuildSpeed => Has(Exec.ProjectManager) && !Grandfathered.Contains(Exec.ProjectManager) ? 1.15 + 0.1 * Training(Exec.ProjectManager) : 1;
+    [JsonIgnore] public double BuildSpeed => (Has(Exec.ProjectManager) && !Grandfathered.Contains(Exec.ProjectManager) ? 1.15 + 0.1 * Training(Exec.ProjectManager) : 1) * ResearchBuildSpeed;
 
     [JsonIgnore] public long SalariesPerMonth => Execs.Sum(x => Org.Execs[x.Role].Salary) + SalesReps * Org.SalesRepSalary;
 
@@ -475,9 +484,13 @@ public partial class GameState
             list.Add(new Req("req_green", Catalog.Suppliers[Supplier].Name, "", Catalog.Suppliers[Supplier].Green ? ReqStatus.Ok : ReqStatus.Fail));
         if (d.Security)
         {
-            var ok = Has(Exec.Security) && Objects.Any(o => o.Kind == ObjKind.GuardBooth);
-            list.Add(new Req("req_security", "", "", ok ? ReqStatus.Ok : ReqStatus.Fail));
+            var need = SecurityNeed(d.Type);
+            var level = SecurityLevel;
+            var ok = Has(Exec.Security) && level >= need;
+            list.Add(new Req("req_security", level.ToString(), need.ToString(), ok ? ReqStatus.Ok : ReqStatus.Fail));
         }
+        foreach (var (cert, must) in CertsWanted(d.Type))
+            list.Add(new Req("req_" + CertCatalog.Defs[cert].Key, "", "", HasCert(cert) ? ReqStatus.Ok : must ? ReqStatus.Fail : ReqStatus.Warn));
         return list;
     }
 
@@ -623,7 +636,7 @@ public partial class GameState
         return (long)Math.Round(Infra.FacilityKw * 24 * 90 * EnergyPrice());
     }
 
-    [JsonIgnore] public double EnergyDiscount => Has(Exec.Procurement) ? 0.05 + 0.025 * Training(Exec.Procurement) : 0;
+    [JsonIgnore] public double EnergyDiscount => (Has(Exec.Procurement) ? 0.05 + 0.025 * Training(Exec.Procurement) : 0) + (Done("pwr_peak") ? 0.06 : 0);
 
     public int MonthIndex => (int)(Day / 30);
 
@@ -680,7 +693,7 @@ public partial class GameState
     {
         var open = Deals.Count(d => d.State == DealState.Lead);
         if (open >= Org.MaxLeads) return;
-        var rate = (0.25 + 0.2 * SalesReps) * (1 + 0.25 * Training(Exec.Sales)) * (0.7 + Reputation / 100);
+        var rate = (0.25 + 0.2 * SalesReps) * (1 + 0.25 * Training(Exec.Sales)) * (0.7 + Reputation / 100) * LeadFactor;
         var n = (int)rate + (rng.NextDouble() < rate - (int)rate ? 1 : 0);
         if (_leadSoon) { n = Math.Max(n, 1); _leadSoon = false; }
         for (var i = 0; i < n && open + i < Org.MaxLeads; i++) Deals.Add(MakeLead(day, rng));
@@ -689,12 +702,17 @@ public partial class GameState
 
     CustomerType PickType(Random rng, bool tender)
     {
-        var pool = Org.Customers.Values.Where(c => c.TenderOnly == tender && (tender || c.MinReputation <= Reputation)).ToList();
-        var total = pool.Sum(c => c.Weight);
+        var pool = Org.Customers.Values.Where(c => c.TenderOnly == tender && (tender || MinReputation(c) <= Reputation) && (c.Type != CustomerType.Ai || Done("cool_liquid"))).ToList();
+        var total = pool.Sum(Weight);
         var x = rng.NextDouble() * total;
-        foreach (var c in pool) { x -= c.Weight; if (x <= 0) return c.Type; }
+        foreach (var c in pool) { x -= Weight(c); if (x <= 0) return c.Type; }
         return pool[^1].Type;
     }
+
+    /// <summary>The government framework (research) lets public bodies in earlier and more often.</summary>
+    bool PublicBody(CustomerType t) => t is CustomerType.Municipality or CustomerType.Government;
+    int MinReputation(CustomerDef c) => PublicBody(c.Type) && Done("biz_gov") ? Math.Max(0, c.MinReputation - 15) : c.MinReputation;
+    double Weight(CustomerDef c) => PublicBody(c.Type) && Done("biz_gov") ? c.Weight * 2 : c.Weight;
 
     public Deal MakeLead(int day, Random rng, CustomerType? type = null)
     {
@@ -717,7 +735,7 @@ public partial class GameState
         d.Green = def.Green || rng.NextDouble() < 0.1;
         d.Security = def.Security;
         d.Months = d.Product switch { Product.PerU => 12, Product.Rack => rng.Next(2) == 0 ? 12 : 24, _ => 36 };
-        d.Monthly = (long)Math.Round(Org.ListPrice(d) * (1 + 0.05 * Training(Exec.Sales)) / 10) * 10;
+        d.Monthly = (long)Math.Round(Org.ListPrice(d) * (1 + 0.05 * Training(Exec.Sales)) * (Done("biz_sla") ? 1.05 : 1) / 10) * 10;
         d.ExpiresDay = day + 12 + rng.Next(10);
         return d;
     }
@@ -745,7 +763,7 @@ public partial class GameState
     /// <summary>The customer compares your bid with the rivals'. Price, reputation and your legal counsel's experience count.</summary>
     public bool ResolveBid(Deal d, Random rng)
     {
-        var mine = 0.35 + Reputation / 250 + (1 - d.BidPercent / 100.0) * 2.2 + 0.05 * Training(Exec.Legal) + (Meets(d) ? 0.1 : 0) + rng.NextDouble() * 0.15;
+        var mine = 0.35 + Reputation / 250 + (1 - d.BidPercent / 100.0) * 2.2 + 0.05 * Training(Exec.Legal) + (Meets(d) ? 0.1 : 0) + 0.05 * CertsWanted(d.Type).Count(c => HasCert(c.kind)) + rng.NextDouble() * 0.15;
         var best = Options.AiCompetitors ? Catalog.Rivals.Max(_ => 0.3 + rng.NextDouble() * 0.45) : 0.45;
         if (mine >= best)
         {
@@ -833,7 +851,7 @@ public partial class GameState
         var lines = new (string key, double v)[]
         {
             ("inc_contracts", rent), ("inc_network", netIn), ("cost_network", net - netIn), ("cost_energy", -energy),
-            ("cost_crew", -WagesPerDay), ("cost_salaries", -SalariesPerMonth / 30.0), ("cost_staff", -(StaffPayPerMonth + PlansPerMonth) / 30.0), ("inc_remote_hands", RemoteHandsIncome / 30.0), ("cost_site", -400 - support), ("cost_sla", -sla),
+            ("cost_crew", -WagesPerDay), ("cost_salaries", -SalariesPerMonth / 30.0), ("cost_staff", -(StaffPayPerMonth + PlansPerMonth) / 30.0), ("inc_remote_hands", RemoteHandsIncome / 30.0), ("inc_heat", HeatIncomePerMonth / 30.0), ("inc_office_rent", OfficeRentPerMonth / 30.0), ("cost_site", -400 - support), ("cost_sla", -sla),
         };
         foreach (var (key, v) in lines)
         {

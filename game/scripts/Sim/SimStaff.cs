@@ -33,7 +33,7 @@ public partial class Simulation
             if (want.Count >= MaxStaffAgents) break;
             if (Area(e.Role).Count > 0) want[e.Id] = (e.Role, 0);
         }
-        var present = Agents.Where(a => a.Role == Role.Staff).ToList();
+        var present = Agents.Where(a => a.Role == Role.Staff && !a.Escort).ToList();
         foreach (var a in present)
         {
             if (a.Phase >= 8) continue;
@@ -72,6 +72,7 @@ public partial class Simulation
             StaffRole.Canteen => new[] { RoomType.Canteen },
             StaffRole.Helpdesk => new[] { RoomType.Office },
             StaffRole.Logistics => new[] { RoomType.LoadingDock, RoomType.Storage },
+            StaffRole.Researcher => new[] { RoomType.Lab },
             _ => Array.Empty<RoomType>(),
         };
         foreach (var room in S.Rooms.Where(x => rooms.Contains(x.Type) && x.Stage == Stage.Done && S.BuildingOf(x)?.Stage == Stage.Done))
@@ -122,7 +123,7 @@ public partial class Simulation
                 return;
             case 1:
                 if (!Move(a, dt, WalkSpeed * (a.Staff == StaffRole.Guard ? 0.6 : 0.85))) return;
-                a.Phase = 2; a.Timer = a.Target != 0 ? 0 : 0.3 + _rng.NextDouble() * (a.Staff is StaffRole.Noc or StaffRole.Receptionist or StaffRole.Helpdesk ? 3 : 0.8);
+                a.Phase = 2; a.Timer = a.Target != 0 ? 0 : 0.3 + _rng.NextDouble() * (a.Staff is StaffRole.Noc or StaffRole.Receptionist or StaffRole.Helpdesk or StaffRole.Researcher ? 3 : 0.8);
                 return;
             case 2:
                 if (a.Target != 0)
@@ -133,12 +134,49 @@ public partial class Simulation
                     a.Heading = Math.Atan2(o.X + 0.5 - a.X, o.Z + 0.5 - a.Z);
                     return;
                 }
-                a.Working = a.Staff is StaffRole.Cleaner or StaffRole.Gardener or StaffRole.Noc or StaffRole.Helpdesk;
+                a.Working = a.Staff is StaffRole.Cleaner or StaffRole.Gardener or StaffRole.Noc or StaffRole.Helpdesk or StaffRole.Researcher;
                 a.Timer -= dt;
                 if (a.Timer <= 0) a.Phase = 0;
                 return;
             case 8: // leave the site
                 var (hx, hz) = a.EmpId < 0 ? SpawnCell() : StaffEntry();
+                if (!Go(a, 0, (x, z) => x == hx && z == hz, NavMode.Walk)) { a.Gone = true; return; }
+                a.Phase = 9;
+                return;
+            default:
+                if (Move(a, dt, WalkSpeed)) a.Gone = true;
+                return;
+        }
+    }
+
+    // ---------------- escorts (step 8) ----------------
+    /// <summary>With the escort policy on, a guard walks in with the customer, waits at the rack and walks out again.</summary>
+    void StartEscort(Agent visitor, PlacedObject rack)
+    {
+        if (Agents.Count(a => a.Escort) >= 6) return;
+        var g = new Agent { Id = _nextAgent++, Role = Role.Staff, Staff = StaffRole.Guard, EmpId = -900000 - visitor.Id, Escort = true, Target = visitor.Id, X = visitor.X + 0.3, Z = visitor.Z + 0.3 };
+        var vx = visitor.Way.Count > 0 ? visitor.Way[^1] : (visitor.X, visitor.Z, rack.Floor);
+        if (!Go(g, rack.Floor, (x, z) => Math.Abs(x - rack.X) + Math.Abs(z - rack.Z) <= 2 && !(x == (int)vx.Item1 && z == (int)vx.Item2) && Nav.Walkable(x, z, rack.Floor), NavMode.Walk)) return;
+        g.Phase = 1;
+        Agents.Add(g);
+    }
+
+    void EscortWalk(Agent a, double dt)
+    {
+        a.Working = false;
+        var v = Agents.FirstOrDefault(x => x.Id == a.Target && x.Role == Role.Visitor);
+        switch (a.Phase)
+        {
+            case 1:
+                if (!Move(a, dt, WalkSpeed * 0.8)) return;
+                a.Phase = 2;
+                return;
+            case 2: // wait with the customer until the work is done
+                if (v != null && v.Phase is 1 or 2) { if (v.Phase == 2) a.Heading = Math.Atan2(v.X - a.X, v.Z - a.Z); return; }
+                a.Phase = 8;
+                return;
+            case 8:
+                var (hx, hz) = StaffEntry();
                 if (!Go(a, 0, (x, z) => x == hx && z == hz, NavMode.Walk)) { a.Gone = true; return; }
                 a.Phase = 9;
                 return;

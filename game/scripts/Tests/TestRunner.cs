@@ -33,6 +33,7 @@ public static class TestRunner
             ("organisation", OrgTests), ("customers", CustomerTests), ("tenders", TenderTests), ("finance", FinanceTests), ("old saves get customers", LegacyTests), ("customer visits", VisitTests),
             ("servers in racks", ServerTests), ("large halls", LargeHallTests),
             ("staff", StaffTests), ("faults and repairs", FaultTests), ("maintenance and parts", MaintenanceTests), ("events", EventTests), ("old saves get staff", StaffMigrationTests),
+            ("research", ResearchTests), ("security", SecurityTests), ("certificates", CertTests), ("reputation", ReputationTests), ("old saves get research", ResearchMigrationTests),
         };
         foreach (var (name, t) in tests)
         {
@@ -110,14 +111,25 @@ public static class TestRunner
         foreach (var e in Org.Execs.Values) used.AddRange(new[] { e.Key, e.Key + "_unlocks", e.Key + "_train_1", e.Key + "_train_2" });
         used.AddRange(Org.Customers.Values.Select(c => c.Key));
         used.AddRange(Enum.GetNames<HallZone>().Select(n => "zone_" + n.ToLowerInvariant()));
-        used.AddRange(new[] { "inc_contracts", "inc_network", "cost_energy", "cost_network", "cost_crew", "cost_salaries", "cost_site", "cost_sla", "cost_interest", "cost_build", "fin_loans", "fin_investors", "fin_repay", "fin_dividend" }.Select(k => "book_" + k));
+        used.AddRange(new[] { "inc_contracts", "inc_network", "cost_energy", "cost_network", "cost_crew", "cost_salaries", "cost_site", "cost_sla", "cost_interest", "cost_build", "fin_loans", "fin_investors", "fin_repay", "fin_dividend",
+            "inc_heat", "inc_office_rent", "cost_compliance", "cost_proposals", "cost_research" }.Select(k => "book_" + k));
+        // step 8: research, certificates, reviews, proposals and policies build keys from the catalogue
+        foreach (var r in ResearchTree.All) used.AddRange(new[] { "rs_" + r.Id, "rs_" + r.Id + "_desc" });
+        used.AddRange(Enum.GetNames<Branch>().Select(n => "branch_" + n.ToLowerInvariant()));
+        foreach (var c in CertCatalog.Defs.Values) used.AddRange(new[] { c.Key, c.Key + "_desc", "req_" + c.Key });
+        foreach (var t in Enum.GetNames<ReviewTopic>().Select(n => n.ToLowerInvariant()))
+            used.AddRange(new[] { "rev_topic_" + t, "rp_quality_" + t + "_help", $"rev_{t}_good", $"rev_{t}_ok", $"rev_{t}_bad" });
+        foreach (var p in Enum.GetNames<ProposalKind>().Select(n => n.ToLowerInvariant())) used.AddRange(new[] { "prop_" + p, "prop_" + p + "_quote" });
+        foreach (var l in GameState.New(new NewGameOptions()).SecurityLines()) used.AddRange(new[] { l.Key, l.Key + "_tip" });
+        used.AddRange(new[] { "pol_id_check", "pol_escort", "pol_office_hours" }.SelectMany(k => new[] { k, k + "_desc" }));
+        used.AddRange(Staffing.Roles.Values.SelectMany(r => new[] { r.Key, r.Key + "_desc" }));
         used.AddRange(new[] { "min_digital", "min_infrastructure", "min_finance", "min_health", "cust_name_municipality", "cust_legacy" });
         // every msg_/hint_/goal_ key mentioned in the scripts must exist
-        foreach (var file in new[] { "res://scripts/Main.cs", "res://scripts/Sim/GameState.cs", "res://scripts/Sim/Simulation.cs", "res://scripts/UI/Hud.cs", "res://scripts/UI/Menus.cs", "res://scripts/UI/PowerPanel.cs", "res://scripts/UI/NetworkPanel.cs", "res://scripts/Sim/GameState.Network.cs", "res://scripts/Sim/Network.cs", "res://scripts/World/WorldView.cs", "res://scripts/UI/OptionsDialog.cs", "res://scripts/UI/CompanyPanel.cs", "res://scripts/Sim/Org.cs" })
+        foreach (var file in new[] { "res://scripts/Main.cs", "res://scripts/Sim/GameState.cs", "res://scripts/Sim/Simulation.cs", "res://scripts/UI/Hud.cs", "res://scripts/UI/Menus.cs", "res://scripts/UI/PowerPanel.cs", "res://scripts/UI/NetworkPanel.cs", "res://scripts/Sim/GameState.Network.cs", "res://scripts/Sim/Network.cs", "res://scripts/World/WorldView.cs", "res://scripts/UI/OptionsDialog.cs", "res://scripts/UI/CompanyPanel.cs", "res://scripts/Sim/Org.cs", "res://scripts/Sim/Research.cs", "res://scripts/Sim/Security.cs", "res://scripts/Sim/Reputation.cs", "res://scripts/UI/ReputationPanel.cs" })
         {
             var text = FileAccess.GetFileAsString(file);
-            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(text, "\"((msg|hint|goal|cr|crew|hud|new|inspect|projects|prio|cat|power|grid|supplier|backup|chain|link|cool|halls?|advice|action|res|opt|menu|tool|net|spof|carrier|co|org|sales|zones?|leads|prod|deal|req|contracts|tenders?|fin|book|cust|bankrupt|customers)_[a-z0-9_]+)\""))
-                used.Add(m.Groups[1].Value);
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(text, "\"((msg|hint|goal|cr|crew|hud|new|inspect|projects|prio|cat|power|grid|supplier|backup|chain|link|cool|halls?|advice|action|res|opt|menu|tool|net|spof|carrier|co|org|sales|zones?|leads|prod|deal|req|contracts|tenders?|fin|book|cust|bankrupt|customers|rp|rs|sec|cert|prop|pol|rev|ev|exec|staff)_[a-z0-9_]+)\""))
+                if (!ResearchTree.ById.ContainsKey(m.Groups[1].Value) && !m.Groups[1].Value.EndsWith('_')) used.Add(m.Groups[1].Value);
         }
         var absent = used.Distinct().Where(k => !en.ContainsKey(k)).ToList();
         Check(absent.Count == 0, "keys used in code exist: " + string.Join(", ", absent));
@@ -477,7 +489,7 @@ public static class TestRunner
         var inf = Infra.Analyze(s);
         Check(inf.RunningRacks == inf.LiveRacks && inf.LiveRacks > 91, $"demo power chain runs every rack ({inf.RunningRacks}/{inf.LiveRacks}, bottleneck {inf.Bottleneck?.Link})");
         Check(inf.Ats && inf.BackupKw >= 3000 && inf.FuelHours > 24 && inf.UpsMinutes > 5, "demo has generators, fuel and UPS autonomy");
-        Check(inf.CoolRatio <= 1 && Math.Abs(inf.Pue - 1.5) < 1e-6, "demo cooling copes and PUE is 1.50");
+        Check(inf.CoolRatio <= 1 && Math.Abs(inf.Pue - (1.5 - s.PueSaving)) < 1e-6, "demo cooling copes and PUE is 1.50 (minus free cooling when researched)");
         var net = s.Net;
         Check(net.OnlineRacks == inf.RunningRacks && net.Served >= 0.999, $"demo network has every running rack online ({net.OnlineRacks}/{inf.RunningRacks}, served {net.Served:0.00})");
         Check(net.Noc && net.Routes == 2 && net.Cores == 2 && net.IxGbps > 0 && net.PeerGbps > 0, "demo has a NOC, two routes, two cores, the IX and a peer");
@@ -779,7 +791,7 @@ public static class TestRunner
         s.Advance(24);
         Check(t.State == DealState.Lost && s.Money < money && s.Reputation < rep && s.Notes.Any(n => n.key == "msg_tender_failed"), "a missed deadline costs a fine and reputation");
         // delivering on time
-        var t2 = new Deal { Id = s.NextId++, Name = "Test", Type = CustomerType.Bank, Product = Product.Hall, Tender = true, Racks = 4, Monthly = 50000, Months = 36, State = DealState.Building, DeadlineDay = s.Day + 100 };
+        var t2 = new Deal { Id = s.NextId++, Name = "Test", Type = CustomerType.Hyperscaler, Product = Product.Hall, Tender = true, Racks = 4, Monthly = 50000, Months = 36, State = DealState.Building, DeadlineDay = s.Day + 100 };
         s.Deals.Add(t2);
         s.SetZone(hall, HallZone.PrivateHall);
         for (var i = 0; i < 4; i++) Live(s, ObjKind.Rack, 6 + i, 10);
@@ -1072,6 +1084,8 @@ public static class TestRunner
         var crah = s.Objects.First(o => o.Kind == ObjKind.Crah);
         Check(s.UpgradeObject(crah) == null && crah.Level == 2, "CRAH upgrade to level 2");
         Check(s.UpgradeObject(crah) == null && s.UpgradeObject(crah) == "msg_max_level", "CRAH has three levels");
+        Check(s.UpgradeHall(hall, false) == "msg_needs_research", "the cold corridor needs research first");
+        s.Researched.Add("cool_corridor");
         s.UpgradeHall(hall, false); s.Advance(73);
         r = Infra.Analyze(s);
         Check(hall.Containment == Containment.ColdCorridor && Math.Abs(r.Pue - 1.3) < 1e-9, "cold corridor: PUE 1.30");
@@ -1302,6 +1316,222 @@ public static class TestRunner
         Check(!off.Incidents.Any(l => l.Key is "ev_outage" or "ev_fire_gas" or "ev_fire_false" or "ev_press_good" or "ev_press_bad" or "ev_cable_cut" or "ev_bankrupt"), "no events when switched off");
         // visits: busy by day, quiet at night
         Check(Simulation.HourWeight(10) > Simulation.HourWeight(20) && Simulation.HourWeight(20) > Simulation.HourWeight(3) && Simulation.HourWeight(3) > 0, "customers also come at night, but fewer");
+    }
+
+    // ---------------- step 8: security, research and reputation ----------------
+    /// <summary>A quiet demo site with an R&D lab of two benches upstairs in the office.</summary>
+    static (GameState s, Room lab) LabSite()
+    {
+        var s = Quiet();
+        return (s, s.Rooms.FirstOrDefault(r => r.Type == RoomType.Lab));
+    }
+
+    static void ResearchTests()
+    {
+        var (s, lab) = LabSite();
+        Check(lab != null && s.LabBenches == 2, "an R&D lab with two lab benches");
+        Check(s.CanResearch("pwr_lithium") == "msg_needs_research_mgr", "research needs an R&D manager");
+        Check(s.RoleLocked(StaffRole.Researcher) == "msg_needs_research_mgr", "researchers need an R&D manager");
+        s.Execs.Add(new ExecHire { Role = Exec.Research });
+        for (var i = 0; i < 3; i++) s.Advance(24);
+        Check(s.CountOf(StaffRole.Researcher) == 2 && s.ResearchPerDay > 1, $"the R&D manager hires a researcher per bench ({s.ResearchPerDay:0.0} points/day)");
+        Check(s.CanResearch("pwr_ups_eco") == "msg_research_needs", "a project needs the one before it");
+        var money = s.Money;
+        Check(s.QueueResearch("pwr_lithium") == null && s.Money == money - ResearchTree.ById["pwr_lithium"].Cost, "queueing research costs its money");
+        Check(s.CanResearch("pwr_ups_eco") == null, "the next one can wait in the queue behind it");
+        Check(s.CanResearch("pwr_lithium") == "msg_nothing_changed", "not twice");
+        s.QueueResearch("bld_prefab");
+        var m2 = s.Money;
+        s.CancelResearch("bld_prefab");
+        Check(s.Money == m2 + ResearchTree.ById["bld_prefab"].Cost && !s.ResearchQueue.Contains("bld_prefab"), "cancelling gives the money back");
+        var kwh = s.Infra.BatteryKwh;
+        for (var i = 0; i < 80 && !s.Researched.Contains("pwr_lithium"); i++) s.Advance(24);
+        Check(s.Researched.Contains("pwr_lithium") && s.ResearchQueue.Count == 0 && s.Notes.Any(n => n.key == "msg_research_done"), "researchers finish the project");
+        Check(Math.Abs(s.Infra.BatteryKwh - kwh * 1.5) < 1e-6, "lithium batteries hold 50% more");
+        // eras: some technology only arrives in later years
+        s.Researched.AddRange(new[] { "pwr_ups_eco", "pwr_busbar" });
+        Check(s.CanResearch("pwr_peak") == "msg_research_year", "peak shaving only from 2028");
+        s.Hours = (new DateTime(2028, 1, 2) - GameState.Epoch).TotalHours;
+        Check(s.CanResearch("pwr_peak") == null, "and then it can start");
+        // unlocks
+        Check(s.PlaceFence(0, 40, 10, 1, FenceType.Electric, out _) == "msg_needs_research", "electric fence needs research");
+        s.Researched.Add("sec_electric");
+        Check(s.PlaceFence(0, 40, 10, 1, FenceType.Electric, out _) != "msg_needs_research", "and is unlocked by it");
+        Check(s.MaxRowLength == 24, "rows of 24 racks");
+        s.Researched.Add("bld_rows");
+        Check(s.MaxRowLength == 48 && GameState.RowCells(0, 0, 60, 0, ObjKind.Rack, 0, s.MaxRowLength).Count == 48, "long rows after research");
+        var pue = s.Infra.Pue;
+        s.Researched.Add("cool_free"); s.InvalidateInfra();
+        Check(Math.Abs(s.Infra.Pue - (pue - 0.08)) < 1e-6, "free cooling lowers the PUE");
+        // AI customers only after liquid cooling
+        var rng = new Random(9);
+        s.Reputation = 70;
+        Check(Enumerable.Range(0, 300).All(_ => s.MakeLead(1, rng).Type != CustomerType.Ai), "no AI customers without liquid cooling");
+        s.Researched.Add("cool_liquid");
+        Check(Enumerable.Range(0, 300).Any(_ => s.MakeLead(1, rng).Type == CustomerType.Ai), "liquid cooling brings AI customers");
+        // waste heat is sold
+        s.Researched.Add("cool_heat");
+        Check(s.HeatIncomePerMonth > 0, "waste heat earns money");
+        // office rental with an office manager
+        Check(s.CanResearch("biz_office_rent") is "msg_needs_office_mgr" or "msg_research_needs", "office rental needs an office manager");
+        s.Researched.AddRange(new[] { "biz_crm", "biz_office_rent" });
+        Check(s.OfficeRentPerMonth == 0, "no rent without an office manager");
+        s.Execs.Add(new ExecHire { Role = Exec.OfficeManager });
+        var empty = s.AddRoom(RoomType.Office, 38, 18, 8, 6, 1);
+        if (empty != null) empty.Stage = Stage.Done;
+        Check(s.OfficeRentPerMonth > 0, "empty offices are let out");
+        // creative mode with all unlocks has everything researched
+        var c = Quiet(); c.Options.Creative = true; c.Options.CreativeOptions = new CreativeOptions { AllUnlocks = true };
+        Check(c.Done("sec_mantrap") && c.MaxRowLength == 48, "all unlocks: everything researched");
+        // save roundtrip
+        s.QueueResearch("net_optics");
+        SaveSystem.Save(s, "unit-test-research");
+        var l = SaveSystem.Load("unit-test-research");
+        Check(l != null && l.Researched.Contains("pwr_lithium") && l.ResearchQueue.Contains("net_optics"), "save roundtrip research");
+    }
+
+    static void SecurityTests()
+    {
+        var s = Quiet();
+        var lvl = s.SecurityLevel;
+        Check(lvl > 0 && lvl < 60, $"the demo has some security: fence, barrier, booth, badge doors ({lvl})");
+        var lines = s.SecurityLines();
+        Check(lines.Sum(l => l.Max) >= 100 && lines.All(l => l.Points <= l.Max), "security lines add up");
+        foreach (var x in new[] { 8, 14, 20, 24 }) { var cam = s.AddObject(ObjKind.CameraPole, x, 50, 0, 0); if (cam != null) cam.Status = ObjStatus.Live; }
+        var dome = s.AddObject(ObjKind.CameraDome, 11, 15, 0, 0);
+        Check(dome != null, "a dome camera hangs in the hall");
+        Check(s.SecurityLevel > lvl, "cameras raise the security level");
+        lvl = s.SecurityLevel;
+        Check(s.AddObject(ObjKind.SecurityWall, 40, 22, 0, 0) == null, "the video wall needs a security room");
+        Check(s.AddObject(ObjKind.GlassLodge, 42, 23, 0, 0) != null && s.SecurityLevel > lvl, "a glass lodge in the reception");
+        // the mantrap door needs research
+        var door = new Door { Type = DoorType.Mantrap, X = 44, Z = 26, Dir = 1, Floor = 0 };
+        Check(s.CanDoor(door) == "msg_needs_research", $"mantrap needs research ({s.CanDoor(door)})");
+        s.Researched.Add("sec_mantrap");
+        Check(s.CanDoor(door) == null && s.AddDoor(DoorType.Mantrap, 44, 26, 1, 0) != null, "and can be built after it");
+        // policies need guards
+        s.Execs.Add(new ExecHire { Role = Exec.Security });
+        var guards = s.Target(StaffRole.Guard);
+        lvl = s.SecurityLevel;
+        s.SetPolicy(0, true); s.SetPolicy(1, true);
+        Check(s.Target(StaffRole.Guard) >= guards + 3 && s.SecurityLevel >= lvl + 7, "ID check and escort policies: more guards, higher level");
+        // customers that need a clearance check the level
+        var gov = s.MakeLead(1, new Random(3), CustomerType.Government);
+        var req = s.Check(gov).First(r => r.Key == "req_security");
+        Check(req.Need == GameState.SecurityNeed(CustomerType.Government).ToString(), "ministries ask for a security level");
+        Check(s.Check(gov).Any(r => r.Key == "req_cert_gov" && r.Status == ReqStatus.Fail), "ministries need the government seal");
+        var muni = s.MakeLead(1, new Random(3), CustomerType.Municipality);
+        Check(s.Check(muni).Any(r => r.Key == "req_cert_iso27001" && r.Status == ReqStatus.Warn), "municipalities like ISO 27001 but do not require it");
+        // the escort policy shows a guard walking along
+        for (var i = 0; i < 3; i++) s.Advance(24);
+        s.Hours = Math.Floor(s.Hours / 24) * 24 + 10;
+        var sim = new Simulation(s);
+        var rack = s.Objects.First(o => o.Id == s.Deals.First(d => d.State == DealState.Active && d.RackIds.Count > 0).RackIds[0]);
+        Check(s.Working(StaffRole.Guard).Any(), "a guard is on duty");
+        var v = sim.StartVisit(rack);
+        Check(v != null && sim.Agents.Any(a => a.Escort && a.Target == v.Id), "a guard walks along with the visitor");
+        for (var i = 0; i < 600 && sim.Agents.Any(a => a.Escort); i++) sim.Tick(0.05);
+        Check(!sim.Agents.Any(a => a.Escort), "and leaves again afterwards");
+        // office hours: no visitors at night
+        s.SetPolicy(2, true);
+        s.Hours = Math.Floor(s.Hours / 24) * 24 + 23;
+        var before = sim.Agents.Count(a => a.Role == Role.Visitor);
+        for (var i = 0; i < 24 * 5; i++) sim.Tick(0.05);
+        Check(sim.Agents.Count(a => a.Role == Role.Visitor) <= before, "no visits outside office hours");
+        SaveSystem.Save(s, "unit-test-security");
+        var l = SaveSystem.Load("unit-test-security");
+        Check(l != null && l.PolicyIdCheck && l.PolicyEscort && l.PolicyOfficeHours, "save roundtrip policies");
+    }
+
+    static void CertTests()
+    {
+        var s = Quiet();
+        Check(s.CanAudit(CertKind.Iso27001) == "msg_needs_compliance", "audits need a compliance manager");
+        s.Execs.Add(new ExecHire { Role = Exec.Compliance });
+        var money = s.Money;
+        Check(s.RequestAudit(CertKind.Iso27001) == null && s.Money == money - CertCatalog.Defs[CertKind.Iso27001].Cost, "an audit costs money");
+        Check(s.CanAudit(CertKind.Iso27001) == "msg_audit_busy", "one audit at a time");
+        for (var i = 0; i < 31; i++) s.Advance(24);
+        Check(!s.HasCert(CertKind.Iso27001) && s.Notes.Any(n => n.key == "msg_cert_failed"), "without a security manager and ID checks the audit fails");
+        s.Execs.Add(new ExecHire { Role = Exec.Security });
+        s.SetPolicy(0, true);
+        foreach (var x in new[] { 8, 14, 20, 24 }) { var cam = s.AddObject(ObjKind.CameraPole, x, 50, 0, 0); if (cam != null) cam.Status = ObjStatus.Live; }
+        s.AddObject(ObjKind.CameraDome, 11, 15, 0, 0);
+        s.AddObject(ObjKind.CameraDome, 30, 24, 0, 0);
+        s.AddObject(ObjKind.GlassLodge, 42, 23, 0, 0);
+        for (var i = 0; i < 4; i++) s.AddObject(ObjKind.Bollard, 34 + i, 52, 0, 0);
+        s.Advance(48);
+        Check(s.PassesAudit(CertKind.Iso27001), $"the site is ready for ISO 27001 (level {s.SecurityLevel})");
+        var rep = s.Reputation;
+        s.RequestAudit(CertKind.Iso27001);
+        for (var i = 0; i < 31; i++) s.Advance(24);
+        Check(s.HasCert(CertKind.Iso27001) && s.Reputation > rep, "certificate passed: reputation up");
+        // a municipality now has everything it wants
+        var muni = s.MakeLead(1, new Random(3), CustomerType.Municipality);
+        Check(s.Check(muni).All(r => r.Status == ReqStatus.Ok || r.Key == "req_racks"), "municipality: security and ISO 27001 ok");
+        // the yearly check withdraws a certificate when the site no longer complies
+        s.SetPolicy(0, false);
+        var c = s.Cert(CertKind.Iso27001);
+        c.CheckDay = s.Day + 0.5;
+        s.Advance(24);
+        Check(!s.HasCert(CertKind.Iso27001) && s.Notes.Any(n => n.key == "msg_cert_withdrawn"), "the yearly check withdraws it when policies lapse");
+        // Tier III and the green label check the technical site
+        Check(s.CertChecks(CertKind.TierIII).Count >= 4, "Tier III checks UPS, generators, A/B power and carriers");
+        Check(s.CertChecks(CertKind.Green).Any(r => r.Key == "cert_req_green_energy" && r.Status == ReqStatus.Fail), "the green label wants green energy");
+        SaveSystem.Save(s, "unit-test-certs");
+        Check(SaveSystem.Load("unit-test-certs") != null, "save roundtrip certificates");
+    }
+
+    static void ReputationTests()
+    {
+        var s = Quiet();
+        for (var i = 0; i < 20; i++) s.Advance(24);
+        Check(s.Quality.Count == 4 && s.Quality.Values.All(q => q >= 0 && q <= 100), "quality per topic between 0 and 100");
+        Check(s.Reviews.Count > 0, $"customers write reviews ({s.Reviews.Count} in 20 days)");
+        var rep = s.Reputation;
+        s.AddReview(s.Day, "Test", ReviewTopic.Power, 5);
+        Check(s.Reputation > rep, "a good review lifts the reputation");
+        rep = s.Reputation;
+        s.AddReview(s.Day, "Test", ReviewTopic.Power, 1);
+        Check(s.Reputation < rep, "a bad review lowers it");
+        // marketing makes good reviews count more and brings leads
+        var lead = s.LeadFactor;
+        s.Execs.Add(new ExecHire { Role = Exec.Marketing });
+        Check(s.LeadFactor > lead, "a marketing manager brings more requests");
+        rep = s.Reputation;
+        s.AddReview(s.Day, "Test", ReviewTopic.Support, 5);
+        Check(s.Reputation - rep > 1.2 - 1e-9, "and good reviews count more");
+        // proposals from managers
+        var p = s.MakeProposal((int)s.Day, new Random(1), ProposalKind.CrahFans);
+        Check(p != null && s.OpenProposals.Contains(p) && p.Cost > 0 && p.Brand != "", "the facility manager proposes new CRAH fans");
+        var crah = s.Infra.CrahKw;
+        Check(s.AcceptProposal(p) == null && s.Infra.CrahKw > crah, "accepting gives the CRAH units more capacity");
+        var q = s.MakeProposal((int)s.Day, new Random(2), ProposalKind.Router);
+        var day = s.Day;
+        for (var i = 0; i < 21; i++) s.Advance(24);
+        Check(!s.OpenProposals.Contains(q), "unanswered proposals expire");
+        Check(s.Bonus(ProposalKind.CrahFans) <= Proposals.Cap(ProposalKind.CrahFans), "bonuses are capped");
+        // a broken power chain hurts the power rating
+        var t = Quiet();
+        t.Advance(24);
+        var good = t.QualityTarget(ReviewTopic.Power);
+        foreach (var d in t.Deals.Where(d => d.State == DealState.Active)) d.Served = 0.5;
+        Check(t.QualityTarget(ReviewTopic.Power) < good - 30, "outages hurt the power rating");
+        SaveSystem.Save(s, "unit-test-reputation");
+        var l = SaveSystem.Load("unit-test-reputation");
+        Check(l != null && l.Reviews.Count == s.Reviews.Count && l.Upgrades.Count == 1, "save roundtrip reviews and proposals");
+        _ = day;
+    }
+
+    static void ResearchMigrationTests()
+    {
+        var s = Quiet();
+        s.Rooms.First(r => r.Type == RoomType.DataHall).Containment = Containment.ColdCorridor;
+        s.Researched.Clear(); s.Certs = null; s.Reviews = null;
+        s.SaveFormat = 6;
+        s.Migrate();
+        Check(s.Researched.Contains("cool_corridor") && s.Certs != null && s.Reviews != null && s.SaveFormat == GameState.CurrentFormat, "old games keep the cold corridor they built");
+        Check(s.Notes.Any(n => n.key == "msg_research_new"), "and hear about the new features");
     }
 
     static void StaffMigrationTests()

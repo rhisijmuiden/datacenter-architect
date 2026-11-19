@@ -286,7 +286,7 @@ public static class Network
     }
 
     /// <summary>Share of the traffic the internet exchange can carry: more members when rival datacenters are in the game.</summary>
-    public static double IxShare(GameState s) => s.Options.AiCompetitors ? 0.25 : 0.18;
+    public static double IxShare(GameState s) => (s.Options.AiCompetitors ? 0.25 : 0.18) + s.IxBonus;
 
     /// <summary>Traffic per contract at a moment with the given demand, for the hourly samples.</summary>
     public static Dictionary<CarrierContract, double> FlowsAt(GameState s, NetReport r, double hours)

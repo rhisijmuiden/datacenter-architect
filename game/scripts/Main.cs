@@ -127,7 +127,7 @@ public partial class Main : Node3D
             FloorUp = () => SetView(_world.ViewFloor + 1, false),
             FloorDown = () => SetView(_world.ViewFloor - 1, _world.ViewFloor - 1 <= 0 && _world.Roofs),
             OpenInfo = OpenInfo, OpenOptions = OpenOptions, OpenMenu = OpenPause, ToggleLanguage = ToggleLanguage,
-            OpenPower = OpenPower, OpenNetwork = OpenNetwork, OpenCompany = OpenCompany, OpenStaff = OpenStaff, ToggleOverlay = m => SetOverlay(_world.Overlay.Mode == (OverlayMode)m ? OverlayMode.None : (OverlayMode)m),
+            OpenPower = OpenPower, OpenNetwork = OpenNetwork, OpenCompany = OpenCompany, OpenStaff = OpenStaff, OpenReputation = OpenReputation, ToggleOverlay = m => SetOverlay(_world.Overlay.Mode == (OverlayMode)m ? OverlayMode.None : (OverlayMode)m),
         };
         _ui.AddChild(_hud);
         _ui.MoveChild(_hud, 0);
@@ -188,6 +188,13 @@ public partial class Main : Node3D
         if (!_playing) return;
         foreach (var p in _ui.GetChildren().OfType<CompanyPanel>()) p.Close();
         _ui.AddChild(new CompanyPanel(() => _state, Fail, tab));
+    }
+
+    void OpenReputation(int tab)
+    {
+        if (!_playing) return;
+        foreach (var p in _ui.GetChildren().OfType<ReputationPanel>()) p.Close();
+        _ui.AddChild(new ReputationPanel(() => _state, Fail, tab));
     }
 
     void OpenStaff(int tab)
@@ -573,7 +580,7 @@ public partial class Main : Node3D
             case Mode.Row:
                 var start = _dragStart ?? _hoverCell;
                 var kindR = (ObjKind)_item.Arg;
-                var cells = GameState.RowCells(start.X, start.Y, _hoverCell.X, _hoverCell.Y, kindR, _rot);
+                var cells = GameState.RowCells(start.X, start.Y, _hoverCell.X, _hoverCell.Y, kindR, _rot, _state.MaxRowLength);
                 var objs = cells.Select(c => new PlacedObject { Kind = kindR, X = c.x, Z = c.z, Rot = _rot, Floor = _world.ViewFloor }).Select(x => (x, _state.CanPlace(x) == null)).ToList();
                 var ok = objs.Count(x => x.Item2);
                 _world.ShowGhostObjects(objs, _dragStart == null ? null : $"{ok} × {Loc.T(Catalog.Objects[kindR].NameKey)} · {Ui.Money(ok * Catalog.Objects[kindR].Cost)}");
@@ -637,7 +644,7 @@ public partial class Main : Node3D
             case Mode.Row:
                 var k = (ObjKind)_item.Arg;
                 var placed = 0; string last = null;
-                foreach (var (x, z) in GameState.RowCells(a.X, a.Y, b.X, b.Y, k, _rot))
+                foreach (var (x, z) in GameState.RowCells(a.X, a.Y, b.X, b.Y, k, _rot, _state.MaxRowLength))
                 {
                     var o = new PlacedObject { Kind = k, X = x, Z = z, Rot = _rot, Floor = _world.ViewFloor };
                     last = _state.CanPlace(o);
@@ -796,7 +803,8 @@ public partial class Main : Node3D
                 lines.Add(Loc.T("inspect_racks", _state.Objects.Count(x => x.Kind == ObjKind.Rack && x.Floor == r.Floor && r.Contains(x.X, x.Z) && x.Status == ObjStatus.Live),
                     _state.Objects.Count(x => x.Kind == ObjKind.Rack && x.Floor == r.Floor && r.Contains(x.X, x.Z))));
                 var cont = Catalog.Containments[r.Containment];
-                lines.Add($"{Loc.T(cont.NameKey)} · PUE {cont.Pue.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)}");
+                lines.Add($"{Loc.T(cont.NameKey)} · PUE {Math.Max(1.08, cont.Pue - _state.PueSaving).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)}");
+                if (r.Containment == Containment.HotCold && !_state.Done("cool_corridor")) lines.Add(Loc.T("inspect_corridor_research"));
                 if (hi != null)
                 {
                     lines.Add(Loc.T("inspect_hall_power", Kw(hi.ItKw), Kw(hi.DistributionKw), hi.ItKw <= 0 ? "-" : hi.AB ? "A+B" : Loc.T("hall_ab_no")));
@@ -826,6 +834,13 @@ public partial class Main : Node3D
                     : Loc.T("inspect_workplaces", desks));
                 actions.Add((Loc.T("co_tab_org"), () => OpenCompany(CompanyPanel.TabOrg), true));
             }
+            if (r.Type is RoomType.Lab)
+            {
+                lines.Add(Loc.T("inspect_lab", _state.LabBenches, _state.CountOf(StaffRole.Researcher)));
+                actions.Add((Loc.T("rp_tab_research"), () => OpenReputation(ReputationPanel.TabResearch), true));
+            }
+            if (r.Type is RoomType.Security or RoomType.Reception)
+                actions.Add((Loc.T("rp_tab_security"), () => OpenReputation(ReputationPanel.TabSecurity), true));
             if (r.Type is RoomType.MeetMe or RoomType.Noc)
             {
                 var net = _state.Net;
@@ -978,6 +993,9 @@ public partial class Main : Node3D
             for (var i = 0; i < 60; i++) _sim.Tick(0.05);
             if (args.Contains("--interior")) { _cam.SetView(0.35f, 0.75f, 22, new Vector3((float)crah.X, 0, (float)crah.Z + 2)); Inspect(new Vector2I(crah.X, crah.Z)); }
         }
+        if (args.Contains("--rep-demo")) RepDemo();
+        var rpi = Array.IndexOf(args, "--reputation");
+        if (rpi >= 0 && rpi + 1 < args.Length) { _playing = true; OpenReputation(int.Parse(args[rpi + 1])); }
         var sti = Array.IndexOf(args, "--staff");
         if (sti >= 0 && sti + 1 < args.Length) { _playing = true; OpenStaff(int.Parse(args[sti + 1])); }
         if (args.Contains("--new-game")) _ui.AddChild(new NewGameDialog(_ => { }));
@@ -1002,6 +1020,35 @@ public partial class Main : Node3D
         }
         GetViewport().GetTexture().GetImage().SavePng(path);
         GetTree().Quit();
+    }
+
+    /// <summary>Screenshots of step 8: managers in place, policies on, a certificate, research running, reviews and a proposal.</summary>
+    void RepDemo()
+    {
+        var s = _state;
+        s.Options.Creative = false; s.Options.Events = false;
+        foreach (var e in new[] { Exec.Security, Exec.Compliance, Exec.Research, Exec.Marketing })
+            if (s.Hire(e) == null) s.Execs.Add(new ExecHire { Role = e });
+        s.SetPolicy(0, true); s.SetPolicy(1, true);
+        s.AddObject(ObjKind.GlassLodge, 42, 23, 0, 0);
+        foreach (var x in new[] { 8, 14, 20 }) s.AddObject(ObjKind.CameraPole, x, 50, 0, 0);
+        for (var i = 0; i < 4; i++) s.AddObject(ObjKind.Bollard, 34 + i, 52, 0, 0);
+        foreach (var o in s.Objects) if (o.Status != ObjStatus.Live && o.Kind != ObjKind.Rack) o.Status = ObjStatus.Live;
+        s.Hours = Math.Floor(s.Hours / 24) * 24 + 10;
+        for (var d = 0; d < 4; d++) s.Advance(24);
+        s.Researched.AddRange(new[] { "cool_corridor", "pwr_lithium", "sec_biometrics", "biz_crm" });
+        s.QueueResearch("cool_ecfans"); s.QueueResearch("sec_mantrap"); s.QueueResearch("net_optics");
+        s.ResearchProgress = 22;
+        s.Certs.Add(new Certificate { Kind = CertKind.Iso27001, Valid = true, IssuedDay = s.Day - 40, ExpiresDay = s.Day + 1055, CheckDay = s.Day + 325 });
+        s.RequestAudit(CertKind.TierIII);
+        var names = s.Deals.Where(d => d.State == DealState.Active).Select(GameState.DisplayArg).ToList();
+        var rng = new Random(4);
+        for (var i = 0; i < 8; i++) s.AddReview(s.Day - i * 3, names[i % names.Count], (ReviewTopic)(i % 4), new[] { 5, 4, 3, 5, 2, 4, 5, 4 }[i]);
+        s.Reputation = 58;
+        s.MakeProposal((int)s.Day, rng, ProposalKind.Router);
+        s.MakeProposal((int)s.Day, rng, ProposalKind.CrahFans);
+        s.Notes.Clear();
+        for (var i = 0; i < 80; i++) _sim.Tick(0.05);
     }
 
     static Button FindButton(Node n, string text)

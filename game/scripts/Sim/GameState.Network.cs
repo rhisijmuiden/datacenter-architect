@@ -225,7 +225,7 @@ public partial class GameState
     public double NetworkPerDay()
     {
         var sum = 0.0;
-        var discount = Has(Exec.Procurement) ? 0.9 - 0.025 * Training(Exec.Procurement) : 1;
+        var discount = (Has(Exec.Procurement) ? 0.9 - 0.025 * Training(Exec.Procurement) : 1) * NetworkCostFactor;
         foreach (var k in Contracts.Where(k => k.Active)) sum -= Network.MonthlyCost(k) * discount / 30;
         foreach (var p in Peers.Where(p => p.State == PeerState.Active)) sum += Catalog.Rivals[p.Rival].Monthly / 30.0;
         sum += CrossConnects * Catalog.XcMonthlyFee / 30.0;
