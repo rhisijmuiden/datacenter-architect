@@ -604,7 +604,7 @@ Zonder AI-concurrenten win je aanbestedingen op basis van je eigen prijs en kwal
 
 - Vrij draaibare camera (slepen of Q/E), zoomen met het scrollwiel, schuiven met rechts slepen.
 - Daken aan/uit (R).
-- Overlay-weergaven voor stroom, warmte en glasvezel.
+- Overlay-weergaven voor stroom (P), warmte (H) en netwerk (N).
 - Op een gebouw klikken opent een infopaneel met de gegevens.
 
 ## Techniek
@@ -642,6 +642,24 @@ Zo werkt stap 4 (versie 0.3.0) nu echt in de game:
 - In de creatieve modus zetten "stroom geen beperking" en "koeling geen beperking" dit uit; "direct bouwen" maakt ook netverzwaringen en hal-upgrades direct klaar.
 - Later: kelders voor transformatoren, vloerbelasting en een verzwaard dak, onderhoud en storingen (stap 7), en rackstroom als product (16 A, 32 A) bij de klanten (stap 6).
 
+## Netwerk in het spel
+
+Zo werkt stap 5 (versie 0.4.0) nu echt in de game:
+
+- **De keten**: een rack is pas online als het een poort heeft op een **spine-switch** in zijn hal, die spine een poort heeft op een **core-router**, en de core via de **ODF's** (patchframes) in de **meet-me room** een carrier, de internet exchange of een peer bereikt. Racks die draaien maar offline zijn, leveren geen huur op.
+- **Glasvezelputten**: in de straat liggen drie carrierputten (A, B en C). Je zet zelf een **glasvezelput** op je terrein; de mantelbuis loopt naar de dichtstbijzijnde straatput. Een put heeft 4 subducts, te upgraden naar 8 en 12 (144 vezels per kabel). Elke carrier, IX-poort en dark fiber neemt één subduct. Putten op twee verschillende straatputten geven **twee gescheiden routes**.
+- **Carriers** (verzonnen): Lowlands Transit (put A, € 0,32/Mbit), Kanaal Net (put A, € 0,29), NordFiber (put B, € 0,26) en Eurolink (put C, € 0,38, premium). Je bestelt een poort van 1G, 10G, 100G of 400G (eenmalige aansluitkosten, 20 speldagen levertijd; een upgrade 10 dagen) met een **commit**. Je betaalt per maand de poort plus de commit per Mbit; vanaf 10G commit 15% korting, vanaf 100G 30%.
+- **Burst**: elk speluur wordt het verkeer per carrier gemeten. Elke 30 dagen wordt het **95e percentiel** boven de commit afgerekend tegen 1,5 keer de prijs (1,2 keer met een NOC). De drukste 5% van de uren telt niet mee.
+- **Internet exchange**: Polder-IX (put C). Je betaalt alleen de poort; de IX neemt 25% van je verkeer gratis over (18% zonder AI-concurrenten), tot de poort vol is.
+- **Peering**: met AI-concurrenten aan vragen Zuidas Colo, Rivierhaven DC en Noordpoort Data na een tijd of ze met je mogen peeren via dark fiber. Elk heeft eigen voorwaarden: zij huren een rack in jouw MMR (jij krijgt geld) of ze zijn groter en vragen een maandbedrag. Een peer neemt 7 tot 10% van je verkeer over. Je kunt ook zelf voorstellen, maar een grote concurrent wil pas als je netwerk groot genoeg is.
+- **Verkeer**: elk online rack doet gemiddeld 0,25 Gbit/s, met een dagcurve (rustig rond 08:00, piek rond 20:00). Eerst gaat verkeer naar de IX en de peers, de rest over transit. Past het niet, dan raakt een deel zoek: klanten betalen naar rato minder huur.
+- **Cross-connects**: hoe meer netwerken in je MMR, hoe meer klanten een cross-connect bestellen. Een engineer patcht die bij een ODF (vrije patchpoort nodig). Elke cross-connect levert € 250 eenmalig en € 60 per maand op.
+- **NOC**: een NOC-ruimte met een **videowall** bewaakt het netwerk. Dan gaat 25% meer verkeer via de IX en peering, is burst goedkoper en krijg je een waarschuwing als de transit in de piek boven 85% komt.
+- **Redundantie en enkele punten van falen**: het overzicht toont per schakel N, N+1 of 2N en waarschuwt bij één carrier, één route, één MMR, één core-router of een hal met één spine.
+- **Netwerkweergave** (N): oranje lijnen en bolletjes van de straatputten via je putten en mantelbuizen naar de MMR, de core-routers, de spines en de rijen. Hoe drukker, hoe sneller; vol of offline kleurt rood. Dark fiber naar peers loopt langs de weg weg.
+- In de creatieve modus zet "netwerk geen beperking" de keten uit; "direct bouwen" levert poorten, upgrades en dark fiber direct.
+- Later: klanten met eigen netwerkeisen en meerdere carriers (stap 6), kabelbreuk en storingen (stap 7), voorstellen van de NOC en de netwerkarchitect (stap 8).
+
 ## Bewust niet in scope
 
 - Geen mailserver en geen backups naar externe servers (FTP/SCP). Het is een offline game.
@@ -654,7 +672,7 @@ Zo werkt stap 4 (versie 0.3.0) nu echt in de game:
 2. **Technische basis** (klaar): Godot-project, camera, bouwgrid, installer, talen, lokale savegames, Info-scherm
 3. **Bouwen en creatieve modus**: nieuw spel met creatieve modus, terrein indelen (wegen, paden, hekwerk, groen, licht), bouwmaterialenplek met vrachtwagens, bouwvakkers die buitenmuren en dak bouwen, hallen zelf uitmeten met deurkeuze, verdiepingen, kantoren inrichten, racks per rij met de opbouwketen (levering, monteurs, aansluiten), klantruimte met koffie, monitorkarretjes, projectprioriteit, gevels (baksteen, beton, glas; datacenter als betonnen box), automatische verlichting, knipperende lampjes en servergeluid
 4. **Stroom en koeling** (testversie 0.3.0): netaansluiting en hoogspanning, transformatorruimtes, UPS, generatoren met N+1, koeling en koeltorens, stroom-overlay met bolletjes. Zie *Stroom en koeling in het spel*.
-5. **Netwerk**: fiberducts, MMR, carriers, peering, verkeersweergave, NOC
+5. **Netwerk** (testversie 0.4.0): fiberducts, MMR, carriers, peering, verkeersweergave, NOC. Zie *Netwerk in het spel*.
 6. **Organisatie, klanten en economie**: CEO-kantoor en unlock-boom (CFO met leningen, HR, salesdirecteur), sales, klanttypes, zones, contracten, energiecontracten, faillissement
 7. **Personeel en gebeurtenissen**: werven, training en budgetten, automatische diensten, onderhoud, storingen en willekeurige gebeurtenissen
 8. **Beveiliging, research en reputatie**: camera's, videowall, glazen loge, beveiligingspolicies, research tree, voorstellen van NOC en netwerkarchitect, recensies, certificeringen, overheidsklanten

@@ -241,6 +241,8 @@ public partial class Thumbnails : Node
         {
             RoomType.DataHall => ObjKind.Rack,
             RoomType.Office or RoomType.Executive => ObjKind.Desk,
+            RoomType.MeetMe => ObjKind.Odf,
+            RoomType.Noc => ObjKind.NocWall,
             _ => (ObjKind?)null,
         } ;
         if (k is { } kind && Catalog.Objects.ContainsKey(kind))

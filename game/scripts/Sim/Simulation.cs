@@ -32,6 +32,8 @@ public class Agent
     public bool Gone;
     /// <summary>From this waypoint on the agent drives backwards (a truck backing up to a dock); -1 for never.</summary>
     public int ReverseFrom = -1;
+    /// <summary>Engineer patching a cross-connect at the ODF in Target.</summary>
+    public bool Xc;
     public bool Moving => WayI < Way.Count;
 }
 
@@ -233,7 +235,7 @@ public class Simulation
     void Reset(Agent a)
     {
         if (a.Role == Role.Builder && a.Carry > 0) S.MaterialStock += a.Carry;
-        a.Carry = 0; a.Loaded = false; a.CarryObj = 0; a.Target = 0; a.Phase = 0; a.Working = false;
+        a.Carry = 0; a.Loaded = false; a.CarryObj = 0; a.Target = 0; a.Phase = 0; a.Working = false; a.Xc = false;
         a.Way.Clear(); a.WayI = 0; a.Goal = (-1, -1);
     }
 
@@ -675,7 +677,15 @@ public class Simulation
                 var taken = Reserved(Role.Engineer);
                 var item = S.Objects.Where(o => o.Status is ObjStatus.Placed or ObjStatus.Powered && !taken.Contains(o.Id) && !Cooling(o.Id))
                     .OrderByDescending(o => o.Status).ThenBy(o => o.Id).FirstOrDefault();
-                if (item == null) return;
+                if (item == null)
+                {
+                    // nothing to connect: patch an ordered cross-connect at an ODF in the meet-me room
+                    if (S.XcPending <= Agents.Count(x => x.Xc) || S.FreeOdfPorts() <= 0) return;
+                    item = S.Objects.Where(o => o.Kind == ObjKind.Odf && o.Status == ObjStatus.Live && !taken.Contains(o.Id) && !Cooling(o.Id)
+                        && S.RoomAt(o.X, o.Z, o.Floor)?.Type == RoomType.MeetMe).OrderBy(o => o.Id).FirstOrDefault();
+                    if (item == null) return;
+                    a.Xc = true;
+                }
                 var cells = GameState.Cells(item).ToHashSet();
                 bool Next(int x, int z) => Nav.Walkable(x, z, item.Floor) && !cells.Contains((x, z)) &&
                     (cells.Contains((x + 1, z)) || cells.Contains((x - 1, z)) || cells.Contains((x, z + 1)) || cells.Contains((x, z - 1)));
@@ -685,7 +695,17 @@ public class Simulation
                 return;
             case 1:
                 if (!Move(a, dt, WalkSpeed)) return;
-                a.Phase = 2; a.Timer = ConnectHours;
+                a.Phase = 2; a.Timer = a.Xc ? Catalog.XcHours : ConnectHours;
+                return;
+            case 2 when a.Xc:
+                var odf = S.Objects.FirstOrDefault(x => x.Id == a.Target);
+                if (odf == null || S.XcPending <= 0) { Reset(a); return; }
+                a.Working = true;
+                a.Heading = Math.Atan2(odf.X + 0.5 - a.X, odf.Z + 0.5 - a.Z);
+                a.Timer -= dt;
+                if (a.Timer > 0) return;
+                S.CompleteCrossConnect();
+                Reset(a);
                 return;
             case 2:
                 var o = S.Objects.FirstOrDefault(x => x.Id == a.Target);

@@ -112,9 +112,9 @@ public class NewGameOptions
 }
 
 /// <summary>All state that goes into a savegame. Workers and trucks are not saved; they restart from this state.</summary>
-public class GameState
+public partial class GameState
 {
-    public const int CurrentFormat = 3;
+    public const int CurrentFormat = 4;
     /// <summary>Floor value for objects that stand on the roof of a building.</summary>
     public const int RoofFloor = -1;
     public const double WorkPerMaterial = 0.15;
@@ -144,6 +144,11 @@ public class GameState
     public int GridRequest { get; set; } = -1;
     public double GridDaysLeft { get; set; }
     public int Supplier { get; set; }
+    /// <summary>Network (step 5): carrier ports, private peering with rivals and cross-connects in the MMR.</summary>
+    public List<CarrierContract> Contracts { get; set; } = new();
+    public List<PeeringDeal> Peers { get; set; } = new();
+    public int CrossConnects { get; set; }
+    public int XcPending { get; set; }
     public float CamYaw { get; set; } = 0.6f;
     public float CamPitch { get; set; } = 0.9f;
     public float CamDistance { get; set; } = 60f;
@@ -207,6 +212,13 @@ public class GameState
             foreach (var r in Rooms) r.Temp = 21;
             GridRequest = -1;
         }
+        if (SaveFormat < 4)
+        {
+            // racks now need a network; tell players of older games where to start
+            if (Objects.Any(o => o.Kind == ObjKind.Rack && o.Status == ObjStatus.Live)) Notes.Add(("msg_network_new", null));
+        }
+        Contracts ??= new(); Peers ??= new();
+        foreach (var k in Contracts) k.Samples ??= new();
         SaveFormat = CurrentFormat;
         Touch();
     }
@@ -537,6 +549,8 @@ public class GameState
         RoomType.Transformer => "msg_needs_transformer",
         RoomType.Switchgear => "msg_needs_switchgear",
         RoomType.Battery => "msg_needs_battery",
+        RoomType.MeetMe => "msg_needs_mmr_room",
+        RoomType.Noc => "msg_needs_noc_room",
         _ => "msg_needs_upsroom",
     };
 
@@ -661,7 +675,27 @@ public class GameState
         }
     }
 
-    public void InvalidateInfra() => _infra = null;
+    public void InvalidateInfra() { _infra = null; _net = null; }
+
+    NetReport _net;
+    int _netRev = -1;
+    double _netHours = -1;
+
+    /// <summary>Network: routes, carriers, peering, MMR, switches, traffic and which racks are online. Cached like Infra.</summary>
+    [JsonIgnore]
+    public NetReport Net
+    {
+        get
+        {
+            var infra = Infra;
+            if (_net == null || _netRev != Revision || Math.Abs(_netHours - Hours) > 0.05)
+            {
+                _net = Sim.Network.Analyze(this, infra);
+                _netRev = Revision; _netHours = Hours;
+            }
+            return _net;
+        }
+    }
 
     // ---------------- power and cooling actions ----------------
     public string CanRequestGrid(int level)
@@ -792,16 +826,22 @@ public class GameState
     public void Advance(double hours)
     {
         var before = (int)(Hours / 24);
+        var hourBefore = (int)Hours;
         Hours += hours;
         UpdateInfra(hours);
+        UpdateNetwork(hours, hourBefore);
         var days = (int)(Hours / 24) - before;
+        for (var i = 0; i < days; i++) NetworkDay(before + i + 1);
         if (Creative.UnlimitedMoney) return;
         for (var i = 0; i < days; i++)
         {
             var infra = Infra;
+            var net = Net;
             var energy = infra.FacilityKw * 24 * EnergyPrice(); // IT load times PUE, plus offices
-            var rent = infra.RunningRacks * 900.0 / 30;        // €900 per running rack per month
-            Money += (long)Math.Round(rent - energy - 400 - WagesPerDay);
+            // €900 per rack per month, for racks that run and are online; congestion costs a share of it
+            var racks = Creative.NoNetworkLimit ? infra.RunningRacks : net.OnlineRacks * net.Served;
+            var rent = racks * 900.0 / 30;
+            Money += (long)Math.Round(rent - energy - 400 - WagesPerDay + NetworkPerDay());
         }
     }
 }

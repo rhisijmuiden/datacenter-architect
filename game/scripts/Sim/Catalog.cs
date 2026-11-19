@@ -15,7 +15,7 @@ public enum Facade { Concrete, Brick, Glass, Cladding }
 /// <summary>Construction stage that is being worked on. Done means finished.</summary>
 public enum Stage { Foundation, Walls, Roof, Done }
 
-public enum RoomType { DataHall, MeetMe, UpsRoom, Office, Executive, Meeting, Canteen, Lounge, Reception, Security, LoadingDock, Storage, Corridor, Transformer, Switchgear, Battery }
+public enum RoomType { DataHall, MeetMe, UpsRoom, Office, Executive, Meeting, Canteen, Lounge, Reception, Security, LoadingDock, Storage, Corridor, Transformer, Switchgear, Battery, Noc }
 
 public enum DoorType { Single, Double, Fire, Badge, RollUp }
 
@@ -29,6 +29,8 @@ public enum ObjKind
     // power and cooling (step 4)
     Transformer, Switchgear, Ups, Battery, Pdu, DieselTank, UndergroundTank, Chiller, CoolingTower,
     SlidingGateLarge,
+    // network (step 5)
+    Odf, CoreRouter, Spine, NocWall,
 }
 
 /// <summary>Delivery chain for hall equipment: truck to the dock, fitter places it, engineer connects power and then fiber.</summary>
@@ -46,13 +48,20 @@ public enum Containment { Open, HotCold, ColdCorridor }
 public record ObjDef(ObjKind Kind, string NameKey, int W, int D, long Cost, Where Where, bool Blocks,
     double PowerKw = 0, double CoolingKw = 0, double GenKw = 0, bool Chain = false, bool NeedsFiber = false,
     double CapacityKw = 0, double StorageKwh = 0, double FuelLitres = 0, double RejectKw = 0,
-    RoomType[] Rooms = null, int MaxLevel = 1);
+    RoomType[] Rooms = null, int MaxLevel = 1, int Ports = 0, double Gbps = 0);
 
 /// <summary>Grid connection levels offered by the grid operator. Level 0 is the compact station every site starts with.</summary>
 public record GridLevelDef(int Level, double Mva, long Cost, int LeadDays, string NameKey);
 
 /// <summary>Fictional energy suppliers. Variable contracts follow the market price.</summary>
 public record SupplierDef(int Id, string Name, double PricePerKwh, bool Green, bool Variable, int Years, string DescKey);
+
+/// <summary>A fictional carrier selling IP transit (or the internet exchange) at one of the street pits.</summary>
+public record CarrierDef(int Id, string Name, int Pit, double PricePerMbit, bool Ix, string DescKey);
+public record PortDef(int Gbps, long MonthlyFee, long SetupFee);
+/// <summary>Rival datacenter: the peak traffic (Gbit/s) you need before it accepts your proposal, the share of your traffic the peering carries,
+/// setup cost, monthly money (+ they rent a rack in your MMR, - you pay them because they are bigger), and the game day it asks to peer.</summary>
+public record RivalDef(int Id, string Name, double MinGbps, double Share, long SetupCost, long Monthly, int RequestDay);
 
 public record ContainmentDef(Containment Level, string NameKey, double CoolingBonus, double Pue, long CostPerM2, double Hours);
 
@@ -79,7 +88,7 @@ public static class Catalog
         [ObjKind.Rack] = new(ObjKind.Rack, "obj_rack", 1, 1, 4200, Where.Hall, true, PowerKw: 6, Chain: true, NeedsFiber: true),
         [ObjKind.Crah] = new(ObjKind.Crah, "obj_crah", 1, 2, 38000, Where.Hall, true, PowerKw: 4, CoolingKw: 120, Chain: true, MaxLevel: 3),
         [ObjKind.Generator] = new(ObjKind.Generator, "obj_generator", 3, 2, 410000, Where.Outside, true, GenKw: 1000, FuelLitres: 2000),
-        [ObjKind.FiberPit] = new(ObjKind.FiberPit, "obj_fiberpit", 1, 1, 12000, Where.Outside, false),
+        [ObjKind.FiberPit] = new(ObjKind.FiberPit, "obj_fiberpit", 1, 1, 25000, Where.Outside, false, MaxLevel: 3),
         [ObjKind.Lift] = new(ObjKind.Lift, "obj_lift", 2, 2, 85000, Where.Building, false),
         [ObjKind.Desk] = new(ObjKind.Desk, "obj_desk", 2, 1, 900, Where.Room, true),
         [ObjKind.Chair] = new(ObjKind.Chair, "obj_chair", 1, 1, 250, Where.Room, false),
@@ -114,6 +123,11 @@ public static class Catalog
         // heat rejection outside or on the roof
         [ObjKind.Chiller] = new(ObjKind.Chiller, "obj_chiller", 3, 2, 260000, Where.OutsideOrRoof, true, PowerKw: 0, RejectKw: 600, MaxLevel: 3),
         [ObjKind.CoolingTower] = new(ObjKind.CoolingTower, "obj_cooling_tower", 2, 2, 340000, Where.OutsideOrRoof, true, RejectKw: 1000, MaxLevel: 3),
+        // network: patch frames and core routers in the meet-me room, spine switches in the halls, the NOC video wall
+        [ObjKind.Odf] = new(ObjKind.Odf, "obj_odf", 1, 1, 9500, Where.Room, true, Chain: true, Ports: 48, Rooms: new[] { RoomType.MeetMe }),
+        [ObjKind.CoreRouter] = new(ObjKind.CoreRouter, "obj_core_router", 1, 1, 180000, Where.Room, true, PowerKw: 3, Chain: true, Ports: 32, Gbps: 400, Rooms: new[] { RoomType.MeetMe }),
+        [ObjKind.Spine] = new(ObjKind.Spine, "obj_spine", 1, 1, 65000, Where.Hall, true, PowerKw: 2, Chain: true, Ports: 48, Gbps: 400),
+        [ObjKind.NocWall] = new(ObjKind.NocWall, "obj_noc_wall", 3, 1, 48000, Where.Room, true, PowerKw: 1.5, Rooms: new[] { RoomType.Noc }),
     };
 
     /// <summary>Capacity multiplier per upgrade level for CRAH units, chillers and cooling towers.</summary>
@@ -151,6 +165,52 @@ public static class Catalog
     public const double BusbarKw = 400;
     public const long BusbarCost = 140_000;
     public const double BusbarHours = 24;
+
+    // ---------------- network ----------------
+    /// <summary>Carrier pits in the pavement of the public road (x positions). Your own fiber pit connects to the nearest one.</summary>
+    public static readonly int[] StreetPits = { 8, 30, 52 };
+    public static string PitName(int pit) => ((char)('A' + pit)).ToString();
+    /// <summary>Subducts in your own fiber pit's duct per level: every carrier, IX port or dark fiber needs one.</summary>
+    public static int Subducts(int level) => level switch { >= 3 => 12, 2 => 8, _ => 4 };
+    public const int FibersPerCable = 144;
+    /// <summary>Port sizes in Gbit/s, with the monthly port fee and the one-off setup fee.</summary>
+    public static readonly PortDef[] Ports =
+    {
+        new(1, 120, 1500), new(10, 450, 4000), new(100, 1600, 12000), new(400, 4200, 30000),
+    };
+    /// <summary>Commit steps in Gbit/s.</summary>
+    public static readonly double[] Commits = { 0.5, 1, 2, 5, 10, 20, 50, 100, 200, 400 };
+    public const int NewPortDays = 20, PortUpgradeDays = 10;
+    /// <summary>Burst above the commit is billed at the 95th percentile at this multiple of the price; a NOC brings it down.</summary>
+    public const double BurstFactor = 1.5, BurstFactorNoc = 1.2;
+    /// <summary>Average traffic of a running rack in Gbit/s; it follows the time of day.</summary>
+    public const double RackGbps = 0.25;
+
+    public static readonly CarrierDef[] Carriers =
+    {
+        new(0, "Lowlands Transit", 0, 0.32, false, "carrier_tier1"),
+        new(1, "NordFiber", 1, 0.26, false, "carrier_budget"),
+        new(2, "Kanaal Net", 0, 0.29, false, "carrier_regional"),
+        new(3, "Eurolink", 2, 0.38, false, "carrier_premium"),
+        new(4, "Polder-IX", 2, 0, true, "carrier_ix"),
+    };
+
+    /// <summary>Rival datacenters in the region that want to peer (only with AI competitors switched on).</summary>
+    public static readonly RivalDef[] Rivals =
+    {
+        new(0, "Zuidas Colo", 2, 0.08, 45_000, 900, 5),
+        new(1, "Rivierhaven DC", 8, 0.10, 60_000, -1500, 20),
+        new(2, "Noordpoort Data", 5, 0.07, 40_000, 600, 40),
+    };
+    public const int PeeringDays = 10;
+
+    /// <summary>Cross-connects: one-off fee and monthly fee; customers order them as more networks sit in the MMR.</summary>
+    public const long XcSetupFee = 250, XcMonthlyFee = 60;
+    public const double XcHours = 0.4;
+
+    /// <summary>Price per Mbit with a volume discount for bigger commits.</summary>
+    public static double PricePerMbit(CarrierDef c, double commitGbps) => c.PricePerMbit * (commitGbps >= 100 ? 0.7 : commitGbps >= 10 ? 0.85 : 1);
+    public static PortDef Port(int gbps) => System.Array.Find(Ports, p => p.Gbps == gbps) ?? Ports[0];
 
     public static readonly Dictionary<Surface, SurfaceDef> Surfaces = new()
     {
@@ -196,6 +256,7 @@ public static class Catalog
         [RoomType.Transformer] = new(RoomType.Transformer, "room_transformer", "#C9A66B"),
         [RoomType.Switchgear] = new(RoomType.Switchgear, "room_switchgear", "#BFA77E"),
         [RoomType.Battery] = new(RoomType.Battery, "room_battery", "#B9B08A"),
+        [RoomType.Noc] = new(RoomType.Noc, "room_noc", "#7F8FA8"),
     };
 
     public static readonly Dictionary<DoorType, DoorDef> Doors = new()

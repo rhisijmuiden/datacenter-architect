@@ -35,13 +35,13 @@ public partial class Hud : Control
     public Action<Role, int> CrewChanged;
     public Action<Facade> FacadeChanged;
     public Action<int> CyclePriority;
-    public Action RotateLeft, RotateRight, ToggleGrid, ToggleRoofs, FloorUp, FloorDown, OpenInfo, OpenOptions, OpenMenu, ToggleLanguage, OpenPower;
+    public Action RotateLeft, RotateRight, ToggleGrid, ToggleRoofs, FloorUp, FloorDown, OpenInfo, OpenOptions, OpenMenu, ToggleLanguage, OpenPower, OpenNetwork;
     public Action<int> ToggleOverlay;
     public Func<GameState> State;
 
     readonly Dictionary<string, (Label value, ProgressBar bar)> _bars = new();
     Label _money, _date, _company, _toolHint, _floorLabel, _creative;
-    Button _langBtn, _roofBtn, _powerBtn, _coolBtn;
+    Button _langBtn, _roofBtn, _powerBtn, _coolBtn, _netBtn;
     Label _pue;
     VBoxContainer _notes, _goals, _inspect;
     HBoxContainer _sub;
@@ -53,6 +53,8 @@ public partial class Hud : Control
     SpinBox _floors;
     OptionButton _facade;
     PanelContainer _projectsPanel;
+    HBoxContainer _topRow;
+    VBoxContainer _rightCol;
     VBoxContainer _projects;
     static readonly Facade[] OfficeFacades = { Facade.Brick, Facade.Concrete, Facade.Glass };
     string _category = "cat_land";
@@ -99,7 +101,7 @@ public partial class Hud : Control
             O(ObjKind.Generator), O(ObjKind.DieselTank), O(ObjKind.UndergroundTank),
         }),
         ("cat_cooling", new[] { O(ObjKind.Crah), O(ObjKind.Chiller), O(ObjKind.CoolingTower) }),
-        ("cat_network", new[] { O(ObjKind.FiberPit) }),
+        ("cat_network", new[] { O(ObjKind.FiberPit), O(ObjKind.Odf), O(ObjKind.CoreRouter), O(ObjKind.Spine), O(ObjKind.NocWall) }),
         ("cat_staff", Array.Empty<BuildItem>()),
         ("cat_customers", Array.Empty<BuildItem>()),
     };
@@ -114,7 +116,7 @@ public partial class Hud : Control
     // ---------------- top ----------------
     void BuildTop()
     {
-        var top = new HBoxContainer { Position = new Vector2(12, 12) };
+        var top = _topRow = new HBoxContainer { Position = new Vector2(12, 12) };
         top.AddThemeConstantOverride("separation", 10);
         AddChild(top);
         var brand = new PanelContainer();
@@ -141,6 +143,7 @@ public partial class Hud : Control
         AddBar(sh, "res_power", Brand.Power);
         AddBar(sh, "res_backup", Brand.Power);
         AddBar(sh, "res_cooling", Brand.Cooling);
+        AddBar(sh, "res_network", Brand.Fiber);
         AddBar(sh, "res_racks", Brand.Ok, false);
         AddBar(sh, "res_material", Brand.Amber, false);
         var pv = new VBoxContainer { CustomMinimumSize = new Vector2(56, 0) }; pv.AddThemeConstantOverride("separation", 2);
@@ -200,8 +203,17 @@ public partial class Hud : Control
         SetBar(_bars["res_backup"], $"{inf.BackupKw:0} kW {inf.GenRedundancy}{fuel}", c.NoPowerLimit ? 0 : backupRatio, Brand.Power);
         if (c.NoCoolingLimit) SetBar(_bars["res_cooling"], $"{inf.HeatKw:0} kW · " + Loc.T("hud_unlimited"), 0, Brand.Cooling);
         else SetBar(_bars["res_cooling"], $"{inf.HeatKw:0} / {inf.CoolingKw:0} kW", inf.CoolRatio, Brand.Cooling);
-        var down = inf.LiveRacks - inf.RunningRacks;
-        SetBar(_bars["res_racks"], down > 0 ? $"{inf.RunningRacks} / {s.Racks} ⚠" : $"{s.LiveRacks} / {s.Racks}", 0, Brand.Ok);
+        var net = s.Net;
+        var gb = System.Globalization.CultureInfo.InvariantCulture;
+        if (c.NoNetworkLimit) SetBar(_bars["res_network"], net.DemandGbps.ToString("0.0", gb) + " Gbit/s · " + Loc.T("hud_unlimited"), 0, Brand.Fiber);
+        else
+        {
+            var cap = net.Link(NetLink.Upstream).Capacity;
+            SetBar(_bars["res_network"], $"{net.DemandGbps.ToString("0.0", gb)} / {cap.ToString("0", gb)} Gbit/s", net.OfflineRacks > 0 && net.OnlineRacks == 0 ? 2 : net.Served < 0.999 ? 1.2 : net.Link(NetLink.Upstream).Ratio, Brand.Fiber);
+        }
+        var online = c.NoNetworkLimit ? inf.RunningRacks : net.OnlineRacks;
+        var down = inf.LiveRacks - online;
+        SetBar(_bars["res_racks"], down > 0 ? $"{online} / {s.Racks} ⚠" : $"{s.LiveRacks} / {s.Racks}", 0, Brand.Ok);
         _bars["res_racks"].value.AddThemeColorOverride("font_color", down > 0 ? Brand.Critical : Brand.Ink);
         _pue.Text = inf.Pue > 0 ? inf.Pue.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) : "-";
         SetBar(_bars["res_material"], s.MaterialStock.ToString(), 0, Brand.Amber);
@@ -210,6 +222,16 @@ public partial class Hud : Control
         var culture = new System.Globalization.CultureInfo(Loc.Language == "nl" ? "nl-NL" : "en-GB");
         _date.Text = s.Date.ToString("ddd d MMM yyyy · HH:mm", culture);
         if (_category == "cat_staff") RefreshCrewValues(s);
+        AvoidOverlap();
+    }
+
+    /// <summary>On narrower screens the resource bars reach the camera toolbar: then the right column moves down below them.</summary>
+    void AvoidOverlap()
+    {
+        if (_topRow == null || _rightCol == null) return;
+        var clash = _topRow.Position.X + _topRow.Size.X + 8 > _rightCol.Position.X;
+        var top = clash ? _topRow.Position.Y + _topRow.Size.Y + 8 : 12;
+        if (!Mathf.IsEqualApprox(_rightCol.OffsetTop, top)) _rightCol.OffsetTop = top;
     }
 
     // ---------------- bottom: build bar ----------------
@@ -414,6 +436,14 @@ public partial class Hud : Control
             _trayTitle.Text = Loc.T(cat);
             _trayTitle.AddThemeColorOverride("font_color", CatStyle(cat).accent);
             if (cat == "cat_staff") { BuildCrew(); continue; }
+            if (cat == "cat_network")
+            {
+                var nv = Ui.Secondary("net_overview", () => OpenNetwork?.Invoke());
+                nv.Icon = GD.Load<Texture2D>("res://assets/icons/cat_network.svg");
+                nv.AddThemeConstantOverride("icon_max_width", 18);
+                nv.CustomMinimumSize = new Vector2(150, 0); nv.SizeFlagsVertical = SizeFlags.ExpandFill;
+                _sub.AddChild(nv);
+            }
             if (cat is "cat_power" or "cat_cooling")
             {
                 var ov = Ui.Secondary("power_overview", () => OpenPower?.Invoke());
@@ -530,7 +560,7 @@ public partial class Hud : Control
     // ---------------- right ----------------
     void BuildRight()
     {
-        var col = new VBoxContainer();
+        var col = _rightCol = new VBoxContainer();
         col.AnchorLeft = col.AnchorRight = 1;
         col.OffsetLeft = col.OffsetRight = -12; col.OffsetTop = 12;
         col.GrowHorizontal = GrowDirection.Begin;
@@ -554,7 +584,8 @@ public partial class Hud : Control
         h.AddChild(Ui.IconButton("floor_up", "hud_floor_up", () => FloorUp?.Invoke()));
         _powerBtn = Ui.IconButton("bolt", "hud_overlay_power", () => ToggleOverlay?.Invoke(1));
         _coolBtn = Ui.IconButton("snow", "hud_overlay_cooling", () => ToggleOverlay?.Invoke(2));
-        h.AddChild(_powerBtn); h.AddChild(_coolBtn);
+        _netBtn = Ui.IconButton("cat_network", "hud_overlay_network", () => ToggleOverlay?.Invoke(3));
+        h.AddChild(_powerBtn); h.AddChild(_coolBtn); h.AddChild(_netBtn);
         _langBtn = new Button { CustomMinimumSize = new Vector2(44, 38), TooltipText = "hud_language", AutoTranslateMode = AutoTranslateModeEnum.Disabled };
         _langBtn.AddThemeFontOverride("font", Ui.DisplayBold);
         _langBtn.Pressed += () => ToggleLanguage?.Invoke();
@@ -591,6 +622,7 @@ public partial class Hud : Control
     {
         Active(_powerBtn, mode == 1);
         Active(_coolBtn, mode == 2);
+        Active(_netBtn, mode == 3);
     }
 
     public void UpdateGoals(IEnumerable<(string key, bool done)> goals)
