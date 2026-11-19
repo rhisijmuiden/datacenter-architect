@@ -110,6 +110,26 @@ Daarnaast wegen, paden, groen en uitbreidingsruimte. Gebouwen zijn opengewerkt, 
 
 - Het hele terrein dat je hebt gekocht deel je **zelf in**: waar het pand komt, de parkeerplaatsen, het laadperron, de beveiligingsloge, de ontvangsthal, de generatoren, de koelmachines, het station van de netbeheerder, groen en paden.
 - Er is geen vaste indeling. Elke keuze heeft gevolgen: een lange looproute van parkeerplaats naar ingang, vrachtwagens die niet kunnen keren, of een generator te dicht bij de buren.
+- Je kunt **meerdere panden** op hetzelfde terrein zetten, bijvoorbeeld het datacenter zelf en een apart **kantoorpand**.
+- **Inrichting buiten:** looppaden, fietspaden, fietsenstallingen, parkeerplaatsen (personeel, bezoekers, invaliden, laadpalen), bomen, struiken, hagen, gras, bankjes, lantaarnpalen en gevel- en terreinverlichting. Alles plaats je los, net als in de ruimte-ontwerper.
+- Groen en verlichting doen iets: verlichting en camera's verhogen de beveiliging 's nachts, groen en een fietsenstalling maken personeel tevredener, en goede looppaden verkorten looptijden.
+
+### Kantoor en afdelingen
+
+Het kantoor kan in het datacenterpand of in een eigen pand op het terrein. Je deelt het in met dezelfde ruimte-ontwerper (muren, deuren, objecten) en wijst per ruimte een **afdeling** toe:
+
+| Afdeling | Wat het doet | Inrichting |
+|---|---|---|
+| Support | Tickets en remote hands van klanten | Bureaus, headsets, schermen |
+| NOC | 24/7 monitoring en alarmen | Schermwand, bureaus |
+| Sales | Nieuwe klanten en offertes, nodig voor grote contracten | Bureaus, overlegtafel |
+| Account management | Bestaande klanten tevreden houden en verlengen | Bureaus |
+| Inkoop | Contracten met stroomleveranciers en carriers | Bureaus |
+| Facilitair / HR | Personeel werven, roosters | Bureaus |
+| Management | Rapportages, investeringen | Kantoor, vergadertafel |
+| Kantine en vergaderruimtes | Personeelstevredenheid, klantbezoek | Tafels, keuken, scherm |
+
+Een afdeling werkt pas met voldoende werkplekken voor het personeel dat je erin zet. Meer werkplekken en een betere inrichting geven hogere productiviteit.
 
 ### Bouwproces
 
