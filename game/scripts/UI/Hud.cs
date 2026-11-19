@@ -7,7 +7,7 @@ using Godot;
 
 namespace DatacenterArchitect.UI;
 
-public enum Mode { Select, Erase, Surface, Fence, Building, Room, Door, Object, Row }
+public enum Mode { Select, Erase, Surface, Fence, Building, Room, Door, Object, Row, Curve }
 
 /// <summary>What the player is about to build: a mode plus the surface, fence, building, room, door or object kind.</summary>
 public readonly record struct BuildItem(Mode Mode, int Arg = 0)
@@ -21,6 +21,7 @@ public readonly record struct BuildItem(Mode Mode, int Arg = 0)
         Mode.Room => Catalog.Rooms[(RoomType)Arg].NameKey,
         Mode.Door => Catalog.Doors[(DoorType)Arg].NameKey,
         Mode.Object or Mode.Row => Catalog.Objects[(ObjKind)Arg].NameKey,
+        Mode.Curve => (Surface)Arg switch { Surface.Footpath => "curve_footpath", Surface.BikePath => "curve_bikepath", _ => "curve_asphalt" },
         Mode.Erase => "tool_erase",
         _ => "tool_select",
     };
@@ -66,6 +67,7 @@ public partial class Hud : Control
         {
             new BuildItem(Mode.Surface, (int)Surface.Asphalt), new BuildItem(Mode.Surface, (int)Surface.Parking),
             new BuildItem(Mode.Surface, (int)Surface.Footpath), new BuildItem(Mode.Surface, (int)Surface.BikePath),
+            new BuildItem(Mode.Curve, (int)Surface.Asphalt), new BuildItem(Mode.Curve, (int)Surface.Footpath), new BuildItem(Mode.Curve, (int)Surface.BikePath),
             new BuildItem(Mode.Surface, (int)Surface.Yard), new BuildItem(Mode.Surface, (int)Surface.Grass),
             O(ObjKind.Tree), O(ObjKind.Shrub), O(ObjKind.LampPost), O(ObjKind.Bench), O(ObjKind.BikeRack),
         }),
@@ -383,7 +385,7 @@ public partial class Hud : Control
 
     string CostText(BuildItem i) => i.Mode switch
     {
-        Mode.Surface => Ui.Money(Catalog.Surfaces[(Surface)i.Arg].Cost) + " /m²",
+        Mode.Surface or Mode.Curve => Ui.Money(Catalog.Surfaces[(Surface)i.Arg].Cost) + " /m²",
         Mode.Fence => Ui.Money(Catalog.Fences[(FenceType)i.Arg].Cost) + " /m",
         Mode.Building => Ui.Money(Catalog.Buildings[(BuildingKind)i.Arg].CostPerCellPerFloor) + " /m²",
         Mode.Room => "",
@@ -427,7 +429,7 @@ public partial class Hud : Control
         _toolHint.Text = Loc.T(_item.Mode switch
         {
             Mode.Erase => "hint_erase", Mode.Surface => "hint_surface", Mode.Fence => "hint_fence", Mode.Building => "hint_building",
-            Mode.Room => "hint_room", Mode.Door => "hint_door", Mode.Row => "hint_row", Mode.Object => "hint_place", _ => "hint_select",
+            Mode.Curve => "hint_curve", Mode.Room => "hint_room", Mode.Door => "hint_door", Mode.Row => "hint_row", Mode.Object => "hint_place", _ => "hint_select",
         });
         FitTray();
     }
