@@ -28,6 +28,14 @@ Je bouwt op een **kaal terrein** of op een **kavel in de stad**. Elke locatie he
 
 Elke locatie toont vooraf de **beschikbare netcapaciteit (MVA)** en de **glasvezelputten** in de buurt, met provider en afstand. Aangrenzende kavels kun je later bijkopen.
 
+### Kaart en meerdere locaties
+
+- Een **regiokaart** toont de omgeving: de stad, wegen, rivieren, het hoogspanningsnet met onderstations, glasvezelroutes, de internet exchange, concurrerende datacenters en **kavels te koop**.
+- Klik op een kavel om de netcapaciteit (met wachttijd), glasvezel in de buurt, afstand tot de IX, grootte en prijs te zien.
+- Koop een kavel om een **nieuwe locatie te openen**. Je beheert meerdere datacenters tegelijk en wisselt tussen locaties via de kaart of de lijst "Jouw locaties".
+- Kaartlagen voor stroomnet, glasvezel, concurrenten en kavels zijn los aan en uit te zetten.
+- Locaties kun je onderling verbinden met eigen glasvezel, zodat klanten in twee datacenters tegelijk kunnen staan (geo-redundantie).
+
 ## Stroom
 
 - **Netaansluiting** via een onderstation met transformatoren. De capaciteit van de locatie bepaalt hoe groot je kunt worden.
@@ -79,6 +87,23 @@ Verplicht of sterk aangeraden:
 
 Daarnaast wegen, paden, groen en uitbreidingsruimte. Gebouwen zijn opengewerkt, en daken kun je aan- en uitzetten.
 
+### Wegen en hekwerk
+
+- Een **parkeerplaats** werkt pas als hij met een weg op de **openbare weg** is aangesloten. Hetzelfde geldt voor het laadperron en de beveiligingsloge: vrachtwagens, personeel en bezoekers moeten er kunnen komen.
+- Je legt zelf wegen, paden en toegangen aan. De route van de openbare weg via de loge naar het terrein is de enige officiële ingang.
+- **Hekwerk** trek je zelf rond (delen van) het terrein. Er zijn verschillende soorten:
+
+| Hekwerk | Beveiliging | Kosten | Opmerking |
+|---|---|---|---|
+| Draadhek | Laag | Laag | Alleen geschikt voor de buitenrand van parkeerplaatsen |
+| Gaashek met prikkeldraad | Middel | Middel | Standaard voor de meeste terreinen |
+| Spijlenhek (staal) | Hoog | Hoog | Netjes, vaak verplicht in de stad |
+| Anti-klimhek | Hoog | Hoog | Eis bij veel grote contracten |
+| Betonnen muur | Zeer hoog | Zeer hoog | Ook bescherming tegen voertuigen |
+| Haag | Laag | Laag | Alleen decoratief, maakt personeel en buren tevreden |
+
+- Hekken kun je aanvullen met **poorten, slagbomen, draaipoortjes, camera's en verlichting**. Grote klanten stellen eisen aan het beveiligingsniveau van je terrein.
+
 ## Ruimtes
 
 Binnen een gebouw **teken je zelf ruimtes**: muren trekken, deuren plaatsen en een ruimtetype kiezen. Elk type heeft eisen (minimale grootte, verplichte objecten, toegangsniveau) en werkt pas als daaraan is voldaan.
@@ -112,6 +137,16 @@ Binnen een gebouw **teken je zelf ruimtes**: muren trekken, deuren plaatsen en e
 
 - Ruimtes hebben toegangsniveaus. Deuren met een badgelezer laten alleen bevoegde mensen door.
 - Een **mantrap** (sluis) tussen de publieke zone en de datazalen is een eis bij veel grote contracten.
+
+## Meerdere verdiepingen
+
+- Gebouwen kunnen **meerdere verdiepingen** en een **dak** hebben. Op een stadskavel is dat vaak de enige manier om te groeien.
+- Elke verdieping heeft een **maximale vloerbelasting** (kg/m²). Zware installaties zoals UPS, accu's en switchgear horen daarom meestal op de begane grond.
+- **Schachten (risers)** voor stroom, glasvezel en koelleidingen verbinden de verdiepingen. Een verdieping werkt pas als hij daarop is aangesloten.
+- Een **goederenlift** is nodig om racks naar boven te brengen. **Trappen** zijn verplicht als vluchtroute.
+- Op het **dak** kun je koelmachines, dry coolers en zonnepanelen plaatsen. Dat bespaart grond, maar vraagt een sterk dak.
+- Warmte stijgt op: hogere zalen vragen iets meer koeling.
+- In de bouwmodus kies je een verdieping. Alles daarboven wordt verborgen, en met de uitgeklapte weergave zie je alle verdiepingen tegelijk.
 
 ## Personeel
 
@@ -197,6 +232,24 @@ Naast losse klanten kun je **grote contracten** binnenhalen bij grote klanten, z
 - **Strenge SLA's** met hoge boetes bij storingen of te late oplevering, maar ook bonussen bij goede prestaties.
 - **Audits en certificeringen** (bijvoorbeeld ISO 27001 of Tier III) als voorwaarde om mee te mogen bieden.
 - **Reputatie**: een goed uitgevoerd groot contract opent de deur naar grotere klanten. Een mislukt contract kost reputatie.
+
+## Seizoenen en weer
+
+De tijd loopt door een **jaarcyclus** met lente, zomer, herfst en winter, en wisselend weer. Dat is zichtbaar in de wereld (bladkleur, kale bomen, sneeuw op daken en gras, regen, mist, onweer) en heeft effect op het spel. Locaties hebben geen eigen klimaat; het weer geldt voor de hele regio.
+
+| Situatie | Effect |
+|---|---|
+| Koud (onder 10 °C) | Volledig vrije koeling, koelenergie −35% |
+| Mild (10 tot 18 °C) | Deels vrije koeling, koelenergie −15% |
+| Warm (18 tot 27 °C) | Koelmachines draaien hoger |
+| Hittegolf (vanaf 27 °C) | Koeling op de limiet, kans op oververhitting, hogere stroomprijs, netbeheerder kan vragen je verbruik te verlagen |
+| Storm | Kans op netuitval ×4, schade aan installaties op het dak mogelijk |
+| Sneeuw | Leveringen vertraagd, wegen en laadperron moeten gestrooid worden |
+| Mist | Leveringen en bezoekers trager |
+| Zon / bewolking | Opbrengst zonnepanelen hoger of lager |
+| Winter | Brandstof met winteradditief, accuruimtes moeten verwarmd worden |
+
+Een **weerbericht** in de interface waarschuwt een paar dagen vooruit, zodat je je kunt voorbereiden.
 
 ## Nieuw spel
 
