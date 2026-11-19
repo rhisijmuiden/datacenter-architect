@@ -34,6 +34,8 @@ public class HallInfo
     /// <summary>Air temperature the hall moves towards.</summary>
     public double Target;
     public bool PowerLimited;
+    /// <summary>The gas extinguishing system went off after a fire alarm.</summary>
+    public bool Suppressed;
 }
 
 /// <summary>Snapshot of the power chain, backup power and cooling of the whole site.</summary>
@@ -49,6 +51,8 @@ public class InfraReport
     public int DownForPower, DownForHeat;
     public readonly HashSet<int> Down = new();
     public double Pue;
+    /// <summary>During a city-wide power cut: running on generators, or completely dark.</summary>
+    public bool OnGenerators, Blackout;
 
     public int Generators;
     public double GenKw, BackupKw;
@@ -72,7 +76,7 @@ public static class Infra
 {
     public const double ShutdownTemp = 32;
 
-    static bool Live(PlacedObject o) => o.Status == ObjStatus.Live;
+    static bool Live(PlacedObject o) => o.Status == ObjStatus.Live && !o.Broken;
 
     /// <summary>N, N+1 or 2N for a set of equal-purpose units carrying a load.</summary>
     public static string Redundancy(IReadOnlyCollection<double> caps, double load)
@@ -105,7 +109,7 @@ public static class Infra
             if (h != null) byHall[h].Add(o); else orphan.Add(o);
         }
         var rejectUnits = live.Where(o => o.Def.RejectKw > 0).Select(o => o.Def.RejectKw * Catalog.LevelFactor(o.Level)).ToList();
-        r.RejectKw = rejectUnits.Sum();
+        r.RejectKw = rejectUnits.Sum() * s.RejectFactor;
         r.HeatKw = racks.Sum(o => o.Def.PowerKw);
         foreach (var h in halls)
         {
@@ -142,9 +146,26 @@ public static class Infra
         var ups = live.Where(o => o.Kind == ObjKind.Ups).Select(o => o.Def.CapacityKw).ToList();
         var dist = r.Halls.Select(h => h.DistributionKw).Where(k => k > 0).ToList();
         var gridT = new List<double> { Catalog.GridTransformerKw }; gridT.AddRange(trafos);
+        // a city-wide power cut: the generators take over behind the ATS, for as long as the diesel lasts
+        var gridKw = s.GridCapacityKw;
+        if (s.GridDown && !c.NoPowerLimit)
+        {
+            var genList = s.Objects.Where(o => o.Kind == ObjKind.Generator && !o.Broken).Select(o => o.Def.GenKw).ToList();
+            var demand = r.HeatKw * pue + r.OtherKw;
+            var fuel = s.Objects.Where(o => !o.Broken).Sum(o => o.Def.FuelLitres);
+            var load = Math.Min(demand, genList.Sum());
+            var hoursOfFuel = load > 0 ? fuel / (load * Catalog.FuelPerKwh) : double.MaxValue;
+            var ats = switches.Count > 0;
+            // without N+1 all generators run; a single generator still helps in an outage
+            var backup = genList.Count <= 1 ? genList.Sum() : Math.Max(s.BackupCapacityKw, 0);
+            if (genList.Count >= 2 && backup < demand) backup = genList.Sum();
+            gridKw = ats && !s.GeneratorsDry(hoursOfFuel) ? backup : 0;
+            r.OnGenerators = gridKw > 0;
+            r.Blackout = gridKw <= 0;
+        }
         var links = new[]
         {
-            (PowerLink.Grid, new List<double> { s.GridCapacityKw }, true),
+            (PowerLink.Grid, new List<double> { gridKw }, true),
             (PowerLink.Transformers, gridT, true),
             (PowerLink.Switchgear, switches, true),
             (PowerLink.Ups, ups, false),
@@ -175,6 +196,7 @@ public static class Infra
             }
             var heatLimit = allowed;
             if (h.Room.Hot && !c.NoCoolingLimit) heatLimit = Math.Min(allowed, (int)Math.Floor(h.CoolKw / Catalog.RackKw + 1e-9));
+            if (s.Suppressed(h.Room)) { heatLimit = 0; h.Suppressed = true; }
             r.DownForPower += list.Count - allowed;
             r.DownForHeat += allowed - heatLimit;
             running.AddRange(list.Take(heatLimit));

@@ -10,3 +10,4 @@
 - Godot project lives in `game/` (Godot 4.5.1 .NET, C#, net8.0). Build: `dotnet build game/DatacenterArchitect.csproj`; tests: `godot --headless --path game -- --run-tests`.
 - Player-facing text goes through keys in `game/locale/strings.tsv` (key, en, nl). The translation test fails when a Dutch text is missing.
 - Releases: tag `vX.Y.Z-test.N` on `test` for the test channel, `vX.Y.Z` on `main` for stable; `.github/workflows/release.yml` builds the installer.
+- Step 7 staff, maintenance and events: `Sim/Staff.cs` (roles, automatic hiring, policies, plans), `Sim/Ops.cs` (wear, faults, repairs, spare parts, random events), `Sim/SimStaff.cs` (staff figures on site), `UI/StaffPanel.cs`. Design rule from Reinder: no micromanagement. Managers hire, roster and train by themselves; the player only sets policies and service plans. Tests use a demo site with events off (`Quiet()` in TestRunner) so they stay deterministic.

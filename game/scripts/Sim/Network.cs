@@ -109,7 +109,7 @@ public static class Network
         return 1 + 0.35 * Math.Sin(2 * Math.PI * (h - 14) / 24);
     }
 
-    static bool Live(PlacedObject o) => o.Status == ObjStatus.Live;
+    static bool Live(PlacedObject o) => o.Status == ObjStatus.Live && !o.Broken;
 
     public static int NearestStreetPit(GameState s, PlacedObject pit)
     {

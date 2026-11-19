@@ -545,7 +545,7 @@ Je begint als eigenaar met een leeg terrein. Functies en mogelijkheden komen vri
 | Customer success manager | Salesdirecteur | Tevredener klanten, meer verlengingen, minder vertrek na storingen |
 | Inkoopmanager | CFO | Goedkopere energie- en carriercontracten |
 
-- Later komen er nog bij: marketingmanager en compliance-manager (stap 8), projectmanager bouw (stap 7) en een duurzaamheidsmanager (stap 9: lagere PUE, groene stroom, eigen zonnepanelen).
+- Later komen er nog bij: marketingmanager en compliance-manager (stap 8) en een duurzaamheidsmanager (stap 9: lagere PUE, groene stroom, eigen zonnepanelen).
 - Zonder salesdirecteur komen er geen contracten. Je moet dus vanaf het begin nadenken over wat je bouwt en in welke volgorde.
 - **Scholing** is een upgrade per manager met tijd en kosten. Een voorbeeld: de facility manager volgt een hoogspanningscursus, en daarna mag je een 20 MVA-aansluiting aanvragen.
 - In de creatieve modus kun je alle unlocks direct aanzetten.
@@ -594,7 +594,8 @@ Je begint als eigenaar met een leeg terrein. Functies en mogelijkheden komen vri
 ## Klantbezoek en sfeer
 
 - Klanten komen **af en toe** op locatie om aan hun servers te werken, net als in het echt: niet elke dag, maar willekeurig en vrij weinig. Je ziet ze parkeren, naar hun rack lopen, er een tijdje werken en weer vertrekken.
-- Ook met duizenden racks staan er hooguit **10 tot 20 klanten** tegelijk op je terrein (in het spel maximaal 15). Dat is realistisch en goed voor de prestaties.
+- Klanten komen **24/7**, zoals in het echt: overdag het meest, 's avonds minder en 's nachts een enkeling. Hoeveel er tegelijk rondlopen, is een **percentage van de bezette racks** (stap 7: ongeveer 2%, minimaal 3 en maximaal 40 voor de prestaties). Grote klanten zoals hyperscalers hebben vaker mensen op locatie.
+- Klanten die **verhuizen** vanuit een ander datacenter komen met een vrachtwagen naar de **loading dock** en dragen hun spullen naar hun racks. Dat draait vanzelf op de achtergrond.
 - Voor hen bouw je een **klantruimte** met bijvoorbeeld een frisdrankautomaat, een magnetron, banken en werkterminals. Een goede klantruimte verhoogt de klanttevredenheid.
 - In de datahallen zet je **monitorkarretjes** (crash carts) neer, zodat klanten hun server ter plekke kunnen beheren.
 - **Sfeer**: racks hebben knipperende statuslampjes, en dat blijft licht voor de pc. Zoom je in op een hal, dan hoor je het bekende datacentergeluid: het zoemen van de koeling en het schelle gieren van 1U-servers. Het volume hangt af van de afstand en het aantal racks.
@@ -618,14 +619,17 @@ Het hostingbedrijf is een tweede spel in het spel, zonder micromanagement:
 
 - **Diensten**: een public cloud met VPS'en, en **dedicated servers** in soorten zoals webhosting, opslag en GPU.
 - **Voorraad**: dedicated servers moeten op voorraad liggen in je **warehouse**. Medewerkers bouwen ze in elkaar, maken ze klaar voor de klant en installeren ze in het datacenter. Dat zie je gebeuren, maar je hoeft het niet zelf aan te sturen.
+- **Animatieketen (stap 9)**: een klant bestelt een dedicated server → een warehouse-medewerker assembleert hem in het warehouse → een support engineer brengt hem naar de datazaal, plaatst hem in het rack en zorgt dat de configuratie klopt → de server komt online. Puur animatie om te volgen, geen micromanagement.
 - **Afdelingen**: het hostingbedrijf heeft een eigen sales- en supportafdeling. Kleine contracten lopen vanzelf. **Grote contracten** komen af en toe naar boven en moet je zelf tekenen, bijvoorbeeld: "Wij zijn een streamingdienst en willen 2.400 servers binnen twee maanden."
 - **Dashboard** met grafieken: hoeveel racks er beschikbaar zijn voor dedicated verhuur, hoeveel hardware op voorraad ligt, hoeveel er actief is en wat het per maand oplevert. Je stuurt bij met prijzen, voorraad en capaciteit.
 - **Internationaal**: later bouw je ook in een ander land een datacenter, met een eigen kantoor. Daarna kan het hostingbedrijf internationale diensten aanbieden.
 
 ## Automatisering en personeel
 
-- Diensten en roosters worden **automatisch** ingevuld. Stel je een **manager** aan, dan regelt die zijn team.
-- Wie het leuk vindt, kan later handmatige roosters per afdeling aanzetten.
+- **Geen micromanagement** (Reinder, 19 november 2026): personeel en klanten draaien autonoom op de achtergrond als levendige opvulling. De speler richt zich op ontwerpen, bouwen en uitbreiden, en kijkt daarna hoe zijn datacenter leeft.
+- Diensten, roosters, werving en training worden **automatisch** geregeld door de managers. Personeel stelt wel **eisen** die je bouwt: een kantine, werkplekken, parkeerplekken.
+- De speler stuurt met **beleid en plannen**, zoals 24/7 support voor klanten (maandkosten, levert reputatie op), bezetting per afdeling, salarisbeleid en opleidingsbudget.
+- Wie het leuk vindt, kan later handmatige roosters en werving per afdeling aanzetten in de opties. Voor nu niet.
 
 ## Schaal en techniek voor grote campussen
 
@@ -729,9 +733,31 @@ Zo werkt stap 6 (versie 0.5.0) nu echt in de game:
 - **Investeerders**: verkoop 10% van het bedrijf voor 10% van de bedrijfswaarde. Investeerders krijgen elke maand hun deel van de winst. Je houdt altijd minstens 51%.
 - **Energiecontracten**: een vast contract loopt 1 tot 5 jaar. Eerder overstappen kost ongeveer drie maanden stroomrekening (de eerste 14 dagen gratis). Variabel kan altijd.
 - **Faillissement**: sta je in het rood, dan krijg je waarschuwingen. Na 30 dagen in het rood ga je failliet: het spel stopt en je laadt een savegame of gaat terug naar het hoofdmenu. Met onbeperkt geld (creatieve modus) kan dat niet.
-- **Klantbezoeken**: klanten komen willekeurig langs, alleen overdag: per-U-klanten ongeveer eens per 60 dagen, racks eens per 40, kooien eens per 25 en eigen hallen eens per 18 dagen. Er zijn nooit meer dan 15 klanten tegelijk op het terrein. Ze dragen een cyaan bezoekersbadge.
+- **Klantbezoeken**: klanten komen willekeurig langs: per-U-klanten ongeveer eens per 60 dagen, racks eens per 40, kooien eens per 25 en eigen hallen eens per 18 dagen. Ze dragen een cyaan bezoekersbadge. (Vanaf stap 7: 24/7 en meegroeiend met de bezette racks, zie *Personeel en gebeurtenissen in het spel*.)
 - **Oudere savegames**: racks die al huur opleverden, blijven bij "Bestaande klanten" (€ 900 per rack per maand). HR, operations, facility (volledig getraind) en netwerk zijn al geregeld, zodat niets ophoudt te werken.
 - In de **creatieve modus** zet "alle unlocks" de hele organisatie open.
+
+## Personeel en gebeurtenissen in het spel
+
+Zo werkt stap 7 (versie 0.6.0) nu echt in de game:
+
+- **Personeelsscherm** (Personeel in de bouwbalk, het poppetjes-icoon rechtsboven of het vak Personeel bovenin) met tabbladen links: Team, Beleid, Onderhoud, en Storingen en gebeurtenissen.
+- **15 functies**: elektrotechnisch engineer, koeltechnicus, monteur generatoren, brandveiligheidsmedewerker (facility manager); netwerkengineer en NOC-operator (netwerkmanager); support engineer, remote hands, receptionist, magazijnier, schoonmaker, kantine- en facilitair medewerker, hovenier en IT-helpdesk (operationeel manager); beveiliger (security manager). HR is altijd nodig. Sommige functies vragen een ruimte: NOC-ruimte, beveiligingsruimte of portiersloge, receptie, kantine.
+- **Automatisch werven**: elke afdeling krijgt een advies (bijvoorbeeld één koeltechnicus per 20 koelunits, één elektrotechnicus per 30 onderdelen in de stroomketen, één support engineer per 150 racks; vanaf 60 racks drie per 24/7-functie zodat elke dienst bezet is). De manager neemt zelf mensen aan tot dat advies, met een naam, niveau (junior, medior, senior) en soms een eigenschap (snel, nauwkeurig, nachtmens, loyaal). Bij te veel mensen wordt een contract niet verlengd.
+- **Beleid**: bezetting per afdeling (krap 75%, normaal, ruim 125% en elke dienst bezet), salarisbeleid (-10%, markt, +15%), opleidingsbudget (€ 0 tot € 20.000 per maand; wordt verdeeld en tilt mensen een niveau omhoog: junior 0,8×, medior 1×, senior 1,25× tempo) en preventief onderhoud (licht, normaal, grondig).
+- **Serviceplannen**: 24/7 klantensupport (€ 6.000 per maand, drie support engineers, hogere klanttevredenheid en reputatie), 24/7 NOC-bewaking (€ 3.500, drie NOC-operators, elke storing meteen gezien, reputatie) en een remote hands-dienst (€ 1.500, levert € 22 per verhuurd rack per maand op, 120 racks per persoon).
+- **Diensten**: dag (07-15), avond (15-23) en nacht (23-07). 24/7-functies worden automatisch verdeeld, nachtmensen nemen de nachten; de rest werkt overdag. Is er in een dienst niemand, dan wacht een storing op de volgende dienst.
+- **Tevredenheid**: salaris, kantine (met kantinemedewerker beter), koffie of frisdrankautomaat, parkeerplekken (de helft van het personeel), genoeg werkplekken voor sales, support en helpdesk, een IT-helpdesk vanaf twaalf kantoormensen, opleidingsbudget en groen. Veel werk en nachtdiensten tellen negatief. Onder 30% kunnen mensen vertrekken; de manager vervangt ze.
+- **Slijtage en onderhoud**: racks, CRAH-units, chillers, koeltorens, generatoren, UPS'en, accu's, PDU's, transformatoren, switchgear, routers, spines, ODF's en fiberputten slijten elke dag. Technici houden ze bij; zonder schoonmakers (één per twee zalen) slijt apparatuur in de zalen 40% sneller, in een hittegolf koelapparatuur 50%. Onderhoud kost per onderdeel per dag. Nieuwe apparatuur gaat niet stuk; vanaf 5% slijtage stijgt de kans snel. UPS'en en accu's gaan vijf jaar mee en moeten daarna worden vervangen (half de nieuwprijs).
+- **Storingen**: een kapot onderdeel werkt niet meer (de stroomketen, koeling of het netwerk merkt het direct). Zonder NOC-operator in dienst merkt iemand het na twee uur. Een vrije technicus in dienst gaat erheen (je ziet hem lopen en werken). Elektrotechnici springen in voor generatoren (langzamer). Heb je niemand voor de klus, dan komt na 12 uur automatisch een externe monteur (kosten); die kun je ook zelf meteen bellen. Uitval kost klanten per uur tevredenheid en SLA-boete.
+- **Reserveonderdelen**: serveronderdelen, koelonderdelen, elektrische onderdelen, UPS-accu's en optics. Een reparatie gebruikt één onderdeel; zonder onderdeel duurt het drie keer zo lang. Automatisch bijbestellen bij een minimum (standaard 2, per 5 stuks), levering in 4 dagen, één dag sneller per magazijnier.
+- **Gebeurtenissen** (aan of uit bij een nieuw spel): stroomstoring in de stad (2 tot 8 uur; generatoren achter de ATS nemen het over zolang er diesel is, een monteur generatoren regelt extra diesel), hittegolf in de zomer (20% minder warmteafvoer), kabelbreuk bij graafwerk, brandalarm (zonder brandveiligheidsmedewerker gaat het gasblussysteem af: de zaal ligt vier uur plat en navullen kost € 35.000), een klant die failliet gaat en persbezoek (reputatie +2 of -1). Alles staat in een logboek.
+- **Projectmanager bouw** (onder de operationeel manager): bouwvakkers en monteurs 15% sneller, +10% per training.
+- **Op het terrein** lopen maximaal 24 personeelsleden tegelijk rond: technici naar storingen, beveiligers op patrouille, schoonmakers in de zalen, hoveniers in het groen, mensen in de NOC, receptie en kantine. Externe monteurs dragen een oranje helm.
+- **Klantbezoek** draait 24/7 en groeit mee met de bezette racks; nieuwe klanten verhuizen hun spullen via de loading dock.
+- **Oudere savegames**: bestaande apparatuur telt als nieuw geïnstalleerd op de dag van laden; het personeel wordt de eerste dag automatisch geworven.
+- In de **creatieve modus** zet "geen storingen" slijtage-storingen en kabelbreuken uit.
+- Nog niet in deze versie (volgt in een vervolgstap): ongedaan maken, slim slepen, zichtbare kabelgoten, VESDA en blusflessen als objecten, cross-connect-orders en de voorraadvrachtwagen.
 
 ## Grote datahallen
 
@@ -799,7 +825,7 @@ Goedgekeurd door Reinder op 19 november 2026; ze komen in de genoemde stap.
 4. **Stroom en koeling** (testversie 0.3.0): netaansluiting en hoogspanning, transformatorruimtes, UPS, generatoren met N+1, koeling en koeltorens, stroom-overlay met bolletjes. Zie *Stroom en koeling in het spel*.
 5. **Netwerk** (testversie 0.4.0): fiberducts, MMR, carriers, peering, verkeersweergave, NOC. Zie *Netwerk in het spel*.
 6. **Organisatie, klanten en economie** (testversie 0.5.0): CEO-kantoor en unlock-boom (CFO, inkoop, HR, sales, jurist, customer success, operations, facility, netwerk, security), sales, klanttypes, zones, contracten en aanbestedingen, boekhouding, leningen, investeerders, energiecontracten, faillissement, klantbezoeken. Zie *Organisatie, klanten en economie in het spel*.
-7. **Personeel en gebeurtenissen**: werven, training en budgetten, automatische diensten, onderhoud, storingen en willekeurige gebeurtenissen
+7. **Personeel en gebeurtenissen** (testversie 0.6.0): automatisch werven, beleid en serviceplannen, training en budgetten, automatische diensten, onderhoud en slijtage, storingen en reserveonderdelen, willekeurige gebeurtenissen, projectmanager bouw, klantbezoek 24/7. Zie *Personeel en gebeurtenissen in het spel*.
 8. **Beveiliging, research en reputatie**: camera's, videowall, glazen loge, beveiligingspolicies, research tree, voorstellen van NOC en netwerkarchitect, recensies, certificeringen, overheidsklanten
 9. **Groei**: campus, kantoren verhuren, warehouse, hostingbedrijf (cloud, dedicated servers met voorraad, grote contracten, dashboard), meerdere locaties en landen
 10. **Uiterlijk**: rondere 3D-poppetjes, first-person rondlopen door je datacenter (alleen kijken en luisteren), seizoenen en weer, dag en nacht

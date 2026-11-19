@@ -375,11 +375,13 @@ public static class Models
     static readonly Color[] Skins = { new("#f1c7a5"), new("#d9a27c"), new("#a8714d"), new("#7a4e32"), new("#e8b48f") };
 
     /// <summary>A round, friendly worker figure. Colour and hat show the role.</summary>
-    public static Node3D Person(Role role, int id)
+    public static Node3D Person(Role role, int id, StaffRole staff = StaffRole.Support)
     {
         var n = new Node3D();
         var body = role switch
         {
+            Role.Staff when id < 0 => new Color("#8a96a3"),
+            Role.Staff => new Color(Staffing.Roles[staff].Color),
             Role.Builder => new Color("#ff8a2a"),
             Role.Fitter => new Color("#3d6fb0"),
             Role.Engineer => new Color("#ffd23e"),
@@ -394,9 +396,29 @@ public static class Models
         if (role == Role.Builder) Box(fig, new Vector3(0, 0.88f, 0.2f), new Vector3(0.3f, 0.06f, 0.06f), new Color("#e8f0f4"), glow: false);
         if (role == Role.Engineer) Box(fig, new Vector3(0, 0.95f, 0.22f), new Vector3(0.36f, 0.05f, 0.05f), Brand.Power);
         if (role == Role.Visitor) Box(fig, new Vector3(0.1f, 0.98f, 0.23f), new Vector3(0.1f, 0.13f, 0.02f), Brand.Cooling);
+        if (role == Role.Staff && id > 0)
+        {
+            // a coloured band shows the trade: amber power, cyan cooling, orange fiber (the brand colours)
+            Color? band = staff switch
+            {
+                StaffRole.Electrical or StaffRole.GeneratorTech => Brand.Power, StaffRole.Cooling => Brand.Cooling, StaffRole.NetworkEng => Brand.Fiber,
+                StaffRole.Noc => Brand.Cooling, StaffRole.Guard => new Color("#c9d3dc"), StaffRole.Canteen => new Color("#2f3a46"), StaffRole.RemoteHands => Brand.Power,
+                _ => null,
+            };
+            if (band is Color b) Box(fig, new Vector3(0, 0.95f, 0.22f), new Vector3(0.36f, 0.05f, 0.05f), b);
+            switch (staff)
+            {
+                case StaffRole.Guard: Ball(fig, new Vector3(0, 1.53f, 0), 0.2f, new Color("#1a2a44"), 0.45f); break;
+                case StaffRole.Gardener: Ball(fig, new Vector3(0, 1.52f, 0), 0.25f, new Color("#c9a85a"), 0.35f); break;
+                case StaffRole.FireSafety: Ball(fig, new Vector3(0, 1.5f, 0), 0.235f, new Color("#d23c32"), 0.62f); break;
+                case StaffRole.Electrical or StaffRole.Cooling or StaffRole.GeneratorTech or StaffRole.NetworkEng: Ball(fig, new Vector3(0, 1.5f, 0), 0.235f, White, 0.62f); break;
+                case StaffRole.Canteen: Ball(fig, new Vector3(0, 1.56f, 0), 0.17f, White, 1.1f); break;
+            }
+        }
+        if (role == Role.Staff && id < 0) Ball(fig, new Vector3(0, 1.5f, 0), 0.235f, new Color("#ff8a2a"), 0.62f);
         var arm1 = Capsule(fig, new Vector3(-0.29f, 0.85f, 0), 0.07f, 0.5f, body); arm1.Name = "A1";
         var arm2 = Capsule(fig, new Vector3(0.29f, 0.85f, 0), 0.07f, 0.5f, body); arm2.Name = "A2";
-        Ball(fig, new Vector3(0, 1.38f, 0), 0.22f, Skins[id % Skins.Length]);
+        Ball(fig, new Vector3(0, 1.38f, 0), 0.22f, Skins[Math.Abs(id) % Skins.Length]);
         Ball(fig, new Vector3(-0.07f, 1.41f, 0.2f), 0.025f, Dark);
         Ball(fig, new Vector3(0.07f, 1.41f, 0.2f), 0.025f, Dark);
         switch (role)

@@ -951,7 +951,7 @@ public partial class WorldView : Node3D
             alive.Add(a.Id);
             if (!_agentNodes.TryGetValue(a.Id, out var n))
             {
-                n = a.Role == Role.Truck ? Models.Truck(a.Load) : Person(a.Role, a.Id);
+                n = a.Role == Role.Truck ? Models.Truck(a.Load) : Person(a.Role, a.Role == Role.Staff ? a.EmpId : a.Id, a.Staff);
                 _agentsRoot.AddChild(n);
                 _agentNodes[a.Id] = n;
                 n.Position = new Vector3((float)a.X, 0, (float)a.Z);
@@ -978,7 +978,7 @@ public partial class WorldView : Node3D
             var arm = a.Working ? Mathf.Sin(t * 14 + a.Id) * 50 - 40 : walking ? -Mathf.Sin(ph) * 22 : 0;
             fig.GetNode<Node3D>("A1").RotationDegrees = new Vector3(arm, 0, 0);
             fig.GetNode<Node3D>("A2").RotationDegrees = new Vector3(a.Working ? -arm - 80 : -arm, 0, 0);
-            n.GetNode<Node3D>("Crate").Visible = a.Role == Role.Builder && a.Loaded && a.Carry > 0;
+            n.GetNode<Node3D>("Crate").Visible = (a.Role == Role.Builder || a.Role == Role.Visitor) && a.Loaded && a.Carry > 0 && a.Phase == 1;
             n.GetNode<Node3D>("Rack").Visible = a.Role == Role.Fitter && a.CarryObj != 0 && a.Phase == 2;
         }
         foreach (var id in _agentNodes.Keys.Where(id => !alive.Contains(id)).ToList())

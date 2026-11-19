@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 namespace DatacenterArchitect.Sim;
 
 /// <summary>Directors and managers. Each one needs its own furnished office (an executive room with a desk and a chair).</summary>
-public enum Exec { Ceo, Cfo, Hr, Sales, Legal, CustomerSuccess, Procurement, Operations, Facility, Network, Security }
+public enum Exec { Ceo, Cfo, Hr, Sales, Legal, CustomerSuccess, Procurement, Operations, Facility, Network, Security, ProjectManager }
 
 /// <summary>A director or manager: what it needs first, salary per month, one-off hiring fee and two training levels (cost, days).</summary>
 public record ExecDef(Exec Role, string Key, Exec[] Requires, long Salary, long HireFee, long[] TrainingCost, int[] TrainingDays);
@@ -116,10 +116,11 @@ public static class Org
         [Exec.Facility] = new(Exec.Facility, "exec_facility", new[] { Exec.Operations }, 6500, 9000, new long[] { 60000, 150000 }, new[] { 15, 30 }),
         [Exec.Network] = new(Exec.Network, "exec_network", new[] { Exec.Operations }, 6500, 9000, new long[] { 30000, 70000 }, new[] { 10, 20 }),
         [Exec.Security] = new(Exec.Security, "exec_security", new[] { Exec.Operations }, 5500, 8000, new long[] { 25000, 60000 }, new[] { 10, 20 }),
+        [Exec.ProjectManager] = new(Exec.ProjectManager, "exec_pm", new[] { Exec.Operations }, 6000, 8000, new long[] { 25000, 55000 }, new[] { 10, 20 }),
     };
 
     /// <summary>Order in the organisation chart: CEO, then the directors, then what sits under them.</summary>
-    public static readonly Exec[] Chart = { Exec.Ceo, Exec.Cfo, Exec.Procurement, Exec.Hr, Exec.Sales, Exec.Legal, Exec.CustomerSuccess, Exec.Operations, Exec.Facility, Exec.Network, Exec.Security };
+    public static readonly Exec[] Chart = { Exec.Ceo, Exec.Cfo, Exec.Procurement, Exec.Hr, Exec.Sales, Exec.Legal, Exec.CustomerSuccess, Exec.Operations, Exec.Facility, Exec.Network, Exec.Security, Exec.ProjectManager };
 
     public const long SalesRepSalary = 4200;
     public const int MaxLeads = 8;
@@ -337,7 +338,9 @@ public partial class GameState
     }
 
     /// <summary>The operations manager makes the crews work faster (10% plus 10% per training level).</summary>
-    [JsonIgnore] public double WorkSpeed => Has(Exec.Operations) && !Grandfathered.Contains(Exec.Operations) ? 1.1 + 0.1 * Training(Exec.Operations) : 1;
+    [JsonIgnore] public double WorkSpeed => (Has(Exec.Operations) && !Grandfathered.Contains(Exec.Operations) ? 1.1 + 0.1 * Training(Exec.Operations) : 1) * BuildSpeed;
+    /// <summary>The construction project manager: builders and fitters 15% faster (+10% per training), and fitters place equipment in parallel.</summary>
+    [JsonIgnore] public double BuildSpeed => Has(Exec.ProjectManager) && !Grandfathered.Contains(Exec.ProjectManager) ? 1.15 + 0.1 * Training(Exec.ProjectManager) : 1;
 
     [JsonIgnore] public long SalariesPerMonth => Execs.Sum(x => Org.Execs[x.Role].Salary) + SalesReps * Org.SalesRepSalary;
 
@@ -374,7 +377,7 @@ public partial class GameState
     public HashSet<int> WorkingRacks()
     {
         var inf = Infra; var net = Net;
-        return Objects.Where(o => o.Kind == ObjKind.Rack && o.Status == ObjStatus.Live && !inf.Down.Contains(o.Id) && (Creative.NoNetworkLimit || !net.Offline.Contains(o.Id)))
+        return Objects.Where(o => o.Kind == ObjKind.Rack && o.Status == ObjStatus.Live && !o.Broken && !inf.Down.Contains(o.Id) && (Creative.NoNetworkLimit || !net.Offline.Contains(o.Id)))
             .Select(o => o.Id).ToHashSet();
     }
 
@@ -830,7 +833,7 @@ public partial class GameState
         var lines = new (string key, double v)[]
         {
             ("inc_contracts", rent), ("inc_network", netIn), ("cost_network", net - netIn), ("cost_energy", -energy),
-            ("cost_crew", -WagesPerDay), ("cost_salaries", -SalariesPerMonth / 30.0), ("cost_site", -400 - support), ("cost_sla", -sla),
+            ("cost_crew", -WagesPerDay), ("cost_salaries", -SalariesPerMonth / 30.0), ("cost_staff", -(StaffPayPerMonth + PlansPerMonth) / 30.0), ("inc_remote_hands", RemoteHandsIncome / 30.0), ("cost_site", -400 - support), ("cost_sla", -sla),
         };
         foreach (var (key, v) in lines)
         {

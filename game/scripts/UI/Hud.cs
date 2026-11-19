@@ -36,11 +36,13 @@ public partial class Hud : Control
     public Action<Facade> FacadeChanged;
     public Action<int> CyclePriority;
     public Action RotateLeft, RotateRight, ToggleGrid, ToggleRoofs, FloorUp, FloorDown, OpenInfo, OpenOptions, OpenMenu, ToggleLanguage, OpenPower, OpenNetwork;
-    public Action<int> ToggleOverlay, OpenCompany;
+    public Action<int> ToggleOverlay, OpenCompany, OpenStaff;
     public Func<GameState> State;
 
     readonly Dictionary<string, (Label value, ProgressBar bar)> _bars = new();
     Label _money, _date, _company, _toolHint, _floorLabel, _creative;
+    Label _staffStat;
+    bool _alert;
     Button _langBtn, _roofBtn, _powerBtn, _coolBtn, _netBtn;
     Label _pue;
     VBoxContainer _notes, _goals, _inspect;
@@ -151,6 +153,13 @@ public partial class Hud : Control
         _pue = Ui.Number("-", 18); _pue.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
         pv.AddChild(_pue);
         sh.AddChild(pv);
+        var fv = new VBoxContainer { MouseFilter = MouseFilterEnum.Stop, TooltipText = "hud_staff_tip", MouseDefaultCursorShape = CursorShape.PointingHand, CustomMinimumSize = new Vector2(78, 0) };
+        fv.AddThemeConstantOverride("separation", 2);
+        fv.GuiInput += e => { if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) OpenStaff?.Invoke(_alert ? StaffPanel.TabIncidents : StaffPanel.TabTeam); };
+        fv.AddChild(Ui.Heading("res_staff", 12));
+        _staffStat = Ui.Number("0", 18); _staffStat.AutoTranslateMode = AutoTranslateModeEnum.Disabled; _staffStat.AutowrapMode = TextServer.AutowrapMode.Off;
+        fv.AddChild(_staffStat);
+        sh.AddChild(fv);
         var mv = new VBoxContainer { MouseFilter = MouseFilterEnum.Stop, TooltipText = "hud_money_tip", MouseDefaultCursorShape = CursorShape.PointingHand }; mv.AddThemeConstantOverride("separation", 2);
         mv.GuiInput += e => { if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) OpenCompany?.Invoke(CompanyPanel.TabFinance); };
         mv.AddChild(Ui.Heading("res_money", 12));
@@ -218,6 +227,11 @@ public partial class Hud : Control
         _bars["res_racks"].value.AddThemeColorOverride("font_color", down > 0 ? Brand.Critical : Brand.Ink);
         _pue.Text = inf.Pue > 0 ? inf.Pue.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture) : "-";
         SetBar(_bars["res_material"], s.MaterialStock.ToString(), 0, Brand.Amber);
+        var faults = s.Objects.Count(o => o.Broken && o.Noticed);
+        var events = s.ActiveEvents.Count(e => s.Hours < e.EndHour);
+        _alert = faults + events > 0;
+        _staffStat.Text = s.Staff.Count + (faults > 0 ? $" · ⚠ {faults}" : "") + (s.GridDown ? " · ⚡" : events > 0 ? " · !" : "");
+        _staffStat.AddThemeColorOverride("font_color", faults > 0 || s.GridDown ? Brand.Critical : events > 0 ? Brand.Warning : Brand.Ink);
         _money.Text = c.UnlimitedMoney ? "∞" : Ui.Money(s.Money);
         _money.AddThemeColorOverride("font_color", s.Money < 0 && !c.UnlimitedMoney ? Brand.Critical : Brand.Ok);
         var culture = new System.Globalization.CultureInfo(Loc.Language == "nl" ? "nl-NL" : "en-GB");
@@ -436,7 +450,15 @@ public partial class Hud : Control
             if (cat != _category) continue;
             _trayTitle.Text = Loc.T(cat);
             _trayTitle.AddThemeColorOverride("font_color", CatStyle(cat).accent);
-            if (cat == "cat_staff") { _sub.AddChild(TrayButton("co_tab_org", "org", () => OpenCompany?.Invoke(CompanyPanel.TabOrg))); BuildCrew(); continue; }
+            if (cat == "cat_staff")
+            {
+                _sub.AddChild(TrayButton("st_tab_team", "crew", () => OpenStaff?.Invoke(StaffPanel.TabTeam)));
+                _sub.AddChild(TrayButton("st_tab_policy", "roster", () => OpenStaff?.Invoke(StaffPanel.TabPolicy)));
+                _sub.AddChild(TrayButton("st_tab_maintenance", "wrench", () => OpenStaff?.Invoke(StaffPanel.TabMaintenance)));
+                _sub.AddChild(TrayButton("st_tab_incidents", "alert", () => OpenStaff?.Invoke(StaffPanel.TabIncidents)));
+                _sub.AddChild(TrayButton("co_tab_org", "org", () => OpenCompany?.Invoke(CompanyPanel.TabOrg)));
+                BuildCrew(); continue;
+            }
             if (cat == "cat_customers")
             {
                 _sub.AddChild(TrayButton("co_tab_sales", "cat_customers", () => OpenCompany?.Invoke(CompanyPanel.TabSales)));
@@ -619,6 +641,7 @@ public partial class Hud : Control
         _langBtn.Pressed += () => ToggleLanguage?.Invoke();
         h.AddChild(_langBtn);
         h.AddChild(Ui.IconButton("org", "hud_company", () => OpenCompany?.Invoke(CompanyPanel.TabOrg)));
+        h.AddChild(Ui.IconButton("crew", "hud_staff", () => OpenStaff?.Invoke(StaffPanel.TabTeam)));
         h.AddChild(Ui.IconButton("settings", "hud_options", () => OpenOptions?.Invoke()));
         h.AddChild(Ui.IconButton("info", "hud_info", () => OpenInfo?.Invoke()));
         h.AddChild(Ui.IconButton("menu", "hud_menu", () => OpenMenu?.Invoke()));
@@ -793,7 +816,8 @@ public partial class Hud : Control
         p.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
         _notes.AddChild(p);
         World.UiSounds.Instance?.Chime();
-        while (_notes.GetChildCount() > 4) _notes.GetChild(0).QueueFree();
+        // remove (not only queue) the oldest, or a burst of more than four messages in one frame never leaves this loop
+        while (_notes.GetChildCount() > 4) { var old = _notes.GetChild(0); _notes.RemoveChild(old); old.QueueFree(); }
         var tw = CreateTween();
         tw.TweenInterval(7);
         tw.TweenProperty(p, "modulate:a", 0f, 0.6f);
