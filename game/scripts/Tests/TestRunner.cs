@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using DatacenterArchitect.Core;
 using DatacenterArchitect.Sim;
+using DatacenterArchitect.UI;
 using Godot;
 using FileAccess = Godot.FileAccess;
 
@@ -28,7 +29,7 @@ public static class TestRunner
             ("rack chain", RackChainTests), ("gates", GateTests), ("curves", CurveTests), ("navigation", NavTests), ("creative", CreativeTests), ("demo", DemoTests),
             ("power chain", PowerTests), ("backup power", BackupTests), ("grid and suppliers", GridTests),
             ("cooling", CoolingTests), ("roof and underground", RoofTests), ("overlay rows", OverlayTests),
-            ("options", OptionsTests),
+            ("options", OptionsTests), ("network", NetworkTests), ("network money", NetworkMoneyTests), ("peering", PeeringTests),
         };
         foreach (var (name, t) in tests)
         {
@@ -93,15 +94,17 @@ public static class TestRunner
         used.AddRange(Enum.GetNames<ObjStatus>().Select(n => "status_" + n.ToLowerInvariant()));
         used.AddRange(Enum.GetNames<Facade>().Select(n => "facade_" + n.ToLowerInvariant()));
         used.AddRange(Enum.GetNames<PowerLink>().Select(n => "link_" + n.ToLowerInvariant()));
+        used.AddRange(Enum.GetNames<NetLink>().Select(n => "netlink_" + n.ToLowerInvariant()));
+        used.AddRange(Catalog.Carriers.Select(c => c.DescKey));
         used.AddRange(Catalog.GridLevels.Select(g => g.NameKey));
         used.AddRange(Catalog.Suppliers.Select(g => g.DescKey));
         used.AddRange(Catalog.Containments.Values.Select(g => g.NameKey));
         used.AddRange(Catalog.Objects.Values.Where(d => d.Rooms != null).Select(GameState.NeedsRoomKey));
         // every msg_/hint_/goal_ key mentioned in the scripts must exist
-        foreach (var file in new[] { "res://scripts/Main.cs", "res://scripts/Sim/GameState.cs", "res://scripts/Sim/Simulation.cs", "res://scripts/UI/Hud.cs", "res://scripts/UI/Menus.cs", "res://scripts/UI/PowerPanel.cs", "res://scripts/World/WorldView.cs", "res://scripts/UI/OptionsDialog.cs" })
+        foreach (var file in new[] { "res://scripts/Main.cs", "res://scripts/Sim/GameState.cs", "res://scripts/Sim/Simulation.cs", "res://scripts/UI/Hud.cs", "res://scripts/UI/Menus.cs", "res://scripts/UI/PowerPanel.cs", "res://scripts/UI/NetworkPanel.cs", "res://scripts/Sim/GameState.Network.cs", "res://scripts/Sim/Network.cs", "res://scripts/World/WorldView.cs", "res://scripts/UI/OptionsDialog.cs" })
         {
             var text = FileAccess.GetFileAsString(file);
-            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(text, "\"((msg|hint|goal|cr|crew|hud|new|inspect|projects|prio|cat|power|grid|supplier|backup|chain|link|cool|halls?|advice|action|res|opt|menu|tool)_[a-z0-9_]+)\""))
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(text, "\"((msg|hint|goal|cr|crew|hud|new|inspect|projects|prio|cat|power|grid|supplier|backup|chain|link|cool|halls?|advice|action|res|opt|menu|tool|net|spof|carrier)_[a-z0-9_]+)\""))
                 used.Add(m.Groups[1].Value);
         }
         var absent = used.Distinct().Where(k => !en.ContainsKey(k)).ToList();
@@ -440,11 +443,146 @@ public static class TestRunner
         Check(inf.RunningRacks == inf.LiveRacks && inf.LiveRacks > 91, $"demo power chain runs every rack ({inf.RunningRacks}/{inf.LiveRacks}, bottleneck {inf.Bottleneck?.Link})");
         Check(inf.Ats && inf.BackupKw >= 3000 && inf.FuelHours > 24 && inf.UpsMinutes > 5, "demo has generators, fuel and UPS autonomy");
         Check(inf.CoolRatio <= 1 && Math.Abs(inf.Pue - 1.5) < 1e-6, "demo cooling copes and PUE is 1.50");
+        var net = s.Net;
+        Check(net.OnlineRacks == inf.RunningRacks && net.Served >= 0.999, $"demo network has every running rack online ({net.OnlineRacks}/{inf.RunningRacks}, served {net.Served:0.00})");
+        Check(net.Noc && net.Routes == 2 && net.Cores == 2 && net.IxGbps > 0 && net.PeerGbps > 0, "demo has a NOC, two routes, two cores, the IX and a peer");
+        Check(s.CrossConnects + s.XcPending >= 14, "demo keeps its cross-connects");
         var json = System.Text.Json.JsonSerializer.Serialize(s);
         Check(json.Length < 200_000, "savegame stays small: " + json.Length);
     }
 
     /// <summary>A finished datacenter with a hall, a switchgear room and a UPS room, all built (creative instant build off, money on).</summary>
+
+    // ---------------- network ----------------
+    static (GameState s, Room hall, Room mmr) NetSite(bool ai = false, bool instant = true)
+    {
+        var c = new CreativeOptions { NoPowerLimit = true, NoCoolingLimit = true, UnlimitedMoney = true, InstantBuild = instant };
+        var s = GameState.New(new NewGameOptions { Difficulty = 0, AiCompetitors = ai, Creative = true, CreativeOptions = c });
+        var b = s.AddBuilding(BuildingKind.Datacenter, 4, 4, 30, 20, 1);
+        b.Stage = Stage.Done;
+        var hall = s.AddRoom(RoomType.DataHall, 4, 4, 20, 20, 0);
+        var mmr = s.AddRoom(RoomType.MeetMe, 24, 9, 5, 5, 0);
+        foreach (var r in s.Rooms) r.Stage = Stage.Done;
+        return (s, hall, mmr);
+    }
+
+    static void NetworkTests()
+    {
+        var (s, hall, mmr) = NetSite();
+        for (var i = 0; i < 50; i++) Live(s, ObjKind.Rack, 6 + i % 16, 6 + i / 16 * 3);
+        var n = s.Net;
+        Check(n.OnlineRacks == 0 && n.OfflineRacks == 50, "without a network every running rack is offline");
+        Check(s.CanPlace(new PlacedObject { Kind = ObjKind.Odf, X = 6, Z = 20 }) == "msg_needs_mmr_room", "an ODF goes in the meet-me room");
+        Check(s.CanPlace(new PlacedObject { Kind = ObjKind.Spine, X = 25, Z = 10 }) == "msg_needs_hall", "a spine switch goes in a hall");
+        Check(s.CanOrderCarrier(1, 10) == "msg_needs_mmr", "a carrier needs the MMR first");
+        Live(s, ObjKind.Odf, 25, 10);
+        Check(s.CanOrderCarrier(1, 10) == "msg_needs_pit", "and a fiber pit near its street pit");
+        var pit = Live(s, ObjKind.FiberPit, 30, 62);
+        Check(Network.NearestStreetPit(s, pit) == 1, "a pit connects to the nearest street pit");
+        Check(s.CanOrderCarrier(0, 10) == "msg_needs_pit", "a carrier at another street pit is out of reach");
+        Check(s.OrderCarrier(1, 10) == null && s.ContractOf(1).Active, "order NordFiber with a 10G port (instant build)");
+        Check(s.OrderCarrier(1, 10) == "msg_carrier_exists", "one port per carrier");
+        n = s.Net;
+        Check(n.Upstream && n.OnlineRacks == 0, "no core router and no spine: still offline");
+        Live(s, ObjKind.CoreRouter, 27, 10);
+        var sp = Live(s, ObjKind.Spine, 5, 20);
+        n = s.Net;
+        Check(n.OnlineRacks == 48 && n.OfflineRacks == 2, $"one spine has 48 ports: 48 online ({n.OnlineRacks})");
+        Check(n.Halls[0].Spines == 1 && n.Spofs.Contains("spof_spine") && n.Spofs.Contains("spof_core"), "single spine and core are flagged");
+        Live(s, ObjKind.Spine, 6, 20);
+        n = s.Net;
+        Check(n.OnlineRacks == 50 && n.Link(NetLink.Spine).Redundancy == "N" && !n.Spofs.Contains("spof_spine"), "a second spine brings all racks online");
+        // traffic: 50 racks × 0.25 Gbit/s × time of day
+        var expect = 50 * Catalog.RackGbps * Network.DayCurve(s.Hours);
+        Check(Math.Abs(n.DemandGbps - expect) < 1e-6 && n.Served >= 0.999 && n.TransitGbps > 0, "traffic goes out over transit");
+        Check(Network.DayCurve(20) > 1.3 && Network.DayCurve(8) < 0.7 && Math.Abs(Enumerable.Range(0, 24).Average(h => Network.DayCurve(h)) - 1) < 1e-6, "evening peak, morning low, average 1");
+        // a 1G port is far too small
+        s.ContractOf(1).PortGbps = 1; s.ContractOf(1).Commit = 1; s.Touch(false);
+        n = s.Net;
+        Check(n.Served < 0.2 && n.Overflow > 5, $"a 1G port congests ({n.Served:0.00})");
+        Check(NetworkPanel.Advice(s, n).Contains("net_advice_congested"), "advice says the network is full");
+        Check(s.CanUpgradePort(s.ContractOf(1)) == null && s.UpgradePort(s.ContractOf(1)) == null && s.ContractOf(1).PortGbps == 10, "port upgrade 1G to 10G");
+        // the IX takes a share for free
+        var pitC = Live(s, ObjKind.FiberPit, 52, 62);
+        Check(s.OrderCarrier(4, 10) == null, "order a port on the IX at street pit C");
+        n = s.Net;
+        Check(n.IxGbps > 0 && Math.Abs(n.IxGbps - n.DemandGbps * Network.IxShare(s)) < 1e-6 && n.Routes == 2, "the IX carries its share, two routes now");
+        // ducts: a level 1 pit has 4 subducts, an upgrade gives 8
+        Check(Catalog.Subducts(1) == 4 && Catalog.Subducts(2) == 8 && Catalog.Subducts(3) == 12, "subducts per level");
+        s.Objects.Remove(pitC); s.Touch();
+        n = s.Net;
+        Check(n.Carriers.Any(x => x.Def.Ix && !x.Routed) && n.IxGbps == 0, "without its pit the IX has no route");
+        // commit steps never go above the port
+        var k = s.ContractOf(1);
+        k.Commit = 5; s.StepCommit(k, 1); Check(k.Commit == 10, "commit up one step");
+        s.StepCommit(k, 1); Check(k.Commit == 10, "commit never above the port");
+        s.StepCommit(k, -1); Check(k.Commit == 5, "commit down one step");
+        // creative: network is no limit
+        var (c, _, _) = NetSite();
+        c.Creative.NoNetworkLimit = true;
+        Live(c, ObjKind.Rack, 6, 6);
+        Check(c.Net.OnlineRacks == 1, "creative: network is no limit");
+        _ = hall; _ = mmr; _ = sp;
+    }
+
+    static void NetworkMoneyTests()
+    {
+        Check(Math.Abs(Network.P95(Enumerable.Range(1, 100).Select(i => (float)i).ToList()) - 95) < 1e-6, "95th percentile of 1..100 is 95");
+        var k = new CarrierContract { Carrier = 1, PortGbps = 10, Commit = 2 };
+        Check(Math.Abs(Network.MonthlyCost(k) - (450 + 2000 * 0.26)) < 1e-6, "monthly cost: port plus commit per Mbit");
+        for (var i = 0; i < 100; i++) k.Samples.Add(i < 90 ? 1 : 6);
+        Check(Network.BurstCost(k, false) > 0 && Network.BurstCost(k, true) < Network.BurstCost(k, false), "burst above the commit is billed, cheaper with a NOC");
+        k.Samples.Clear(); for (var i = 0; i < 100; i++) k.Samples.Add(i < 96 ? 1 : 9);
+        Check(Network.BurstCost(k, false) == 0, "the top 5% of hours is free");
+        Check(Catalog.PricePerMbit(Catalog.Carriers[0], 100) < Catalog.PricePerMbit(Catalog.Carriers[0], 1), "bigger commit, lower price");
+        Check(Network.MonthlyCost(new CarrierContract { Carrier = 4, PortGbps = 10 }) == Catalog.Port(10).MonthlyFee, "the IX only charges the port");
+
+        // lead time, hourly samples and daily money in a career game
+        var s = GameState.New(new NewGameOptions { Difficulty = 0, AiCompetitors = false });
+        var b = s.AddBuilding(BuildingKind.Datacenter, 4, 4, 30, 20, 1); b.Stage = Stage.Done;
+        s.AddRoom(RoomType.DataHall, 4, 4, 20, 20, 0); s.AddRoom(RoomType.MeetMe, 24, 9, 5, 5, 0);
+        foreach (var r in s.Rooms) r.Stage = Stage.Done;
+        Live(s, ObjKind.Odf, 25, 10); Live(s, ObjKind.FiberPit, 30, 62);
+        var money = s.Money;
+        Check(s.OrderCarrier(1, 10) == null && !s.ContractOf(1).Active && s.ContractOf(1).DaysLeft == Catalog.NewPortDays, "a new port takes 20 days");
+        Check(s.Money == money - Catalog.Port(10).SetupFee, "the setup fee is paid");
+        s.Advance(24 * 21);
+        Check(s.ContractOf(1).Active && s.Notes.Any(x => x.key == "msg_carrier_live"), "after 21 days the port is live");
+        Check(s.ContractOf(1).Samples.Count > 0 && s.ContractOf(1).Samples.Count < 24 * 30, "hourly samples while in service, cleared every month");
+        Check(s.NetworkPerDay() < 0, "a port costs money every day");
+        s.XcPending = 1; s.CrossConnects = 0;
+        var before = s.Money;
+        s.CompleteCrossConnect();
+        Check(s.CrossConnects == 1 && s.XcPending == 0 && s.Money == before + Catalog.XcSetupFee, "a patched cross-connect pays its setup fee");
+        // savegame
+        SaveSystem.Save(s, "unit-test-net");
+        var l = SaveSystem.Load("unit-test-net");
+        Check(l != null && l.Contracts.Count == 1 && l.Contracts[0].PortGbps == 10 && l.Contracts[0].Samples.Count == s.Contracts[0].Samples.Count && l.CrossConnects == 1, "save roundtrip network");
+    }
+
+    static void PeeringTests()
+    {
+        var (s, _, _) = NetSite(ai: false);
+        Live(s, ObjKind.Odf, 25, 10); Live(s, ObjKind.FiberPit, 30, 62);
+        Check(s.CanPeer(0, true) == "msg_no_rivals", "no rivals, no private peering");
+        var (a, _, _) = NetSite(ai: true);
+        for (var i = 0; i < 20; i++) Live(a, ObjKind.Rack, 6 + i, 6);
+        Live(a, ObjKind.Odf, 25, 10); Live(a, ObjKind.CoreRouter, 27, 10); Live(a, ObjKind.Spine, 5, 20); Live(a, ObjKind.FiberPit, 30, 62);
+        a.OrderCarrier(1, 10);
+        a.NetworkDay(Catalog.Rivals[0].RequestDay);
+        Check(a.PeerOf(0)?.State == PeerState.Requested && a.Notes.Any(x => x.key == "msg_peer_request"), "a rival asks to peer");
+        Check(a.PeerOf(1) == null, "the others ask later");
+        Check(a.StartPeering(0) == null && a.PeerOf(0).State == PeerState.Active, "accepting builds the dark fiber (instant build)");
+        var n = a.Net;
+        Check(n.PeerFlows.ContainsKey(0) && n.PeerGbps > 0 && n.TransitGbps < n.DemandGbps, "peering takes traffic off transit");
+        Check(a.CanPeer(1, true) == "msg_peer_too_small", "a big rival is not interested in a small network");
+        a.DeclinePeering(0);
+        Check(a.PeerOf(0).State == PeerState.Declined && !a.Net.PeerFlows.ContainsKey(0), "ending peering");
+        // customers order cross-connects as networks sit in the MMR
+        a.NetworkDay(1);
+        Check(a.XcPending > 0, "customers order cross-connects");
+    }
+
     static (GameState s, Room hall, Room swr, Room upsr) PowerSite(CreativeOptions c = null)
     {
         var s = GameState.New(new NewGameOptions { Difficulty = 0, Creative = c != null, CreativeOptions = c ?? new CreativeOptions() });

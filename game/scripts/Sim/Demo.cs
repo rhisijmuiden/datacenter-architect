@@ -25,12 +25,24 @@ public static class Demo
         s.AddObject(ObjKind.Barrier, 28, 56, 0, 0);
         s.AddObject(ObjKind.GuardBooth, 31, 56, 0, 0);
         s.AddObject(ObjKind.Intercom, 27, 62, 0, 0);
-        s.AddObject(ObjKind.FiberPit, 24, 62, 0, 0);
+        // two fiber pits on different carrier pits in the street: two separate routes
+        var pit = s.AddObject(ObjKind.FiberPit, 24, 62, 0, 0);
+        s.AddObject(ObjKind.FiberPit, 50, 62, 0, 0);
+        pit.Level = 2;
 
         // the datacenter: a closed concrete box with a hall, a corridor and the loading dock
         var dc = s.AddBuilding(BuildingKind.Datacenter, 8, 14, 26, 20, 1);
         var hall = s.AddRoom(RoomType.DataHall, 8, 14, 18, 20, 0);
-        s.AddRoom(RoomType.Corridor, 26, 18, 8, 8, 0);
+        s.AddRoom(RoomType.Corridor, 26, 18, 8, 4, 0);
+        s.AddRoom(RoomType.Corridor, 26, 22, 4, 4, 0);
+        // the meet-me room: patch frames (ODFs) where the carriers come in, and two core routers
+        s.AddRoom(RoomType.MeetMe, 30, 22, 4, 4, 0);
+        s.AddDoor(DoorType.Double, 27, 22, 1, 0);
+        s.AddDoor(DoorType.Badge, 31, 22, 1, 0);
+        s.AddObject(ObjKind.Odf, 30, 25, 0, 0);
+        s.AddObject(ObjKind.Odf, 31, 25, 0, 0);
+        s.AddObject(ObjKind.CoreRouter, 33, 22, 3, 0);
+        s.AddObject(ObjKind.CoreRouter, 33, 24, 3, 0);
         // technical rooms: main switchgear with the ATS, and the UPS room with its batteries
         s.AddRoom(RoomType.Switchgear, 26, 14, 4, 4, 0);
         s.AddRoom(RoomType.UpsRoom, 30, 14, 4, 4, 0);
@@ -53,6 +65,8 @@ public static class Demo
         // floor PDUs at the end of the rows; the hall also has an overhead busbar
         foreach (var z in new[] { 16, 23, 28 }) s.AddObject(ObjKind.Pdu, 25, z, 0, 0);
         hall.Busbar = true;
+        // spine switches at the start of the rows
+        foreach (var z in new[] { 16, 23, 28 }) s.AddObject(ObjKind.Spine, 11, z, 1, 0);
         hall.Containment = Containment.HotCold;
 
         s.AddObject(ObjKind.CrashCart, 24, 17, 0, 0);
@@ -77,6 +91,14 @@ public static class Demo
         s.AddObject(ObjKind.Terminal, 47, 13, 0, 0);
         for (var i = 0; i < 3; i++) { s.AddObject(ObjKind.Desk, 39 + i * 2 % 6, 13 + i * 2, 0, 0); s.AddObject(ObjKind.Chair, 39 + i * 2 % 6, 14 + i * 2, 2, 0); }
         s.AddObject(ObjKind.MeetingTable, 39, 22, 0, 0);
+        // network operations centre upstairs, with a video wall
+        s.AddRoom(RoomType.Noc, 38, 12, 8, 6, 1);
+        s.AddDoor(DoorType.Badge, 41, 18, 1, 1);
+        s.AddObject(ObjKind.NocWall, 40, 12, 0, 1);
+        s.AddObject(ObjKind.Desk, 39, 15, 2, 1);
+        s.AddObject(ObjKind.Desk, 42, 15, 2, 1);
+        s.AddObject(ObjKind.Chair, 40, 16, 2, 1);
+        s.AddObject(ObjKind.Chair, 43, 16, 2, 1);
 
         // generators and landscaping
         for (var i = 0; i < 4; i++) s.AddObject(ObjKind.Generator, 9 + i * 4, 40, 0, 0);
@@ -99,6 +121,13 @@ public static class Demo
         var wh = s.AddBuilding(BuildingKind.Warehouse, 40, 30, 12, 8, 1);
         wh.Stage = Stage.Walls; wh.Material = 18; wh.Work = 1.4;
         for (var x = 12; x < 25; x++) s.AddObject(ObjKind.Rack, x, 33 - 1, 2, 0);
+        // carriers, the internet exchange and peering with a rival
+        s.Contracts.Add(new CarrierContract { Carrier = 1, PortGbps = 100, Commit = 10 });
+        s.Contracts.Add(new CarrierContract { Carrier = 3, PortGbps = 10, Commit = 5 });
+        s.Contracts.Add(new CarrierContract { Carrier = 4, PortGbps = 10, Commit = 0 });
+        s.Peers.Add(new PeeringDeal { Rival = 0, State = PeerState.Active });
+        s.Peers.Add(new PeeringDeal { Rival = 1, State = PeerState.Requested });
+        s.CrossConnects = 14; s.XcPending = 2;
         s.MaterialStock = 40;
         s.Hours = 24 * 12 + 9;
         s.Touch();

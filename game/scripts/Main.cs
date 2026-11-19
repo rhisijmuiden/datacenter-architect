@@ -124,7 +124,7 @@ public partial class Main : Node3D
             FloorUp = () => SetView(_world.ViewFloor + 1, false),
             FloorDown = () => SetView(_world.ViewFloor - 1, _world.ViewFloor - 1 <= 0 && _world.Roofs),
             OpenInfo = OpenInfo, OpenOptions = OpenOptions, OpenMenu = OpenPause, ToggleLanguage = ToggleLanguage,
-            OpenPower = OpenPower, ToggleOverlay = m => SetOverlay(_world.Overlay.Mode == (OverlayMode)m ? OverlayMode.None : (OverlayMode)m),
+            OpenPower = OpenPower, OpenNetwork = OpenNetwork, ToggleOverlay = m => SetOverlay(_world.Overlay.Mode == (OverlayMode)m ? OverlayMode.None : (OverlayMode)m),
         };
         _ui.AddChild(_hud);
         _ui.MoveChild(_hud, 0);
@@ -182,6 +182,12 @@ public partial class Main : Node3D
     {
         if (!_playing || _ui.GetChildren().OfType<PowerPanel>().Any()) return;
         _ui.AddChild(new PowerPanel(() => _state, Fail));
+    }
+
+    void OpenNetwork()
+    {
+        if (!_playing || _ui.GetChildren().OfType<NetworkPanel>().Any()) return;
+        _ui.AddChild(new NetworkPanel(() => _state, Fail));
     }
 
     void SetOverlay(OverlayMode m)
@@ -290,7 +296,7 @@ public partial class Main : Node3D
         foreach (var (key, arg) in _sim.Messages.Concat(_state.Notes))
         {
             var text = Loc.T(key, arg == null ? "" : Loc.T(arg));
-            var accent = key.Contains("done") || key.Contains("live") || key.Contains("ready") || key.Contains("cool") ? Brand.Ok : key.Contains("need") || key.Contains("unreach") || key.Contains("no_road") || key.Contains("hot") ? Brand.Critical : Brand.Amber;
+            var accent = key.Contains("done") || key.Contains("live") || key.Contains("ready") || key.Contains("cool") ? Brand.Ok : key.Contains("need") || key.Contains("unreach") || key.Contains("no_road") || key.Contains("hot") || key.Contains("offline") || key.Contains("congested") ? Brand.Critical : Brand.Amber;
             _hud.Notify(text, accent);
         }
         _sim.Messages.Clear(); _state.Notes.Clear();
@@ -329,6 +335,9 @@ public partial class Main : Node3D
             ("goal_pdu", s.Objects.Any(o => o.Kind == ObjKind.Pdu && o.Status == ObjStatus.Live) || s.Rooms.Any(r => r.Busbar)),
             ("goal_cooling", s.Objects.Any(o => o.Def.RejectKw > 0)),
             ("goal_generators", s.Objects.Count(o => o.Kind == ObjKind.Generator) >= 2),
+            ("goal_fiber", s.Objects.Any(o => o.Kind == ObjKind.FiberPit) && Sim.Network.MmrReady(s)),
+            ("goal_carrier", s.Net.Carriers.Count(x => x.Up && !x.Def.Ix) >= 2),
+            ("goal_network", s.Net.OnlineRacks > 0),
         });
     }
 
@@ -392,6 +401,7 @@ public partial class Main : Node3D
             if (k.Keycode == Key.T) SetView(_world.ViewFloor, !_world.Roofs);
             if (k.Keycode == Key.P) SetOverlay(_world.Overlay.Mode == OverlayMode.Power ? OverlayMode.None : OverlayMode.Power);
             if (k.Keycode == Key.H) SetOverlay(_world.Overlay.Mode == OverlayMode.Cooling ? OverlayMode.None : OverlayMode.Cooling);
+            if (k.Keycode == Key.N) SetOverlay(_world.Overlay.Mode == OverlayMode.Network ? OverlayMode.None : OverlayMode.Network);
         }
         if (e is InputEventMouseMotion mm)
         {
@@ -654,7 +664,25 @@ public partial class Main : Node3D
             {
                 var hall = _state.RoomAt(o.X, o.Z, o.Floor);
                 lines.Add(!infra.Down.Contains(o.Id) ? Loc.T("inspect_running") : hall?.Hot == true ? "⚠ " + Loc.T("inspect_down_heat") : "⚠ " + Loc.T("inspect_down_power"));
+                if (!infra.Down.Contains(o.Id)) lines.Add(_state.Net.Offline.Contains(o.Id) ? "⚠ " + Loc.T("inspect_offline") : Loc.T("inspect_online"));
             }
+            if (d.Ports > 0) lines.Add(Loc.T("inspect_ports", d.Ports) + (d.Gbps > 0 ? $" · {d.Gbps:0} Gbit/s" : ""));
+            if (o.Kind == ObjKind.FiberPit)
+            {
+                var pi = _state.Net.Pits.FirstOrDefault(x => x.Pit == o);
+                if (pi != null)
+                {
+                    lines.Add(Loc.T("inspect_pit", Catalog.PitName(pi.Street), string.Join(", ", Catalog.Carriers.Where(x => x.Pit == pi.Street).Select(x => x.Name))));
+                    lines.Add(Loc.T("inspect_subducts", pi.Used, pi.Subducts));
+                }
+                if (o.Level < 3)
+                {
+                    var target = o;
+                    actions.Add((Loc.T("action_duct", Catalog.Subducts(o.Level + 1), Ui.Money(Catalog.UpgradeCost(d, o.Level))), () => Act(_state.UpgradeObject(target)), _state.CanUpgrade(o) == null));
+                }
+            }
+            if (o.Kind is ObjKind.FiberPit or ObjKind.Odf or ObjKind.CoreRouter or ObjKind.Spine or ObjKind.NocWall)
+                actions.Add((Loc.T("net_overview"), OpenNetwork, true));
             if (d.PowerKw > 0) lines.Add($"{d.PowerKw:0.#} kW");
             if (d.CoolingKw > 0) lines.Add(Loc.T("inspect_cooling", Math.Round(d.CoolingKw * Catalog.LevelFactor(o.Level))));
             if (d.RejectKw > 0) lines.Add(Loc.T("inspect_reject", Math.Round(d.RejectKw * Catalog.LevelFactor(o.Level))));
@@ -663,7 +691,7 @@ public partial class Main : Node3D
             if (d.GenKw > 0) lines.Add(Loc.T("inspect_generator", d.GenKw));
             if (d.FuelLitres > 0) lines.Add(Loc.T("inspect_fuel", d.FuelLitres));
             if (o.Floor == GameState.RoofFloor) lines.Add(Loc.T("inspect_on_roof"));
-            if (d.MaxLevel > 1)
+            if (d.MaxLevel > 1 && o.Kind != ObjKind.FiberPit)
             {
                 lines.Add(Loc.T("inspect_level", o.Level, d.MaxLevel));
                 if (o.Level < d.MaxLevel)
@@ -706,6 +734,8 @@ public partial class Main : Node3D
                     if (hi.RunningRacks < hi.LiveRacks) lines.Add("⚠ " + Loc.T(r.Hot ? "inspect_hall_hot" : "inspect_hall_short", hi.LiveRacks - hi.RunningRacks));
                 }
                 if (r.Upgrade != 0) lines.Add(Loc.T("inspect_upgrading", Math.Ceiling(r.UpgradeLeft)));
+                var hn = _state.Net.Halls.FirstOrDefault(h => h.Room == r);
+                if (hn != null && hn.Racks > 0) lines.Add((hn.Online < hn.Racks ? "⚠ " : "") + Loc.T("inspect_hall_net", hn.Online, hn.Racks, hn.Spines));
                 var hall = r;
                 if (r.Containment < Containment.ColdCorridor)
                 {
@@ -713,6 +743,12 @@ public partial class Main : Node3D
                     actions.Add((Loc.T("action_containment", Loc.T(next.NameKey), Ui.Money(GameState.HallUpgradeCost(r))), () => Act(_state.UpgradeHall(hall, false)), _state.CanUpgradeHall(r, false) == null));
                 }
                 if (!r.Busbar) actions.Add((Loc.T("action_busbar", Ui.Money(Catalog.BusbarCost)), () => Act(_state.UpgradeHall(hall, true)), _state.CanUpgradeHall(r, true) == null));
+            }
+            if (r.Type is RoomType.MeetMe or RoomType.Noc)
+            {
+                var net = _state.Net;
+                lines.Add(r.Type == RoomType.MeetMe ? Loc.T("inspect_mmr", net.OdfPorts, net.OdfUsed, net.Cores, _state.CrossConnects) : net.Noc ? Loc.T("net_noc_on") : Loc.T("inspect_noc_needs_wall"));
+                actions.Add((Loc.T("net_overview"), OpenNetwork, true));
             }
             _hud.Inspect(Loc.T(Catalog.Rooms[r.Type].NameKey), lines, actions);
             return;
@@ -751,6 +787,7 @@ public partial class Main : Node3D
                 if (args.Contains("--corridor")) { foreach (var hr in _state.Rooms) hr.Containment = Containment.ColdCorridor; _state.Touch(); }
                 if (args.Contains("--overlay-power")) SetOverlay(OverlayMode.Power);
                 if (args.Contains("--overlay-cooling")) SetOverlay(OverlayMode.Cooling);
+                if (args.Contains("--overlay-network")) SetOverlay(OverlayMode.Network);
             }
             else
             {
@@ -799,6 +836,8 @@ public partial class Main : Node3D
         var oi = Array.IndexOf(args, "--options");
         if (oi >= 0) OpenOptions(oi + 1 < args.Length && int.TryParse(args[oi + 1], out var tab) ? tab : 0);
         if (args.Contains("--power")) { _playing = true; OpenPower(); }
+        if (args.Contains("--network")) { _playing = true; OpenNetwork(); }
+        if (args.Contains("--overlay-network") && !args.Contains("--interior")) { SetOverlay(OverlayMode.Network); _cam.SetView(0.62f, 0.9f, 70, new Vector3(30, 0, 40)); }
         for (var i = 0; i < 50; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         if (args.Contains("--new-game"))
         {

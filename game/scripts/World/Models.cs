@@ -80,7 +80,11 @@ public static class Models
                 Cyl(n, new Vector3(1f, 3.1f, 0), 0.12f, 1.0f, new Color("#5d6b78"));
                 break;
             case ObjKind.FiberPit:
-                Box(n, new Vector3(0, 0.05f, 0), new Vector3(0.9f, 0.1f, 0.9f), Brand.Fiber);
+                // hand hole with a concrete rim, an orange cover and a marker post
+                Box(n, new Vector3(0, 0.04f, 0), new Vector3(0.95f, 0.08f, 0.95f), Brand.Concrete);
+                Box(n, new Vector3(0, 0.07f, 0), new Vector3(0.75f, 0.04f, 0.75f), Brand.Fiber);
+                Box(n, new Vector3(0.38f, 0.45f, 0.38f), new Vector3(0.08f, 0.9f, 0.08f), Brand.Fiber);
+                Box(n, new Vector3(0.38f, 0.85f, 0.38f), new Vector3(0.1f, 0.12f, 0.1f), White);
                 break;
             case ObjKind.Lift:
                 Box(n, new Vector3(0, 0.02f, 0), new Vector3(1.9f, 0.04f, 1.9f), new Color("#5d6670"));
@@ -273,6 +277,46 @@ public static class Models
                     var blade = Box(n, new Vector3(x, 1.88f, 0), new Vector3(1.0f, 0.02f, 0.14f), new Color("#8f989f")); blade.Name = "Fan";
                 }
                 Box(n, new Vector3(0, 0.3f, 0.92f), new Vector3(2.8f, 0.08f, 0.02f), Brand.Cooling);
+                break;
+            case ObjKind.Odf:
+                // optical distribution frame: open rack with patch panels and orange fiber
+                Box(n, new Vector3(0, 1.05f, 0), new Vector3(0.9f, 2.1f, 0.7f), new Color("#3a414a"), 0.5f, 0.3f);
+                for (var i = 0; i < 7; i++)
+                {
+                    Box(n, new Vector3(0, 0.45f + i * 0.22f, 0.36f), new Vector3(0.8f, 0.12f, 0.02f), new Color("#c8ced3"));
+                    Box(n, new Vector3(-0.2f + (i % 3) * 0.2f, 0.4f + i * 0.22f, 0.38f), new Vector3(0.05f, 0.18f, 0.02f), Brand.Fiber);
+                }
+                Box(n, new Vector3(0, 2.12f, 0), new Vector3(0.92f, 0.06f, 0.72f), Brand.Fiber);
+                break;
+            case ObjKind.CoreRouter:
+                // chassis router: tall dark cabinet with line cards and a status display
+                Box(n, new Vector3(0, 1.05f, 0), new Vector3(0.95f, 2.1f, 0.95f), new Color("#22272d"), 0.4f, 0.4f);
+                for (var i = 0; i < 8; i++) Box(n, new Vector3(0, 0.5f + i * 0.16f, 0.48f), new Vector3(0.8f, 0.1f, 0.01f), new Color("#3d454e"));
+                for (var i = 0; i < 8; i++) Box(n, new Vector3(0.33f, 0.5f + i * 0.16f, 0.486f), new Vector3(0.06f, 0.04f, 0.01f), i % 3 == 0 ? Brand.Fiber : Brand.Ok, glow: true);
+                Box(n, new Vector3(0, 1.8f, 0.486f), new Vector3(0.5f, 0.16f, 0.01f), new Color("#4aa3d8"), glow: true);
+                Box(n, new Vector3(0, 2.12f, 0), new Vector3(0.97f, 0.06f, 0.97f), Brand.Fiber);
+                break;
+            case ObjKind.Spine:
+                // spine switch rack: a network rack with switches near the top and fiber running up to the tray
+                Box(n, new Vector3(0, 1.05f, 0), new Vector3(0.985f, 2.1f, 0.95f), Brand.Rack, 0.5f, 0.4f);
+                Box(n, new Vector3(0, 1.05f, 0.476f), new Vector3(0.9f, 1.95f, 0.01f), new Color("#2c3239"), 0.4f, 0.3f);
+                for (var i = 0; i < 4; i++)
+                {
+                    Box(n, new Vector3(0, 1.4f + i * 0.14f, 0.485f), new Vector3(0.82f, 0.09f, 0.01f), new Color("#4b545e"));
+                    Box(n, new Vector3(-0.3f, 1.4f + i * 0.14f, 0.49f), new Vector3(0.12f, 0.03f, 0.01f), Brand.Fiber, glow: true);
+                }
+                Box(n, new Vector3(0, 2.13f, 0), new Vector3(0.6f, 0.06f, 0.3f), Brand.Fiber);
+                break;
+            case ObjKind.NocWall:
+                // video wall of 3 x 2 screens on a stand
+                Box(n, new Vector3(0, 0.25f, -0.2f), new Vector3(2.9f, 0.5f, 0.5f), new Color("#3a414a"));
+                for (var x = 0; x < 3; x++)
+                    for (var y = 0; y < 2; y++)
+                    {
+                        Box(n, new Vector3(-0.96f + x * 0.96f, 1.0f + y * 0.56f, -0.3f), new Vector3(0.92f, 0.52f, 0.06f), Dark);
+                        var col = (x + y) % 3 == 0 ? Brand.Fiber : (x + y) % 3 == 1 ? new Color("#4aa3d8") : Brand.Ok;
+                        Box(n, new Vector3(-0.96f + x * 0.96f, 1.0f + y * 0.56f, -0.265f), new Vector3(0.84f, 0.44f, 0.01f), new Color(col, 0.9f), glow: true);
+                    }
                 break;
             case ObjKind.CoolingTower:
                 Box(n, new Vector3(0, 0.15f, 0), new Vector3(1.95f, 0.3f, 1.95f), new Color("#9ea3a8"));

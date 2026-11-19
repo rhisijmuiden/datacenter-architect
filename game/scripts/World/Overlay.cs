@@ -7,13 +7,15 @@ using Godot;
 
 namespace DatacenterArchitect.World;
 
-public enum OverlayMode { None, Power, Cooling }
+public enum OverlayMode { None, Power, Cooling, Network }
 
 /// <summary>
 /// X-ray overlay over the world. Power: amber lines from the grid connection via transformers, switchgear,
 /// UPS and PDUs to the rack rows, with dots that run faster the busier a link is; overloaded links and racks
 /// without power turn red. Cooling: cold air from the CRAH units to the rows, warm water to the chillers
-/// and cooling towers, and racks coloured by the temperature of their hall.
+/// and cooling towers, and racks coloured by the temperature of their hall. Network: orange fiber from the carrier pits
+/// in the street through your own pits and ducts to the meet-me room, the core routers, the spine switches and the rows;
+/// dots run faster the busier a link is, congested links and offline racks turn red.
 /// </summary>
 public partial class Overlay : Node3D
 {
@@ -253,6 +255,68 @@ public partial class Overlay : Node3D
                 var t = hall?.Temp ?? 20;
                 var col = r.Down.Contains(o.Id) && hall?.Hot == true ? bad : t < 25 ? cool : t < 29 ? Brand.Power : bad;
                 plates.Add((new Transform3D(Basis.Identity.Scaled(new Vector3(0.9f, 0.05f, 0.9f)), Top(s, o, 2.14f)), new Color(col, 0.75f)));
+            }
+        }
+
+        else if (_mode == OverlayMode.Network)
+        {
+            var n = s.Net;
+            var fiber = Brand.Fiber;
+            var idle = new Color(Brand.Fiber, 0.45f);
+            var upRatio = (float)Math.Min(1.5, n.Link(NetLink.Upstream).Ratio);
+            var upColor = n.Served < 0.999 ? bad : fiber;
+            var mmr = s.Rooms.Where(x => x.Type == RoomType.MeetMe && x.Stage == Stage.Done).ToList();
+            bool InMmr(PlacedObject o) => mmr.Any(m => m.Floor == o.Floor && m.Contains(o.X, o.Z));
+            var odfs = objs.Where(o => o.Kind == ObjKind.Odf && InMmr(o)).ToList();
+            var cores = objs.Where(o => o.Kind == ObjKind.CoreRouter && InMmr(o)).ToList();
+            var spines = objs.Where(o => o.Kind == ObjKind.Spine).ToList();
+            // carrier pits in the street, your pits and the ducts into the building
+            foreach (var p in n.Pits)
+            {
+                var street = new Vector3(Catalog.StreetPits[p.Street] + 0.5f, 0.3f, s.PlotSize + 1.6f);
+                var pit = Top(s, p.Pit, 0.3f);
+                var used = p.Used > 0;
+                Add(street, pit, used ? upRatio : 0, used ? upColor : idle, used);
+                var odf = Nearest(odfs, pit, x => Top(s, x, 2.3f));
+                if (odf != null) Add(pit, Top(s, odf, 2.3f), used ? upRatio : 0, used ? upColor : idle, used);
+                plates.Add((new Transform3D(Basis.Identity.Scaled(new Vector3(0.9f, 0.05f, 0.9f)), pit), new Color(used ? fiber : idle, 0.8f)));
+            }
+            // dark fiber to peers leaves along the road to the west
+            var firstPit = n.Pits.FirstOrDefault(p => p.Used > 0);
+            if (firstPit != null)
+            {
+                var a = Top(s, firstPit.Pit, 0.3f);
+                var i = 0;
+                foreach (var (rival, gbps) in n.PeerFlows)
+                    Add(a, new Vector3(-24, 0.3f, s.PlotSize + 3 + i++ * 1.2f), (float)Math.Min(1.5, gbps / 10), fiber);
+            }
+            foreach (var c in cores)
+            {
+                var p = Top(s, c, 2.3f);
+                var odf = Nearest(odfs, p, x => Top(s, x, 2.3f));
+                if (odf != null) Add(Top(s, odf, 2.3f), p, upRatio, upColor);
+            }
+            var coreRatio = (float)Math.Min(1.5, n.Link(NetLink.Core).Ratio);
+            foreach (var sp in spines)
+            {
+                var p = Top(s, sp, 2.4f);
+                var c = Nearest(cores, p, x => Top(s, x, 2.3f));
+                if (c != null) Add(Top(s, c, 2.3f), p, coreRatio, n.Link(NetLink.Core).Ratio > 1 ? bad : fiber);
+            }
+            foreach (var row in Rows(racks))
+            {
+                var hall = HallOf(row[0]);
+                var a = Top(s, row[0], 2.35f); var b = Top(s, row[^1], 2.35f);
+                var off = row.Any(o => n.Offline.Contains(o.Id));
+                var sp = hall == null ? null : Nearest(spines.Where(x => HallOf(x) == hall), (a + b) / 2, x => Top(s, x, 2.4f));
+                var col = off ? bad : fiber;
+                if (sp != null) Add(Top(s, sp, 2.4f), a, upRatio, col);
+                if (row.Count > 1) Add(a, b, upRatio, col);
+            }
+            foreach (var o in racks.Where(o => o.Status == ObjStatus.Live))
+            {
+                var col = n.Offline.Contains(o.Id) ? new Color(bad, 0.85f) : r.Down.Contains(o.Id) ? new Color(Brand.InkDim, 0.6f) : new Color(fiber, 0.7f);
+                plates.Add((new Transform3D(Basis.Identity.Scaled(new Vector3(0.9f, 0.05f, 0.9f)), Top(s, o, 2.14f)), col));
             }
         }
 
