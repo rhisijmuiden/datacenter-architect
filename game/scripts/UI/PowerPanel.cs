@@ -108,6 +108,8 @@ public partial class PowerPanel : Modal
                 });
                 b.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
                 b.Alignment = HorizontalAlignment.Left;
+                var locked = s.GridUnlock(level);
+                if (locked != null) { b.Disabled = true; b.TooltipText = Loc.T(locked); b.Text += "  ·  " + Loc.T(locked); }
                 left.AddChild(b);
             }
             if (s.GridLevel >= Catalog.GridLevels.Length - 1) left.AddChild(Plain(Loc.T("grid_max"), 14, Brand.InkDim));
@@ -121,7 +123,9 @@ public partial class PowerPanel : Modal
         {
             var id = sup.Id;
             var text = $"{sup.Name} · € {N(sup.PricePerKwh, "0.000")}/kWh\n{Loc.T(sup.DescKey, sup.Years)}";
-            var b = Ui.Secondary(text, () => { _state().SetSupplier(id); _sig = null; Refresh(); });
+            var fee = s.SwitchFee(id);
+            if (fee > 0) text += "\n" + Loc.T("supplier_fee", Ui.Money(fee));
+            var b = Ui.Secondary(text, () => { var why = _state().SetSupplier(id); if (why != null && why != "msg_nothing_changed") _fail(why); _sig = null; Refresh(); });
             b.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
             b.Alignment = HorizontalAlignment.Left;
             b.CustomMinimumSize = new Vector2(0, 52);
@@ -134,6 +138,13 @@ public partial class PowerPanel : Modal
             left.AddChild(b);
         }
         left.AddChild(Dyn((l, st, _) => l.Text = Loc.T("supplier_today", N(st.EnergyPrice(), "0.000")), 14, Brand.InkDim));
+        left.AddChild(Dyn((l, st, _) =>
+        {
+            var cur = Catalog.Suppliers[st.Supplier];
+            var left2 = cur.Years * 365 - (st.Day - st.EnergyStartDay);
+            l.Text = cur.Variable ? Loc.T("supplier_term_free") : left2 > 0 ? Loc.T("supplier_term_left", N(Math.Ceiling(left2))) : Loc.T("supplier_term_done");
+            if (st.EnergyDiscount > 0) l.Text += "  ·  " + Loc.T("supplier_discount", N(st.EnergyDiscount * 100, "0.#"));
+        }, 13, Brand.InkDim));
         left.AddChild(new HSeparator());
 
         // ---- backup ----

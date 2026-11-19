@@ -125,11 +125,11 @@ public partial class Main : Node3D
             FloorUp = () => SetView(_world.ViewFloor + 1, false),
             FloorDown = () => SetView(_world.ViewFloor - 1, _world.ViewFloor - 1 <= 0 && _world.Roofs),
             OpenInfo = OpenInfo, OpenOptions = OpenOptions, OpenMenu = OpenPause, ToggleLanguage = ToggleLanguage,
-            OpenPower = OpenPower, OpenNetwork = OpenNetwork, ToggleOverlay = m => SetOverlay(_world.Overlay.Mode == (OverlayMode)m ? OverlayMode.None : (OverlayMode)m),
+            OpenPower = OpenPower, OpenNetwork = OpenNetwork, OpenCompany = OpenCompany, ToggleOverlay = m => SetOverlay(_world.Overlay.Mode == (OverlayMode)m ? OverlayMode.None : (OverlayMode)m),
         };
         _ui.AddChild(_hud);
         _ui.MoveChild(_hud, 0);
-        _playing = true; _speed = 1; _autosaveTimer = 0; _item = BuildItem.Select;
+        _playing = true; _speed = 1; _autosaveTimer = 0; _item = BuildItem.Select; _bankruptShown = false;
         _inspectCell = null; SetOverlay(OverlayMode.None);
         _hud.UpdateStats(_state);
         UpdateGoals();
@@ -161,12 +161,8 @@ public partial class Main : Node3D
 
     void ChangeCrew(Role role, int delta)
     {
-        switch (role)
-        {
-            case Role.Builder: _state.Builders = Math.Clamp(_state.Builders + delta, 0, 40); break;
-            case Role.Fitter: _state.Fitters = Math.Clamp(_state.Fitters + delta, 0, 20); break;
-            case Role.Engineer: _state.Engineers = Math.Clamp(_state.Engineers + delta, 0, 20); break;
-        }
+        var why = _state.ChangeCrew(role, delta);
+        if (why != null) Fail(why);
         _hud.UpdateStats(_state);
     }
 
@@ -183,6 +179,31 @@ public partial class Main : Node3D
     {
         if (!_playing || _ui.GetChildren().OfType<PowerPanel>().Any()) return;
         _ui.AddChild(new PowerPanel(() => _state, Fail));
+    }
+
+    void OpenCompany(int tab)
+    {
+        if (!_playing) return;
+        foreach (var p in _ui.GetChildren().OfType<CompanyPanel>()) p.Close();
+        _ui.AddChild(new CompanyPanel(() => _state, Fail, tab));
+    }
+
+    bool _bankruptShown;
+
+    /// <summary>Game over: the bank takes the company. Load a savegame or go back to the main menu.</summary>
+    void ShowBankrupt()
+    {
+        if (_bankruptShown) return;
+        _bankruptShown = true;
+        _speed = 0; _hud.SetSpeed(0);
+        var m = new Modal("bankrupt_title", 560);
+        m.Body.AddChild(Ui.Text("bankrupt_text", 15, Brand.Ink));
+        var h = new HBoxContainer(); h.AddThemeConstantOverride("separation", 8);
+        h.AddChild(Ui.Secondary("menu_load", () => { m.Close(); _ui.AddChild(new SaveLoadDialog(false, () => _state, LoadSlot)); }));
+        h.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
+        h.AddChild(Ui.Primary("bankrupt_menu", () => { m.Close(); ShowTitle(); }));
+        m.Body.AddChild(h);
+        _ui.AddChild(m);
     }
 
     void OpenNetwork()
@@ -296,11 +317,13 @@ public partial class Main : Node3D
         }
         foreach (var (key, arg) in _sim.Messages.Concat(_state.Notes))
         {
-            var text = Loc.T(key, arg == null ? "" : Loc.T(arg));
-            var accent = key.Contains("done") || key.Contains("live") || key.Contains("ready") || key.Contains("cool") ? Brand.Ok : key.Contains("need") || key.Contains("unreach") || key.Contains("no_road") || key.Contains("hot") || key.Contains("offline") || key.Contains("congested") ? Brand.Critical : Brand.Amber;
+            var text = Loc.T(key, ArgText(arg));
+            var accent = key is "msg_signed" or "msg_tender_won" or "msg_tender_delivered" or "msg_hired" or "msg_renewed" or "msg_trained" ? Brand.Ok
+                : key is "msg_bankrupt" or "msg_in_red" or "msg_tender_failed" or "msg_customer_left" or "msg_tender_lost" ? Brand.Critical : key.Contains("done") || key.Contains("live") || key.Contains("ready") || key.Contains("cool") ? Brand.Ok : key.Contains("need") || key.Contains("unreach") || key.Contains("no_road") || key.Contains("hot") || key.Contains("offline") || key.Contains("congested") ? Brand.Critical : Brand.Amber;
             _hud.Notify(text, accent);
         }
         _sim.Messages.Clear(); _state.Notes.Clear();
+        if (_state.Bankrupt) ShowBankrupt();
         _hud.UpdateStats(_state);
         _goalTimer -= delta;
         if (_goalTimer <= 0) { _goalTimer = 1; UpdateGoals(); UpdateProjects(); RefreshInspect(); }
@@ -318,6 +341,14 @@ public partial class Main : Node3D
         _sound.Level = _playing ? Mathf.Clamp(near / 40f, 0, 1) * zoom * open : 0;
     }
 
+    /// <summary>Message arguments are keys, plain names, or "@key|arg" for translated customer names.</summary>
+    static string ArgText(string arg)
+    {
+        if (arg == null) return "";
+        if (arg.StartsWith('@')) { var p = arg[1..].Split('|'); return Loc.T(p[0], p.Length > 1 ? p[1] : ""); }
+        return Loc.T(arg);
+    }
+
     void UpdateGoals()
     {
         if (_hud == null) return;
@@ -330,7 +361,10 @@ public partial class Main : Node3D
             ("goal_hall", s.Rooms.Any(r => r.Type == RoomType.DataHall && r.Stage == Stage.Done)),
             ("goal_dock", _sim.Docks().Count > 0),
             ("goal_rack", s.LiveRacks > 0),
-            ("goal_office", s.Rooms.Any(r => r.Type == RoomType.Executive && r.Stage == Stage.Done && s.Objects.Any(o => o.Kind == ObjKind.Desk && r.Contains(o.X, o.Z) && o.Floor == r.Floor))),
+            ("goal_office", s.Offices > 0),
+            ("goal_ceo", s.Has(Exec.Ceo)),
+            ("goal_sales", s.Has(Exec.Sales)),
+            ("goal_contract", s.Deals.Any(d => d.State == DealState.Active && !d.Legacy)),
             ("goal_switchgear", s.Objects.Any(o => o.Kind == ObjKind.Switchgear && o.Status == ObjStatus.Live)),
             ("goal_ups", s.Objects.Any(o => o.Kind == ObjKind.Ups && o.Status == ObjStatus.Live) && s.Objects.Any(o => o.Kind == ObjKind.Battery && o.Status == ObjStatus.Live)),
             ("goal_pdu", s.Objects.Any(o => o.Kind == ObjKind.Pdu && o.Status == ObjStatus.Live) || s.Rooms.Any(r => r.Busbar)),
@@ -666,6 +700,8 @@ public partial class Main : Node3D
                 var hall = _state.RoomAt(o.X, o.Z, o.Floor);
                 lines.Add(!infra.Down.Contains(o.Id) ? Loc.T("inspect_running") : hall?.Hot == true ? "⚠ " + Loc.T("inspect_down_heat") : "⚠ " + Loc.T("inspect_down_power"));
                 if (!infra.Down.Contains(o.Id)) lines.Add(_state.Net.Offline.Contains(o.Id) ? "⚠ " + Loc.T("inspect_offline") : Loc.T("inspect_online"));
+                var owner = _state.RackOwners().TryGetValue(o.Id, out var dealId) ? _state.DealById(dealId) : null;
+                lines.Add(owner != null ? Loc.T("inspect_rented", CompanyPanel.DealName(owner)) : hall?.Zone == HallZone.PerU ? Loc.T("inspect_peru") : Loc.T("inspect_for_sale"));
             }
             if (d.Ports > 0) lines.Add(Loc.T("inspect_ports", d.Ports) + (d.Gbps > 0 ? $" · {d.Gbps:0} Gbit/s" : ""));
             if (o.Kind == ObjKind.FiberPit)
@@ -744,6 +780,18 @@ public partial class Main : Node3D
                     actions.Add((Loc.T("action_containment", Loc.T(next.NameKey), Ui.Money(GameState.HallUpgradeCost(r))), () => Act(_state.UpgradeHall(hall, false)), _state.CanUpgradeHall(r, false) == null));
                 }
                 if (!r.Busbar) actions.Add((Loc.T("action_busbar", Ui.Money(Catalog.BusbarCost)), () => Act(_state.UpgradeHall(hall, true)), _state.CanUpgradeHall(r, true) == null));
+                lines.Add(Loc.T("inspect_zone", Loc.T("zone_" + r.Zone.ToString().ToLowerInvariant())));
+                var nextZone = (HallZone)(((int)r.Zone + 1) % Enum.GetValues<HallZone>().Length);
+                actions.Add((Loc.T("action_zone", Loc.T("zone_" + nextZone.ToString().ToLowerInvariant())), () => { _state.SetZone(hall, nextZone); Act(null); }, true));
+            }
+            if (r.Type is RoomType.Executive or RoomType.Office)
+            {
+                var desks = _state.Objects.Count(x => x.Kind == ObjKind.Desk && x.Floor == r.Floor && r.Contains(x.X, x.Z));
+                var chairs = _state.Objects.Count(x => x.Kind == ObjKind.Chair && x.Floor == r.Floor && r.Contains(x.X, x.Z));
+                lines.Add(r.Type == RoomType.Executive
+                    ? (desks > 0 && chairs > 0 && r.Stage == Stage.Done ? Loc.T("inspect_office_ready") : "⚠ " + Loc.T("inspect_office_needs"))
+                    : Loc.T("inspect_workplaces", desks));
+                actions.Add((Loc.T("co_tab_org"), () => OpenCompany(CompanyPanel.TabOrg), true));
             }
             if (r.Type is RoomType.MeetMe or RoomType.Noc)
             {
@@ -770,7 +818,7 @@ public partial class Main : Node3D
     }
 
     // ---------------- dev helpers ----------------
-    /// <summary>--screenshot path [--in-game] [--interior] [--new-game] [--info] [--options TAB] [--category cat_x] [--nl] [--hours N] [--driveway] [--curves] [--curvetool] [--gate] [--barrier]</summary>
+    /// <summary>--screenshot path [--in-game] [--interior] [--new-game] [--info] [--options TAB] [--company TAB] [--category cat_x] [--nl] [--hours N] [--driveway] [--curves] [--curvetool] [--gate] [--barrier]</summary>
     async System.Threading.Tasks.Task Screenshot(string path, string[] args)
     {
         if (args.Contains("--nl")) Loc.SetLanguage("nl");
@@ -840,6 +888,8 @@ public partial class Main : Node3D
         if (oi >= 0) OpenOptions(oi + 1 < args.Length && int.TryParse(args[oi + 1], out var tab) ? tab : 0);
         if (args.Contains("--power")) { _playing = true; OpenPower(); }
         if (args.Contains("--network")) { _playing = true; OpenNetwork(); }
+        var coi = Array.IndexOf(args, "--company");
+        if (coi >= 0 && coi + 1 < args.Length) { _playing = true; OpenCompany(int.Parse(args[coi + 1])); }
         if (args.Contains("--overlay-network") && !args.Contains("--interior")) { SetOverlay(OverlayMode.Network); _cam.SetView(0.62f, 0.9f, 70, new Vector3(30, 0, 40)); }
         for (var i = 0; i < 50; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         if (args.Contains("--new-game"))

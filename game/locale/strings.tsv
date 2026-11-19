@@ -124,7 +124,7 @@ goal_building	Datacenter building finished	Datacenterpand afgebouwd
 goal_hall	Data hall ready	Datahal klaar
 goal_dock	Loading dock with a roll-up door on asphalt	Laadperron met roldeur aan het asfalt
 goal_rack	First rack live	Eerste rack live
-goal_office	Director's office with a desk	Directiekamer met bureau
+goal_office	Director's office with a desk and a chair	Directiekamer met bureau en stoel
 projects_title	Building projects	Bouwprojecten
 projects_waiting	waits for building	wacht op gebouw
 projects_priority	Click to change the priority	Klik om de prioriteit te wijzigen
@@ -577,3 +577,232 @@ inspect_mmr	{0} patch ports, {1} in use · {2} core routers · {3} cross-connect
 inspect_noc_needs_wall	Place a video wall to start the NOC.	Zet een videowall neer om de NOC te starten.
 msg_needs_mmr_room	This goes in a meet-me room (MMR).	Dit hoort in een meet-me room (MMR).
 msg_needs_noc_room	The video wall goes in a NOC room.	De videowall hoort in een NOC-ruimte.
+msg_signed	Contract signed with {0}.	Contract getekend met {0}.
+msg_tender_won	You won the tender of {0}. Build what they need before the deadline.	Je hebt de aanbesteding van {0} gewonnen. Bouw wat ze nodig hebben voor de deadline.
+msg_tender_delivered	Delivered on time: {0} now uses its capacity and pays rent.	Op tijd opgeleverd: {0} gebruikt nu zijn capaciteit en betaalt huur.
+msg_tender_failed	Deadline missed for {0}: the contract is cancelled, you pay a fine and lose reputation.	Deadline gemist voor {0}: het contract vervalt, je betaalt een boete en verliest reputatie.
+msg_tender_lost	A rival won the tender of {0}.	Een concurrent heeft de aanbesteding van {0} gewonnen.
+msg_new_tender	New tender: {0} is looking for a datacenter.	Nieuwe aanbesteding: {0} zoekt een datacenter.
+msg_new_leads	Sales brought in {0} new customer request(s).	Sales heeft {0} nieuwe klantaanvraag/-aanvragen binnengehaald.
+msg_hired	Hired: {0}.	Aangenomen: {0}.
+msg_trained	Training finished: {0}.	Training afgerond: {0}.
+msg_renewed	{0} renewed its contract.	{0} heeft zijn contract verlengd.
+msg_contract_ended	{0} did not renew and has left.	{0} heeft niet verlengd en is vertrokken.
+msg_customer_left	{0} was so unhappy with the outages that it left early.	{0} was zo ontevreden over de storingen dat hij voortijdig is vertrokken.
+msg_in_red	Your bank balance is negative. Get back above zero within {0} days or the company goes bankrupt.	Je banksaldo staat in het rood. Kom binnen {0} dagen weer boven nul, anders gaat het bedrijf failliet.
+msg_bankrupt	The company is bankrupt.	Het bedrijf is failliet.
+msg_investor	An investor bought a share of the company.	Een investeerder heeft een deel van het bedrijf gekocht.
+msg_org_new	New: customers now sign contracts. Your current racks stay with your existing customers. Build a director's office and hire a CEO to grow.	Nieuw: klanten tekenen nu contracten. Je huidige racks blijven bij je bestaande klanten. Bouw een directiekamer en neem een CEO aan om te groeien.
+msg_needs_netmgr	Hire a network manager first: they arrange carrier and peering contracts.	Neem eerst een netwerkmanager aan: die regelt carrier- en peeringcontracten.
+msg_needs_exec	Hire the director or manager this role reports to first.	Neem eerst de directeur of manager aan waar deze functie onder valt.
+msg_needs_ceo_office	Build a director's office first: an executive room with a desk and a chair.	Bouw eerst een directiekamer: een directieruimte met een bureau en een stoel.
+msg_needs_office	Every director needs an own office: build another executive room with a desk and a chair.	Elke directeur heeft een eigen kantoor nodig: bouw nog een directieruimte met een bureau en een stoel.
+msg_exec_needed	Others report to this role. Let them go first.	Er vallen anderen onder deze functie. Laat die eerst gaan.
+msg_needs_workplace	No free workplace: put more desks in an office room.	Geen vrije werkplek: zet meer bureaus in een kantoorruimte.
+msg_needs_hr	Hire an HR manager to recruit more staff.	Neem een HR-manager aan om meer personeel te werven.
+msg_needs_ops	Technical staff needs an operations manager.	Technisch personeel heeft een operationeel manager nodig.
+msg_needs_facility	A bigger grid connection needs a facility manager.	Een zwaardere netaansluiting vraagt om een facility manager.
+msg_needs_hv_training	Your facility manager needs the next high-voltage training first.	Je facility manager moet eerst de volgende hoogspanningstraining volgen.
+msg_needs_legal	Bidding on tenders needs a legal counsel.	Voor aanbestedingen heb je een bedrijfsjurist nodig.
+msg_needs_cfo	Loans and investors need a CFO.	Voor leningen en investeerders heb je een CFO nodig.
+msg_credit_limit	The bank will not lend you that much.	Zoveel wil de bank je niet lenen.
+msg_investors_max	You keep the majority: investors can own at most 49%.	Je houdt de meerderheid: investeerders krijgen maximaal 49%.
+msg_reqs_missing	Not every requirement is met yet.	Nog niet aan alle eisen voldaan.
+goal_ceo	Hire a CEO	Neem een CEO aan
+goal_sales	Hire a sales director	Neem een salesdirecteur aan
+goal_contract	Sign your first customer	Teken je eerste klant
+inspect_rented	Rented to {0}	Verhuurd aan {0}
+inspect_peru	Shared rack, sold per U	Gedeeld rack, per U verkocht
+inspect_for_sale	For sale	Te koop
+inspect_zone	Zone: {0}	Zone: {0}
+action_zone	Sell as: {0}	Verkopen als: {0}
+inspect_office_ready	Furnished: a director can work here	Ingericht: hier kan een directeur werken
+inspect_office_needs	Needs a desk and a chair	Heeft een bureau en een stoel nodig
+inspect_workplaces	{0} workplace(s) for the sales team	{0} werkplek(ken) voor het salesteam
+hud_money_tip	Click for the finances	Klik voor de financiën
+hud_company	Company	Bedrijf
+supplier_fee	Leaving your fixed contract early costs {0}	Je vaste contract voortijdig opzeggen kost {0}
+supplier_term_free	Variable contract: switch any time	Variabel contract: altijd opzegbaar
+supplier_term_left	Fixed contract: {0} days to go	Vast contract: nog {0} dagen
+supplier_term_done	Fixed term finished: switch for free	Vaste looptijd voorbij: gratis overstappen
+supplier_discount	Procurement discount {0}%	Inkoopkorting {0}%
+customers_tray	{0} open request(s) · {1} contract(s) · {2} per month	{0} open aanvraag/aanvragen · {1} contract(en) · {2} per maand
+co_title	Company	Bedrijf
+co_tab_org	Organisation	Organisatie
+co_tab_sales	Sales	Sales
+co_tab_contracts	Contracts	Contracten
+co_tab_tenders	Tenders	Aanbestedingen
+co_tab_finance	Finance	Financiën
+co_reputation	Reputation {0} / 100	Reputatie {0} / 100
+co_revenue	Revenue {0} / month	Omzet {0} / maand
+org_help	You are the owner. Directors and managers each need an own furnished office and unlock new parts of the game. They run their own teams: no micromanagement.	Jij bent de eigenaar. Directeuren en managers hebben elk een eigen ingericht kantoor nodig en ontgrendelen nieuwe onderdelen van het spel. Ze regelen hun eigen team: geen micromanagement.
+org_offices	Offices in use: {0} of {1} furnished director's offices	Kantoren in gebruik: {0} van {1} ingerichte directiekamers
+org_all_unlocked	Creative mode: everything is unlocked.	Creatieve modus: alles is ontgrendeld.
+org_status_legacy	Arranged in your existing company	Geregeld in je bestaande bedrijf
+org_status_creative	Unlocked (creative)	Ontgrendeld (creatief)
+org_status_hired	Hired · {0} / month	Aangenomen · {0} / maand
+org_status_needs	Needs: {0}	Vereist: {0}
+org_status_open	Available · {0} / month	Beschikbaar · {0} / maand
+org_hire	Hire ({0})	Aannemen ({0})
+org_train	Train: {0} · {1} · {2} days	Trainen: {0} · {1} · {2} dagen
+org_training_busy	In training: {0} · {1} days left	In training: {0} · nog {1} dagen
+org_trained_full	Fully trained	Volledig getraind
+org_dismiss	Let go	Laten gaan
+org_later	Later: marketing and compliance managers (step 8), a construction project manager (step 7), a sustainability manager and the hosting company (step 9).	Later: marketing- en compliance-manager (stap 8), projectmanager bouw (stap 7), duurzaamheidsmanager en het hostingbedrijf (stap 9).
+exec_ceo	CEO	Algemeen directeur (CEO)
+exec_ceo_unlocks	Lets you hire the other directors. Later also the hosting company and an extra office location.	Hiermee neem je de andere directeuren aan. Later ook het hostingbedrijf en een extra kantoorlocatie.
+exec_ceo_train_1	Leadership course	Leiderschapscursus
+exec_ceo_train_2	Network of industry contacts	Netwerk in de branche
+exec_cfo	CFO	Financieel directeur (CFO)
+exec_cfo_unlocks	Loans and repayments, investors and financial reports. Training lowers the interest rate.	Leningen en aflossen, investeerders en financiële rapportages. Training verlaagt de rente.
+exec_cfo_train_1	Treasury course (-1% interest)	Treasurycursus (-1% rente)
+exec_cfo_train_2	Bank relations (-1% interest)	Bankrelaties (-1% rente)
+exec_procurement	Procurement manager	Inkoopmanager
+exec_procurement_unlocks	Cheaper energy and carrier contracts (5% and 10% off, more with training).	Goedkopere energie- en carriercontracten (5% en 10% korting, meer met training).
+exec_procurement_train_1	Negotiation course	Onderhandelingscursus
+exec_procurement_train_2	Framework contracts	Raamcontracten
+exec_hr	HR manager	HR-manager
+exec_hr_unlocks	Recruits staff: more builders, fitters and engineers than the starting crew.	Werft personeel: meer bouwvakkers, monteurs en engineers dan de startploeg.
+exec_hr_train_1	Recruitment course	Wervingscursus
+exec_hr_train_2	Employer branding	Employer branding
+exec_sales	Sales director	Salesdirecteur
+exec_sales_unlocks	Starts a sales team that brings in customer requests and tenders. Training brings more requests and better prices.	Start een salesteam dat klantaanvragen en aanbestedingen binnenhaalt. Training geeft meer aanvragen en betere prijzen.
+exec_sales_train_1	Key account course (+25% requests, +5% price)	Key-accountcursus (+25% aanvragen, +5% prijs)
+exec_sales_train_2	Enterprise sales (+25% requests, +5% price)	Enterprise sales (+25% aanvragen, +5% prijs)
+exec_legal	Legal counsel	Bedrijfsjurist
+exec_legal_unlocks	Needed to bid on large tenders. Training improves your chance to win.	Nodig om mee te bieden op grote aanbestedingen. Training vergroot je kans om te winnen.
+exec_legal_train_1	Tender law course	Cursus aanbestedingsrecht
+exec_legal_train_2	Contract specialist	Contractspecialist
+exec_cs	Customer success manager	Customer success manager
+exec_cs_unlocks	Keeps customers happy: satisfaction drops less after outages and more customers renew.	Houdt klanten tevreden: na storingen daalt de tevredenheid minder en verlengen meer klanten.
+exec_cs_train_1	Service management course	Cursus servicemanagement
+exec_cs_train_2	Account reviews	Accountreviews
+exec_ops	Operations manager	Operationeel manager
+exec_ops_unlocks	Runs all operations: technical staff, crews work 10% faster, and the facility, network and security managers report here.	Regelt alle operationele zaken: technisch personeel, ploegen werken 10% sneller, en de facility-, netwerk- en securitymanager vallen hieronder.
+exec_ops_train_1	Lean operations (+10% work speed)	Lean operations (+10% werktempo)
+exec_ops_train_2	Planning and scheduling (+10% work speed)	Planning en roosters (+10% werktempo)
+exec_facility	Facility manager	Facility manager
+exec_facility_unlocks	Maintenance planning and a 10 MVA grid connection. High-voltage training unlocks 20 and 50 MVA.	Onderhoudsplanning en een netaansluiting van 10 MVA. Hoogspanningstraining ontgrendelt 20 en 50 MVA.
+exec_facility_train_1	High-voltage course (20 MVA)	Hoogspanningscursus (20 MVA)
+exec_facility_train_2	High-voltage expert (50 MVA)	Hoogspanningsexpert (50 MVA)
+exec_network	Network manager	Netwerkmanager
+exec_network_unlocks	Network team: carrier ports, the internet exchange and peering contracts.	Netwerkteam: carrierpoorten, de internet exchange en peeringcontracten.
+exec_network_train_1	Routing course	Routeringscursus
+exec_network_train_2	Peering coordinator	Peeringcoördinator
+exec_security	Security manager	Security manager
+exec_security_unlocks	Security staff and clearance: together with a guard booth this lets you serve municipalities, ministries and banks.	Beveiliging en screening: samen met een portiersloge kun je gemeentes, ministeries en banken bedienen.
+exec_security_train_1	Security officer course	Cursus beveiligingsmanagement
+exec_security_train_2	Risk management	Risicomanagement
+sales_team	Sales team	Salesteam
+sales_needs_director	Hire a sales director to start a sales team. Without sales no customers come in.	Neem een salesdirecteur aan om een salesteam te starten. Zonder sales komen er geen klanten.
+sales_reps	{0} sales rep(s) · {1} workplace(s) · {2} / month each	{0} verkoper(s) · {1} werkplek(ken) · {2} / maand per persoon
+sales_help	Each sales rep needs a desk in an office room. More reps bring more and bigger customer requests.	Elke verkoper heeft een bureau in een kantoorruimte nodig. Meer verkopers geven meer en grotere klantaanvragen.
+zones_title	Hall zones	Zones per hal
+zones_help	Choose what each data hall is sold as. Customers only get racks in halls with the matching zone.	Kies per datahal wat je verkoopt. Klanten krijgen alleen racks in een hal met de passende zone.
+zones_none	No data halls yet.	Nog geen datahallen.
+zones_hall	Hall {0}: {1} racks · {2} rented · {3} for sale	Hal {0}: {1} racks · {2} verhuurd · {3} te koop
+zone_fullracks	Full racks	Volle racks
+zone_peru	Colocation per U	Colocatie per U
+zone_cage	Cages	Kooien
+zone_privatehall	Private hall	Eigen hal
+zone_owncloud	Own cloud (step 9)	Eigen cloud (stap 9)
+leads_title	Customer requests	Klantaanvragen
+leads_none	No open requests. Your sales team is working on it.	Geen open aanvragen. Je salesteam is ermee bezig.
+leads_no_sales	No sales team yet.	Nog geen salesteam.
+prod_peru	{0} U colocation	{0} U colocatie
+prod_racks	{0} full rack(s) · {1}	{0} volle rack(s) · {1}
+prod_cage	Cage with {0} racks · {1}	Kooi met {0} racks · {1}
+prod_hall	Private hall with {0} racks · {1}	Eigen hal met {0} racks · {1}
+deal_carriers	{0} carriers	{0} carriers
+deal_green	green energy	groene stroom
+deal_security	security clearance	beveiligingsscreening
+deal_price	{0} per month · {1} months · offer valid {2} days	{0} per maand · {1} maanden · aanbod nog {2} dagen geldig
+deal_sign	Sign	Tekenen
+deal_decline	Decline	Afwijzen
+req_units	Free units in per-U halls	Vrije units in per-U-hallen
+req_racks	Free racks in full-rack halls	Vrije racks in hallen met volle racks
+req_cage	Free racks in one cage hall	Vrije racks in één kooihal
+req_hall	Racks in an empty private hall	Racks in een lege eigen hal
+req_ab	A/B power in the hall	A/B-voeding in de hal
+req_amp32	32 A: A/B power and hot/cold aisles	32 A: A/B-voeding en warme/koude gangen
+req_2n	2N UPS	2N UPS
+req_backup	Generators N+1	Generatoren N+1
+req_bandwidth	Unsold transit bandwidth	Onverkochte transitcapaciteit
+req_carriers	Carriers	Carriers
+req_green	Green energy contract	Groen energiecontract
+req_security	Security manager and guard booth	Security manager en portiersloge
+contracts_title	Active contracts	Lopende contracten
+contracts_building	To deliver	Op te leveren
+contracts_deadline	Deadline in {0} days · {1} per month once delivered	Deadline over {0} dagen · {1} per maand na oplevering
+contracts_summary	{0} contract(s) · {1} per month · {2} racks · {3} U	{0} contract(en) · {1} per maand · {2} racks · {3} U
+contracts_none	No contracts yet.	Nog geen contracten.
+contracts_monthly	{0} / month	{0} / maand
+contracts_served	Service {0}%	Dienstverlening {0}%
+contracts_satisfaction	Satisfaction {0}	Tevredenheid {0}
+contracts_ends	Ends in {0} days	Loopt af over {0} dagen
+contracts_terminate	End early ({0})	Voortijdig beëindigen ({0})
+tenders_title	Tenders	Aanbestedingen
+tenders_help	Large customers put out tenders. Bid below the asking price to win more often; rivals bid too. Win, then deliver before the deadline.	Grote klanten schrijven aanbestedingen uit. Bied onder de vraagprijs om vaker te winnen; concurrenten bieden ook. Gewonnen? Lever dan op voor de deadline.
+tenders_needs_legal	Hire a legal counsel to bid.	Neem een bedrijfsjurist aan om te kunnen bieden.
+tenders_none	No tenders right now. They come in every month or so.	Op dit moment geen aanbestedingen. Ze komen ongeveer elke maand.
+tenders_lost	Lost or failed	Verloren of mislukt
+tender_terms	Asking {0} per month · {1} MW IT · {2} months · deliver within {3} days	Vraagprijs {0} per maand · {1} MW IT · {2} maanden · opleveren binnen {3} dagen
+tender_closes	Bids close in {0} days	Inschrijving sluit over {0} dagen
+tender_bid	Bid {0}% ({1})	Bied {0}% ({1})
+tender_bid_placed	Your bid: {0}% ({1} per month). Decision in {2} days.	Je bod: {0}% ({1} per maand). Besluit over {2} dagen.
+fin_books	Books	Boekhouding
+fin_unlimited	Creative mode: unlimited money.	Creatieve modus: onbeperkt geld.
+fin_in_red	In the red: {0} days left before bankruptcy.	In het rood: nog {0} dagen tot faillissement.
+fin_this_month	This month	Deze maand
+fin_last_month	Last month	Vorige maand
+fin_no_data	No figures yet.	Nog geen cijfers.
+fin_operating	Operating result	Bedrijfsresultaat
+fin_fixed	Fixed costs: salaries {0} and crew {1} per month.	Vaste kosten: salarissen {0} en ploegen {1} per maand.
+fin_loans	Loans	Leningen
+fin_needs_cfo	Hire a CFO to take out loans and talk to investors.	Neem een CFO aan om leningen af te sluiten en met investeerders te praten.
+fin_credit	The bank lends up to {0} at {1}% a year, paid back in {2} months.	De bank leent tot {0} tegen {1}% per jaar, terug te betalen in {2} maanden.
+fin_borrow	Borrow {0} ({1}/month)	Leen {0} ({1}/maand)
+fin_loan	Loan {0} of {1} · {2}% · {3} per month · {4} months left	Lening {0} van {1} · {2}% · {3} per maand · nog {4} maanden
+fin_repay	Repay now	Nu aflossen
+fin_investors	Investors	Investeerders
+fin_investors_help	Sell 10% of the company for cash. Investors then get their share of each month's profit. You keep at least 51%.	Verkoop 10% van het bedrijf voor geld. Investeerders krijgen daarna hun deel van de winst van elke maand. Je houdt minstens 51%.
+fin_share	Investors own {0}% · company value {1}	Investeerders bezitten {0}% · bedrijfswaarde {1}
+fin_invest	Sell 10% for {0}	Verkoop 10% voor {0}
+fin_energy	Energy contract	Energiecontract
+fin_energy_help	Change supplier in the power and cooling overview. Leaving a fixed contract early costs a fee.	Wissel van leverancier in het overzicht stroom en koeling. Een vast contract voortijdig opzeggen kost geld.
+book_inc_contracts	Customer contracts	Klantcontracten
+book_inc_network	Cross-connects and peering	Cross-connects en peering
+book_cost_energy	Energy	Energie
+book_cost_network	Carriers and IX	Carriers en IX
+book_cost_crew	Builders, fitters and engineers	Bouwvakkers, monteurs en engineers
+book_cost_salaries	Directors and sales team	Directie en salesteam
+book_cost_site	Site and support	Terrein en support
+book_cost_sla	SLA penalties	SLA-boetes
+book_cost_interest	Interest	Rente
+book_cost_build	Building and equipment	Bouw en apparatuur
+book_fin_loans	Loans received	Ontvangen leningen
+book_fin_investors	Investors	Investeerders
+book_fin_repay	Repayments	Aflossingen
+book_fin_dividend	Dividend to investors	Dividend aan investeerders
+cust_legacy	Existing customers	Bestaande klanten
+cust_name_municipality	Municipality of {0}	Gemeente {0}
+min_digital	Ministry of Digital Affairs	Ministerie van Digitale Zaken
+min_infrastructure	Ministry of Infrastructure	Ministerie van Infrastructuur
+min_finance	Ministry of Finance	Ministerie van Financiën
+min_health	Ministry of Health	Ministerie van Volksgezondheid
+cust_startup	Startup	Startup
+cust_smb	Small business	MKB
+cust_hosting	Hosting company	Hostingbedrijf
+cust_webhosting	Website hosting (also adult)	Websitehosting (ook adult)
+cust_streaming	Video streaming	Videostreaming
+cust_social	Social media	Social media
+cust_crypto	Crypto mining	Cryptomining
+cust_cloud	Cloud service	Clouddienst
+cust_municipality	Municipality	Gemeente
+cust_government	Ministry or government agency	Ministerie of overheidsdienst
+cust_bank	Bank	Bank
+cust_hyperscaler	Hyperscaler	Hyperscaler
+bankrupt_title	Bankrupt	Failliet
+bankrupt_text	Your company was in the red for 30 days and the bank has taken over. Load a savegame to try again, or start a new game from the main menu.	Je bedrijf stond 30 dagen in het rood en de bank heeft het overgenomen. Laad een savegame om het opnieuw te proberen, of begin een nieuw spel vanuit het hoofdmenu.
+bankrupt_menu	Main menu	Hoofdmenu
+fin_dividend	Dividend to investors	Dividend aan investeerders

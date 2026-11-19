@@ -137,6 +137,8 @@ public static class Catalog
     public const double GridTransformerKw = 2000;   // the compact station of level 0 has its own transformer
     public const double FuelPerKwh = 0.27;          // litres of diesel per kWh at the generator
     public const double RackKw = 6;
+    /// <summary>Rack power products sold to customers: 16 A and 32 A feeds at 230 V.</summary>
+    public const double Amp16Kw = 3.7, Amp32Kw = 7.4;
 
     public static readonly GridLevelDef[] GridLevels =
     {

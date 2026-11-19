@@ -1,3 +1,5 @@
+using System.Linq;
+
 namespace DatacenterArchitect.Sim;
 
 /// <summary>An example campus shown behind the title screen and used for screenshots and tests.</summary>
@@ -128,6 +130,24 @@ public static class Demo
         s.Peers.Add(new PeeringDeal { Rival = 0, State = PeerState.Active });
         s.Peers.Add(new PeeringDeal { Rival = 1, State = PeerState.Requested });
         s.CrossConnects = 14; s.XcPending = 2;
+        // the organisation, customers on contract, open requests and a tender
+        foreach (var e in new[] { Exec.Ceo, Exec.Cfo, Exec.Hr, Exec.Sales, Exec.Legal, Exec.Operations, Exec.Facility, Exec.Network })
+            s.Execs.Add(new ExecHire { Role = e, Training = e is Exec.Facility or Exec.Sales ? 1 : 0 });
+        s.SalesReps = 3; s.Reputation = 46; s.Seed = 7;
+        var rng = new System.Random(5);
+        var racks = s.Objects.Where(o => o.Kind == ObjKind.Rack && o.Status == ObjStatus.Live).Select(o => o.Id).ToList();
+        var taken = 0;
+        foreach (var (type, n) in new[] { (CustomerType.Hosting, 8), (CustomerType.Streaming, 12), (CustomerType.Municipality, 2), (CustomerType.Smb, 3) })
+        {
+            if (taken + n > racks.Count) break;
+            var d = s.MakeLead(0, rng, type);
+            d.Product = Product.Rack; d.Racks = n; d.Monthly = Org.ListPrice(d);
+            d.RackIds = racks.Skip(taken).Take(n).ToList(); taken += n;
+            d.State = DealState.Active; d.StartDay = 2; d.EndDay = 2 + d.Months * 30; d.Satisfaction = 70 + rng.Next(30);
+            s.Deals.Add(d);
+        }
+        for (var i = 0; i < 3; i++) s.Deals.Add(s.MakeLead(12, rng));
+        s.NewTender(12, rng); s.NextTenderDay = 40;
         s.MaterialStock = 40;
         s.Hours = 24 * 12 + 9;
         s.Touch();

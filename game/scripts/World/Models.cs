@@ -370,6 +370,8 @@ public static class Models
     }
 
     // ---------------- people and vehicles ----------------
+    /// <summary>Customers wear their own clothes; a cyan visitor badge marks them.</summary>
+    static readonly Color[] Casual = { new("#6c5aa8"), new("#3f8f6b"), new("#b0473f"), new("#5d6b78"), new("#c48a3a"), new("#2f6f9a") };
     static readonly Color[] Skins = { new("#f1c7a5"), new("#d9a27c"), new("#a8714d"), new("#7a4e32"), new("#e8b48f") };
 
     /// <summary>A round, friendly worker figure. Colour and hat show the role.</summary>
@@ -381,6 +383,7 @@ public static class Models
             Role.Builder => new Color("#ff8a2a"),
             Role.Fitter => new Color("#3d6fb0"),
             Role.Engineer => new Color("#ffd23e"),
+            Role.Visitor => Casual[id % Casual.Length],
             _ => White,
         };
         var legs = role == Role.Builder ? new Color("#3f4a57") : new Color("#2f3a46");
@@ -390,6 +393,7 @@ public static class Models
         Capsule(fig, new Vector3(0, 0.82f, 0), 0.24f, 0.75f, body);
         if (role == Role.Builder) Box(fig, new Vector3(0, 0.88f, 0.2f), new Vector3(0.3f, 0.06f, 0.06f), new Color("#e8f0f4"), glow: false);
         if (role == Role.Engineer) Box(fig, new Vector3(0, 0.95f, 0.22f), new Vector3(0.36f, 0.05f, 0.05f), Brand.Power);
+        if (role == Role.Visitor) Box(fig, new Vector3(0.1f, 0.98f, 0.23f), new Vector3(0.1f, 0.13f, 0.02f), Brand.Cooling);
         var arm1 = Capsule(fig, new Vector3(-0.29f, 0.85f, 0), 0.07f, 0.5f, body); arm1.Name = "A1";
         var arm2 = Capsule(fig, new Vector3(0.29f, 0.85f, 0), 0.07f, 0.5f, body); arm2.Name = "A2";
         Ball(fig, new Vector3(0, 1.38f, 0), 0.22f, Skins[id % Skins.Length]);
@@ -410,7 +414,7 @@ public static class Models
         }
         var crate = Box(n, new Vector3(0, 0.95f, 0.32f), new Vector3(0.4f, 0.3f, 0.3f), new Color("#c79a5b")); crate.Name = "Crate"; crate.Visible = false;
         var rack = Box(n, new Vector3(0, 1.05f, 0.62f), new Vector3(0.9f, 2.1f, 0.85f), Brand.Rack, 0.5f, 0.4f); rack.Name = "Rack"; rack.Visible = false;
-        var tool = Box(fig, new Vector3(0.3f, 0.62f, 0.12f), new Vector3(0.12f, 0.2f, 0.06f), role == Role.Engineer ? Brand.Fiber : Steel); tool.Name = "Tool";
+        var tool = Box(fig, new Vector3(0.3f, 0.62f, 0.12f), new Vector3(0.12f, 0.2f, 0.06f), role == Role.Engineer ? Brand.Fiber : role == Role.Visitor ? Dark : Steel); tool.Name = "Tool";
         return n;
     }
 

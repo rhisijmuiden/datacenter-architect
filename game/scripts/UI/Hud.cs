@@ -36,7 +36,7 @@ public partial class Hud : Control
     public Action<Facade> FacadeChanged;
     public Action<int> CyclePriority;
     public Action RotateLeft, RotateRight, ToggleGrid, ToggleRoofs, FloorUp, FloorDown, OpenInfo, OpenOptions, OpenMenu, ToggleLanguage, OpenPower, OpenNetwork;
-    public Action<int> ToggleOverlay;
+    public Action<int> ToggleOverlay, OpenCompany;
     public Func<GameState> State;
 
     readonly Dictionary<string, (Label value, ProgressBar bar)> _bars = new();
@@ -151,7 +151,8 @@ public partial class Hud : Control
         _pue = Ui.Number("-", 18); _pue.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
         pv.AddChild(_pue);
         sh.AddChild(pv);
-        var mv = new VBoxContainer(); mv.AddThemeConstantOverride("separation", 2);
+        var mv = new VBoxContainer { MouseFilter = MouseFilterEnum.Stop, TooltipText = "hud_money_tip", MouseDefaultCursorShape = CursorShape.PointingHand }; mv.AddThemeConstantOverride("separation", 2);
+        mv.GuiInput += e => { if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) OpenCompany?.Invoke(CompanyPanel.TabFinance); };
         mv.AddChild(Ui.Heading("res_money", 12));
         _money = Ui.Number("€ 0", 20); _money.AddThemeColorOverride("font_color", Brand.Ok);
         _money.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
@@ -274,7 +275,7 @@ public partial class Hud : Control
             var (icon, accent) = CatStyle(cat);
             var c = cat;
             var b = CatButton(cat, icon, accent, () => { _category = _category == c ? null : c; RefreshCategory(); });
-            if (items.Length == 0 && cat != "cat_staff") { b.Disabled = true; b.TooltipText = "hud_coming_soon"; }
+            if (items.Length == 0 && cat is not ("cat_staff" or "cat_customers")) { b.Disabled = true; b.TooltipText = "hud_coming_soon"; }
             _catBtns[cat] = b;
             h.AddChild(b);
         }
@@ -435,7 +436,23 @@ public partial class Hud : Control
             if (cat != _category) continue;
             _trayTitle.Text = Loc.T(cat);
             _trayTitle.AddThemeColorOverride("font_color", CatStyle(cat).accent);
-            if (cat == "cat_staff") { BuildCrew(); continue; }
+            if (cat == "cat_staff") { _sub.AddChild(TrayButton("co_tab_org", "org", () => OpenCompany?.Invoke(CompanyPanel.TabOrg))); BuildCrew(); continue; }
+            if (cat == "cat_customers")
+            {
+                _sub.AddChild(TrayButton("co_tab_sales", "cat_customers", () => OpenCompany?.Invoke(CompanyPanel.TabSales)));
+                _sub.AddChild(TrayButton("co_tab_contracts", "contract", () => OpenCompany?.Invoke(CompanyPanel.TabContracts)));
+                _sub.AddChild(TrayButton("co_tab_tenders", "tender", () => OpenCompany?.Invoke(CompanyPanel.TabTenders)));
+                _sub.AddChild(TrayButton("co_tab_finance", "money", () => OpenCompany?.Invoke(CompanyPanel.TabFinance)));
+                _sub.AddChild(TrayButton("co_tab_org", "org", () => OpenCompany?.Invoke(CompanyPanel.TabOrg)));
+                var s = State?.Invoke();
+                if (s != null)
+                {
+                    var help = Ui.Text(Loc.T("customers_tray", s.Deals.Count(d => d.State == DealState.Lead), s.Deals.Count(d => d.State == DealState.Active), Ui.Money(s.MonthlyRevenue)), 13, Brand.InkDim);
+                    help.AutoTranslateMode = AutoTranslateModeEnum.Disabled; help.CustomMinimumSize = new Vector2(240, 0);
+                    _sub.AddChild(help);
+                }
+                continue;
+            }
             if (cat == "cat_network")
             {
                 var nv = Ui.Secondary("net_overview", () => OpenNetwork?.Invoke());
@@ -490,6 +507,17 @@ public partial class Hud : Control
         var img = Image.CreateEmpty(14, 14, false, Image.Format.Rgba8);
         img.Fill(c);
         return ImageTexture.CreateFromImage(img);
+    }
+
+    Button TrayButton(string key, string icon, Action a)
+    {
+        var b = Ui.Secondary(key, a);
+        b.Icon = GD.Load<Texture2D>($"res://assets/icons/{icon}.svg");
+        b.AddThemeConstantOverride("icon_max_width", 20);
+        b.IconAlignment = HorizontalAlignment.Center; b.VerticalIconAlignment = VerticalAlignment.Top;
+        b.CustomMinimumSize = new Vector2(140, 0); b.SizeFlagsVertical = SizeFlags.ExpandFill;
+        b.AddThemeFontOverride("font", Ui.DisplaySemi); b.AddThemeFontSizeOverride("font_size", 17);
+        return b;
     }
 
     // ---------------- crew ----------------
@@ -590,6 +618,7 @@ public partial class Hud : Control
         _langBtn.AddThemeFontOverride("font", Ui.DisplayBold);
         _langBtn.Pressed += () => ToggleLanguage?.Invoke();
         h.AddChild(_langBtn);
+        h.AddChild(Ui.IconButton("org", "hud_company", () => OpenCompany?.Invoke(CompanyPanel.TabOrg)));
         h.AddChild(Ui.IconButton("settings", "hud_options", () => OpenOptions?.Invoke()));
         h.AddChild(Ui.IconButton("info", "hud_info", () => OpenInfo?.Invoke()));
         h.AddChild(Ui.IconButton("menu", "hud_menu", () => OpenMenu?.Invoke()));

@@ -50,6 +50,8 @@ public class Room
     /// <summary>Data halls: air temperature in °C, and whether racks are shut down to protect them from heat.</summary>
     public double Temp { get; set; } = 21;
     public bool Hot { get; set; }
+    /// <summary>Data halls: what the hall is sold as (full racks, per U, cages, a private hall).</summary>
+    public HallZone Zone { get; set; }
     public bool Contains(int x, int z) => x >= X && z >= Z && x < X + W && z < Z + D;
 }
 
@@ -114,7 +116,7 @@ public class NewGameOptions
 /// <summary>All state that goes into a savegame. Workers and trucks are not saved; they restart from this state.</summary>
 public partial class GameState
 {
-    public const int CurrentFormat = 4;
+    public const int CurrentFormat = 5;
     /// <summary>Floor value for objects that stand on the roof of a building.</summary>
     public const int RoofFloor = -1;
     public const double WorkPerMaterial = 0.15;
@@ -217,7 +219,21 @@ public partial class GameState
             // racks now need a network; tell players of older games where to start
             if (Objects.Any(o => o.Kind == ObjKind.Rack && o.Status == ObjStatus.Live)) Notes.Add(("msg_network_new", null));
         }
+        if (SaveFormat < 5)
+        {
+            // step 6: customers pay per contract. Racks that already earned rent keep a contract with your existing customers,
+            // and the operational managers come for free so nothing that worked stops working.
+            Grandfathered = new List<Exec> { Exec.Hr, Exec.Operations, Exec.Facility, Exec.Network };
+            var live = Objects.Where(o => o.Kind == ObjKind.Rack && o.Status == ObjStatus.Live).Select(o => o.Id).ToList();
+            if (live.Count > 0)
+                Deals.Add(new Deal { Id = NextId++, NameKey = "cust_legacy", Type = CustomerType.Smb, Product = Product.Rack, Racks = live.Count, RackIds = live,
+                    Monthly = 900L * live.Count, Months = 120, State = DealState.Active, StartDay = Hours / 24, EndDay = Hours / 24 + 3600, Legacy = true });
+            EnergyStartDay = Hours / 24 - 3650;
+            Notes.Add(("msg_org_new", null));
+        }
         Contracts ??= new(); Peers ??= new();
+        Execs ??= new(); Grandfathered ??= new(); Deals ??= new(); Loans ??= new(); Books ??= new();
+        foreach (var d in Deals) d.RackIds ??= new();
         foreach (var k in Contracts) k.Samples ??= new();
         SaveFormat = CurrentFormat;
         Touch();
@@ -234,9 +250,9 @@ public partial class GameState
     {
         if (Creative.UnlimitedMoney) return true;
         if (Money < cost) return false;
-        Money -= cost; return true;
+        Money -= cost; Book("cost_build", -cost); return true;
     }
-    public void Refund(long amount) { if (!Creative.UnlimitedMoney) Money += amount; }
+    public void Refund(long amount) { if (!Creative.UnlimitedMoney) { Money += amount; Book("cost_build", amount); } }
 
     // ---------------- lookups ----------------
     public Building BuildingAt(int x, int z) => Buildings.FirstOrDefault(b => b.Contains(x, z));
@@ -702,6 +718,8 @@ public partial class GameState
     {
         if (level <= GridLevel || level >= Catalog.GridLevels.Length) return "msg_nothing_changed";
         if (GridRequest >= 0) return "msg_grid_busy";
+        var locked = GridUnlock(level);
+        if (locked != null) return locked;
         if (!CanAfford(Catalog.GridLevels[level].Cost)) return "msg_no_money";
         return null;
     }
@@ -718,10 +736,14 @@ public partial class GameState
         return null;
     }
 
-    public void SetSupplier(int id)
+    public string SetSupplier(int id)
     {
-        if (id < 0 || id >= Catalog.Suppliers.Length) return;
-        Supplier = id; Touch(false);
+        if (id < 0 || id >= Catalog.Suppliers.Length || id == Supplier) return "msg_nothing_changed";
+        var fee = SwitchFee(id);
+        if (!CanAfford(fee)) return "msg_no_money";
+        if (fee > 0 && !Creative.UnlimitedMoney) { Money -= fee; Book("cost_energy", -fee); }
+        Supplier = id; EnergyStartDay = Hours / 24; Touch(false);
+        return null;
     }
 
     /// <summary>Price per kWh today. Variable contracts follow a market price that moves over the weeks.</summary>
@@ -822,26 +844,22 @@ public partial class GameState
         }
     }
 
-        /// <summary>Advance the clock; costs and income are a placeholder until the economy step.</summary>
+    /// <summary>Advance the clock: infrastructure, network, organisation and money move on.</summary>
     public void Advance(double hours)
     {
+        if (Bankrupt) return;
         var before = (int)(Hours / 24);
         var hourBefore = (int)Hours;
         Hours += hours;
         UpdateInfra(hours);
         UpdateNetwork(hours, hourBefore);
         var days = (int)(Hours / 24) - before;
-        for (var i = 0; i < days; i++) NetworkDay(before + i + 1);
-        if (Creative.UnlimitedMoney) return;
         for (var i = 0; i < days; i++)
         {
-            var infra = Infra;
-            var net = Net;
-            var energy = infra.FacilityKw * 24 * EnergyPrice(); // IT load times PUE, plus offices
-            // €900 per rack per month, for racks that run and are online; congestion costs a share of it
-            var racks = Creative.NoNetworkLimit ? infra.RunningRacks : net.OnlineRacks * net.Served;
-            var rent = racks * 900.0 / 30;
-            Money += (long)Math.Round(rent - energy - 400 - WagesPerDay + NetworkPerDay());
+            var day = before + i + 1;
+            NetworkDay(day);
+            OrgDay(day);
+            MoneyDay(day);
         }
     }
 }
