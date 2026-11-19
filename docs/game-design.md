@@ -524,6 +524,26 @@ Je begint als eigenaar met een leeg terrein. Functies en mogelijkheden komen vri
 - Je wijst een zaal aan als **eigen cloud** voor dit bedrijf.
 - Het hostingbedrijf wordt ontgrendeld door de **algemeen directeur**. Je kunt klein beginnen met een **private cloud** in een kleine ruimte van je eigen datacenter, en later een **extra kantoorlocatie** openen.
 
+## Bouwprojecten en gevels
+
+- Je kunt **meerdere bouwprojecten tegelijk** laten uitvoeren. In een projectenlijst geef je elk project een **prioriteit**. Bouwvakkers werken de projecten met de hoogste prioriteit eerst af.
+- **Gevels**: een kantoor bouw je in baksteen, betonlook of glas, altijd met ramen. Een datacenter is een **dichte betonnen box** zonder ramen. Een kantoor kun je er direct tegenaan bouwen.
+- **Verlichting** komt automatisch in elke ruimte: lampen boven de rackrijen in de hal en armaturen in kantoren. Meubilair zet je zelf neer.
+
+## Beveiliging uitgewerkt
+
+- **Toegang**: badgedeuren met een passysteem op de datahallen, de MMR en klantruimtes. Je bouwt dit globaal en hoeft geen bekabeling te trekken.
+- **Beveiligers** controleren bij aankomst wie de klant is.
+- **Upgrades**: kant-en-klare camera's buiten en binnen, een **videowall** in de beveiligingsruimte en een **glazen loge** waar de beveiliger achter zit.
+- **Policies** die je aan- en uitzet, bijvoorbeeld:
+  - Een klant moet zich altijd identificeren bij een beveiliger.
+  - Een beveiliger loopt altijd mee met de klant om het rack te openen.
+  - Er mag geen bezoek buiten kantooruren komen.
+
+  Strengere policies verhogen de reputatie en tellen mee voor certificeringen, maar vragen meer beveiligers.
+- **Klantruimte**: bezoekers kun je koffie aanbieden in een eigen kantine voor klanten.
+- **Grond bijkopen**: je kunt altijd aangrenzende kavels bijkopen.
+
 ## Training, budgetten en kwaliteit
 
 - Personeel heeft bij aanname een niveau, maar je kunt ze ook **intern laten trainen** met een opleidingsbudget. Getrainde engineers werken sneller, maken minder fouten en lossen storingen slimmer op.
@@ -592,6 +612,12 @@ Zonder AI-concurrenten win je aanbestedingen op basis van je eigen prijs en kwal
 - **Info-scherm:** versie, controleren op updates en bijwerken via GitHub Releases. Je kunt kiezen tussen het stabiele kanaal (`main`) en het testkanaal (`test`). Updaten downloadt de installer en installeert die op de achtergrond; daarna start de game opnieuw. Alleen deze functie gebruikt internet.
 - **Savegames:** in `%APPDATA%\Datacenter Architect\saves`, met vrije namen en drie autosaves die elkaar afwisselen (standaard elke 5 minuten, en bij afsluiten).
 
+## Schermen en prestaties
+
+- Werkt op Full HD tot en met **4K**, en op 4:3, 16:9, 16:10 en ultrawide (21:9, 32:9). De interface schaalt mee en blijft aan de randen; op een breder scherm zie je meer wereld.
+- 64-bit Windows-build. Godot rendert op een eigen thread; de simulatie blijft licht genoeg voor grote campussen.
+- De omgeving rond je kavel is gevuld met bos, heuvels, akkers en buren, zodat je kavel in een echte wereld ligt.
+
 ## Bewust niet in scope
 
 - Geen mailserver en geen backups naar externe servers (FTP/SCP). Het is een offline game.
@@ -602,14 +628,14 @@ Zonder AI-concurrenten win je aanbestedingen op basis van je eigen prijs en kwal
 
 1. **Fundament en huisstijl** (klaar)
 2. **Technische basis** (klaar): Godot-project, camera, bouwgrid, installer, talen, lokale savegames, Info-scherm
-3. **Bouwen en creatieve modus**: nieuw spel met creatieve modus, terrein indelen (wegen, paden, hekwerk, groen, licht), bouwmaterialenplek met vrachtwagens, bouwvakkers die buitenmuren en dak bouwen, hallen zelf uitmeten met deurkeuze, verdiepingen, kantoren inrichten, racks per rij met de opbouwketen (levering, monteurs, aansluiten), klantruimte en monitorkarretjes, knipperende lampjes en servergeluid
+3. **Bouwen en creatieve modus**: nieuw spel met creatieve modus, terrein indelen (wegen, paden, hekwerk, groen, licht), bouwmaterialenplek met vrachtwagens, bouwvakkers die buitenmuren en dak bouwen, hallen zelf uitmeten met deurkeuze, verdiepingen, kantoren inrichten, racks per rij met de opbouwketen (levering, monteurs, aansluiten), klantruimte met koffie, monitorkarretjes, projectprioriteit, gevels (baksteen, beton, glas; datacenter als betonnen box), automatische verlichting, knipperende lampjes en servergeluid
 4. **Stroom en koeling**: netaansluiting en hoogspanning, transformatorruimtes, UPS, generatoren met N+1, koeling en koeltorens, stroom-overlay met bolletjes
 5. **Netwerk**: fiberducts, MMR, carriers, peering, verkeersweergave, NOC
 6. **Organisatie, klanten en economie**: CEO-kantoor en unlock-boom (CFO met leningen, HR, salesdirecteur), sales, klanttypes, zones, contracten, energiecontracten, faillissement
 7. **Personeel en gebeurtenissen**: werven, training en budgetten, automatische diensten, onderhoud, storingen en willekeurige gebeurtenissen
-8. **Beveiliging, research en reputatie**: research tree, voorstellen van NOC en netwerkarchitect, recensies, certificeringen, overheidsklanten
+8. **Beveiliging, research en reputatie**: camera's, videowall, glazen loge, beveiligingspolicies, research tree, voorstellen van NOC en netwerkarchitect, recensies, certificeringen, overheidsklanten
 9. **Groei**: campus, kantoren verhuren, warehouse, hostingbedrijf (cloud, dedicated servers met voorraad, grote contracten, dashboard), meerdere locaties en landen
-10. **Uiterlijk**: rondere 3D-poppetjes, seizoenen en weer, dag en nacht
+10. **Uiterlijk**: rondere 3D-poppetjes, first-person rondlopen door je datacenter (alleen kijken en luisteren), seizoenen en weer, dag en nacht
 
 ## Open vragen
 
