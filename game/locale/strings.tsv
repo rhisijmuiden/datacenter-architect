@@ -1,0 +1,105 @@
+key	en	nl
+ui_close	Close	Sluiten
+menu_tagline	Buy land, build a datacenter and keep every rack running.	Koop grond, bouw een datacenter en houd elk rack draaiende.
+menu_continue	Continue	Verder spelen
+menu_new_game	New game	Nieuw spel
+menu_load	Load game	Spel laden
+menu_info	Info and updates	Info en updates
+menu_quit	Quit	Afsluiten
+menu_language	Language	Taal
+new_title	New game	Nieuw spel
+new_company	Company name	Bedrijfsnaam
+new_company_default	Polder Datacenters	Polder Datacenters
+new_difficulty	Difficulty	Moeilijkheid
+new_easy	Easy (€ 25 million)	Makkelijk (€ 25 miljoen)
+new_normal	Normal (€ 12 million)	Normaal (€ 12 miljoen)
+new_hard	Hard (€ 6 million)	Moeilijk (€ 6 miljoen)
+new_ai	AI competitors	AI-concurrenten
+new_ai_help	Competing datacenters open sites in the region, bid on the same contracts and can peer with you.	Concurrerende datacenters openen locaties in de regio, bieden op dezelfde contracten en kunnen met je peeren.
+new_start	Start	Starten
+save_title	Save game	Spel opslaan
+load_title	Load game	Spel laden
+save_name	Save name	Naam van de save
+save_button	Save	Opslaan
+save_none	No savegames yet.	Nog geen savegames.
+save_autosave	Autosave	Autosave
+save_saved	saved	opgeslagen
+save_load	Load	Laden
+save_delete	Delete	Verwijderen
+pause_title	Paused	Gepauzeerd
+pause_resume	Resume	Verder
+pause_save	Save game	Spel opslaan
+pause_main_menu	Main menu	Hoofdmenu
+info_title	Info	Info
+info_version	Version {0} · {1}	Versie {0} · {1}
+channel_stable	Stable	Stabiel
+channel_test	Test	Test
+channel_dev	Development build	Ontwikkelversie
+info_channel	Update channel	Updatekanaal
+info_channel_help	Stable gets tested releases. Test gets new features first and may contain bugs. Switching to Stable can install an older, stable version. Your savegames stay where they are.	Stabiel krijgt geteste versies. Test krijgt nieuwe functies eerder en kan fouten bevatten. Wisselen naar Stabiel kan een oudere, stabiele versie installeren. Je savegames blijven bewaard.
+info_updates	Updates	Updates
+info_not_checked	Not checked yet.	Nog niet gecontroleerd.
+info_check	Check for updates	Controleren op updates
+info_update_now	Update now	Nu updaten
+info_release_notes	Release notes	Wat is er nieuw
+info_auto_check	Check for updates when the game starts	Controleren op updates bij het starten
+info_credits	Fonts: Barlow and Barlow Condensed (SIL Open Font License). Built with Godot Engine.	Lettertypes: Barlow en Barlow Condensed (SIL Open Font License). Gemaakt met Godot Engine.
+info_checking	Checking for updates…	Bezig met controleren…
+info_up_to_date	You have the latest version.	Je hebt de nieuwste versie.
+info_no_releases	No releases are published on this channel yet.	Er zijn nog geen versies gepubliceerd op dit kanaal.
+info_error	Could not check for updates: {0}	Controleren op updates lukte niet: {0}
+info_available	Version {0} is available.	Versie {0} is beschikbaar.
+info_switch	Switch to version {0} on this channel.	Overstappen naar versie {0} op dit kanaal.
+info_downloading	Downloading version {0}…	Versie {0} downloaden…
+info_installing	Installing. The game closes and starts again by itself.	Bezig met installeren. De game sluit en start daarna vanzelf opnieuw.
+info_manual	Downloaded to {0}. Run the installer to update.	Gedownload naar {0}. Start de installer om te updaten.
+res_power	Power	Stroom
+res_backup	Backup	Noodstroom
+res_cooling	Cooling	Koeling
+res_racks	Racks	Racks
+res_fiber	Fiber	Glasvezel
+res_money	Balance	Saldo
+hud_build	Build	Bouwen
+tool_select	Select	Selecteren
+tool_erase	Demolish	Slopen
+cat_land	Land	Grond
+cat_buildings	Buildings	Gebouwen
+cat_power	Power	Stroom
+cat_cooling	Cooling	Koeling
+cat_network	Network	Netwerk
+cat_halls	Data halls	Datazalen
+cat_security	Security	Beveiliging
+cat_staff	Staff	Personeel
+cat_customers	Customers	Klanten
+hud_coming_soon	Coming in a later update	Komt in een volgende update
+hint_select	Right-drag rotates, wheel zooms, WASD or middle-drag pans. Q and E turn the view.	Rechts slepen draait, scrollwiel zoomt, WASD of middelste knop schuift. Q en E draaien het beeld.
+hint_foundation	Drag a rectangle to pour a foundation.	Sleep een rechthoek om een fundering te storten.
+hint_place	Click to place. R rotates. Red means it cannot go there.	Klik om te plaatsen. R draait. Rood betekent dat het daar niet kan.
+hint_erase	Click or drag to demolish. You get half the cost back.	Klik of sleep om te slopen. Je krijgt de helft van de kosten terug.
+hud_rotate_left	Rotate left (Q)	Links draaien (Q)
+hud_rotate_right	Rotate right (E)	Rechts draaien (E)
+hud_grid	Show or hide the grid	Grid tonen of verbergen
+hud_language	Switch language	Taal wisselen
+hud_info	Info and updates	Info en updates
+hud_menu	Menu (Esc)	Menu (Esc)
+hud_speed_0	Pause (Space)	Pauze (spatie)
+hud_speed_1	Normal speed (1)	Normale snelheid (1)
+hud_speed_2	Fast (2)	Snel (2)
+hud_speed_3	Very fast (3)	Zeer snel (3)
+build_foundation	Foundation	Fundering
+build_rack	Rack (42U)	Rack (42U)
+build_crah	CRAH unit	CRAH-unit
+build_generator	Generator 1 MW	Generator 1 MW
+build_fiberpit	Fiber pit	Glasvezelput
+msg_outside_plot	That is outside your plot.	Dat ligt buiten je terrein.
+msg_occupied	Something is already there.	Daar staat al iets.
+msg_needs_foundation	This has to go indoors, on a foundation.	Dit moet binnen staan, op een fundering.
+msg_outside_only	This goes outside, not on a foundation.	Dit hoort buiten, niet op een fundering.
+msg_no_money	Not enough money.	Niet genoeg geld.
+msg_load_failed	That savegame could not be loaded.	Die savegame kon niet worden geladen.
+msg_loaded	Loaded {0}.	{0} geladen.
+msg_welcome	Welcome, {0}. Pour a foundation and place your first racks.	Welkom, {0}. Stort een fundering en plaats je eerste racks.
+msg_welcome_ai	Welcome, {0}. Competitors are active in the region. Pour a foundation and place your first racks.	Welkom, {0}. Er zijn concurrenten actief in de regio. Stort een fundering en plaats je eerste racks.
+msg_update_available	Version {0} is available. Open Info to update.	Versie {0} is beschikbaar. Open Info om te updaten.
+msg_autosaved	Game saved.	Spel opgeslagen.
+msg_cooling_short	Racks produce more heat than the CRAH units can remove. Add cooling.	De racks maken meer warmte dan de CRAH-units kunnen afvoeren. Voeg koeling toe.

@@ -1,0 +1,102 @@
+using Godot;
+
+namespace DatacenterArchitect.World;
+
+/// <summary>
+/// Tilted top-down orbit camera. Right-drag rotates, middle-drag or WASD pans,
+/// wheel zooms, Q/E rotate by 90 degrees. Values ease towards their targets.
+/// </summary>
+public partial class CameraRig : Node3D
+{
+    public Camera3D Camera { get; private set; }
+    public float Yaw = 0.6f, Pitch = 0.9f, Distance = 60f;
+    float _yawT, _pitchT, _distT;
+    Vector3 _targetT;
+    bool _rotating, _panning;
+    public Rect2 Bounds = new(-20, -20, 104, 104);
+    public bool InputEnabled = true;
+
+    public override void _Ready()
+    {
+        Camera = new Camera3D { Fov = 38, Near = 0.3f, Far = 1500 };
+        AddChild(Camera);
+        _yawT = Yaw; _pitchT = Pitch; _distT = Distance; _targetT = Position;
+        Apply();
+    }
+
+    public void SetView(float yaw, float pitch, float dist, Vector3 target)
+    {
+        Yaw = _yawT = yaw; Pitch = _pitchT = pitch; Distance = _distT = dist; Position = _targetT = target; Apply();
+    }
+
+    public Vector3 TargetPoint => _targetT;
+
+    public void RotateStep(int dir) => _yawT += dir * Mathf.Pi / 2;
+
+    public override void _UnhandledInput(InputEvent e)
+    {
+        if (!InputEnabled) return;
+        if (e is InputEventMouseButton mb)
+        {
+            if (mb.ButtonIndex == MouseButton.Right) _rotating = mb.Pressed;
+            if (mb.ButtonIndex == MouseButton.Middle) _panning = mb.Pressed;
+            if (mb.Pressed && mb.ButtonIndex == MouseButton.WheelUp) _distT = Mathf.Clamp(_distT * 0.9f, 12, 160);
+            if (mb.Pressed && mb.ButtonIndex == MouseButton.WheelDown) _distT = Mathf.Clamp(_distT * 1.1f, 12, 160);
+        }
+        else if (e is InputEventMouseMotion mm)
+        {
+            if (_rotating)
+            {
+                _yawT -= mm.Relative.X * 0.006f;
+                _pitchT = Mathf.Clamp(_pitchT + mm.Relative.Y * 0.004f, 0.35f, 1.45f);
+            }
+            else if (_panning) Pan(-mm.Relative.X, -mm.Relative.Y, Distance * 0.0016f);
+        }
+        else if (e.IsActionPressed("cam_rotate_left")) RotateStep(1);
+        else if (e.IsActionPressed("cam_rotate_right")) RotateStep(-1);
+    }
+
+    void Pan(float dx, float dy, float scale)
+    {
+        var right = new Vector3(Mathf.Cos(Yaw), 0, -Mathf.Sin(Yaw));
+        var fwd = new Vector3(-Mathf.Sin(Yaw), 0, -Mathf.Cos(Yaw));
+        _targetT += (right * dx - fwd * dy) * scale;
+        _targetT.X = Mathf.Clamp(_targetT.X, Bounds.Position.X, Bounds.End.X);
+        _targetT.Z = Mathf.Clamp(_targetT.Z, Bounds.Position.Y, Bounds.End.Y);
+    }
+
+    public override void _Process(double delta)
+    {
+        var dt = (float)delta;
+        if (InputEnabled && !(GetViewport().GuiGetFocusOwner() is LineEdit))
+        {
+            var k = new Vector2(
+                (Input.IsKeyPressed(Key.D) ? 1 : 0) - (Input.IsKeyPressed(Key.A) ? 1 : 0),
+                (Input.IsKeyPressed(Key.S) ? 1 : 0) - (Input.IsKeyPressed(Key.W) ? 1 : 0));
+            if (k != Vector2.Zero) Pan(k.X, k.Y, Distance * dt * 0.9f);
+        }
+        Yaw = Mathf.Lerp(Yaw, _yawT, Mathf.Min(1, dt * 7));
+        Pitch = Mathf.Lerp(Pitch, _pitchT, Mathf.Min(1, dt * 7));
+        Distance = Mathf.Lerp(Distance, _distT, Mathf.Min(1, dt * 6));
+        Position = Position.Lerp(_targetT, Mathf.Min(1, dt * 7));
+        Apply();
+    }
+
+    void Apply()
+    {
+        if (Camera == null) return;
+        var off = new Vector3(Mathf.Cos(Pitch) * Mathf.Sin(Yaw), Mathf.Sin(Pitch), Mathf.Cos(Pitch) * Mathf.Cos(Yaw)) * Distance;
+        Camera.Position = off;
+        Camera.LookAt(GlobalPosition, Vector3.Up);
+    }
+
+    /// <summary>Ground point (y = 0) under a screen position, or null.</summary>
+    public Vector3? GroundAt(Vector2 screen)
+    {
+        var from = Camera.ProjectRayOrigin(screen);
+        var dir = Camera.ProjectRayNormal(screen);
+        if (Mathf.Abs(dir.Y) < 1e-4f) return null;
+        var t = -from.Y / dir.Y;
+        return t > 0 ? from + dir * t : null;
+    }
+}

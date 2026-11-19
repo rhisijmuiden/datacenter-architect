@@ -1,0 +1,77 @@
+name: Release
+
+# Push a tag to publish a build that the in-game updater can find:
+#   v0.2.0-test.1  -> pre-release on the test channel (tag a commit on the test branch)
+#   v0.2.0         -> release on the stable channel (tag a commit on main)
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  GODOT_VERSION: 4.5.1
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Stamp version and channel
+        shell: pwsh
+        run: |
+          $ver = "${{ github.ref_name }}".TrimStart('v')
+          $channel = if ($ver -match '-') { 'test' } else { 'stable' }
+          "VERSION=$ver" | Out-File -Append $env:GITHUB_ENV
+          "CHANNEL=$channel" | Out-File -Append $env:GITHUB_ENV
+          (Get-Content game/project.godot) `
+            -replace 'config/version=".*"', "config/version=`"$ver`"" `
+            -replace 'build/channel=".*"', "build/channel=`"$channel`"" |
+            Set-Content game/project.godot
+
+      - name: Download Godot and export templates
+        shell: pwsh
+        run: |
+          $base = "https://github.com/godotengine/godot/releases/download/$env:GODOT_VERSION-stable"
+          Invoke-WebRequest "$base/Godot_v$env:GODOT_VERSION-stable_mono_win64.zip" -OutFile godot.zip
+          Expand-Archive godot.zip -DestinationPath godot
+          Invoke-WebRequest "$base/Godot_v$env:GODOT_VERSION-stable_mono_export_templates.tpz" -OutFile templates.zip
+          Expand-Archive templates.zip -DestinationPath tpl
+          $dest = "$env:APPDATA\Godot\export_templates\$env:GODOT_VERSION.stable.mono"
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          Move-Item tpl/templates/* $dest
+          $exe = Get-ChildItem godot -Recurse -Filter "*_console.exe" | Select-Object -First 1
+          "GODOT=$($exe.FullName)" | Out-File -Append $env:GITHUB_ENV
+
+      - name: Import, test and export
+        shell: pwsh
+        run: |
+          & $env:GODOT --headless --path game --import
+          dotnet build game/DatacenterArchitect.csproj
+          & $env:GODOT --headless --path game -- --run-tests
+          if ($LASTEXITCODE -ne 0) { throw "tests failed" }
+          New-Item -ItemType Directory -Force build | Out-Null
+          & $env:GODOT --headless --path game --export-release "Windows Desktop" ../build/DatacenterArchitect.exe
+          if (!(Test-Path build/DatacenterArchitect.exe)) { throw "export failed" }
+
+      - name: Build installer
+        shell: pwsh
+        run: |
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (!(Test-Path $iscc)) { choco install innosetup --no-progress -y; }
+          & $iscc "/DAppVersion=$env:VERSION" installer/DatacenterArchitect.iss
+          if ($LASTEXITCODE -ne 0) { throw "installer failed" }
+
+      - name: Publish release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $ghArgs = @("${{ github.ref_name }}", "dist/DatacenterArchitect-$env:VERSION-Setup.exe", "--title", "Datacenter Architect $env:VERSION", "--generate-notes")
+          if ($env:CHANNEL -eq 'test') { $ghArgs += "--prerelease" }
+          gh release create @args

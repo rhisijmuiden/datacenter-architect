@@ -380,11 +380,12 @@ Zonder AI-concurrenten win je aanbestedingen op basis van je eigen prijs en kwal
 
 ## Techniek
 
-- **Engine:** Godot 4 met C#.
+- **Engine:** Godot 4.5 met C# (.NET 8). Het project staat in de map `game/`.
 - **Platform:** Windows 11, als installeerbare game (installer).
 - **Offline:** het spel werkt volledig offline. Savegames staan lokaal, met meerdere opslagplekken en autosave.
 - **Talen:** standaard Engels, volledig vertaald naar het Nederlands.
-- **Info-scherm:** versie, controleren op updates en bijwerken via GitHub Releases. Je kunt kiezen tussen het stabiele kanaal (`main`) en het testkanaal (`test`). Alleen deze functie gebruikt internet.
+- **Info-scherm:** versie, controleren op updates en bijwerken via GitHub Releases. Je kunt kiezen tussen het stabiele kanaal (`main`) en het testkanaal (`test`). Updaten downloadt de installer en installeert die op de achtergrond; daarna start de game opnieuw. Alleen deze functie gebruikt internet.
+- **Savegames:** in `%APPDATA%\Datacenter Architect\saves`, met vrije namen en drie autosaves die elkaar afwisselen (standaard elke 5 minuten, en bij afsluiten).
 
 ## Bewust niet in scope
 
@@ -395,7 +396,7 @@ Zonder AI-concurrenten win je aanbestedingen op basis van je eigen prijs en kwal
 ## Eerste mijlpalen
 
 1. **Fundament en huisstijl** (dit document, de huisstijl, de repo-structuur)
-2. **Technische basis**: Godot-project, camera, bouwgrid, installer, talen, lokale savegames, Info-scherm
+2. **Technische basis** (klaar): Godot-project, camera, bouwgrid, installer, talen, lokale savegames, Info-scherm
 3. **Terreinprototype**: grond kopen, gebouwen plaatsen, netstroom en glasvezel, generatoren met N+1-check
 4. **Datacenter van binnen**: zalen, racks, kabelgoten, interne stroom- en netwerkinfrastructuur, koeling, klanten en economie
 5. **Personeelsmodule**: werven, functies, roosters, taken en tevredenheid

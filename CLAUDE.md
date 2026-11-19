@@ -6,3 +6,6 @@
 - Follow the brand in `brand/BRAND.md` and `brand/tokens.json`. Power = amber, cooling = cyan, fiber = orange, everywhere.
 - Build menus sit on the left side of the screen.
 - Game rules live in `docs/game-design.md`; update it when gameplay decisions change.
+- Godot project lives in `game/` (Godot 4.5.1 .NET, C#, net8.0). Build: `dotnet build game/DatacenterArchitect.csproj`; tests: `godot --headless --path game -- --run-tests`.
+- Player-facing text goes through keys in `game/locale/strings.tsv` (key, en, nl). The translation test fails when a Dutch text is missing.
+- Releases: tag `vX.Y.Z-test.N` on `test` for the test channel, `vX.Y.Z` on `main` for stable; `.github/workflows/release.yml` builds the installer.
