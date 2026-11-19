@@ -108,9 +108,23 @@ Personeel is een eigen module. Je **werft medewerkers** en ziet ze als poppetjes
 
 ## Klanten en economie
 
-- Klanten huren racks, met eisen aan stroom per rack (kW), redundantie en aantal providers.
-- Inkomsten per maand, kosten voor stroom, brandstof, personeel en onderhoud.
-- Een contractsysteem, bijvoorbeeld "plaats 20 racks met 2N-stroom voor klant X".
+Klanten huren ruimte in je datacenter in verschillende vormen:
+
+| Product | Wat huurt de klant | Typische klant |
+|---|---|---|
+| **Colocatie per U** | Losse rack-units (1U, 2U, 4U ...) in een gedeeld rack | Kleine bedrijven, hobbyisten, startups |
+| **Kwart- of halfrack** | Een afgesloten deel van een rack met eigen deur | MKB |
+| **Volledig rack** | Eén of meer complete racks | Middelgrote bedrijven, hostingpartijen |
+| **Kooi of private suite** | Een afgesloten ruimte (cage) met eigen racks en toegang | Grote bedrijven, cloudpartijen |
+| **Hele zaal** | Een complete datazaal, vaak met eigen eisen aan stroom en koeling | Hyperscalers |
+
+- Elke klant heeft eisen: **stroom per U of per rack (kW)**, **redundantie** (N+1 of 2N), **aantal providers**, en soms een eigen kooi of extra beveiliging.
+- **Colocatie per U** levert de hoogste prijs per U op, maar vraagt meer werk: meer klanten in één rack, meer tickets, meer remote hands en meer cross-connects. Grote klanten betalen minder per U, maar huren veel en lang.
+- Gedeelde racks moet je zelf inrichten en vullen. De game toont per rack welke U's vrij, verhuurd of gereserveerd zijn.
+- **Inkomsten** per maand per product, plus eenmalige kosten (installatie, cross-connects) en extra diensten (remote hands, support).
+- **Kosten** voor stroom, brandstof, personeel, onderhoud en grond.
+- **Contracten** met een looptijd en een SLA. Storingen kosten boetes en tevredenheid. Ontevreden klanten vertrekken aan het einde van hun contract.
+- Een contractsysteem met opdrachten, bijvoorbeeld "plaats 20 racks met 2N-stroom voor klant X" of "lever 40U colocatie met 2 providers".
 
 ## Camera en bediening
 
