@@ -51,7 +51,24 @@ Vaste regel: stroom is altijd amber, koeling is altijd cyaan en glasvezel is alt
 - Low-poly met vlakke kleuren en zachte schaduwen, zonder fotorealistische texturen.
 - Gebouwen zijn opengewerkt (daken kunnen uit), zodat je binnen kunt kijken.
 - Herkenbare accenten in de wereld volgen de systeemkleuren: amberkleurige strepen op gebouwen en generatoren, cyaan op koelunits, gele kabelgoten en oranje glasvezel.
-- Personeel is herkenbaar aan kleur: beveiliging in donkerblauw, technici in geel, engineers in wit en bezorgers in oranje.
+- Personeel is herkenbaar aan kleur en een eigen voorwerp (zie [art-style-v1.html](../docs/concept/art-style-v1.html)):
+
+| Functie | Kleur | Herkenning |
+|---|---|---|
+| Support engineer | Wit | Headset en laptop |
+| Datacenter technicus | Geel hesje | Toolbelt, draagt een server |
+| Elektrotechnisch engineer | Wit met amber streep | Amber helm, multimeter |
+| Koeltechnicus | Cyaan overall | Muts, moersleutel |
+| Netwerkengineer | Donker met oranje streep | Haspel glasvezel |
+| NOC-operator | Grijs | Headset, koffiemok |
+| Beveiliger | Donkerblauw uniform | Pet, portofoon, epauletten |
+| Logistiek medewerker | Oranje | Pet, steekwagen met dozen |
+| Manager | Pak met amber das | Tablet |
+| Klant op bezoek | Eigen kleding | Rugzak, rode bezoekersbadge |
+
+- **Figuren**: stevige, ronde vormen met een groot hoofd, simpele ogen en een glimlach. Verschillende huidskleuren en kapsels, zodat het team divers oogt.
+- **Omgeving**: subtiele procedurele patronen (bestrating, baksteen, gevelpanelen), afgeronde bomen, bloesembomen, hagen, bankjes, lantaarnpalen en fietsenrekken. Op de achtergrond een wazige skyline en heuvels.
+- **Dag en nacht**: 's nachts gloeien lantaarnpalen, ramen en statuslampjes.
 
 ## Taal
 
