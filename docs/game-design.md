@@ -75,6 +75,7 @@ Elke locatie toont vooraf de **beschikbare netcapaciteit (MVA)** en de **glasvez
 
 - **Koelmachines** buiten en **CRAH-units** in de zalen, elk met een capaciteit in kW.
 - Elke rack produceert warmte, afhankelijk van de klant. De koelbalk toont de belasting tegenover de capaciteit.
+- Racks staan **aaneengesloten in rijen**, zonder ruimte ertussen. Je plaatst ze rij voor rij (slepen), en twee rijen staan rug aan rug of met de voorkanten naar elkaar.
 - **Warme en koude gangen** en **gangafscherming** verhogen het rendement.
 - De **warmteweergave** kleurt racks van groen naar rood, zodat je ziet waar het te warm wordt.
 - Regel: plaats je meer racks, dan moet je eerst de koelcapaciteit verhogen.

@@ -222,7 +222,7 @@ function example() {
   fillRoom(20, 7, 29, 10, "mmr"); fillRoom(2, 12, 7, 19, "dock"); fillRoom(9, 12, 29, 14, "corridor");
   fillRoom(9, 16, 13, 19, "security"); fillRoom(15, 16, 20, 19, "reception"); fillRoom(22, 16, 25, 19, "customer"); fillRoom(27, 16, 29, 19, "noc");
   // data hall: racks + CRAH (cooling deliberately tight)
-  for (const z of [3, 4, 7, 8]) for (let i = 5; i <= 16; i++) if (!(z === 8 && i > 13)) addObj("rack", i, z, 0);
+  for (const z of [3, 4, 7, 8]) for (let i = 5; i <= 16; i++) if (!(z === 8 && i > 13)) addObj("rack", i, z, (z === 3 || z === 7) ? 2 : 0);
   addObj("crah", 2, 3, 0); addObj("crah", 2, 7, 0);
   addObj("ups", 20, 2, 0); addObj("ups", 22, 2, 0);
   addObj("battery", 26, 2); addObj("battery", 27, 2); addObj("battery", 28, 2);
@@ -299,7 +299,7 @@ function model(type) {
   const g = new THREE.Group(); const o = OBJS[type];
   const W = o.w, D = o.d;
   switch (type) {
-    case "rack": mesh(box(0.62, 2.1, 0.95), 0x23282f, g, 0, 1.05, 0, { roughness: 0.5, metalness: 0.4 }); for (let k = 0; k < 3; k++) mesh(box(0.08, 0.05, 0.02), 0x5fd49b, g, -0.15 + k * 0.12, 0.6 + k * 0.5, 0.48, { emissive: 0x5fd49b, emissiveIntensity: 1 }); mesh(box(0.62, 0.06, 0.3), 0xffc533, g, 0, 2.3, -0.2); break;
+    case "rack": mesh(box(0.985, 2.1, 0.95), 0x23282f, g, 0, 1.05, 0, { roughness: 0.5, metalness: 0.4 }); mesh(box(0.9, 1.95, 0.02), 0x2e353e, g, 0, 1.05, 0.48, { roughness: 0.6, metalness: 0.3 }); for (let k = 0; k < 4; k++) mesh(box(0.08, 0.05, 0.02), 0x5fd49b, g, -0.3 + (k % 2) * 0.12, 0.5 + k * 0.38, 0.5, { emissive: 0x5fd49b, emissiveIntensity: 1 }); mesh(box(1.0, 0.06, 0.3), 0xffc533, g, 0, 2.3, -0.2); break;
     case "crah": mesh(box(0.9, 2.1, 1.9), 0xf1f4f6, g, 0, 1.05, 0); mesh(box(0.92, 0.25, 1.8), 0x55d2f2, g, 0, 1.9, 0, { emissive: 0x55d2f2, emissiveIntensity: 0.35 }); for (let k = 0; k < 5; k++) mesh(box(0.02, 0.05, 1.6), 0x9aa4ad, g, 0.46, 0.5 + k * 0.22, 0); break;
     case "ups": mesh(box(1.9, 1.9, 0.85), 0x404a55, g, 0, 0.95, 0, { metalness: 0.4, roughness: 0.4 }); mesh(box(0.4, 0.25, 0.02), 0x0f2236, g, -0.5, 1.4, 0.43, { emissive: 0x2a8ad8, emissiveIntensity: 0.8 }); mesh(box(1.92, 0.12, 0.87), 0xffb23e, g, 0, 1.8, 0); break;
     case "battery": mesh(box(0.85, 1.6, 0.8), 0x2f353c, g, 0, 0.8, 0); for (let k = 0; k < 4; k++) mesh(box(0.7, 0.04, 0.02), 0xffb23e, g, 0, 0.3 + k * 0.35, 0.41); break;
