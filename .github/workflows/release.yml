@@ -64,6 +64,17 @@ jobs:
           New-Item -ItemType Directory -Force build | Out-Null
           & $env:GODOT --headless --path game --export-release "Windows Desktop" ../build/DatacenterArchitect.exe
           if (!(Test-Path build/DatacenterArchitect.exe)) { throw "export failed" }
+          # a C# export without its .NET data folder starts and crashes immediately
+          if (!(Test-Path build/data_DatacenterArchitect_windows_x86_64/DatacenterArchitect.dll)) { throw "export is missing the .NET assemblies (data_DatacenterArchitect_windows_x86_64)" }
+          if (!(Test-Path build/data_DatacenterArchitect_windows_x86_64/GodotSharp.dll)) { throw "export is missing GodotSharp.dll" }
+          Get-ChildItem build -Recurse | Measure-Object -Property Length -Sum | ForEach-Object { "build size: {0:N0} bytes in {1} files" -f $_.Sum, $_.Count }
+
+      - name: Smoke test the exported game
+        shell: pwsh
+        run: |
+          # start the real exported build headless and run the test suite inside it
+          $p = Start-Process build/DatacenterArchitect.exe -ArgumentList "--headless","--","--run-tests" -PassThru -Wait -NoNewWindow
+          if ($p.ExitCode -ne 0) { throw "exported game failed its self-test (exit $($p.ExitCode))" }
 
       - name: Build installer
         shell: pwsh
