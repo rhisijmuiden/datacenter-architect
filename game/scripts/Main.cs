@@ -687,7 +687,7 @@ public partial class Main : Node3D
     }
 
     // ---------------- dev helpers ----------------
-    /// <summary>--screenshot path [--in-game] [--interior] [--new-game] [--info] [--options TAB] [--nl] [--hours N]</summary>
+    /// <summary>--screenshot path [--in-game] [--interior] [--new-game] [--info] [--options TAB] [--nl] [--hours N] [--driveway]</summary>
     async System.Threading.Tasks.Task Screenshot(string path, string[] args)
     {
         if (args.Contains("--nl")) Loc.SetLanguage("nl");
@@ -710,6 +710,7 @@ public partial class Main : Node3D
             {
                 _cam.SetView(0.62f, 0.78f, 78, new Vector3(30, 0, 34));
                 Inspect(new Vector2I(44, 34));
+                if (args.Contains("--driveway")) _cam.SetView(0.5f, 0.75f, 16, new Vector3(29.5f, 0, 64));
             }
             _hud.Notify(Loc.T("msg_building_done", Loc.T("bld_office")), Brand.Ok);
             _hud.Notify(Loc.T("msg_first_rack_live"), Brand.Ok);
