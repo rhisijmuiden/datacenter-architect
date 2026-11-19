@@ -119,11 +119,14 @@ public partial class NewGameDialog : Modal
         var ai = new CheckButton { Text = "new_ai", ButtonPressed = true };
         Body.AddChild(ai);
         Body.AddChild(Ui.Text("new_ai_help", 13, Brand.InkDim));
+        var events = new CheckButton { Text = "new_events", ButtonPressed = true };
+        Body.AddChild(events);
+        Body.AddChild(Ui.Text("new_events_help", 13, Brand.InkDim));
         Body.AddChild(new HSeparator());
         Body.AddChild(Ui.Primary("new_start", () =>
         {
             o.Company = string.IsNullOrWhiteSpace(name.Text) ? Loc.T("new_company_default") : name.Text.Trim();
-            o.Difficulty = diff.Selected; o.AiCompetitors = ai.ButtonPressed;
+            o.Difficulty = diff.Selected; o.AiCompetitors = ai.ButtonPressed; o.Events = events.ButtonPressed;
             o.Creative = creative.ButtonPressed;
             o.CreativeOptions = o.Creative ? c : new CreativeOptions();
             if (o.Creative && c.UnlimitedMoney) o.Difficulty = 0;

@@ -648,7 +648,7 @@ org_train	Train: {0} · {1} · {2} days	Trainen: {0} · {1} · {2} dagen
 org_training_busy	In training: {0} · {1} days left	In training: {0} · nog {1} dagen
 org_trained_full	Fully trained	Volledig getraind
 org_dismiss	Let go	Laten gaan
-org_later	Later: marketing and compliance managers (step 8), a construction project manager (step 7), a sustainability manager and the hosting company (step 9).	Later: marketing- en compliance-manager (stap 8), projectmanager bouw (stap 7), duurzaamheidsmanager en het hostingbedrijf (stap 9).
+org_later	Later: marketing and compliance managers (step 8), a sustainability manager and the hosting company (step 9).	Later: marketing- en compliance-manager (stap 8), duurzaamheidsmanager en het hostingbedrijf (stap 9).
 exec_ceo	CEO	Algemeen directeur (CEO)
 exec_ceo_unlocks	Lets you hire the other directors. Later also the hosting company and an extra office location.	Hiermee neem je de andere directeuren aan. Later ook het hostingbedrijf en een extra kantoorlocatie.
 exec_ceo_train_1	Leadership course	Leiderschapscursus
@@ -806,3 +806,221 @@ bankrupt_title	Bankrupt	Failliet
 bankrupt_text	Your company was in the red for 30 days and the bank has taken over. Load a savegame to try again, or start a new game from the main menu.	Je bedrijf stond 30 dagen in het rood en de bank heeft het overgenomen. Laad een savegame om het opnieuw te proberen, of begin een nieuw spel vanuit het hoofdmenu.
 bankrupt_menu	Main menu	Hoofdmenu
 fin_dividend	Dividend to investors	Dividend aan investeerders
+hud_staff	Staff, maintenance and events	Personeel, onderhoud en gebeurtenissen
+hud_staff_tip	Your staff. A warning sign shows faults or events: click to see them.	Je personeel. Een waarschuwing toont storingen of gebeurtenissen: klik om ze te zien.
+res_staff	Staff	Personeel
+new_events	Random events	Willekeurige gebeurtenissen
+new_events_help	City-wide power cuts, heatwaves, cable cuts, fire alarms and customers going bankrupt keep the game lively.	Stroomstoringen in de stad, hittegolven, kabelbreuken, brandalarmen en failliete klanten houden het spel levendig.
+exec_pm	Construction project manager	Projectmanager bouw
+exec_pm_unlocks	Builders and fitters work 15% faster and more projects run side by side.	Bouwvakkers en monteurs werken 15% sneller en er lopen meer projecten tegelijk.
+exec_pm_train_1	Prince2 for construction (+10% build speed)	Prince2 voor de bouw (+10% bouwtempo)
+exec_pm_train_2	Lean construction (+10% build speed)	Lean bouwen (+10% bouwtempo)
+book_inc_remote_hands	Remote hands	Remote hands
+book_cost_staff	Staff salaries and training	Salarissen en training personeel
+book_cost_maintenance	Maintenance and contractors	Onderhoud en externe monteurs
+book_cost_parts	Spare parts	Reserveonderdelen
+staff_support	Support engineer	Support engineer
+staff_support_desc	Handles customer tickets and repairs broken servers in the racks.	Pakt klanttickets op en repareert kapotte servers in de racks.
+staff_electrical	Electrical engineer	Elektrotechnisch engineer
+staff_electrical_desc	Maintains and repairs transformers, switchgear, UPS units, batteries and PDUs.	Onderhoudt en repareert transformatoren, switchgear, UPS'en, accu's en PDU's.
+staff_cooling	Cooling technician	Koeltechnicus
+staff_cooling_desc	Maintains and repairs CRAH units, chillers and cooling towers.	Onderhoudt en repareert CRAH-units, chillers en koeltorens.
+staff_network	Network engineer	Netwerkengineer
+staff_network_desc	Maintains routers, spines and ODFs, and repairs cable cuts.	Onderhoudt routers, spines en ODF's, en repareert kabelbreuken.
+staff_noc	NOC operator	NOC-operator
+staff_noc_desc	Watches power, cooling and network around the clock: faults are noticed at once instead of after two hours. Needs a NOC room.	Bewaakt 24/7 stroom, koeling en netwerk: storingen worden meteen gezien in plaats van na twee uur. Vraagt een NOC-ruimte.
+staff_guard	Guard	Beveiliger
+staff_guard_desc	Checks people in and patrols the site; adds a little reputation. Needs a security room or a guard booth.	Checkt mensen in en loopt patrouilles over het terrein; levert wat reputatie op. Vraagt een beveiligingsruimte of portiersloge.
+staff_logistics	Warehouse worker	Magazijnier
+staff_logistics_desc	Spare parts arrive a day sooner per warehouse worker (at least one day).	Reserveonderdelen komen per magazijnier een dag eerder binnen (minimaal één dag).
+staff_reception	Receptionist	Receptionist
+staff_reception_desc	Welcomes customers in the reception; check-in goes faster. Needs a reception.	Ontvangt klanten in de ontvangsthal; inchecken gaat sneller. Vraagt een receptie.
+staff_cleaner	Cleaner	Schoonmaker
+staff_cleaner_desc	Keeps the halls dust-free. Without enough cleaners (one per two halls) servers, PDUs and CRAH units wear 40% faster.	Houdt de zalen stofvrij. Zonder genoeg schoonmakers (één per twee zalen) slijten servers, PDU's en CRAH-units 40% sneller.
+staff_remote_hands	Remote hands	Remote hands
+staff_remote_hands_desc	Reboots servers and swaps disks for customers: earns € 22 per rented rack per month, up to 120 racks per person.	Herstart servers en wisselt schijven voor klanten: levert € 22 per verhuurd rack per maand op, tot 120 racks per persoon.
+staff_fire	Fire safety officer	Brandveiligheidsmedewerker
+staff_fire_desc	Maintains fire detection and the gas extinguishing system: a fire alarm turns out to be a false alarm instead of a hall going down.	Onderhoudt de branddetectie en het gasblussysteem: een brandalarm blijkt dan loos in plaats van dat een zaal plat gaat.
+staff_canteen	Canteen and facility worker	Kantine- en facilitair medewerker
+staff_canteen_desc	Keeps coffee, drinks and the canteen going; good for everyone's mood. Needs a canteen.	Houdt koffie, frisdrank en de kantine op peil; goed voor de tevredenheid. Vraagt een kantine.
+staff_generator	Generator technician	Monteur generatoren
+staff_generator_desc	Refuels and tests the generators every month and arranges extra diesel in a long power cut.	Tankt diesel, test de generatoren elke maand en regelt extra diesel bij een lange stroomstoring.
+staff_gardener	Gardener	Hovenier
+staff_gardener_desc	Looks after trees and shrubs; a green, tidy site adds reputation.	Onderhoudt bomen en struiken; een groen, verzorgd terrein levert reputatie op.
+staff_helpdesk	IT helpdesk	IT-helpdesk
+staff_helpdesk_desc	Helps your own office staff. From twelve people in the office they miss it when there is none.	Helpt je eigen kantoorpersoneel. Vanaf twaalf mensen op kantoor missen ze die als die er niet is.
+level_0	Junior	Junior
+level_1	Medior	Medior
+level_2	Senior	Senior
+trait_fast	Fast	Snel
+trait_precise	Precise	Nauwkeurig
+trait_nightowl	Night owl	Nachtmens
+trait_loyal	Loyal	Loyaal
+shift_day	Day (07-15)	Dag (07-15)
+shift_evening	Evening (15-23)	Avond (15-23)
+shift_night	Night (23-07)	Nacht (23-07)
+part_server	Server parts	Serveronderdelen
+part_cooling	Cooling parts	Koelonderdelen
+part_electrical	Electrical parts	Elektrische onderdelen
+part_battery	UPS batteries	UPS-accu's
+part_optics	Optics and fiber	Optics en glasvezel
+maint_0	Light	Licht
+maint_1	Normal	Normaal
+maint_2	Thorough	Grondig
+maint_0_desc	Cheaper, but equipment slowly wears out and breaks down more often.	Goedkoper, maar apparatuur slijt langzaam en gaat vaker stuk.
+maint_1_desc	Keeps equipment in good shape when the team is big enough.	Houdt apparatuur in goede staat als het team groot genoeg is.
+maint_2_desc	Costs more, but even worn equipment gets back in shape.	Kost meer, maar ook versleten apparatuur komt weer op orde.
+pay_0	Below market (-10%)	Onder de markt (-10%)
+pay_1	Market rate	Marktconform
+pay_2	Above market (+15%)	Boven de markt (+15%)
+dept_operations	Operations	Operations
+dept_facility	Facility	Facility
+dept_network	Network	Netwerk
+dept_security	Security	Beveiliging
+wb_pay	Pay	Salaris
+wb_canteen	Canteen	Kantine
+wb_coffee	Coffee and drinks	Koffie en frisdrank
+wb_parking	Parking spaces	Parkeerplekken
+wb_desks	Enough desks	Genoeg werkplekken
+wb_helpdesk	IT helpdesk	IT-helpdesk
+wb_training	Training budget	Opleidingsbudget
+wb_green	Green surroundings	Groene omgeving
+event_cityoutage	City-wide power cut	Stroomstoring in de stad
+event_cityoutage_desc	The grid is down. Generators behind the ATS keep everything running as long as there is diesel.	Het stroomnet ligt plat. Generatoren achter de ATS houden alles draaiende zolang er diesel is.
+event_heatwave	Heatwave	Hittegolf
+event_heatwave_desc	Heat rejection outside works 20% less well and cooling equipment wears faster.	Warmteafvoer buiten werkt 20% minder goed en koelapparatuur slijt sneller.
+event_firealarm	Fire alarm	Brandalarm
+event_firealarm_desc	The gas extinguishing system went off in a hall; its racks stay down until it is reset.	Het gasblussysteem is in een zaal afgegaan; de racks daar blijven uit tot het is gereset.
+event_cablecut	Cable cut	Kabelbreuk
+event_cablecut_desc	Roadworks cut a fiber duct.	Graafwerkzaamheden hebben een fiberduct geraakt.
+event_customerbankrupt	Customer bankrupt	Klant failliet
+event_customerbankrupt_desc	A customer went bankrupt.	Een klant is failliet gegaan.
+event_pressvisit	Press visit	Persbezoek
+event_pressvisit_desc	A trade magazine came to have a look.	Een vakblad kwam een kijkje nemen.
+inspect_wear	Wear: {0}%	Slijtage: {0}%
+inspect_aged	Past its service life: replace it to keep it reliable.	Over de levensduur heen: vervang hem om hem betrouwbaar te houden.
+inspect_broken	Broken: being dealt with (see faults).	Kapot: wordt opgepakt (zie storingen).
+inspect_broken_unnoticed	Broken, but nobody has noticed yet.	Kapot, maar nog niemand heeft het gemerkt.
+msg_staff_new	New: staff, maintenance and events. Equipment now wears and can break down; hire technicians to maintain it (Staff in the build bar).	Nieuw: personeel, onderhoud en gebeurtenissen. Apparatuur slijt nu en kan stukgaan; neem technici aan om het te onderhouden (Personeel in de bouwbalk).
+msg_staff_hired	Hired: {0}.	Aangenomen: {0}.
+msg_staff_quit	{0} has resigned.	{0} heeft ontslag genomen.
+msg_staff_trained	{0} finished a training and moves up a level.	{0} heeft een training afgerond en gaat een niveau omhoog.
+msg_fault	Fault: {0} is broken.	Storing: {0} is kapot.
+msg_repaired	Repaired: {0}.	Gerepareerd: {0}.
+msg_replaced	Replaced: {0}.	Vervangen: {0}.
+msg_parts_arrived	Spare parts delivered: {0}.	Reserveonderdelen geleverd: {0}.
+msg_needs_facility_mgr	This role needs a facility manager.	Deze functie vraagt om een facility manager.
+msg_needs_network_mgr	This role needs a network manager.	Deze functie vraagt om een netwerkmanager.
+msg_needs_security_mgr	This role needs a security manager.	Deze functie vraagt om een security manager.
+msg_needs_security_room	Build a security room or a guard booth first.	Bouw eerst een beveiligingsruimte of portiersloge.
+msg_needs_reception	Build a reception first.	Bouw eerst een receptie.
+msg_needs_canteen	Build a canteen first.	Bouw eerst een kantine.
+msg_ev_outage_gen	Power cut in the city! The generators have taken over.	Stroomstoring in de stad! De generatoren hebben het overgenomen.
+msg_ev_outage_dark	Power cut in the city, and the backup power cannot carry the site: racks are going down.	Stroomstoring in de stad, en de noodstroom kan het terrein niet dragen: racks gaan uit.
+msg_ev_outage_over	The city has power again.	De stad heeft weer stroom.
+msg_ev_heatwave	A heatwave: cooling outside works less well for a few days.	Een hittegolf: de koeling buiten werkt een paar dagen minder goed.
+msg_ev_heatwave_over	The heatwave is over.	De hittegolf is voorbij.
+msg_ev_cable_cut	Roadworks cut a fiber duct!	Graafwerkzaamheden hebben een fiberduct geraakt!
+msg_ev_bankrupt	{0} went bankrupt and ended its contract.	{0} is failliet en heeft het contract beëindigd.
+msg_ev_fire_false	Fire alarm in a hall: your fire safety officer found a false alarm.	Brandalarm in een zaal: je brandveiligheidsmedewerker constateerde loos alarm.
+msg_ev_fire_gas	Fire alarm: the gas extinguishing system went off in a hall. Its racks stay down for four hours, and refilling costs € 35,000.	Brandalarm: het gasblussysteem is in een zaal afgegaan. De racks daar blijven vier uur uit, en navullen kost € 35.000.
+msg_ev_fire_reset	The extinguishing system has been reset; the hall is running again.	Het blussysteem is gereset; de zaal draait weer.
+msg_ev_press_good	A trade magazine visited and was impressed. Reputation +2.	Een vakblad kwam langs en was onder de indruk. Reputatie +2.
+msg_ev_press_bad	A trade magazine visited and saw problems. Reputation -1.	Een vakblad kwam langs en zag problemen. Reputatie -1.
+ev_fault	{0} broke down	{0} ging kapot
+ev_repaired	{0} repaired	{0} gerepareerd
+ev_contractor	Contractor called for {0}	Externe monteur gebeld voor {0}
+ev_staff_quit	{0} resigned	{0} nam ontslag
+ev_outage	Power cut in the city	Stroomstoring in de stad
+ev_outage_over	City power back	Stroom in de stad terug
+ev_heatwave	Heatwave started	Hittegolf begonnen
+ev_heatwave_over	Heatwave over	Hittegolf voorbij
+ev_cable_cut	Fiber duct cut by roadworks	Fiberduct geraakt bij graafwerk
+ev_bankrupt	{0} went bankrupt	{0} failliet
+ev_fire_false	Fire alarm: false alarm	Brandalarm: loos alarm
+ev_fire_gas	Fire alarm: gas extinguishing went off	Brandalarm: gasblussing afgegaan
+ev_fire_reset	Extinguishing system reset	Blussysteem gereset
+ev_press_good	Positive press visit	Positief persbezoek
+ev_press_bad	Critical press visit	Kritisch persbezoek
+st_title	Staff	Personeel
+st_tab_team	Team	Team
+st_tab_maintenance	Maintenance	Onderhoud
+st_tab_incidents	Faults and events	Storingen en gebeurtenissen
+st_people	{0} people	{0} mensen
+st_shift_now	Now: {0}	Nu: {0}
+st_pay_month	Salaries {0} per month	Salarissen {0} per maand
+st_team_help	Your operational staff. The managers hire people and plan the shifts themselves; you set the policy. Staff do ask for a canteen, desks and parking.	Je operationele personeel. De managers nemen zelf mensen aan en plannen de diensten; jij bepaalt het beleid. Personeel vraagt wel om een kantine, werkplekken en parkeerplekken.
+st_needs_hr	Hire an HR manager (Organisation) to recruit staff.	Neem een HR-manager aan (Organisatie) om personeel te werven.
+st_mood	Satisfaction {0}%	Tevredenheid {0}%
+st_desks	Desks: {1} for {0} people	Werkplekken: {1} voor {0} mensen
+st_count	{0} of {1}	{0} van {1}
+st_maint_help	Equipment wears every day. Your technicians maintain it; worn equipment breaks down more often. Without your own people a contractor comes after 12 hours.	Apparatuur slijt elke dag. Je technici onderhouden het; versleten apparatuur gaat vaker stuk. Zonder eigen mensen komt er na 12 uur een externe monteur.
+st_no_breakdowns	Creative mode: no breakdowns.	Creatieve modus: geen storingen.
+st_maint_policy	Preventive maintenance	Preventief onderhoud
+st_items	{0} units	{0} stuks
+st_avg_wear	wear {0}%	slijtage {0}%
+st_coverage	maintained {0}%	onderhouden {0}%
+st_worn	Most worn	Meest versleten
+st_aged	Past their service life	Over de levensduur
+st_aged_help	UPS units and batteries last about five years; after that they wear and fail more until you replace them.	UPS'en en accu's gaan ongeveer vijf jaar mee; daarna slijten ze en vallen ze vaker uit tot je ze vervangt.
+st_years	{0} years	{0} jaar
+st_replace	Replace {0}	Vervangen {0}
+st_parts	Spare parts	Reserveonderdelen
+st_parts_help	A repair uses one part. Without one it takes three times as long. Delivery takes {0} days.	Een reparatie gebruikt één onderdeel. Zonder onderdeel duurt het drie keer zo lang. Levering duurt {0} dagen.
+st_auto_order	Reorder automatically at the minimum	Automatisch bijbestellen bij het minimum
+st_col_part	Part	Onderdeel
+st_col_stock	In stock	Voorraad
+st_col_min	Minimum	Minimum
+st_col_ordered	Ordered	Besteld
+st_not_needed	not needed	niet nodig
+st_order	Order {0} ({1})	Bestel {0} ({1})
+st_faults	Faults	Storingen
+st_no_faults	Everything works.	Alles werkt.
+st_since	since {0}	sinds {0}
+st_fault_unnoticed	Nobody has noticed it yet. A NOC operator sees faults at once.	Nog niemand heeft het gemerkt. Een NOC-operator ziet storingen meteen.
+st_fault_contractor_coming	A contractor is on the way: arrives in {0} h.	Een externe monteur is onderweg: is er over {0} u.
+st_fault_contractor	The contractor is working on it: {0} h left.	De externe monteur is ermee bezig: nog {0} u.
+st_fault_repairing	{0} is repairing it: about {1} h left.	{0} repareert het: nog ongeveer {1} u.
+st_fault_waiting	Waiting for a free {0} on duty.	Wacht op een vrije {0} in dienst.
+st_fault_no_part	No {0} in stock: the repair takes three times as long.	Geen {0} op voorraad: de reparatie duurt drie keer zo lang.
+st_call_contractor	Call a contractor ({0}, {1} h)	Externe monteur bellen ({0}, {1} u)
+st_events	Events	Gebeurtenissen
+st_events_off	Random events are switched off for this game.	Willekeurige gebeurtenissen staan uit in dit spel.
+st_no_events	No events right now.	Nu geen gebeurtenissen.
+st_event_left	{0} h left	nog {0} u
+st_outage_gen	Running on generators: diesel for {0} h.	Op de generatoren: diesel voor {0} u.
+st_outage_dark	The site is dark: the backup power cannot carry it.	Het terrein ligt plat: de noodstroom kan het niet dragen.
+st_log	Log	Logboek
+st_log_empty	Nothing has happened yet.	Er is nog niets gebeurd.
+st_training_budget	Training budget	Opleidingsbudget
+st_training_help	Spread over everyone below senior every day; when someone has had enough training they move up a level. Better trained people work faster and are happier.	Wordt elke dag verdeeld over iedereen onder senior; wie genoeg training heeft gehad, gaat een niveau omhoog. Beter getrainde mensen werken sneller en zijn tevredener.
+st_none	None	Geen
+st_per_month	per month	per maand
+st_pay_policy	Pay policy	Salarisbeleid
+st_pay_help	Staff salaries now: {0} per month.	Salarissen personeel nu: {0} per maand.
+st_wellbeing	Wellbeing	Welzijn
+st_wellbeing_help	What makes your staff happy or unhappy. Unhappy people (below 30%) may leave; a heavy workload or night shifts weigh on them too.	Wat je personeel tevreden of ontevreden maakt. Ontevreden mensen (onder 30%) kunnen vertrekken; veel werk of nachtdiensten wegen ook mee.
+ev_staff_hired	Managers hired {0} people	Managers namen {0} mensen aan
+ev_staff_left	{0}'s contract was not renewed	Contract van {0} niet verlengd
+ev_staff_trained	{0} moved up a level	{0} ging een niveau omhoog
+msg_staff_auto_hired	Your managers hired {0} new people.	Je managers hebben {0} nieuwe mensen aangenomen.
+msg_staff_needs_noc	Build a NOC room first.	Bouw eerst een NOC-ruimte.
+plan_support	24/7 customer support	24/7 klantensupport
+plan_support_desc	Customers can call day and night. The operations team keeps at least three support engineers so every shift is covered. Raises customer satisfaction and reputation.	Klanten kunnen dag en nacht bellen. Operations houdt minstens drie support engineers aan zodat elke dienst bezet is. Verhoogt de klanttevredenheid en reputatie.
+plan_noc	24/7 NOC monitoring	24/7 NOC-bewaking
+plan_noc_desc	Three NOC operators watch everything around the clock, so every fault is seen at once. Adds reputation. Needs a NOC room and a network manager.	Drie NOC-operators bewaken alles dag en nacht, zodat elke storing meteen wordt gezien. Levert reputatie op. Vraagt een NOC-ruimte en een netwerkmanager.
+plan_remote_hands	Remote hands service	Remote hands-dienst
+plan_remote_hands_desc	Your people reboot servers and swap disks for customers: € 22 per rented rack per month, up to 120 racks per person.	Je mensen herstarten servers en wisselen schijven voor klanten: € 22 per verhuurd rack per maand, tot 120 racks per persoon.
+st_and_more	and {0} more	en nog {0}
+st_coverage_line	day {0} · evening {1} · night {2}	dag {0} · avond {1} · nacht {2}
+st_levels	{0} junior · {1} medior · {2} senior	{0} junior · {1} medior · {2} senior
+st_needs_mgr	needs a {0}	vraagt om een {0}
+st_plan_fee	{0} per month	{0} per maand
+st_plans	Service plans	Serviceplannen
+st_policy_help	No micromanagement: your managers hire, plan shifts and arrange training by themselves. You set the course with these choices.	Geen micromanagement: je managers werven, plannen diensten en regelen training zelf. Jij bepaalt de koers met deze keuzes.
+st_staffing	Staffing per department	Bezetting per afdeling
+st_staffing_help	Lean saves salaries but gives more work per person; generous costs more but keeps every shift covered and people happy.	Krap scheelt salaris maar geeft meer werk per persoon; ruim kost meer maar houdt elke dienst bezet en mensen tevreden.
+st_tab_policy	Policy	Beleid
+staffing_0	Lean	Krap
+staffing_1	Normal	Normaal
+staffing_2	Generous	Ruim

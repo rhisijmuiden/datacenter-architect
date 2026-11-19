@@ -32,6 +32,7 @@ public static class TestRunner
             ("options", OptionsTests), ("thumbnails", ThumbnailTests), ("network", NetworkTests), ("network money", NetworkMoneyTests), ("peering", PeeringTests),
             ("organisation", OrgTests), ("customers", CustomerTests), ("tenders", TenderTests), ("finance", FinanceTests), ("old saves get customers", LegacyTests), ("customer visits", VisitTests),
             ("servers in racks", ServerTests), ("large halls", LargeHallTests),
+            ("staff", StaffTests), ("faults and repairs", FaultTests), ("maintenance and parts", MaintenanceTests), ("events", EventTests), ("old saves get staff", StaffMigrationTests),
         };
         foreach (var (name, t) in tests)
         {
@@ -842,7 +843,7 @@ public static class TestRunner
         for (var i = 0; i < 200; i++) s.Deals.Add(new Deal { Id = s.NextId++, Product = Product.Rack, State = DealState.Active, RackIds = new List<int> { rack.Id }, Racks = 1, Monthly = 100, EndDay = 9999 });
         s.Hours = 24 * 20 + 9;
         for (var i = 0; i < 24 * 20; i++) sim.Tick(0.05);
-        Check(sim.Agents.Count(x => x.Role == Role.Visitor) <= Simulation.MaxVisitors, "never more than 15 customers on site");
+        Check(sim.Agents.Count(x => x.Role == Role.Visitor) <= sim.MaxVisitors && sim.MaxVisitors <= 40, "customers on site stay a small share of the rented racks");
     }
 
     static void LegacyTests()
@@ -1078,7 +1079,7 @@ public static class TestRunner
         s.AddObject(ObjKind.CoolingTower, 44, 30, 0, 0);
         for (var i = 0; i < 20; i++) s.Advance(0.5);
         r = Infra.Analyze(s);
-        Check(!hall.Hot && r.DownForHeat == 0 && r.RunningRacks == 60, "with enough cooling the racks come back");
+        Check(!hall.Hot && r.DownForHeat == 0 && r.RunningRacks == 60, $"with enough cooling the racks come back ({hall.Hot} {r.DownForHeat} {r.RunningRacks} broken {string.Join(",", s.Objects.Where(o => o.Broken).Select(o => o.Kind))})");
         var creative = PowerSite(new CreativeOptions { NoPowerLimit = true, NoCoolingLimit = true });
         Live(creative.s, ObjKind.Rack, 6, 6);
         for (var i = 0; i < 20; i++) creative.s.Advance(0.5);
@@ -1112,5 +1113,207 @@ public static class TestRunner
         var rows = DatacenterArchitect.World.Overlay.Rows(racks);
         Check(rows.Count == 3 && rows.Any(r => r.Count == 5) && rows.Any(r => r.Count == 4), "racks group into rows");
         Check(DatacenterArchitect.World.WorldView.FrontOffset(0) == (0, 1) && DatacenterArchitect.World.WorldView.FrontOffset(2) == (0, -1), "rack fronts face the cold aisle");
+    }
+
+    /// <summary>A demo site with events switched off, so a test decides what happens.</summary>
+    static GameState Quiet()
+    {
+        var s = Demo.Build();
+        s.Options.Creative = false; s.Options.CreativeOptions = new CreativeOptions();
+        s.Options.Events = false;
+        s.Seed = 4242;
+        return s;
+    }
+
+    static void StaffTests()
+    {
+        var s = Quiet();
+        Check(s.Staff.Count == 0, "a new site starts without operational staff");
+        Check(s.Recommended(StaffRole.Cooling) >= 1 && s.Recommended(StaffRole.Electrical) >= 1, "the site needs cooling and electrical technicians");
+        Check(s.RoleLocked(StaffRole.Guard) == "msg_needs_security_mgr", "guards need a security manager");
+        Check(s.RoleLocked(StaffRole.Canteen) == "msg_needs_canteen", "canteen staff need a canteen");
+        s.Advance(24);
+        Check(s.CountOf(StaffRole.Cooling) == s.Target(StaffRole.Cooling) && s.CountOf(StaffRole.Electrical) == s.Target(StaffRole.Electrical), "managers hire the team by themselves");
+        Check(s.CountOf(StaffRole.Guard) == 0, "no guards without a security manager");
+        var pay = s.StaffPayPerMonth;
+        Check(pay > 0, "staff cost salaries");
+        // staffing policy
+        s.SetLevel(Dept.Facility, 2);
+        s.Advance(24);
+        Check(s.CountOf(StaffRole.Cooling) >= 3, "generous staffing covers every shift of a round-the-clock role");
+        var cov = s.Coverage(StaffRole.Cooling);
+        Check(cov[0] >= 1 && cov[1] >= 1 && cov[2] >= 1, "the automatic roster spreads them over day, evening and night");
+        Check(s.Staff.Where(e => !e.Def.AllDay).All(e => e.Shift == Shift.Day), "daytime roles work days");
+        s.SetLevel(Dept.Facility, 0);
+        for (var i = 0; i < 6; i++) s.Advance(24);
+        Check(s.CountOf(StaffRole.Cooling) <= s.Target(StaffRole.Cooling) + 1, "lean staffing: contracts are not renewed");
+        // plans
+        var before = s.Staff.Count(e => e.Role == StaffRole.Support);
+        s.Support247 = true; s.RemoteHandsService = true;
+        s.Advance(24);
+        Check(s.CountOf(StaffRole.Support) >= 3 && s.Coverage(StaffRole.Support).All(c => c >= 1), "24/7 support: support engineers on every shift");
+        Check(s.CountOf(StaffRole.RemoteHands) >= 1 && s.RemoteHandsIncome > 0, "remote hands earn money");
+        Check(s.PlansPerMonth == GameState.Support247Fee + GameState.RemoteHandsFee, "service plans cost a monthly fee");
+        var month = s.Books.FirstOrDefault(b => b.Month == s.MonthIndex);
+        Check(month != null && month.Lines.TryGetValue("cost_staff", out var cs) && cs < 0 && month.Lines.TryGetValue("inc_remote_hands", out var rh) && rh > 0, "staff and remote hands in the books");
+        // wellbeing and leaving
+        Check(s.Wellbeing().Any(w => w.key == "wb_canteen" && w.points < 0), "staff miss a canteen");
+        s.PayPolicy = 0; s.TrainingBudget = 0;
+        foreach (var e in s.Staff) e.Satisfaction = 10;
+        var n = s.Staff.Count;
+        for (var i = 0; i < 20; i++) s.Advance(24);
+        Check(s.Incidents.Any(l => l.Key == "ev_staff_quit") || s.Staff.Count != n, "unhappy people leave (and are replaced)");
+        // training budget levels people up
+        var tr = Quiet();
+        tr.Advance(24);
+        tr.TrainingBudget = 20000;
+        var levels = tr.Staff.Sum(e => e.Level);
+        for (var i = 0; i < 60; i++) tr.Advance(24);
+        Check(tr.Staff.Sum(e => e.Level) > levels, "the training budget levels people up");
+        // without HR nobody is hired
+        var t = Quiet();
+        t.Execs.RemoveAll(x => x.Role == Exec.Hr);
+        t.Advance(24);
+        Check(t.Staff.Count == 0 && t.RoleLocked(StaffRole.Cooling) == "msg_needs_hr", "hiring needs HR");
+        Check(GameState.ShiftAt(10) == Shift.Day && GameState.ShiftAt(16) == Shift.Evening && GameState.ShiftAt(2) == Shift.Night && GameState.ShiftAt(24 + 23.5) == Shift.Night, "shift times");
+    }
+
+    static void FaultTests()
+    {
+        var s = Quiet();
+        s.Advance(24);
+        s.Hours = Math.Floor(s.Hours / 24) * 24 + 9; // day shift
+        var crah = s.Objects.First(o => o.Kind == ObjKind.Crah);
+        var cool = s.Infra.CrahKw;
+        s.Break(crah);
+        Check(crah.Broken && s.Infra.CrahKw < cool, "a broken CRAH stops cooling");
+        Check(!crah.Noticed || s.Working(StaffRole.Noc).Any(), "without a NOC operator nobody notices at once");
+        s.Advance(2.5);
+        Check(crah.Noticed, "after two hours someone notices");
+        Check(crah.RepairBy > 0 && s.Staff.First(e => e.Id == crah.RepairBy).Role == StaffRole.Cooling, "a cooling technician on duty picks it up");
+        s.Advance(48);
+        Check(!crah.Broken && s.Infra.CrahKw >= cool - 1e-6, "and repairs it");
+        Check(s.Incidents.Any(l => l.Key == "ev_fault") && s.Incidents.Any(l => l.Key == "ev_repaired"), "fault and repair are in the log");
+        // a broken rack is not working for its customer
+        var deal = s.Deals.First(d => d.State == DealState.Active && d.RackIds.Count > 0);
+        var rack = s.Objects.First(o => o.Id == deal.RackIds[0]);
+        s.Break(rack);
+        Check(!s.WorkingRacks().Contains(rack.Id), "a broken rack does not serve its customer");
+        // without anyone for the job a contractor comes
+        var t = Quiet();
+        t.Hours = 9;
+        var money = t.Money;
+        var router = t.Objects.First(o => o.Kind == ObjKind.CoreRouter);
+        t.Execs.RemoveAll(x => x.Role == Exec.Hr);
+        t.Break(router);
+        t.Advance(3);
+        Check(router.RepairBy == -1 && t.Money < money, "nobody of your own: a contractor is called and paid");
+        t.Advance(Staffing.ContractorDelay + Staffing.RepairHours(ObjKind.CoreRouter) + 1);
+        Check(!router.Broken, "the contractor repairs it after a delay");
+        // calling a contractor yourself
+        var o2 = t.Objects.First(o => o.Kind == ObjKind.Ups);
+        t.Break(o2);
+        Check(t.CallContractor(o2) == null && o2.RepairBy == -1 && o2.Noticed, "you can call a contractor straight away");
+        // creative mode without breakdowns
+        var c = Quiet();
+        c.Options.Creative = true; c.Options.CreativeOptions = new CreativeOptions { NoBreakdowns = true };
+        var any = c.Objects.First(o => o.Kind == ObjKind.Crah);
+        c.Break(any);
+        Check(!any.Broken, "no breakdowns in creative mode when switched off");
+    }
+
+    static void MaintenanceTests()
+    {
+        var s = Quiet();
+        s.Execs.RemoveAll(x => x.Role == Exec.Hr);
+        var crahs = s.Objects.Where(o => o.Kind == ObjKind.Crah).ToList();
+        for (var i = 0; i < 30; i++) s.Advance(24);
+        var unmaintained = crahs.Average(o => o.Wear);
+        Check(unmaintained > 8, $"without technicians equipment wears ({unmaintained:0.0})");
+        var t = Quiet();
+        t.MaintenancePolicy = 2;
+        for (var i = 0; i < 30; i++) t.Advance(24);
+        var maintained = t.Objects.Where(o => o.Kind == ObjKind.Crah).Average(o => o.Wear);
+        Check(maintained < unmaintained / 2, $"technicians keep it in shape ({maintained:0.0})");
+        var month = t.Books.Where(b => b.Lines.ContainsKey("cost_maintenance")).Sum(b => b.Lines["cost_maintenance"]);
+        Check(month < 0, "maintenance costs money");
+        // spare parts are ordered and used
+        Check(t.NeedsPart(Part.Cooling) && !t.NeedsPart(Part.Server) == false, "parts for the equipment you have");
+        t.PartStock.TryGetValue(Part.Cooling, out var stock);
+        Check(stock >= t.MinParts(Part.Cooling), "stock is reordered up to the minimum");
+        t.Hours = Math.Floor(t.Hours / 24) * 24 + 9;
+        var crah = t.Objects.First(o => o.Kind == ObjKind.Crah);
+        t.Break(crah); t.Advance(2.5);
+        t.PartStock.TryGetValue(Part.Cooling, out var after);
+        Check(after == stock - 1 && crah.PartUsed, "a repair uses a spare part");
+        t.PartStock[Part.Battery] = 0;
+        var ups = t.Objects.First(o => o.Kind == ObjKind.Ups);
+        t.Break(ups); t.Advance(2.5);
+        Check(!ups.PartUsed, "no part in stock: the repair takes longer");
+        // aged batteries
+        var bat = t.Objects.First(o => o.Kind == ObjKind.Battery);
+        bat.Installed = t.Day - Staffing.LifeDays - 300;
+        t.Advance(24);
+        Check(t.Aged(bat) && bat.Wear >= 40, "batteries past their life keep wearing");
+        Check(t.Replace(bat) == null && bat.Wear == 0 && !t.Aged(bat), "replacing makes them new");
+    }
+
+    static void EventTests()
+    {
+        var s = Quiet();
+        var inf = s.Infra;
+        var running = inf.RunningRacks;
+        Check(inf.Generators >= 2 && inf.Ats, "the demo has generators behind an ATS");
+        s.StartEvent(EventKind.CityOutage, 4);
+        Check(s.GridDown && s.Infra.OnGenerators && s.Infra.RunningRacks == running, "a city power cut: generators take over");
+        s.Advance(5);
+        Check(!s.GridDown && s.Incidents.Any(l => l.Key == "ev_outage_over"), "the power comes back");
+        // without generators the site goes dark
+        var t = Quiet();
+        t.Objects.RemoveAll(o => o.Kind == ObjKind.Generator); t.Touch();
+        var sat = t.Deals.Where(d => d.State == DealState.Active && !d.Legacy).Average(d => d.Satisfaction);
+        t.StartEvent(EventKind.CityOutage, 3);
+        Check(t.Infra.Blackout && t.Infra.RunningRacks == 0, "no generators: a blackout");
+        t.Advance(3.5);
+        Check(t.Deals.Where(d => d.State == DealState.Active && !d.Legacy).Average(d => d.Satisfaction) < sat, "customers notice a blackout");
+        // long outage: diesel runs out without a generator technician
+        var u = Quiet();
+        u.StartEvent(EventKind.CityOutage, 100000);
+        var fuel = u.Infra.FuelHours;
+        u.Hours += fuel + 1; u.Touch();
+        Check(u.Infra.Blackout, "the diesel runs out in a very long outage");
+        // fire alarm
+        var f = Quiet();
+        var hall = f.Rooms.First(r => r.Type == RoomType.DataHall);
+        f.StartEvent(EventKind.FireAlarm, 4, hall.Id);
+        Check(f.Infra.Halls.First(h => h.Room == hall).RunningRacks == 0, "gas extinguishing: the hall is down");
+        f.Advance(5);
+        Check(f.Infra.Halls.First(h => h.Room == hall).RunningRacks > 0, "and runs again after the reset");
+        // heatwave lowers heat rejection
+        var h = Quiet();
+        var reject = h.Infra.RejectKw;
+        h.StartEvent(EventKind.Heatwave, 48);
+        Check(Math.Abs(h.Infra.RejectKw - reject * 0.8) < 1e-6, "a heatwave: 20% less heat rejection");
+        // random events happen over a year when switched on, never when off
+        var on = Quiet(); on.Seed = 77; on.Options.Events = true;
+        var off = Quiet(); off.Seed = 77;
+        for (var i = 0; i < 365; i++) { on.Advance(24); off.Advance(24); }
+        Check(on.Incidents.Any(l => l.Key is "ev_outage" or "ev_fire_gas" or "ev_fire_false" or "ev_press_good" or "ev_press_bad" or "ev_cable_cut" or "ev_bankrupt"), "events happen in a year");
+        Check(!off.Incidents.Any(l => l.Key is "ev_outage" or "ev_fire_gas" or "ev_fire_false" or "ev_press_good" or "ev_press_bad" or "ev_cable_cut" or "ev_bankrupt"), "no events when switched off");
+        // visits: busy by day, quiet at night
+        Check(Simulation.HourWeight(10) > Simulation.HourWeight(20) && Simulation.HourWeight(20) > Simulation.HourWeight(3) && Simulation.HourWeight(3) > 0, "customers also come at night, but fewer");
+    }
+
+    static void StaffMigrationTests()
+    {
+        var s = Demo.Build();
+        s.SaveFormat = 5;
+        foreach (var o in s.Objects) o.Installed = 0;
+        s.Staff = null; s.ActiveEvents = null; s.PartStock = null;
+        s.Hours = 24 * 400;
+        s.Migrate();
+        Check(s.Staff != null && s.ActiveEvents != null && s.PartStock != null, "older saves get empty staff and events");
+        Check(s.Objects.All(o => Math.Abs(o.Installed - 400) < 1e-6), "existing equipment counts as installed on load");
+        Check(s.Notes.Any(n => n.key == "msg_staff_new"), "players are told about staff");
     }
 }

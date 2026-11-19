@@ -127,7 +127,7 @@ public partial class Main : Node3D
             FloorUp = () => SetView(_world.ViewFloor + 1, false),
             FloorDown = () => SetView(_world.ViewFloor - 1, _world.ViewFloor - 1 <= 0 && _world.Roofs),
             OpenInfo = OpenInfo, OpenOptions = OpenOptions, OpenMenu = OpenPause, ToggleLanguage = ToggleLanguage,
-            OpenPower = OpenPower, OpenNetwork = OpenNetwork, OpenCompany = OpenCompany, ToggleOverlay = m => SetOverlay(_world.Overlay.Mode == (OverlayMode)m ? OverlayMode.None : (OverlayMode)m),
+            OpenPower = OpenPower, OpenNetwork = OpenNetwork, OpenCompany = OpenCompany, OpenStaff = OpenStaff, ToggleOverlay = m => SetOverlay(_world.Overlay.Mode == (OverlayMode)m ? OverlayMode.None : (OverlayMode)m),
         };
         _ui.AddChild(_hud);
         _ui.MoveChild(_hud, 0);
@@ -188,6 +188,13 @@ public partial class Main : Node3D
         if (!_playing) return;
         foreach (var p in _ui.GetChildren().OfType<CompanyPanel>()) p.Close();
         _ui.AddChild(new CompanyPanel(() => _state, Fail, tab));
+    }
+
+    void OpenStaff(int tab)
+    {
+        if (!_playing) return;
+        foreach (var p in _ui.GetChildren().OfType<StaffPanel>()) p.Close();
+        _ui.AddChild(new StaffPanel(() => _state, Fail, tab));
     }
 
     bool _bankruptShown;
@@ -325,8 +332,10 @@ public partial class Main : Node3D
         foreach (var (key, arg) in _sim.Messages.Concat(_state.Notes))
         {
             var text = Loc.T(key, ArgText(arg));
-            var accent = key is "msg_signed" or "msg_tender_won" or "msg_tender_delivered" or "msg_hired" or "msg_renewed" or "msg_trained" ? Brand.Ok
-                : key is "msg_bankrupt" or "msg_in_red" or "msg_tender_failed" or "msg_customer_left" or "msg_tender_lost" ? Brand.Critical : key.Contains("done") || key.Contains("live") || key.Contains("ready") || key.Contains("cool") ? Brand.Ok : key.Contains("need") || key.Contains("unreach") || key.Contains("no_road") || key.Contains("hot") || key.Contains("offline") || key.Contains("congested") ? Brand.Critical : Brand.Amber;
+            var accent = key is "msg_signed" or "msg_tender_won" or "msg_tender_delivered" or "msg_hired" or "msg_renewed" or "msg_trained" or "msg_staff_hired" or "msg_staff_trained"
+                    or "msg_repaired" or "msg_replaced" or "msg_ev_press_good" or "msg_ev_fire_false" or "msg_ev_outage_gen" or "msg_parts_arrived" ? Brand.Ok
+                : key is "msg_bankrupt" or "msg_in_red" or "msg_tender_failed" or "msg_customer_left" or "msg_tender_lost" or "msg_fault" or "msg_ev_outage_dark" or "msg_ev_cable_cut"
+                    or "msg_ev_fire_gas" or "msg_staff_quit" or "msg_ev_bankrupt" or "msg_ev_press_bad" ? Brand.Critical : key.Contains("done") || key.Contains("live") || key.Contains("ready") || key.Contains("cool") ? Brand.Ok : key.Contains("need") || key.Contains("unreach") || key.Contains("no_road") || key.Contains("hot") || key.Contains("offline") || key.Contains("congested") ? Brand.Critical : Brand.Amber;
             _hud.Notify(text, accent);
         }
         _sim.Messages.Clear(); _state.Notes.Clear();
@@ -702,6 +711,23 @@ public partial class Main : Node3D
             var lines = new List<string>();
             var actions = new List<(string, Action, bool)>();
             if (d.Chain) lines.Add(Loc.T("status_" + o.Status.ToString().ToLowerInvariant()));
+            if (o.Broken)
+            {
+                lines.Add("⚠ " + Loc.T(o.Noticed ? "inspect_broken" : "inspect_broken_unnoticed"));
+                var target = o;
+                if (o.RepairBy != -1) actions.Add((Loc.T("st_call_contractor", Ui.Money(Staffing.ContractorCost(o.Kind)), Staffing.ContractorDelay), () => Act(_state.CallContractor(target)), true));
+                actions.Add((Loc.T("st_tab_incidents"), () => OpenStaff(StaffPanel.TabIncidents), true));
+            }
+            else if (Staffing.Breaks(o.Kind) && o.Status == ObjStatus.Live && !_state.Creative.NoBreakdowns)
+            {
+                lines.Add(Loc.T("inspect_wear", Math.Round(o.Wear)));
+                if (_state.Aged(o))
+                {
+                    var target = o;
+                    lines.Add("⚠ " + Loc.T("inspect_aged"));
+                    actions.Add((Loc.T("st_replace", Ui.Money(_state.ReplaceCost(o))), () => Act(_state.Replace(target)), _state.CanAfford(_state.ReplaceCost(o))));
+                }
+            }
             if (o.Kind == ObjKind.Rack && o.Status == ObjStatus.Live)
             {
                 var hall = _state.RoomAt(o.X, o.Z, o.Floor);
@@ -938,6 +964,22 @@ public partial class Main : Node3D
             var v = args[cami + 1].Split(',').Select(x => float.Parse(x, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
             _cam.SetView(v[0], v[1], v[2], new Vector3(v[3], 0, v[4]));
         }
+        if (args.Contains("--staff-demo"))
+        {
+            // a few days of automatic hiring, then a broken CRAH with a technician on the way and a city power cut
+            _state.Hours = Math.Floor(_state.Hours / 24) * 24 + 33;
+                        for (var d = 0; d < 3; d++) _state.Advance(24);
+            _state.Support247 = true; _state.Noc247 = true; _state.Advance(24);
+            var crah = _state.Objects.First(o => o.Kind == ObjKind.Crah);
+            if (!args.Contains("--no-break")) { crah.Wear = 0; _state.Break(crah); var ups = _state.Objects.First(o => o.Kind == ObjKind.Ups); _state.Break(ups); }
+            if (!args.Contains("--no-outage")) _state.StartEvent(EventKind.CityOutage, 5);
+            foreach (var o in _state.Objects.Where(o => Staffing.Breaks(o.Kind)).Take(12)) o.Wear = 55;
+            _state.Advance(0.5);
+            for (var i = 0; i < 60; i++) _sim.Tick(0.05);
+            if (args.Contains("--interior")) { _cam.SetView(0.35f, 0.75f, 22, new Vector3((float)crah.X, 0, (float)crah.Z + 2)); Inspect(new Vector2I(crah.X, crah.Z)); }
+        }
+        var sti = Array.IndexOf(args, "--staff");
+        if (sti >= 0 && sti + 1 < args.Length) { _playing = true; OpenStaff(int.Parse(args[sti + 1])); }
         if (args.Contains("--new-game")) _ui.AddChild(new NewGameDialog(_ => { }));
         var ci = Array.IndexOf(args, "--category");
         if (ci >= 0 && ci + 1 < args.Length) _hud?.ShowCategory(args[ci + 1]);

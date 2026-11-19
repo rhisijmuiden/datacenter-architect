@@ -178,7 +178,7 @@ public partial class CompanyPanel : Modal
             var hire = s.Hire(e);
             var has = s.Has(e);
             var free = !s.Creative.AllUnlocks && s.Grandfathered.Contains(e);
-            var depth = e switch { Exec.Ceo => 0, Exec.Procurement or Exec.Legal or Exec.CustomerSuccess or Exec.Facility or Exec.Network or Exec.Security => 2, _ => 1 };
+            var depth = e switch { Exec.Ceo => 0, Exec.Procurement or Exec.Legal or Exec.CustomerSuccess or Exec.Facility or Exec.Network or Exec.Security or Exec.ProjectManager => 2, _ => 1 };
             var card = Card(hire != null || free ? Brand.Ok : s.CanHire(e) == null ? Brand.Amber : Brand.Line, out var v);
             var wrap = Ui.Pad(card, depth * 28, 0, 0, 0);
             var head = Row();
@@ -468,7 +468,7 @@ public partial class CompanyPanel : Modal
         _content.AddChild(Plain(Loc.T("fin_energy_help"), 13, Brand.InkDim));
     }
 
-    static readonly string[] BookOrder = { "inc_contracts", "inc_network", "cost_energy", "cost_network", "cost_crew", "cost_salaries", "cost_site", "cost_sla", "cost_interest", "cost_build", "fin_loans", "fin_investors", "fin_repay", "fin_dividend" };
+    static readonly string[] BookOrder = { "inc_contracts", "inc_network", "inc_remote_hands", "cost_energy", "cost_network", "cost_crew", "cost_salaries", "cost_staff", "cost_maintenance", "cost_parts", "cost_site", "cost_sla", "cost_interest", "cost_build", "fin_loans", "fin_investors", "fin_repay", "fin_dividend" };
 
     Control BookColumn(string title, MonthBook b)
     {
