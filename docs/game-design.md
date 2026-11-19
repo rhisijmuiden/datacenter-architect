@@ -319,6 +319,26 @@ Naast losse klanten kun je **grote contracten** binnenhalen bij grote klanten, z
 - **Audits en certificeringen** (bijvoorbeeld ISO 27001 of Tier III) als voorwaarde om mee te mogen bieden.
 - **Reputatie**: een goed uitgevoerd groot contract opent de deur naar grotere klanten. Een mislukt contract kost reputatie.
 
+#### Eigen ruimte in het contract
+
+Een klant kan in het contract om een **eigen ruimte** vragen:
+
+| Ruimtevorm | Wat je bouwt |
+|---|---|
+| **Kooi** | Een afgeschermd deel van een bestaande datazaal, met hekwerk tot het plafond, een eigen deur en een toegangslezer |
+| **Private suite** | Een afgesloten ruimte binnen een zaal of naast een zaal, met eigen muren |
+| **Eigen hal** | Een complete datazaal alleen voor deze klant, eventueel met eigen koeling en UPS |
+
+Elk contract bevat concrete eisen, die de game vergelijkt met wat je bouwt:
+
+- **Aantal racks** (bijvoorbeeld 24 racks van 42U).
+- **Stroom**: kW per rack en in totaal, A/B-voeding, en eventueel 2N in plaats van N+1.
+- **Netwerk**: het aantal aansluitingen en de bandbreedte in Mbit/s of Gbit/s (bijvoorbeeld 2 × 10 Gbit/s naar het internet en 4 cross-connects in de MMR), soms met een eis voor twee verschillende carriers.
+- **Koeling** die past bij de stroom, en eventueel een maximale PUE.
+- **Beveiliging**: alleen geautoriseerd personeel van de klant krijgt toegang tot de kooi, suite of hal.
+
+Het contractscherm toont per eis of je eraan voldoet (✓, ! of ✕), net als de controlelijst in de ruimte-ontwerper. De klant tekent pas als alles groen is, of als je een opleverdatum toezegt. Haal je die datum niet, dan volgt een boete.
+
 ## Seizoenen en weer
 
 De tijd loopt door een **jaarcyclus** met lente, zomer, herfst en winter, en wisselend weer. Dat is zichtbaar in de wereld (bladkleur, kale bomen, sneeuw op daken en gras, regen, mist, onweer) en heeft effect op het spel. Locaties hebben geen eigen klimaat; het weer geldt voor de hele regio.
