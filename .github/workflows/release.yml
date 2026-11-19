@@ -1,11 +1,17 @@
 name: Release
 
-# Push a tag to publish a build that the in-game updater can find:
-#   v0.2.0-test.1  -> pre-release on the test channel (tag a commit on the test branch)
-#   v0.2.0         -> release on the stable channel (tag a commit on main)
+# Publish a build that the in-game updater can find, either by pushing a tag or
+# by running this workflow from the Actions tab on the test or main branch:
+#   v0.2.0-test.1  -> pre-release on the test channel (from the test branch)
+#   v0.2.0         -> release on the stable channel (from main)
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version, for example 0.2.0-test.1 (test) or 0.2.0 (stable)"
+        required: true
 
 permissions:
   contents: write
@@ -25,7 +31,7 @@ jobs:
       - name: Stamp version and channel
         shell: pwsh
         run: |
-          $ver = "${{ github.ref_name }}".TrimStart('v')
+          $ver = if ("${{ github.event_name }}" -eq "workflow_dispatch") { "${{ inputs.version }}".TrimStart('v') } else { "${{ github.ref_name }}".TrimStart('v') }
           $channel = if ($ver -match '-') { 'test' } else { 'stable' }
           "VERSION=$ver" | Out-File -Append $env:GITHUB_ENV
           "CHANNEL=$channel" | Out-File -Append $env:GITHUB_ENV
@@ -72,6 +78,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $ghArgs = @("${{ github.ref_name }}", "dist/DatacenterArchitect-$env:VERSION-Setup.exe", "--title", "Datacenter Architect $env:VERSION", "--generate-notes")
+          $ghArgs = @("v$env:VERSION", "dist/DatacenterArchitect-$env:VERSION-Setup.exe", "--title", "Datacenter Architect $env:VERSION", "--generate-notes", "--target", "${{ github.sha }}")
           if ($env:CHANNEL -eq 'test') { $ghArgs += "--prerelease" }
           gh release create @args

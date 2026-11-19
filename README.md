@@ -36,7 +36,7 @@ Controls: right-drag rotates, mouse wheel zooms, WASD or middle-drag pans, Q/E t
 
 ## Releasing
 
-Releases are built on GitHub by [`.github/workflows/release.yml`](.github/workflows/release.yml) when a tag is pushed. It stamps the version and channel, runs the tests, exports the Windows build and attaches `DatacenterArchitect-<version>-Setup.exe` to a GitHub Release.
+Releases are built on GitHub by [`.github/workflows/release.yml`](.github/workflows/release.yml) when a tag is pushed, or when you run the workflow from the Actions tab with a version number. It stamps the version and channel, runs the tests, exports the Windows build and attaches `DatacenterArchitect-<version>-Setup.exe` to a GitHub Release.
 
 ```bash
 git checkout test && git tag v0.2.0-test.1 && git push origin v0.2.0-test.1   # test channel (pre-release)
