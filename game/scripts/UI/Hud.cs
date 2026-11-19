@@ -251,7 +251,7 @@ public partial class Hud : Control
         _ => ("cat_customers", Brand.Wall),
     };
 
-    const float BarHeight = 66, TrayHeight = 136;
+    const float BarHeight = 66, TrayHeight = 176;
     PanelContainer _tray;
     Label _trayTitle;
 
@@ -371,25 +371,33 @@ public partial class Hud : Control
     }
 
     /// <summary>A card in the tray: name on top, price below, colour swatch for rooms.</summary>
+    /// <summary>A card in the tray: a small 3D picture of the item, its name and its price.</summary>
     Button ItemCard(BuildItem it, bool locked)
     {
-        var b = new Button { CustomMinimumSize = new Vector2(150, 0), SizeFlagsVertical = SizeFlags.ExpandFill, AutoTranslateMode = AutoTranslateModeEnum.Disabled, ClipText = true };
+        var b = new Button { CustomMinimumSize = new Vector2(164, 0), SizeFlagsVertical = SizeFlags.ExpandFill, AutoTranslateMode = AutoTranslateModeEnum.Disabled, ClipText = true, TooltipText = Loc.T(it.NameKey) };
         b.AddThemeStyleboxOverride("normal", Ui.Box(new Color(1, 1, 1, 0.04f), 8, Brand.Line, 1, 8));
         var v = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
         v.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
-        v.OffsetLeft = 10; v.OffsetRight = -8; v.OffsetTop = 6; v.OffsetBottom = -6;
-        v.AddThemeConstantOverride("separation", 2);
+        v.OffsetLeft = 6; v.OffsetRight = -6; v.OffsetTop = 4; v.OffsetBottom = -5;
+        v.AddThemeConstantOverride("separation", 0);
+        // picture on a soft sky tint, so dark models (racks, palisade) stand out
+        var pic = new PanelContainer { MouseFilter = MouseFilterEnum.Ignore, SizeFlagsVertical = SizeFlags.ExpandFill };
+        pic.AddThemeStyleboxOverride("panel", Ui.Box(new Color(Brand.Sky, 0.14f), 6, null, 0, 0));
+        var tex = World.Thumbnails.Instance?.Get(it);
+        if (tex != null)
+            pic.AddChild(new TextureRect { Texture = tex, ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = MouseFilterEnum.Ignore, CustomMinimumSize = new Vector2(0, 70) });
+        v.AddChild(pic);
         var top = new HBoxContainer { MouseFilter = MouseFilterEnum.Ignore }; top.AddThemeConstantOverride("separation", 6);
         if (it.Mode == Mode.Room)
             top.AddChild(new TextureRect { Texture = Swatch(new Color(Catalog.Rooms[(RoomType)it.Arg].Color)), StretchMode = TextureRect.StretchModeEnum.KeepCentered, MouseFilter = MouseFilterEnum.Ignore });
         var name = Ui.Text(Loc.T(it.NameKey), 14, Brand.Ink, Ui.BodySemi);
+        name.AutowrapMode = TextServer.AutowrapMode.Off; name.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis; name.ClipText = true;
         name.AutoTranslateMode = AutoTranslateModeEnum.Disabled; name.MouseFilter = MouseFilterEnum.Ignore;
         name.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         top.AddChild(name);
         v.AddChild(top);
-        v.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill, MouseFilter = MouseFilterEnum.Ignore });
         var cost = CostText(it);
-        var price = Ui.Number(cost == "" ? " " : cost, 15);
+        var price = Ui.Number(cost == "" ? " " : cost, 14);
         price.AddThemeColorOverride("font_color", Brand.Ok);
         price.AutoTranslateMode = AutoTranslateModeEnum.Disabled; price.MouseFilter = MouseFilterEnum.Ignore;
         v.AddChild(price);
