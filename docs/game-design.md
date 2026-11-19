@@ -137,6 +137,20 @@ Een gebouw bouw je in fases, elk met bouwtijd en kosten. Een bouwkraan en bouwva
 
 - Hekken kun je aanvullen met **poorten, slagbomen, draaipoortjes, camera's en verlichting**. Grote klanten stellen eisen aan het beveiligingsniveau van je terrein.
 
+### Toegangsroute en aankomst
+
+Het hekwerk kies en bouw je zelf, bijvoorbeeld hoge stalen spijlenhekken. In het hek zit één hoofdingang met een **toegangspoort**: een schuifhek, een slagboom of allebei.
+
+- **Oprit:** je sluit de openbare weg met een **asfalt oprit** aan op je terrein. Zonder oprit kan niemand je terrein bereiken.
+- **Melden bij de poort:** voor de poort staat een **meldzuil** (intercom met camera en kentekenlezer). Een klant stopt daar en meldt zich.
+- **Beveiligingshok:** de beveiliger zit binnen het hek in een **beveiligingshok** naast de poort. Van daaruit opent hij het schuifhek of de slagboom. Zonder bemand hok blijft de poort dicht (later te automatiseren met kentekenherkenning voor vaste klanten en personeel).
+- **Parkeren:** de klant rijdt over het eigen terrein naar de **bezoekersparkeerplaats**, parkeert en loopt naar de **beveiligingsloge / ontvangsthal** in het gebouw.
+- **Check-in:** de beveiliging controleert legitimatie en afspraak, geeft een bezoekersbadge en geeft toegang tot het datacenter. De toegang is per klant beperkt tot de ruimtes waar hij spullen heeft staan: zijn rack, kooi, suite of de MMR.
+- **Wachttijd telt mee:** te weinig beveiligers, een te lange looproute of een volle parkeerplaats geven wachttijd. Dat kost klanttevredenheid en is zichtbaar in de rapportage.
+- **Leveranciers en vrachtwagens** gebruiken dezelfde poort maar rijden door naar het **laadperron**. Je kunt ook een aparte leveranciersingang met een eigen hok bouwen.
+
+Volgorde van een bezoek: openbare weg → oprit → meldzuil → poort open (vanuit het hok) → parkeren → check-in bij de beveiliging → begeleid of met badge naar de eigen ruimte → terug langs de beveiliging → poort uit.
+
 ## Ruimtes
 
 Binnen een gebouw **teken je zelf ruimtes**: muren trekken, deuren plaatsen en een ruimtetype kiezen. Elk type heeft eisen (minimale grootte, verplichte objecten, toegangsniveau) en werkt pas als daaraan is voldaan.
