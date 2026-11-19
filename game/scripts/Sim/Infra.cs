@@ -191,7 +191,9 @@ public static class Infra
                 var cut = running.OrderByDescending(o => o.Id).Take(running.Count - max).ToHashSet();
                 r.DownForPower += cut.Count;
                 running = running.Where(o => !cut.Contains(o)).ToList();
-                foreach (var h in r.Halls) { var before = h.RunningRacks; h.RunningRacks = byHall[h.Room].Count(running.Contains); if (h.RunningRacks < before) h.PowerLimited = true; }
+                // a set, not the list: with thousands of racks a list lookup per rack takes far too long
+                var on = running.ToHashSet();
+                foreach (var h in r.Halls) { var before = h.RunningRacks; h.RunningRacks = byHall[h.Room].Count(on.Contains); if (h.RunningRacks < before) h.PowerLimited = true; }
             }
         }
         var runSet = running.ToHashSet();

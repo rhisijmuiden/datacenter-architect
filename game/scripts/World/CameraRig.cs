@@ -26,6 +26,9 @@ public partial class CameraRig : Node3D
         Apply();
     }
 
+    /// <summary>Closest zoom: near enough to see the servers and their LEDs in a rack.</summary>
+    public const float MinDistance = 6f;
+
     public void SetView(float yaw, float pitch, float dist, Vector3 target)
     {
         Yaw = _yawT = yaw; Pitch = _pitchT = pitch; Distance = _distT = dist; Position = _targetT = target; Apply();
@@ -42,8 +45,8 @@ public partial class CameraRig : Node3D
         {
             if (mb.ButtonIndex == MouseButton.Right) _rotating = mb.Pressed;
             if (mb.ButtonIndex == MouseButton.Middle) _panning = mb.Pressed;
-            if (mb.Pressed && mb.ButtonIndex == MouseButton.WheelUp) _distT = Mathf.Clamp(_distT * 0.9f, 12, 160);
-            if (mb.Pressed && mb.ButtonIndex == MouseButton.WheelDown) _distT = Mathf.Clamp(_distT * 1.1f, 12, 160);
+            if (mb.Pressed && mb.ButtonIndex == MouseButton.WheelUp) _distT = Mathf.Clamp(_distT * 0.9f, MinDistance, 160);
+            if (mb.Pressed && mb.ButtonIndex == MouseButton.WheelDown) _distT = Mathf.Clamp(_distT * 1.1f, MinDistance, 160);
         }
         else if (e is InputEventMouseMotion mm)
         {

@@ -432,7 +432,7 @@ opt_msaa_help	Smooths jagged edges. Higher costs more graphics power.	Strijkt ka
 opt_off	Off	Uit
 opt_section_effects	Visual effects	Visuele effecten
 opt_blinking	Blinking status lights	Knipperende statuslampjes
-opt_blinking_help	The LEDs on live racks blink.	De lampjes op actieve racks knipperen.
+opt_blinking_help	The LEDs on the servers in live racks blink.	De lampjes op de servers in actieve racks knipperen.
 opt_moving	Moving parts	Bewegende onderdelen
 opt_moving_help	Turning fans, crane jibs and markers.	Draaiende ventilatoren, kraanarmen en markeringen.
 opt_smooth_camera	Smooth camera	Vloeiende camera

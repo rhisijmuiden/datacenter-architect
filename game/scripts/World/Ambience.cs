@@ -27,10 +27,15 @@ public partial class Ambience : Node
         _pb = _player.GetStreamPlayback() as AudioStreamGeneratorPlayback;
     }
 
+    Vector2[] _buf = System.Array.Empty<Vector2>();
+
     public override void _Process(double delta)
     {
         if (_pb == null) return;
         var frames = _pb.GetFramesAvailable();
+        if (frames <= 0) return;
+        // fill one buffer and hand it over in a single call: one engine call per frame instead of one per sample
+        if (_buf.Length != frames) _buf = new Vector2[frames];
         for (var i = 0; i < frames; i++)
         {
             _level += (_target - _level) * 0.00005f;
@@ -46,8 +51,9 @@ public partial class Ambience : Node
             var whine = (float)(Math.Sin(_phase1) + Math.Sin(_phase2)) * 0.035f;
             var hum = (float)Math.Sin(_phase3) * 0.08f;
             var s = (fans * 0.5f + whine + hum) * _level;
-            _pb.PushFrame(new Vector2(s, s));
+            _buf[i] = new Vector2(s, s);
         }
+        _pb.PushBuffer(_buf);
         if (_phase1 > 1e6) { _phase1 %= 2 * Math.PI; _phase2 %= 2 * Math.PI; _phase3 %= 2 * Math.PI; }
     }
 }

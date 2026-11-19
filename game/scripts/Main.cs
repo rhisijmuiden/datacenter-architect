@@ -55,6 +55,8 @@ public partial class Main : Node3D
         layer.AddChild(_ui);
         ShowTitle();
         if (AppSettings.Instance.CheckUpdatesOnStart && GameVersion.BuildChannel != "dev") _ = BackgroundUpdateCheck();
+        var bench = Array.IndexOf(args, "--bench");
+        if (bench >= 0 && bench + 1 < args.Length) { _ = RunBench(int.Parse(args[bench + 1]), args); return; }
         var shot = Array.IndexOf(args, "--screenshot");
         if (shot >= 0 && shot + 1 < args.Length) _ = Screenshot(args[shot + 1], args);
     }
@@ -301,12 +303,17 @@ public partial class Main : Node3D
     {
         if (_cam == null || _state == null) return;
         var hours = delta * HoursPerSecond[_playing ? _speed : 1];
+        _swSim.Restart();
         if (hours > 0)
         {
             if (_playing) _state.Advance(hours);
             _sim.Tick(hours);
         }
+        _swSim.Stop();
+        _swWorld.Restart();
         _world.Sync(delta);
+        _swWorld.Stop();
+        _benchSample?.Add(delta, Bench.Ms(_swSim), Bench.Ms(_swWorld));
         UpdateSound();
         if (!_playing)
         {
@@ -818,7 +825,51 @@ public partial class Main : Node3D
     }
 
     // ---------------- dev helpers ----------------
-    /// <summary>--screenshot path [--in-game] [--interior] [--new-game] [--info] [--options TAB] [--company TAB] [--category cat_x] [--nl] [--hours N] [--driveway] [--curves] [--curvetool] [--gate] [--barrier]</summary>
+    readonly System.Diagnostics.Stopwatch _swSim = new(), _swWorld = new();
+    Bench.Sample _benchSample;
+
+    /// <summary>--bench N [--bench-seconds S] [--bench-out file.json]: see <see cref="Bench"/>.</summary>
+    async System.Threading.Tasks.Task RunBench(int racks, string[] args)
+    {
+        var si = Array.IndexOf(args, "--bench-seconds");
+        var seconds = si >= 0 ? double.Parse(args[si + 1], System.Globalization.CultureInfo.InvariantCulture) : 8;
+        var oi = Array.IndexOf(args, "--bench-out");
+        Engine.MaxFps = 0;
+        DisplayServer.WindowSetVsyncMode(DisplayServer.VSyncMode.Disabled);
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        var s = Bench.Build(racks);
+        var buildMs = Bench.Ms(sw);
+        StartGame(s, false);
+        _speed = 1;
+        SetView(0, false);
+        for (var i = 0; i < 3; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        // time a full rebuild of the 3D objects, as happens after placing a rack
+        // time what placing one more rack costs (state change plus rebuilding the 3D world), as the player feels it
+        sw.Restart(); s.AddObject(ObjKind.Rack, 67, 6, 0, 0); _world.Sync(0); var rebuildMs = Bench.Ms(sw);
+        sw.Restart(); s.Touch(); _world.Sync(0); var fullMs = Bench.Ms(sw);
+        var parts = new List<string>();
+        var views = new (string name, float dist, Vector3 target)[]
+        {
+            ("overview", Math.Max(60, s.PlotSize * 0.9f), new Vector3(s.PlotSize / 2f, 0, s.PlotSize / 2f)),
+            ("closeup", 14, new Vector3(20, 0, 12)),
+        };
+        foreach (var (name, dist, target) in views)
+        {
+            _cam.SetView(0.6f, 0.85f, dist, target);
+            for (var i = 0; i < 30; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            _benchSample = new Bench.Sample();
+            var start = Time.GetTicksMsec();
+            while (Time.GetTicksMsec() - start < seconds * 1000) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            parts.Add(_benchSample.Report(name));
+            _benchSample = null;
+        }
+        var live = s.Objects.Count(o => o.Kind == ObjKind.Rack);
+        var json = $"{{\"racks\": {live}, \"state_build_ms\": {buildMs:0}, \"place_rack_ms\": {rebuildMs:0}, \"full_touch_ms\": {fullMs:0}, \"draw_calls\": {Performance.GetMonitor(Performance.Monitor.RenderTotalDrawCallsInFrame)}, \"objects_in_frame\": {Performance.GetMonitor(Performance.Monitor.RenderTotalObjectsInFrame)}, \"nodes\": {Performance.GetMonitor(Performance.Monitor.ObjectNodeCount)}, {string.Join(", ", parts)}}}";
+        GD.Print(json);
+        if (oi >= 0) System.IO.File.WriteAllText(args[oi + 1], json);
+        GetTree().Quit();
+    }
+    /// <summary>--screenshot path [--in-game] [--interior] [--new-game] [--info] [--options TAB] [--company TAB] [--category cat_x] [--nl] [--hours N] [--driveway] [--curves] [--curvetool] [--gate] [--barrier] [--cam yaw,pitch,dist,x,z]</summary>
     async System.Threading.Tasks.Task Screenshot(string path, string[] args)
     {
         if (args.Contains("--nl")) Loc.SetLanguage("nl");
@@ -879,6 +930,13 @@ public partial class Main : Node3D
             _hud.Notify(Loc.T("msg_first_rack_live"), Brand.Ok);
             UpdateGoals(); UpdateProjects();
             _speed = 0;
+        }
+        var cami = Array.IndexOf(args, "--cam");
+        if (cami >= 0 && cami + 1 < args.Length)
+        {
+            // --cam yaw,pitch,distance,x,z
+            var v = args[cami + 1].Split(',').Select(x => float.Parse(x, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+            _cam.SetView(v[0], v[1], v[2], new Vector3(v[3], 0, v[4]));
         }
         if (args.Contains("--new-game")) _ui.AddChild(new NewGameDialog(_ => { }));
         var ci = Array.IndexOf(args, "--category");

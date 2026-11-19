@@ -25,11 +25,11 @@ public partial class WorldView : Node3D
     GameState _state;
     Simulation _sim;
     int _layoutRev = -1, _objRev = -1, _stock = -1;
-    double _siteTimer, _blinkTimer;
+    double _siteTimer;
     readonly Dictionary<int, Node3D> _agentNodes = new();
     readonly List<Node3D> _cranes = new();
-    MultiMesh _leds;
-    readonly Random _rng = new(7);
+    RackRenderer _racks;
+    readonly List<Node3D> _markers = new();
     FontFile _font;
     public DirectionalLight3D Sun { get; private set; }
     WorldEnvironment _env;
@@ -46,6 +46,7 @@ public partial class WorldView : Node3D
             _env.Environment.FogEnabled = s.Fog;
         }
         BlinkingLights = s.BlinkingLights;
+        ServerFill.SetBlinking(BlinkingLights);
         MovingParts = s.MovingParts;
         if (IsInsideTree()) GetViewport().Msaa3D = s.Msaa switch { 2 => Viewport.Msaa.Msaa2X, 4 => Viewport.Msaa.Msaa4X, 8 => Viewport.Msaa.Msaa8X, _ => Viewport.Msaa.Disabled };
     }
@@ -95,6 +96,8 @@ public partial class WorldView : Node3D
                 case "Pallets": _pallets = n; break;
             }
         }
+        _racks = new RackRenderer { Name = "Racks" };
+        AddChild(_racks);
     }
 
     public void Build(GameState state, Simulation sim)
@@ -103,6 +106,7 @@ public partial class WorldView : Node3D
         _static?.QueueFree();
         foreach (var n in _agentNodes.Values) n.QueueFree();
         _agentNodes.Clear();
+        _racks.Clear();
         _static = new Node3D { Name = "Static" };
         AddChild(_static);
         Surroundings(_static, state.PlotSize);
@@ -868,12 +872,11 @@ public partial class WorldView : Node3D
     void RebuildObjects()
     {
         foreach (var c in _objects.GetChildren()) c.QueueFree();
-        _leds = null; _fans.Clear(); _gates.Clear();
-        if (_state == null) return;
+        _fans.Clear(); _gates.Clear(); _markers.Clear();
+        if (_state == null) { _racks.Clear(); return; }
         GridStationModel();
         HallDecor();
-        var racks = new List<Transform3D>(); var fronts = new List<Transform3D>(); var ghosts = new List<Transform3D>();
-        var leds = new List<Transform3D>();
+        var racks = new List<(PlacedObject, float)>();
         foreach (var o in _state.Objects)
         {
             if (!ObjectVisible(o)) continue;
@@ -883,13 +886,9 @@ public partial class WorldView : Node3D
             var basis = Basis.Identity.Rotated(Vector3.Up, -Mathf.Pi / 2 * o.Rot);
             if (o.Kind == ObjKind.Rack)
             {
-                if (o.Status <= ObjStatus.Delivered) { ghosts.Add(new Transform3D(basis, pos + new Vector3(0, 1.05f, 0))); continue; }
-                racks.Add(new Transform3D(basis, pos + new Vector3(0, 1.05f, 0)));
-                fronts.Add(new Transform3D(basis, pos + basis * new Vector3(0, 1.05f, 0.476f)));
-                if (o.Status == ObjStatus.Live)
-                    for (var i = 0; i < 6; i++)
-                        leds.Add(new Transform3D(basis, pos + basis * new Vector3(-0.3f + (i % 3) * 0.12f, 0.45f + i / 3 * 0.75f + (i % 3) * 0.18f, 0.49f)));
-                else AddMarker(o, pos);
+                // racks and their servers are instanced per chunk by the rack renderer
+                racks.Add((o, y));
+                if (o.Status > ObjStatus.Delivered && o.Status != ObjStatus.Live) AddMarker(o, pos);
                 continue;
             }
             var n = Models.Object(o.Kind);
@@ -901,27 +900,7 @@ public partial class WorldView : Node3D
             else if (o.Def.Chain && o.Status != ObjStatus.Live) AddMarker(o, pos);
             _objects.AddChild(n);
         }
-        Multi(_objects, new BoxMesh { Size = new Vector3(0.985f, 2.1f, 0.95f) }, racks, Brand.Rack);
-        Multi(_objects, new BoxMesh { Size = new Vector3(0.9f, 1.95f, 0.01f) }, fronts, new Color("#3a414a"));
-        if (ghosts.Count > 0)
-        {
-            var mm = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = new BoxMesh { Size = new Vector3(0.95f, 2.1f, 0.92f) }, InstanceCount = ghosts.Count };
-            for (var i = 0; i < ghosts.Count; i++) mm.SetInstanceTransform(i, ghosts[i]);
-            _objects.AddChild(new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = Mat(new Color(1, 1, 1, 0.22f), 1f), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
-        }
-        if (leds.Count > 0)
-        {
-            _leds = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = true, Mesh = new BoxMesh { Size = new Vector3(0.1f, 0.05f, 0.02f) }, InstanceCount = leds.Count };
-            for (var i = 0; i < leds.Count; i++) { _leds.SetInstanceTransform(i, leds[i]); _leds.SetInstanceColor(i, LedColor()); }
-            var mat = new StandardMaterial3D { VertexColorUseAsAlbedo = true, ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded };
-            _objects.AddChild(new MultiMeshInstance3D { Multimesh = _leds, MaterialOverride = mat, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
-        }
-    }
-
-    Color LedColor()
-    {
-        var r = _rng.Next(100);
-        return r < 62 ? Brand.Ok : r < 80 ? new Color("#4aa3ff") : r < 92 ? new Color(0.1f, 0.25f, 0.15f) : Brand.Amber;
+        _racks.Update(racks);
     }
 
     void AddMarker(PlacedObject o, Vector3 pos)
@@ -931,6 +910,7 @@ public partial class WorldView : Node3D
         m.Position = pos + new Vector3(0, 2.7f, 0);
         m.Name = "Marker";
         _objects.AddChild(m);
+        _markers.Add(m);
     }
 
     // ---------------- agents ----------------
@@ -1018,20 +998,12 @@ public partial class WorldView : Node3D
         }
         if (MovingParts)
         {
-            foreach (var m in _objects.GetChildren().OfType<Node3D>().Where(n => n.Name.ToString().StartsWith("Marker")))
-                m.RotateY((float)delta * 2f);
+            foreach (var m in _markers) m.RotateY((float)delta * 2f);
             foreach (var f in _fans) if (IsInstanceValid(f)) f.RotateY((float)delta * 9f);
         }
         // gates are gameplay (vehicles wait for them), so they always move
         AnimateGates();
-        // blinking status lights: flip a few LEDs a few times a second, cheap on any PC
-        _blinkTimer -= delta;
-        if (_leds != null && _blinkTimer <= 0 && BlinkingLights)
-        {
-            _blinkTimer = 0.12;
-            var n = Math.Max(1, _leds.InstanceCount / 12);
-            for (var i = 0; i < n; i++) _leds.SetInstanceColor(_rng.Next(_leds.InstanceCount), LedColor());
-        }
+        // server LEDs blink in their shader (ServerFill), nothing to do per frame here
     }
 
     // ---------------- power and cooling ----------------
