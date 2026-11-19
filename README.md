@@ -8,7 +8,12 @@ An offline building and management sim for Windows 11. Buy land, design the whol
 
 ## Status
 
-Step 2: the technical base is in place (Godot project, camera, build grid, EN/NL, local saves, Info screen with updates). Design material:
+Step 3: building and creative mode. Pave the site, fence it, mark a materials yard, and watch trucks and construction workers put up buildings with floors, rooms and doors. Racks are delivered to the loading dock, placed by fitters and connected by engineers. Creative mode switches off money and limits.
+
+![Construction](docs/screenshots/step3-build.png)
+![Data hall](docs/screenshots/step3-hall.png)
+
+Design material:
 
 - [Game design document](docs/game-design.md) (Dutch)
 - [Brand guide](brand/BRAND.md) and [design tokens](brand/tokens.json)
@@ -32,7 +37,7 @@ godot --path game                            # run the game
 godot --headless --path game -- --run-tests  # run the tests (exit code 0 = pass)
 ```
 
-Controls: right-drag rotates, mouse wheel zooms, WASD or middle-drag pans, Q/E turn 90°, R rotates the object you are placing, Space pauses, 1/2/3 set the speed, Esc opens the menu.
+Controls: right-drag rotates, mouse wheel zooms, WASD or middle-drag pans, Q/E turn 90°, R rotates the object you are placing, T shows or hides roofs, Page Up/Down change floor, Space pauses, 1/2/3 set the speed, F5 saves, Esc opens the menu.
 
 ## Releasing
 

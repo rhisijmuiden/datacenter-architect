@@ -90,13 +90,13 @@ public partial class CameraRig : Node3D
         Camera.LookAt(GlobalPosition, Vector3.Up);
     }
 
-    /// <summary>Ground point (y = 0) under a screen position, or null.</summary>
-    public Vector3? GroundAt(Vector2 screen)
+    /// <summary>Point on the horizontal plane at height y under a screen position, or null.</summary>
+    public Vector3? GroundAt(Vector2 screen, float y = 0)
     {
         var from = Camera.ProjectRayOrigin(screen);
         var dir = Camera.ProjectRayNormal(screen);
         if (Mathf.Abs(dir.Y) < 1e-4f) return null;
-        var t = -from.Y / dir.Y;
+        var t = (y - from.Y) / dir.Y;
         return t > 0 ? from + dir * t : null;
     }
 }

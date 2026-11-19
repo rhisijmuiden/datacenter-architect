@@ -57,7 +57,6 @@ res_power	Power	Stroom
 res_backup	Backup	Noodstroom
 res_cooling	Cooling	Koeling
 res_racks	Racks	Racks
-res_fiber	Fiber	Glasvezel
 res_money	Balance	Saldo
 hud_build	Build	Bouwen
 tool_select	Select	Selecteren
@@ -72,10 +71,9 @@ cat_security	Security	Beveiliging
 cat_staff	Staff	Personeel
 cat_customers	Customers	Klanten
 hud_coming_soon	Coming in a later update	Komt in een volgende update
-hint_select	Right-drag rotates, wheel zooms, WASD or middle-drag pans. Q and E turn the view.	Rechts slepen draait, scrollwiel zoomt, WASD of middelste knop schuift. Q en E draaien het beeld.
-hint_foundation	Drag a rectangle to pour a foundation.	Sleep een rechthoek om een fundering te storten.
+hint_select	Click a building, room or rack for details. Right-drag rotates, wheel zooms, WASD pans, Q and E turn. T shows roofs, Page Up and Down change floor.	Klik op een gebouw, ruimte of rack voor details. Rechts slepen draait, scrollwiel zoomt, WASD schuift, Q en E draaien. T toont daken, Page Up en Down wisselen van verdieping.
 hint_place	Click to place. R rotates. Red means it cannot go there.	Klik om te plaatsen. R draait. Rood betekent dat het daar niet kan.
-hint_erase	Click or drag to demolish. You get half the cost back.	Klik of sleep om te slopen. Je krijgt de helft van de kosten terug.
+hint_erase	Drag over what you want to remove. Objects and doors go first, then rooms, then buildings and paving.	Sleep over wat je wilt weghalen. Eerst objecten en deuren, dan ruimtes, dan gebouwen en bestrating.
 hud_rotate_left	Rotate left (Q)	Links draaien (Q)
 hud_rotate_right	Rotate right (E)	Rechts draaien (E)
 hud_grid	Show or hide the grid	Grid tonen of verbergen
@@ -86,20 +84,177 @@ hud_speed_0	Pause (Space)	Pauze (spatie)
 hud_speed_1	Normal speed (1)	Normale snelheid (1)
 hud_speed_2	Fast (2)	Snel (2)
 hud_speed_3	Very fast (3)	Zeer snel (3)
-build_foundation	Foundation	Fundering
-build_rack	Rack (42U)	Rack (42U)
-build_crah	CRAH unit	CRAH-unit
-build_generator	Generator 1 MW	Generator 1 MW
-build_fiberpit	Fiber pit	Glasvezelput
 msg_outside_plot	That is outside your plot.	Dat ligt buiten je terrein.
 msg_occupied	Something is already there.	Daar staat al iets.
-msg_needs_foundation	This has to go indoors, on a foundation.	Dit moet binnen staan, op een fundering.
-msg_outside_only	This goes outside, not on a foundation.	Dit hoort buiten, niet op een fundering.
+msg_outside_only	This goes outside, not in a building.	Dit hoort buiten, niet in een gebouw.
 msg_no_money	Not enough money.	Niet genoeg geld.
 msg_load_failed	That savegame could not be loaded.	Die savegame kon niet worden geladen.
 msg_loaded	Loaded {0}.	{0} geladen.
-msg_welcome	Welcome, {0}. Pour a foundation and place your first racks.	Welkom, {0}. Stort een fundering en plaats je eerste racks.
-msg_welcome_ai	Welcome, {0}. Competitors are active in the region. Pour a foundation and place your first racks.	Welkom, {0}. Er zijn concurrenten actief in de regio. Stort een fundering en plaats je eerste racks.
+msg_welcome	Welcome, {0}. Your plot is empty: time to build.	Welkom, {0}. Je terrein is nog leeg: tijd om te bouwen.
+msg_welcome_ai	Welcome, {0}. Competitors are active in the region. Your plot is empty: time to build.	Welkom, {0}. Er zijn concurrenten actief in de regio. Je terrein is nog leeg: tijd om te bouwen.
 msg_update_available	Version {0} is available. Open Info to update.	Versie {0} is beschikbaar. Open Info om te updaten.
 msg_autosaved	Game saved.	Spel opgeslagen.
 msg_cooling_short	Racks produce more heat than the CRAH units can remove. Add cooling.	De racks maken meer warmte dan de CRAH-units kunnen afvoeren. Voeg koeling toe.
+res_material	Material	Materiaal
+msg_start_hint	Start with an asphalt driveway from the road and a building materials yard. The checklist on the right shows what comes next.	Begin met een asfalten oprit vanaf de weg en een bouwmaterialenplek. De checklist rechts laat zien wat daarna komt.
+hint_surface	Drag to pave. Trucks drive on asphalt, parking and the materials yard.	Sleep om te bestraten. Vrachtwagens rijden over asfalt, parkeerplaatsen en de materialenplek.
+hint_fence	Drag a line, or a rectangle to fence it all round. Put a sliding gate where the driveway crosses.	Sleep een lijn, of een rechthoek om alles te omheinen. Zet een schuifpoort waar de oprit het hek kruist.
+hint_building	Drag out the floor plan. Builders lay the foundation, put up the walls and the roof. Material comes by truck to your yard.	Sleep de plattegrond uit. Bouwvakkers storten de fundering en bouwen muren en dak. Materiaal komt per vrachtwagen naar je materialenplek.
+hint_room	Drag a room inside a finished building. Builders put up the inner walls. Lights are added automatically.	Sleep een ruimte binnen een afgebouwd gebouw. Bouwvakkers zetten de binnenmuren. Verlichting komt er vanzelf in.
+hint_door	Point at a wall and click. Racks only fit through double doors and roll-up doors.	Wijs een muur aan en klik. Racks passen alleen door dubbele deuren en roldeuren.
+hint_row	Drag a row of up to 24 racks. R turns the fronts. Leave an aisle between rows so engineers reach the back.	Sleep een rij van maximaal 24 racks. R draait de voorkanten. Laat een gang tussen de rijen zodat engineers bij de achterkant kunnen.
+cat_rooms	Rooms	Ruimtes
+cat_interior	Interior	Inrichting
+hud_creative	Creative	Creatief
+hud_unlimited	no limit	geen limiet
+hud_floors	Floors	Verdiepingen
+hud_floors_n	{0} floor(s)	{0} verdieping(en)
+hud_facade	Facade	Gevel
+hud_needs_research	Needs research (step 8), or creative mode with everything unlocked.	Vraagt research (stap 8), of de creatieve modus met alles ontgrendeld.
+hud_roofs	Show or hide roofs (T)	Daken tonen of verbergen (T)
+hud_floor	Floor you are looking at	Verdieping die je bekijkt
+hud_floor_up	Floor up (Page Up)	Verdieping omhoog (Page Up)
+hud_floor_down	Floor down (Page Down)	Verdieping omlaag (Page Down)
+hud_floor_ground	Ground	Begane grond
+hud_floor_n	Floor {0}	Verdieping {0}
+goals_title	Site checklist	Checklist terrein
+goal_driveway	Asphalt driveway connected to the road	Asfalten oprit aangesloten op de weg
+goal_yard	Building materials yard	Bouwmaterialenplek
+goal_building	Datacenter building finished	Datacenterpand afgebouwd
+goal_hall	Data hall ready	Datahal klaar
+goal_dock	Loading dock with a roll-up door on asphalt	Laadperron met roldeur aan het asfalt
+goal_rack	First rack live	Eerste rack live
+goal_office	Director's office with a desk	Directiekamer met bureau
+projects_title	Building projects	Bouwprojecten
+projects_waiting	waits for building	wacht op gebouw
+projects_priority	Click to change the priority	Klik om de prioriteit te wijzigen
+prio_1	Low	Laag
+prio_2	Normal	Normaal
+prio_3	High	Hoog
+crew_help	Hired through a contractor. More people work faster but cost more per day.	Ingehuurd via een aannemer. Meer mensen werken sneller, maar kosten meer per dag.
+crew_builder	Construction workers	Bouwvakkers
+crew_fitter	Fitters	Monteurs
+crew_engineer	Datacenter engineers	Datacenter engineers
+crew_per_day	per day	per dag
+new_mode	Game mode	Spelmodus
+new_mode_career	Career	Carrière
+new_mode_creative	Creative	Creatief
+new_career_help	Start with a budget, pay for everything and keep the company afloat.	Begin met een budget, betaal alles zelf en houd het bedrijf overeind.
+new_creative_help	Build freely. Pick which limits you want to switch off.	Bouw vrij. Kies welke beperkingen je uitzet.
+cr_unlimited_money	Unlimited money	Onbeperkt geld
+cr_no_power	No power limit	Geen stroomlimiet
+cr_no_cooling	No cooling limit	Geen koellimiet
+cr_no_network	No network limit	Geen netwerklimiet
+cr_no_breakdowns	No breakdowns	Geen storingen
+cr_instant_build	Instant building	Direct bouwen
+cr_all_unlocks	Everything unlocked	Alles ontgrendeld
+obj_rack	Rack (42U)	Rack (42U)
+obj_crah	CRAH unit 120 kW	CRAH-unit 120 kW
+obj_generator	Generator 1 MW	Generator 1 MW
+obj_fiberpit	Fiber pit	Glasvezelput
+obj_lift	Freight lift	Goederenlift
+obj_desk	Desk	Bureau
+obj_chair	Office chair	Bureaustoel
+obj_plant	Plant	Plant
+obj_cabinet	Cabinet	Kast
+obj_meeting_table	Meeting table	Vergadertafel
+obj_vending	Vending machine	Frisdrankautomaat
+obj_microwave	Microwave	Magnetron
+obj_coffee	Coffee machine	Koffieautomaat
+obj_sofa	Sofa	Bank
+obj_terminal	Work terminal	Werkterminal
+obj_crashcart	Crash cart	Monitorkarretje
+obj_tree	Tree	Boom
+obj_shrub	Shrub	Struik
+obj_lamp	Lamp post	Lantaarnpaal
+obj_bench	Bench	Bankje
+obj_bikerack	Bike rack	Fietsenrek
+obj_guardbooth	Guard booth	Beveiligingshokje
+obj_intercom	Intercom	Intercom
+obj_barrier	Barrier	Slagboom
+obj_sliding_gate	Sliding gate	Schuifpoort
+obj_ped_gate	Pedestrian gate	Voetgangerspoort
+surf_grass	Grass (remove paving)	Gras (bestrating weg)
+surf_asphalt	Asphalt	Asfalt
+surf_parking	Parking	Parkeerplaats
+surf_footpath	Footpath	Voetpad
+surf_bikepath	Bike path	Fietspad
+surf_yard	Building materials yard	Bouwmaterialenplek
+fence_mesh	Mesh fence	Gaashek
+fence_welded	Welded mesh fence	Dubbelstaafmathek
+fence_palisade	Tall steel palisade	Hoog stalen spijlenhek
+fence_wall	Concrete wall	Betonnen muur
+fence_electric	Electric fence	Schrikdraad
+bld_datacenter	Datacenter building	Datacenterpand
+bld_office	Office building	Kantoorpand
+bld_warehouse	Warehouse	Warehouse
+room_datahall	Data hall	Datahal
+room_meetme	Meet-me room	Meet-me room
+room_ups	UPS room	UPS-ruimte
+room_office	Office	Kantoor
+room_executive	Director's office	Directiekamer
+room_meeting	Meeting room	Vergaderruimte
+room_canteen	Staff canteen	Personeelskantine
+room_lounge	Customer lounge	Klantruimte
+room_reception	Reception	Receptie
+room_security	Security room	Beveiligingsruimte
+room_dock	Loading dock	Laadperron
+room_storage	Storage	Opslag
+room_corridor	Corridor	Gang
+door_single	Single door	Enkele deur
+door_double	Double door	Dubbele deur
+door_fire	Fire door	Branddeur
+door_badge	Badge door	Badgedeur
+door_rollup	Roll-up door	Roldeur
+stage_foundation	Foundation	Fundering
+stage_walls	Walls	Muren
+stage_roof	Roof	Dak
+stage_done	Finished	Klaar
+status_ordered	Ordered, waiting for the truck	Besteld, wacht op de vrachtwagen
+status_delivered	At the loading dock	Bij het laadperron
+status_placed	Placed, power not connected yet	Geplaatst, stroom nog niet aangesloten
+status_powered	Power connected, fiber not yet	Stroom aangesloten, glasvezel nog niet
+status_live	Live and ready to sell	Live en klaar voor verkoop
+facade_concrete	Concrete	Beton
+facade_brick	Brick	Baksteen
+facade_glass	Glass	Glas
+facade_cladding	Cladding	Gevelbeplating
+inspect_cooling	{0} kW cooling	{0} kW koeling
+inspect_ready	Ready	Klaar
+inspect_building_walls	Inner walls {0}%	Binnenmuren {0}%
+inspect_racks	{0} of {1} racks live	{0} van {1} racks live
+inspect_material	Material on site: {0} of {1}	Materiaal op de bouw: {0} van {1}
+msg_nothing_changed	Nothing changed there.	Daar is niets veranderd.
+msg_too_small	Too small. Buildings are at least 4 × 4 m, rooms 2 × 2 m.	Te klein. Gebouwen zijn minstens 4 × 4 m, ruimtes 2 × 2 m.
+msg_bad_floors	A building has 1 to 4 floors.	Een gebouw heeft 1 tot 4 verdiepingen.
+msg_overlap_building	Another building is in the way.	Er staat een ander gebouw in de weg.
+msg_fence_in_way	A fence is in the way.	Er staat een hek in de weg.
+msg_building_gap	Keep at least one metre between buildings.	Houd minstens één meter tussen gebouwen.
+msg_room_in_building	Rooms go inside a building.	Ruimtes horen binnen een gebouw.
+msg_no_such_floor	This building does not have that floor.	Dit gebouw heeft die verdieping niet.
+msg_overlap_room	Another room is in the way.	Er zit een andere ruimte in de weg.
+msg_door_on_wall	Doors go on a wall.	Deuren horen in een muur.
+msg_door_upper_outer	Outer doors only on the ground floor.	Buitendeuren alleen op de begane grond.
+msg_needs_asphalt	This goes on asphalt.	Dit hoort op asfalt.
+msg_needs_fence	Place this on a fence.	Zet dit op een hek.
+msg_inside_building	This goes inside a building, on the ground floor.	Dit hoort in een gebouw, op de begane grond.
+msg_lift_floors	A lift only makes sense in a building with more than one floor.	Een lift heeft alleen zin in een gebouw met meer verdiepingen.
+msg_needs_room	This goes in a room, not in a data hall.	Dit hoort in een ruimte, niet in een datahal.
+msg_needs_hall	This goes in a data hall.	Dit hoort in een datahal.
+msg_one_room	It has to fit within one room.	Het moet binnen één ruimte passen.
+msg_needs_research	Not unlocked yet.	Nog niet ontgrendeld.
+msg_need_yard	Mark a building materials yard so trucks can deliver material.	Wijs een bouwmaterialenplek aan, zodat vrachtwagens materiaal kunnen leveren.
+msg_yard_no_road	Trucks cannot reach the materials yard. Connect it to the road with asphalt.	Vrachtwagens kunnen de materialenplek niet bereiken. Sluit hem met asfalt aan op de weg.
+msg_yard_unreachable	Builders cannot reach the materials yard.	Bouwvakkers kunnen de materialenplek niet bereiken.
+msg_site_unreachable	Builders cannot reach the {0}. Add a door.	Bouwvakkers kunnen de {0} niet bereiken. Plaats een deur.
+msg_site_needs_lift	Builders cannot reach the {0} upstairs. Add a freight lift and a door.	Bouwvakkers kunnen de {0} boven niet bereiken. Plaats een goederenlift en een deur.
+msg_building_done	{0} is finished.	{0} is klaar.
+msg_room_done	{0} is ready.	{0} is klaar.
+msg_need_dock	Racks are waiting: build a loading dock with a roll-up door onto asphalt.	Er wachten racks: bouw een laadperron met een roldeur aan het asfalt.
+msg_dock_no_road	Trucks cannot reach the loading dock. Connect it to the road with asphalt.	Vrachtwagens kunnen het laadperron niet bereiken. Sluit het met asfalt aan op de weg.
+msg_dock_unreachable	Fitters cannot reach the loading dock.	Monteurs kunnen het laadperron niet bereiken.
+msg_hall_needs_wide_door	Fitters cannot get racks into the hall. Racks need double doors or roll-up doors all the way.	Monteurs krijgen de racks de hal niet in. Racks hebben de hele route dubbele deuren of roldeuren nodig.
+msg_hall_needs_lift	Racks for an upper floor need a freight lift.	Racks voor een hogere verdieping hebben een goederenlift nodig.
+msg_rack_unreachable	An engineer cannot reach a rack. Leave an aisle next to it.	Een engineer kan een rack niet bereiken. Laat er een gang naast.
+msg_first_rack_live	Your first rack is live and ready to sell!	Je eerste rack is live en klaar voor verkoop!
+msg_racks_ordered	{0} ordered. A truck brings them to the loading dock.	{0} besteld. Een vrachtwagen brengt ze naar het laadperron.

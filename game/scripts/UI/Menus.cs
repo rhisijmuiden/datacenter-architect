@@ -62,20 +62,59 @@ public partial class MainMenu : Control
     }
 }
 
-/// <summary>New game settings, including the AI competitors switch.</summary>
+/// <summary>New game settings: company, difficulty, AI competitors and creative mode with its switches.</summary>
 public partial class NewGameDialog : Modal
 {
-    public NewGameDialog(Action<NewGameOptions> start) : base("new_title", 500)
+    public NewGameDialog(Action<NewGameOptions> start) : base("new_title", 560)
     {
         var o = new NewGameOptions();
         Body.AddChild(Ui.Heading("new_company"));
         var name = new LineEdit { Text = Loc.T("new_company_default"), MaxLength = 40 };
         Body.AddChild(name);
-        Body.AddChild(Ui.Heading("new_difficulty"));
+
+        Body.AddChild(Ui.Heading("new_mode"));
+        var modes = new HBoxContainer(); modes.AddThemeConstantOverride("separation", 8);
+        var career = new Button { Text = "new_mode_career", ToggleMode = true, ButtonPressed = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 40) };
+        var creative = new Button { Text = "new_mode_creative", ToggleMode = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 40) };
+        var group = new ButtonGroup(); career.ButtonGroup = group; creative.ButtonGroup = group;
+        modes.AddChild(career); modes.AddChild(creative);
+        Body.AddChild(modes);
+
+        var careerBox = new VBoxContainer(); careerBox.AddThemeConstantOverride("separation", 8);
+        careerBox.AddChild(Ui.Heading("new_difficulty"));
         var diff = new OptionButton();
         diff.AddItem(Loc.T("new_easy")); diff.AddItem(Loc.T("new_normal")); diff.AddItem(Loc.T("new_hard"));
         diff.Selected = 1;
-        Body.AddChild(diff);
+        careerBox.AddChild(diff);
+        careerBox.AddChild(Ui.Text("new_career_help", 13, Brand.InkDim));
+        Body.AddChild(careerBox);
+
+        var creativeBox = new VBoxContainer { Visible = false }; creativeBox.AddThemeConstantOverride("separation", 2);
+        creativeBox.AddChild(Ui.Text("new_creative_help", 13, Brand.InkDim));
+        var c = CreativeOptions.All();
+        var toggles = new (string key, Func<bool> get, Action<bool> set)[]
+        {
+            ("cr_unlimited_money", () => c.UnlimitedMoney, v => c.UnlimitedMoney = v),
+            ("cr_no_power", () => c.NoPowerLimit, v => c.NoPowerLimit = v),
+            ("cr_no_cooling", () => c.NoCoolingLimit, v => c.NoCoolingLimit = v),
+            ("cr_no_network", () => c.NoNetworkLimit, v => c.NoNetworkLimit = v),
+            ("cr_no_breakdowns", () => c.NoBreakdowns, v => c.NoBreakdowns = v),
+            ("cr_instant_build", () => c.InstantBuild, v => c.InstantBuild = v),
+            ("cr_all_unlocks", () => c.AllUnlocks, v => c.AllUnlocks = v),
+        };
+        var grid = new GridContainer { Columns = 2 };
+        grid.AddThemeConstantOverride("h_separation", 12);
+        foreach (var (key, get, set) in toggles)
+        {
+            var cb = new CheckBox { Text = key, ButtonPressed = get(), SizeFlagsHorizontal = SizeFlags.ExpandFill };
+            var setter = set;
+            cb.Toggled += v => setter(v);
+            grid.AddChild(cb);
+        }
+        creativeBox.AddChild(grid);
+        Body.AddChild(creativeBox);
+        career.Toggled += on => { careerBox.Visible = on; creativeBox.Visible = !on; };
+
         var ai = new CheckButton { Text = "new_ai", ButtonPressed = true };
         Body.AddChild(ai);
         Body.AddChild(Ui.Text("new_ai_help", 13, Brand.InkDim));
@@ -84,6 +123,9 @@ public partial class NewGameDialog : Modal
         {
             o.Company = string.IsNullOrWhiteSpace(name.Text) ? Loc.T("new_company_default") : name.Text.Trim();
             o.Difficulty = diff.Selected; o.AiCompetitors = ai.ButtonPressed;
+            o.Creative = creative.ButtonPressed;
+            o.CreativeOptions = o.Creative ? c : new CreativeOptions();
+            if (o.Creative && c.UnlimitedMoney) o.Difficulty = 0;
             Close(); start(o);
         }));
     }
