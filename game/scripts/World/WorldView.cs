@@ -103,11 +103,10 @@ public partial class WorldView : Node3D
         Plane(root, new Vector3(s / 2f, -0.015f, s + 4), new Vector2(900, 6), Brand.Asphalt);
         for (var x = -420; x < 480; x += 6) Plane(root, new Vector3(s / 2f + x, -0.01f, s + 4), new Vector2(3, 0.18f), new Color("#ece6cc"));
         Plane(root, new Vector3(s / 2f, -0.012f, s + 7.8f), new Vector2(900, 1.6f), new Color("#c9c1b2"));
-        Box(root, new Vector3(s / 2f, 0.06f, s + 0.9f), new Vector3(900, 0.12f, 0.25f), new Color("#b9b2a6"));
         // side road heading north along the west of the plot
         Plane(root, new Vector3(-9, -0.014f, s / 2f - 60), new Vector2(6, 2 * s + 120), Brand.Asphalt);
         // fibre pits of carriers along the road (orange = fiber)
-        foreach (var x in new[] { 8, 30, 52 }) Box(root, new Vector3(x + 0.5f, 0.05f, s + 1.6f), new Vector3(0.9f, 0.1f, 0.9f), Brand.Fiber);
+        foreach (var x in new[] { 8, 30, 52 }) Plane(root, new Vector3(x + 0.5f, -0.006f, s + 1.6f), new Vector2(0.9f, 0.9f), Brand.Fiber); // flush covers, no bump in a driveway
         // plot corner posts
         foreach (var c in new[] { new Vector3(0, 0, 0), new Vector3(s, 0, 0), new Vector3(0, 0, s), new Vector3(s, 0, s) })
             Box(root, c + new Vector3(0, 0.6f, 0), new Vector3(0.25f, 1.2f, 0.25f), Brand.Power);
@@ -330,8 +329,67 @@ public partial class WorldView : Node3D
                 if (t == Surface.Footpath) tiles.Add(new Transform3D(Basis.Identity, new Vector3(x + 0.5f, 0.016f, z + 0.5f)));
             }
         foreach (var (k, l) in lists) Multi(root, new PlaneMesh { Size = new Vector2(1, 1) }, l, cols[k], false);
+        Driveways(root, s);
         Multi(root, new PlaneMesh { Size = new Vector2(0.08f, 1) }, stripes, new Color("#f2f2ee"), false);
         Multi(root, new PlaneMesh { Size = new Vector2(0.46f, 0.46f) }, tiles, new Color("#e4dac5"), false);
+    }
+
+    /// <summary>Vehicle surface that gets a driveway onto the public road.</summary>
+    static bool Drivable(Surface t) => t is Surface.Asphalt or Surface.Parking;
+
+    /// <summary>
+    /// The kerb along the public road, broken where asphalt or parking reaches the plot edge. There the
+    /// strip between plot and road gets an asphalt apron with flared sides and a dropped kerb, so a
+    /// driveway runs flush onto the road. The same goes for asphalt on the west edge towards the side road.
+    /// </summary>
+    void Driveways(Node3D root, int s)
+    {
+        var kerb = new Color("#b9b2a6");
+        const float flare = 0.8f;
+        // south edge: runs of drivable cells on the last row
+        var runs = Runs(s, x => Drivable(_state.SurfaceAt(x, s - 1)));
+        var from = s / 2f - 450f;
+        foreach (var (a, b) in runs)
+        {
+            var x0 = a - flare; var x1 = b + 1 + flare;
+            KerbPiece(from, x0);
+            from = x1;
+            // apron: full width over the verge, plus two flared wedges at the road side
+            Plane(root, new Vector3((a + b + 1) / 2f, 0.004f, s + 0.55f), new Vector2(b + 1 - a, 1.1f), Brand.Asphalt);
+            Plane(root, new Vector3((a + b + 1) / 2f, 0.002f, s + 0.85f), new Vector2(x1 - x0, 0.5f), Brand.Asphalt);
+            Plane(root, new Vector3((a + b + 1) / 2f, 0.001f, s + 0.95f), new Vector2(x1 - x0 + 0.6f, 0.3f), Brand.Asphalt);
+            // dropped kerb: a flush strip in kerb colour on either side
+            Plane(root, new Vector3(x0 - 0.15f, 0.006f, s + 0.9f), new Vector2(0.3f, 0.25f), kerb);
+            Plane(root, new Vector3(x1 + 0.15f, 0.006f, s + 0.9f), new Vector2(0.3f, 0.25f), kerb);
+        }
+        KerbPiece(from, s / 2f + 450f);
+
+        // west edge: asphalt on the first column connects to the side road
+        foreach (var (a, b) in Runs(s, z => Drivable(_state.SurfaceAt(0, z))))
+        {
+            Plane(root, new Vector3(-3.05f, 0.004f, (a + b + 1) / 2f), new Vector2(6.1f, b + 1 - a), Brand.Asphalt);
+            Plane(root, new Vector3(-5.6f, 0.002f, (a + b + 1) / 2f), new Vector2(0.9f, b + 1 - a + 2 * flare), Brand.Asphalt);
+        }
+
+        void KerbPiece(float x0, float x1)
+        {
+            if (x1 - x0 < 0.05f) return;
+            Box(root, new Vector3((x0 + x1) / 2f, 0.06f, s + 0.9f), new Vector3(x1 - x0, 0.12f, 0.25f), kerb);
+        }
+    }
+
+    static List<(int a, int b)> Runs(int n, Func<int, bool> on)
+    {
+        var r = new List<(int, int)>();
+        for (var i = 0; i < n; i++)
+        {
+            if (!on(i)) continue;
+            var j = i;
+            while (j + 1 < n && on(j + 1)) j++;
+            r.Add((i, j));
+            i = j;
+        }
+        return r;
     }
 
     void FencesLayer(Node3D root)
