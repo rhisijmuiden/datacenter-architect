@@ -79,6 +79,40 @@ Verplicht of sterk aangeraden:
 
 Daarnaast wegen, paden, groen en uitbreidingsruimte. Gebouwen zijn opengewerkt, en daken kun je aan- en uitzetten.
 
+## Ruimtes
+
+Binnen een gebouw **teken je zelf ruimtes**: muren trekken, deuren plaatsen en een ruimtetype kiezen. Elk type heeft eisen (minimale grootte, verplichte objecten, toegangsniveau) en werkt pas als daaraan is voldaan.
+
+| Ruimte | Functie | Verplichte objecten |
+|---|---|---|
+| **Datazaal** | Racks van klanten | Racks, CRAH-units, kabelgoten, PDU's |
+| **Kooi / private suite** | Afgeschermd deel van een zaal voor één klant | Hekwerk, toegangslezer |
+| **Meet-me room (MMR)** | Hier komen alle netwerken binnen | ODF's, patchpanelen, provider-racks |
+| **UPS-ruimte** | Overbrugging bij stroomuitval | UPS-systemen |
+| **Accuruimte** | Accubanken voor de UPS | Accukasten, extra koeling, brandblusinstallatie |
+| **Switchgear-ruimte** | Hoofdverdeling en ATS | Schakelkasten, ATS |
+| **NOC** | Bewaking van het hele terrein | Werkplekken, schermwand |
+| **Kantoor** | Werkplekken voor personeel | Bureaus |
+| **Kantine en toiletten** | Tevredenheid van personeel | Keuken, tafels, toiletten |
+| **Opslag** | Voorraad racks, servers en reserveonderdelen | Stellingen |
+| **Laadperron** | Leveringen ontvangen | Laaddeuren |
+| **Build room / staging** | Servers voorbereiden voordat ze de zaal in gaan | Werkbanken |
+| **Beveiligingsloge** | Check-in, badges uitgeven | Balie, toegangspoortjes |
+| **Klantenruimte** | Werkplek voor klanten die op locatie zijn | Bureaus, kluisjes |
+
+**Meet-me room in detail**
+
+- De MMR is het **netwerkhart** van je datacenter. Elke provider die je aansluit krijgt hier een eigen rack of positie.
+- Je kunt **providers, carriers en internet exchanges** (zoals een lokaal IX-knooppunt) aansluiten. Elke aansluiting kost geld en ruimte in de MMR, maar maakt je datacenter aantrekkelijker.
+- Klanten bestellen **cross-connects** van hun rack naar een provider in de MMR. Hoe meer netwerken in je MMR, hoe meer cross-connects je verkoopt.
+- Een **tweede MMR** aan de andere kant van het gebouw, met een eigen glasvezelroute, geeft netwerkredundantie. Grote klanten eisen dat vaak.
+- De MMR heeft een eigen **toegangsniveau**: alleen netwerkengineers en begeleide providers mogen erin.
+
+**Toegang en beveiliging**
+
+- Ruimtes hebben toegangsniveaus. Deuren met een badgelezer laten alleen bevoegde mensen door.
+- Een **mantrap** (sluis) tussen de publieke zone en de datazalen is een eis bij veel grote contracten.
+
 ## Personeel
 
 Personeel is een eigen module. Je **werft medewerkers** en ziet ze als poppetjes over het terrein lopen.
