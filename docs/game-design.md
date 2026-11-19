@@ -1,6 +1,6 @@
 # Game design document: Datacenter Architect
 
-*Versie 0.1, 19 november 2026. Een levend document dat met de game meegroeit.*
+*Versie 0.2, 19 november 2026. Een levend document dat met de game meegroeit.*
 
 ## In één zin
 
@@ -33,7 +33,15 @@ Elke locatie toont vooraf de **beschikbare netcapaciteit (MVA)** en de **glasvez
 - **Netaansluiting** via een onderstation met transformatoren. De capaciteit van de locatie bepaalt hoe groot je kunt worden.
 - **Generatoren** in verschillende soorten en capaciteiten (bijvoorbeeld diesel/HVO en gas), met een brandstoftank en een aantal uren autonomie.
 - **Redundantie**: de game controleert of je opzet **N**, **N+1** of **2N** is en toont dat in de stroombalk. Klanten met hogere eisen betalen meer, maar willen ook een hogere redundantie.
-- **Interne stroominfrastructuur**: je ontwerpt zelf de route van onderstation en generatoren naar de **UPS** (met accu-autonomie), de **PDU's** en uiteindelijk de racks. A- en B-voeding per rack.
+- **Interne stroominfrastructuur**, gedetailleerd tot op het rack. Je ontwerpt de hele keten zelf:
+  1. **Middenspanning**: netaansluiting, onderstation en transformatoren (MS naar LS).
+  2. **Hoofdverdeler (switchgear)** met een **ATS** die automatisch omschakelt tussen net en generator.
+  3. **UPS-systemen** met accubanken. Je kiest de autonomie in minuten en de opzet (N, N+1, 2N).
+  4. **Verdeling naar de zalen** via kabels of **busbars** boven de rackrijen, met eigen capaciteit in ampère.
+  5. **PDU's** (rack-PDU's of vloer-PDU's) per rij of per rack.
+  6. **A- en B-voeding** per rack, elk via een eigen pad. Gaat één pad uit, dan blijft het rack draaien als beide paden goed zijn aangelegd.
+- Elk onderdeel heeft een capaciteit. Overbelasting laat een **groep of zekering uitvallen**, en de speler ziet in de stroomweergave precies welk pad het probleem is.
+- **Onderhoud**: onderdelen slijten. Een engineer moet ze testen en onderhouden, en tijdens onderhoud draai je even op je redundante pad.
 - **Netuitval** is een gebeurtenis in het spel: de UPS overbrugt en de generatoren moeten binnen een paar seconden starten. Is je opzet niet goed, dan gaan racks uit.
 
 ## Koeling
@@ -48,7 +56,16 @@ Elke locatie toont vooraf de **beschikbare netcapaciteit (MVA)** en de **glasvez
 
 - Glasvezelputten bij de weg, elk van een provider. Je legt zelf de mantelbuis naar de **MMR** (meet-me room) in je gebouw.
 - Meer providers aangesloten betekent een hogere prijs per rack en meer interesse van klanten.
-- Binnen leg je **kabelgoten** boven de rackrijen: geel voor glasvezel, grijs voor stroom.
+- Binnen leg je **kabelgoten** boven de rackrijen: geel voor glasvezel, grijs voor stroom. Kabelgoten hebben een maximale vulling.
+- **Netwerkinfrastructuur**, ook gedetailleerd:
+  1. **Glasvezelput en mantelbuis** van de provider naar je terrein. Twee gescheiden routes (verschillende putten en ingangen) geven **netwerkredundantie**.
+  2. **MMR (meet-me room)** met ODF's en patchpanelen, waar providers binnenkomen.
+  3. **Core-routers en core-switches**, bij voorkeur dubbel uitgevoerd.
+  4. **Aggregatie- of spine-switches** per zaal.
+  5. **Top-of-rack-switches** of patchpanelen per rack.
+  6. **Cross-connects**: klanten vragen een verbinding naar een provider of naar elkaar, en een technicus legt die aan. Dat levert eenmalig en maandelijks geld op.
+- Elke switch heeft poorten en bandbreedte. Te weinig poorten of een overvolle uplink geeft klachten en boetes.
+- De **netwerkweergave** laat de paden zien van provider tot rack, en waar een enkel punt van falen zit.
 
 ## Gebouwen en terrein
 
@@ -64,14 +81,30 @@ Daarnaast wegen, paden, groen en uitbreidingsruimte. Gebouwen zijn opengewerkt, 
 
 ## Personeel
 
-Zichtbare poppetjes die over het terrein lopen:
+Personeel is een eigen module. Je **werft medewerkers** en ziet ze als poppetjes over het terrein lopen.
 
-- **Beveiligers** (patrouille en check-in bij de loge)
-- **Technici** (racks plaatsen, storingen verhelpen)
-- **Engineers** (NOC, onderhoud aan stroom en koeling)
-- **Bezorgers** (leveringen bij het laadperron)
+**Functies**
 
-Meer klanten vraagt meer personeel, en meer personeel vraagt meer parkeerplekken en kantoorruimte.
+| Functie | Taken | Kleur in de wereld |
+|---|---|---|
+| Support engineer | Tickets van klanten, remote hands, cross-connects | Wit |
+| Datacenter technicus | Racks plaatsen, bekabelen, hardware wisselen | Geel |
+| Elektrotechnisch engineer | Onderhoud aan UPS, switchgear, generatoren en PDU's | Wit met amber |
+| Koeltechnicus | Onderhoud aan koelmachines en CRAH-units | Wit met cyaan |
+| Netwerkengineer | Switches, routers, providers en cross-connects | Wit met oranje |
+| NOC-operator | Bewaakt alarmen en stuurt de juiste persoon | Donkergrijs |
+| Beveiliger | Check-in bij de loge, patrouilles | Donkerblauw |
+| Logistiek medewerker | Leveringen bij het laadperron, opslag | Oranje |
+| Manager | Verhoogt de efficiëntie van een team | Pak |
+
+**Werven en beheren**
+
+- Een **vacaturebord** met kandidaten, elk met een salaris, ervaring (junior, medior, senior) en eigenschappen (bijvoorbeeld "snel", "nauwkeurig", "ploegendienst-ervaren").
+- **Diensten en roosters**: een datacenter draait 24/7. Te weinig mensen 's nachts betekent dat storingen langer duren.
+- **Training en certificering**: maakt medewerkers sneller en verkleint de kans op fouten.
+- **Tevredenheid**: werkdruk, salaris en voorzieningen (kantine, parkeerplek) bepalen of mensen blijven.
+- **Faciliteiten**: meer personeel vraagt meer kantoorruimte, parkeerplekken en een kantine.
+- Elke storing, elk ticket en elke levering wordt een **taak** die een geschikte medewerker oppakt. Zonder de juiste mensen blijft een taak liggen.
 
 ## Klanten en economie
 
@@ -105,10 +138,10 @@ Meer klanten vraagt meer personeel, en meer personeel vraagt meer parkeerplekken
 1. **Fundament en huisstijl** (dit document, de huisstijl, de repo-structuur)
 2. **Technische basis**: Godot-project, camera, bouwgrid, installer, talen, lokale savegames, Info-scherm
 3. **Terreinprototype**: grond kopen, gebouwen plaatsen, netstroom en glasvezel, generatoren met N+1-check
-4. **Datacenter van binnen**: zalen, racks, kabelgoten, interne stroom, koeling, klanten en economie
+4. **Datacenter van binnen**: zalen, racks, kabelgoten, interne stroom- en netwerkinfrastructuur, koeling, klanten en economie
+5. **Personeelsmodule**: werven, functies, roosters, taken en tevredenheid
 
 ## Open vragen
 
 - Hoe heet het spel definitief? *Datacenter Architect* is de werktitel.
 - Is er een campagne met scenario's, of alleen vrij spelen?
-- Hoe gedetailleerd moet de interne stroombekabeling worden: per rack, of per rij?
