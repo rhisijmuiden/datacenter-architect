@@ -71,7 +71,7 @@ cat_security	Security	Beveiliging
 cat_staff	Staff	Personeel
 cat_customers	Customers	Klanten
 hud_coming_soon	Coming in a later update	Komt in een volgende update
-hint_select	Click a building, room or rack for details. Right-drag rotates, wheel zooms, WASD pans, Q and E turn. T shows roofs, Page Up and Down change floor.	Klik op een gebouw, ruimte of rack voor details. Rechts slepen draait, scrollwiel zoomt, WASD schuift, Q en E draaien. T toont daken, Page Up en Down wisselen van verdieping.
+hint_select	Click a building, room or rack for details. Right-drag rotates, wheel zooms, WASD pans, Q and E turn. T shows roofs, Page Up and Down change floor. P shows the power overlay, H the cooling overlay.	Klik op een gebouw, ruimte of rack voor details. Rechts slepen draait, scrollwiel zoomt, WASD schuift, Q en E draaien. T toont daken, Page Up en Down wisselen van verdieping. P toont de stroomweergave, H de koelweergave.
 hint_place	Click to place. R rotates. Red means it cannot go there.	Klik om te plaatsen. R draait. Rood betekent dat het daar niet kan.
 hint_erase	Drag over what you want to remove. Objects and doors go first, then rooms, then buildings and paving.	Sleep over wat je wilt weghalen. Eerst objecten en deuren, dan ruimtes, dan gebouwen en bestrating.
 hud_rotate_left	Rotate left (Q)	Links draaien (Q)
@@ -214,7 +214,7 @@ status_ordered	Ordered, waiting for the truck	Besteld, wacht op de vrachtwagen
 status_delivered	At the loading dock	Bij het laadperron
 status_placed	Placed, power not connected yet	Geplaatst, stroom nog niet aangesloten
 status_powered	Power connected, fiber not yet	Stroom aangesloten, glasvezel nog niet
-status_live	Live and ready to sell	Live en klaar voor verkoop
+status_live	Live	Live
 facade_concrete	Concrete	Beton
 facade_brick	Brick	Baksteen
 facade_glass	Glass	Glas
@@ -258,3 +258,127 @@ msg_hall_needs_lift	Racks for an upper floor need a freight lift.	Racks voor een
 msg_rack_unreachable	An engineer cannot reach a rack. Leave an aisle next to it.	Een engineer kan een rack niet bereiken. Laat er een gang naast.
 msg_first_rack_live	Your first rack is live and ready to sell!	Je eerste rack is live en klaar voor verkoop!
 msg_racks_ordered	{0} ordered. A truck brings them to the loading dock.	{0} besteld. Een vrachtwagen brengt ze naar het laadperron.
+# ---- step 4: power and cooling ----
+res_pue	PUE	PUE
+hud_overlay_power	Power overlay (P)	Stroomweergave (P)
+hud_overlay_cooling	Cooling overlay (H)	Koelweergave (H)
+power_overview	Power and cooling overview	Overzicht stroom en koeling
+power_title	Power and cooling	Stroom en koeling
+power_grid	Grid connection	Netaansluiting
+power_supplier	Energy supplier	Energieleverancier
+power_backup	Backup power	Noodstroom
+power_chain	Power chain	Stroomketen
+grid_station	Grid connection	Netaansluiting
+grid_level_0	compact station with its own transformer, low voltage	compact station met eigen transformator, laagspanning
+grid_level_1	customer substation, 10 kV	klantstation, 10 kV
+grid_level_2	customer substation with two feeds, 20 kV	klantstation met twee voedingen, 20 kV
+grid_level_3	own substation with transformers and portal, 50 kV	eigen onderstation met transformatoren en portaal, 50 kV
+grid_request	Request {0} MVA · {1} · {2} days	{0} MVA aanvragen · {1} · {2} dagen
+grid_request_running	Grid operator is upgrading to {0} MVA: {1} days left	Netbeheerder verzwaart naar {0} MVA: nog {1} dagen
+grid_days_left	{0} days left	nog {0} dagen
+grid_max	This is the largest connection the grid operator offers.	Dit is de grootste aansluiting die de netbeheerder levert.
+grid_help	From 10 MVA the grid operator delivers medium voltage: build a transformer room with your own transformers. The connection carries the IT load times the PUE.	Vanaf 10 MVA levert de netbeheerder middenspanning: bouw een transformatorruimte met eigen transformatoren. De aansluiting draagt de IT-last maal de PUE.
+supplier_fixed	Fixed price, {0}-year contract	Vaste prijs, contract van {0} jaar
+supplier_variable	Variable price that follows the market	Variabele prijs die de markt volgt
+supplier_green	Green power, fixed price, {0}-year contract	Groene stroom, vaste prijs, contract van {0} jaar
+supplier_green_variable	Green power, variable price	Groene stroom, variabele prijs
+supplier_today	Your price today: € {0} per kWh	Jouw prijs vandaag: € {0} per kWh
+backup_generators	Generators: {0} × 1 MW ({1}) · {2} · backup {3}	Generatoren: {0} × 1 MW ({1}) · {2} · noodstroom {3}
+backup_ats_yes	ATS in the switchgear switches to the generators automatically.	De ATS in de schakelkast schakelt automatisch over op de generatoren.
+backup_ats_no	No switchgear: generators cannot take over without an ATS.	Geen schakelkast: zonder ATS kunnen de generatoren niet overnemen.
+backup_fuel	Diesel: {0} litres · {1} hours at full load	Diesel: {0} liter · {1} uur bij volle belasting
+backup_ups	UPS: {0} · batteries {1} kWh · {2} minutes autonomy	UPS: {0} · accu's {1} kWh · {2} minuten autonomie
+chain_link	Link	Schakel
+chain_capacity	Capacity	Capaciteit
+chain_load	Load	Belasting
+chain_redundancy	Setup	Opzet
+link_grid	Grid connection	Netaansluiting
+link_transformers	Transformers	Transformatoren
+link_switchgear	Switchgear and ATS	Schakelkast en ATS
+link_ups	UPS	UPS
+link_distribution	PDUs and busbars	PDU's en busbars
+chain_usable	The chain can power {0} of IT load: {1} of {2} live racks run.	De keten kan {0} IT-last voeden: {1} van {2} live racks draaien.
+chain_unlimited	Creative mode: power is no limit.	Creatieve modus: stroom is geen beperking.
+chain_help	Every rack needs the whole chain: grid, transformer, switchgear, UPS and a PDU or busbar in its hall. The weakest link (◀) decides how many racks can run. N+1 and 2N mean one unit may fail.	Elk rack heeft de hele keten nodig: net, transformator, schakelkast, UPS en een PDU of busbar in de hal. De zwakste schakel (◀) bepaalt hoeveel racks kunnen draaien. N+1 en 2N betekenen dat er een unit mag uitvallen.
+cool_title	Cooling	Koeling
+cool_summary	Heat {0} · CRAH units {1} · heat rejection outside {2}	Warmte {0} · CRAH-units {1} · warmteafvoer buiten {2}
+cool_pue	PUE {0}: every kW of IT costs this many kW from the grid.	PUE {0}: elke kW IT kost zoveel kW van het net.
+cool_help	CRAH units cool the hall; chillers and cooling towers outside or on the roof take the heat away. Hot/cold aisles and a cold corridor make the CRAH units more effective and lower the PUE.	CRAH-units koelen de hal; koelmachines en koeltorens buiten of op het dak voeren de warmte af. Warme en koude gangen en een cold corridor maken de CRAH-units effectiever en verlagen de PUE.
+halls_title	Data halls	Datazalen
+halls_none	No data halls yet.	Nog geen datazalen.
+hall_col_hall	Hall	Hal
+hall_col_racks	Racks running	Racks aan
+hall_col_power	IT / feeds	IT / voeding
+hall_col_ab	A/B	A/B
+hall_col_air	Air	Lucht
+hall_col_temp	Temp	Temp
+hall_ab_no	single	enkel
+hall_open	Open hall	Open zaal
+hall_hotcold	Hot and cold aisles	Warme en koude gangen
+hall_cold_corridor	Cold corridor	Cold corridor
+advice_title	Advice	Advies
+advice_ok	Power and cooling are in order.	Stroom en koeling zijn op orde.
+advice_switchgear	Build a switchgear room with main switchgear: it distributes the power and holds the ATS for the generators.	Bouw een schakelruimte met een hoofdschakelkast: die verdeelt de stroom en bevat de ATS voor de generatoren.
+advice_ups	Build a UPS room with UPS units: racks only run behind a UPS.	Bouw een UPS-ruimte met UPS'en: racks draaien alleen achter een UPS.
+advice_pdu	A data hall with racks has no PDU or busbar. Place PDUs in the hall or install a busbar.	Een datahal met racks heeft geen PDU of busbar. Zet PDU's in de hal of laat een busbar aanleggen.
+advice_power_short	Some racks are off because the power chain is too small. See which link has the arrow.	Een deel van de racks staat uit omdat de stroomketen te klein is. Kijk welke schakel de pijl heeft.
+advice_battery	The UPS has no batteries: add battery cabinets in the UPS or battery room.	De UPS heeft geen accu's: zet accukasten in de UPS- of accuruimte.
+advice_generators	Place at least two generators for N+1 backup power.	Plaats minstens twee generatoren voor N+1-noodstroom.
+advice_ats	Generators need switchgear with an ATS to take over.	Generatoren hebben een schakelkast met ATS nodig om over te nemen.
+advice_grid	The grid connection is almost full. Request a bigger connection in time; it takes months.	De netaansluiting is bijna vol. Vraag op tijd een zwaardere aansluiting aan; dat duurt maanden.
+advice_reject	There is nothing to take the heat away. Place a chiller or cooling tower outside or on a roof.	Er is niets dat de warmte afvoert. Zet een koelmachine of koeltoren buiten of op een dak.
+advice_crah	A data hall with racks has no CRAH unit.	Een datahal met racks heeft geen CRAH-unit.
+advice_hot	A hall overheated and racks were shut down. Add cooling or upgrade the hall.	Een hal is oververhit en racks zijn uitgeschakeld. Voeg koeling toe of upgrade de hal.
+advice_cooling_tight	Cooling is almost at its limit. Add cooling before you place more racks.	De koeling zit bijna aan de limiet. Voeg koeling toe voordat je meer racks plaatst.
+advice_containment	Upgrade halls to hot and cold aisles (click the hall) for more cooling and a lower PUE.	Upgrade hallen naar warme en koude gangen (klik op de hal) voor meer koeling en een lagere PUE.
+obj_transformer	Transformer 2.5 MVA	Transformator 2,5 MVA
+obj_switchgear	Main switchgear with ATS	Hoofdschakelkast met ATS
+obj_ups	UPS 500 kW	UPS 500 kW
+obj_battery	Battery cabinet 40 kWh	Accukast 40 kWh
+obj_pdu	Floor PDU 150 kW	Vloer-PDU 150 kW
+obj_diesel_tank	Diesel tank 20,000 L	Dieseltank 20.000 L
+obj_underground_tank	Underground tank 50,000 L	Ondergrondse tank 50.000 L
+obj_chiller	Chiller 600 kW	Koelmachine 600 kW
+obj_cooling_tower	Cooling tower 1 MW	Koeltoren 1 MW
+room_transformer	Transformer room	Transformatorruimte
+room_switchgear	Switchgear room	Schakelruimte
+room_battery	Battery room	Accuruimte
+goal_switchgear	Main switchgear placed	Hoofdschakelkast geplaatst
+goal_ups	UPS with batteries live	UPS met accu's live
+goal_pdu	PDU or busbar in a hall	PDU of busbar in een hal
+goal_cooling	Chiller or cooling tower	Koelmachine of koeltoren
+goal_generators	Two generators for N+1	Twee generatoren voor N+1
+inspect_running	Running	Draait
+inspect_down_power	Off: not enough power	Uit: te weinig stroom
+inspect_down_heat	Off: the hall is too hot	Uit: de hal is te warm
+inspect_reject	{0} kW heat rejection	{0} kW warmteafvoer
+inspect_capacity	Capacity {0} kW	Capaciteit {0} kW
+inspect_storage	{0} kWh storage	{0} kWh opslag
+inspect_generator	{0} kW backup power	{0} kW noodstroom
+inspect_fuel	{0} litres of diesel	{0} liter diesel
+inspect_on_roof	On the roof	Op het dak
+inspect_level	Level {0} of {1}	Niveau {0} van {1}
+inspect_hall_power	IT {0} · feeds {1} · {2}	IT {0} · voeding {1} · {2}
+inspect_hall_cooling	CRAH {0} · {1} °C	CRAH {0} · {1} °C
+inspect_hall_hot	{0} racks off: the hall overheated	{0} racks uit: de hal is oververhit
+inspect_hall_short	{0} racks off: not enough power	{0} racks uit: te weinig stroom
+inspect_upgrading	Upgrade in progress: {0} hours left	Upgrade bezig: nog {0} uur
+action_upgrade	Upgrade to level {0} · {1}	Upgraden naar niveau {0} · {1}
+action_containment	Upgrade to {0} · {1}	Upgraden naar {0} · {1}
+action_busbar	Install busbar A+B · {0}	Busbar A+B aanleggen · {0}
+msg_needs_transformer	This goes in a transformer room.	Dit hoort in een transformatorruimte.
+msg_needs_switchgear	This goes in a switchgear room.	Dit hoort in een schakelruimte.
+msg_needs_upsroom	This goes in a UPS room.	Dit hoort in een UPS-ruimte.
+msg_needs_battery	This goes in a battery room or the UPS room.	Dit hoort in een accuruimte of de UPS-ruimte.
+msg_roof_needs_building	Place this outside or on the roof of a finished building.	Zet dit buiten of op het dak van een afgebouwd pand.
+msg_one_roof	This has to fit on one roof.	Dit moet op één dak passen.
+msg_not_on_roof	This cannot go on a roof.	Dit kan niet op een dak.
+msg_grid_busy	The grid operator is already working on your connection.	De netbeheerder is al bezig met je aansluiting.
+msg_grid_ready	The grid operator finished the work: you now have {0} MVA.	De netbeheerder is klaar: je hebt nu {0} MVA.
+msg_max_level	Already at the highest level.	Al op het hoogste niveau.
+msg_hall_not_ready	The hall is not finished yet.	De hal is nog niet af.
+msg_upgrade_busy	An upgrade is already in progress here.	Hier loopt al een upgrade.
+msg_hall_upgrade_done	Hall upgrade finished: {0}.	Hal-upgrade klaar: {0}.
+msg_busbar_done	Busbar installed: racks can draw power from above.	Busbar aangelegd: racks halen hun stroom nu van boven.
+msg_hall_hot	A data hall overheated: racks were shut down to protect them.	Een datahal is oververhit: racks zijn uitgeschakeld om ze te beschermen.
+msg_hall_cool	Cooling is back in order: the racks are running again.	De koeling is weer op orde: de racks draaien weer.

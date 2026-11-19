@@ -18,6 +18,8 @@ public partial class WorldView : Node3D
     public static float Base(int floor) => Slab + floor * FloorH;
 
     Node3D _static, _layout, _objects, _sites, _agentsRoot, _ghost, _pallets;
+    readonly List<Node3D> _fans = new();
+    public Overlay Overlay { get; private set; }
     MeshInstance3D _grid;
     GameState _state;
     Simulation _sim;
@@ -59,6 +61,8 @@ public partial class WorldView : Node3D
         Sun.DirectionalShadowMaxDistance = 160;
         AddChild(Sun);
         _font = GD.Load<FontFile>("res://assets/fonts/BarlowCondensed-SemiBold.ttf");
+        Overlay = new Overlay { Name = "Overlay", Visible = false };
+        AddChild(Overlay);
         foreach (var name in new[] { "Layout", "Objects", "Sites", "Agents", "Ghost", "Pallets" })
         {
             var n = new Node3D { Name = name };
@@ -104,10 +108,6 @@ public partial class WorldView : Node3D
         Plane(root, new Vector3(-9, -0.014f, s / 2f - 60), new Vector2(6, 2 * s + 120), Brand.Asphalt);
         // fibre pits of carriers along the road (orange = fiber)
         foreach (var x in new[] { 8, 30, 52 }) Box(root, new Vector3(x + 0.5f, 0.05f, s + 1.6f), new Vector3(0.9f, 0.1f, 0.9f), Brand.Fiber);
-        // grid operator connection building on the site
-        var g = _state.GridStation;
-        Box(root, new Vector3(g.x + g.w / 2f, 1.4f, g.z + g.d / 2f), new Vector3(g.w - 0.2f, 2.8f, g.d - 0.2f), new Color("#d6dce0"));
-        Box(root, new Vector3(g.x + g.w / 2f, 2.9f, g.z + g.d / 2f), new Vector3(g.w, 0.25f, g.d), Brand.Power);
         // plot corner posts
         foreach (var c in new[] { new Vector3(0, 0, 0), new Vector3(s, 0, 0), new Vector3(0, 0, s), new Vector3(s, 0, s) })
             Box(root, c + new Vector3(0, 0.6f, 0), new Vector3(0.25f, 1.2f, 0.25f), Brand.Power);
@@ -217,6 +217,7 @@ public partial class WorldView : Node3D
         if (_stock != _state.MaterialStock) { _stock = _state.MaterialStock; RebuildPallets(); }
         SyncAgents(delta);
         Animate(delta);
+        Overlay.Sync(_state, delta);
     }
 
     // ---------------- buildings ----------------
@@ -400,8 +401,9 @@ public partial class WorldView : Node3D
             Box(root, new Vector3(b.X + b.W / 2f, roofY + 0.12f, b.Z + b.D / 2f), new Vector3(b.W + 0.3f, 0.24f, b.D + 0.3f), new Color("#6f7a83"));
             Box(root, new Vector3(b.X + b.W / 2f, roofY + 0.27f, b.Z + b.D / 2f), new Vector3(b.W - 0.6f, 0.08f, b.D - 0.6f), new Color("#8a949c"));
             if (b.Kind == BuildingKind.Datacenter) Box(root, new Vector3(b.X + b.W / 2f, roofY - 0.25f, b.Z + b.D + 0.16f), new Vector3(b.W, 0.25f, 0.06f), Brand.Power);
-            // a few rooftop units so the roof is not empty
-            for (var i = 0; i < Math.Min(4, b.W / 6); i++)
+            // a few rooftop units so the roof is not empty, unless the player put plant there
+            var roofPlant = _state.Objects.Any(o => o.Floor == GameState.RoofFloor && b.Contains(o.X, o.Z));
+            for (var i = 0; i < (roofPlant ? 0 : Math.Min(4, b.W / 6)); i++)
                 Box(root, new Vector3(b.X + 3 + i * 5, roofY + 0.75f, b.Z + 2.5f), new Vector3(2.5f, 1f, 1.6f), new Color("#e3e7ea"));
         }
     }
@@ -497,6 +499,28 @@ public partial class WorldView : Node3D
         foreach (var c in _sites.GetChildren()) c.QueueFree();
         _cranes.Clear();
         if (_state == null) return;
+        if (_state.GridRequest >= 0)
+        {
+            var g = _state.GridStation;
+            _sites.AddChild(new Label3D
+            {
+                Text = $"{Catalog.GridLevels[_state.GridRequest].Mva:0} MVA · {Loc.T("grid_days_left", Math.Ceiling(_state.GridDaysLeft))}",
+                Font = _font, FontSize = 56, PixelSize = 0.02f, OutlineSize = 12, OutlineModulate = new Color("#111D2B"),
+                Modulate = Brand.Power, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = true,
+                Position = new Vector3(g.x + g.w / 2f, 6f, g.z + g.d / 2f),
+            });
+            foreach (var (x, z) in new[] { (g.x - 0.3f, g.z - 0.3f), (g.x + g.w + 0.3f, g.z - 0.3f), (g.x - 0.3f, g.z + g.d + 0.3f), (g.x + g.w + 0.3f, g.z + g.d + 0.3f) })
+                Cyl(_sites, new Vector3(x, 0.5f, z), 0.12f, 1f, Brand.Amber, 0.04f);
+        }
+        foreach (var r in _state.Rooms.Where(r => r.Upgrade != 0 && r.Floor == _viewFloor))
+        {
+            var b = _state.BuildingOf(r);
+            if (b == null || !Open(b)) continue;
+            var tape = new Color(Brand.Cooling, 0.8f);
+            var y = Base(r.Floor);
+            Box(_sites, new Vector3(r.X + r.W / 2f, y + 0.04f, r.Z + 0.15f), new Vector3(r.W - 0.3f, 0.02f, 0.1f), tape);
+            Box(_sites, new Vector3(r.X + r.W / 2f, y + 0.04f, r.Z + r.D - 0.15f), new Vector3(r.W - 0.3f, 0.02f, 0.1f), tape);
+        }
         foreach (var b in _state.Buildings.Where(b => b.Stage != Stage.Done)) SiteBuilding(_sites, b);
         // rooms being built inside finished buildings
         foreach (var r in _state.Rooms.Where(r => r.Stage != Stage.Done))
@@ -590,11 +614,20 @@ public partial class WorldView : Node3D
     }
 
     // ---------------- objects ----------------
+    /// <summary>Height an object stands at: the ground, its floor, or the top of the roof.</summary>
+    public static float ObjectY(GameState s, PlacedObject o)
+    {
+        var b = s.BuildingAt(o.X, o.Z);
+        if (o.Floor == GameState.RoofFloor) return b == null ? 0 : Base(b.Floors) + 0.32f;
+        return o.Floor > 0 || b != null ? Base(o.Floor) : 0f;
+    }
+
     bool ObjectVisible(PlacedObject o)
     {
         var b = _state.BuildingAt(o.X, o.Z);
         if (b == null) return true;
         if (b.Stage != Stage.Done) return false;
+        if (o.Floor == GameState.RoofFloor) return !Open(b);
         if (o.Kind == ObjKind.Lift) return Open(b);
         return Open(b) && o.Floor == _viewFloor;
     }
@@ -602,15 +635,17 @@ public partial class WorldView : Node3D
     void RebuildObjects()
     {
         foreach (var c in _objects.GetChildren()) c.QueueFree();
-        _leds = null;
+        _leds = null; _fans.Clear();
         if (_state == null) return;
+        GridStationModel();
+        HallDecor();
         var racks = new List<Transform3D>(); var fronts = new List<Transform3D>(); var ghosts = new List<Transform3D>();
         var leds = new List<Transform3D>();
         foreach (var o in _state.Objects)
         {
             if (!ObjectVisible(o)) continue;
             var (w, d) = GameState.Footprint(o);
-            var y = o.Floor > 0 || _state.BuildingAt(o.X, o.Z) != null ? Base(o.Floor) : 0f;
+            var y = ObjectY(_state, o);
             var pos = new Vector3(o.X + w / 2f, y, o.Z + d / 2f);
             var basis = Basis.Identity.Rotated(Vector3.Up, -Mathf.Pi / 2 * o.Rot);
             if (o.Kind == ObjKind.Rack)
@@ -627,6 +662,7 @@ public partial class WorldView : Node3D
             var n = Models.Object(o.Kind);
             n.Position = pos;
             n.Basis = basis;
+            foreach (var f in n.GetChildren().OfType<Node3D>().Where(c => c.Name.ToString().StartsWith("Fan"))) _fans.Add(f);
             if (o.Def.Chain && o.Status <= ObjStatus.Delivered) Tint(n, Brand.Ink);
             else if (o.Def.Chain && o.Status != ObjStatus.Live) AddMarker(o, pos);
             _objects.AddChild(n);
@@ -726,6 +762,7 @@ public partial class WorldView : Node3D
         }
         foreach (var m in _objects.GetChildren().OfType<Node3D>().Where(n => n.Name.ToString().StartsWith("Marker")))
             m.RotateY((float)delta * 2f);
+        foreach (var f in _fans) if (IsInstanceValid(f)) f.RotateY((float)delta * 9f);
         // blinking status lights: flip a few LEDs a few times a second, cheap on any PC
         _blinkTimer -= delta;
         if (_leds != null && _blinkTimer <= 0)
@@ -735,6 +772,71 @@ public partial class WorldView : Node3D
             for (var i = 0; i < n; i++) _leds.SetInstanceColor(_rng.Next(_leds.InstanceCount), LedColor());
         }
     }
+
+    // ---------------- power and cooling ----------------
+    void GridStationModel()
+    {
+        var g = _state.GridStation;
+        var m = Models.GridStation(_state.GridLevel, g.w, g.d);
+        m.Position = new Vector3(g.x + g.w / 2f, 0, g.z + g.d / 2f);
+        _objects.AddChild(m);
+    }
+
+    /// <summary>Cold aisle tiles and the glass corridor roof for upgraded halls, and the overhead busbar.</summary>
+    void HallDecor()
+    {
+        var tiles = new List<Transform3D>(); var glass = new List<Transform3D>(); var frames = new List<Transform3D>();
+        var busA = new List<Transform3D>(); var busB = new List<Transform3D>();
+        foreach (var r in _state.Rooms.Where(r => r.Type == RoomType.DataHall && r.Stage == Stage.Done && r.Floor == _viewFloor))
+        {
+            var b = _state.BuildingOf(r);
+            if (b == null || b.Stage != Stage.Done || !Open(b)) continue;
+            var y = Base(r.Floor);
+            var racks = _state.Objects.Where(o => o.Kind == ObjKind.Rack && o.Floor == r.Floor && r.Contains(o.X, o.Z) && o.Status >= ObjStatus.Placed).ToList();
+            if (r.Containment >= Containment.HotCold)
+            {
+                var aisle = new HashSet<(int, int)>();
+                foreach (var o in racks)
+                {
+                    var (dx, dz) = FrontOffset(o.Rot);
+                    var c = (o.X + dx, o.Z + dz);
+                    if (r.Contains(c.Item1, c.Item2) && _state.ObjectAt(c.Item1, c.Item2, r.Floor) == null) aisle.Add(c);
+                }
+                foreach (var (x, z) in aisle)
+                {
+                    tiles.Add(new Transform3D(Basis.Identity, new Vector3(x + 0.5f, y + 0.03f, z + 0.5f)));
+                    if (r.Containment >= Containment.ColdCorridor) glass.Add(new Transform3D(Basis.Identity, new Vector3(x + 0.5f, y + 2.16f, z + 0.5f)));
+                }
+                if (r.Containment >= Containment.ColdCorridor)
+                    foreach (var (x, z) in aisle)
+                        foreach (var (dx, dz) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
+                        {
+                            // sliding doors at the open ends of the corridor
+                            var n = (x + dx, z + dz);
+                            if (aisle.Contains(n) || _state.ObjectAt(n.Item1, n.Item2, r.Floor) != null || !r.Contains(n.Item1, n.Item2)) continue;
+                            var basis = dx != 0 ? Basis.Identity.Rotated(Vector3.Up, Mathf.Pi / 2) : Basis.Identity;
+                            frames.Add(new Transform3D(basis, new Vector3(x + 0.5f + dx * 0.5f, y + 1.08f, z + 0.5f + dz * 0.5f)));
+                        }
+            }
+            if (r.Busbar)
+                foreach (var o in racks)
+                {
+                    var basis = o.Rot % 2 == 0 ? Basis.Identity : Basis.Identity.Rotated(Vector3.Up, Mathf.Pi / 2);
+                    var (fx, fz) = FrontOffset(o.Rot);
+                    var c = new Vector3(o.X + 0.5f, y + 2.5f, o.Z + 0.5f);
+                    busA.Add(new Transform3D(basis, c + new Vector3(fx, 0, fz) * -0.22f));
+                    busB.Add(new Transform3D(basis, c + new Vector3(fx, 0, fz) * -0.38f));
+                }
+        }
+        Multi(_objects, new BoxMesh { Size = new Vector3(0.94f, 0.012f, 0.94f) }, tiles, new Color("#7fd9ee"), false);
+        Multi(_objects, new BoxMesh { Size = new Vector3(1f, 0.03f, 1f) }, glass, new Color(Brand.Cooling, 0.28f), false);
+        Multi(_objects, new BoxMesh { Size = new Vector3(0.96f, 2.1f, 0.04f) }, frames, new Color(Brand.Cooling, 0.3f), false);
+        Multi(_objects, new BoxMesh { Size = new Vector3(1.0f, 0.1f, 0.1f) }, busA, Brand.Power);
+        Multi(_objects, new BoxMesh { Size = new Vector3(1.0f, 0.1f, 0.1f) }, busB, new Color("#d8dde1"));
+    }
+
+    /// <summary>Cell offset in front of an object (the cold aisle side of a rack).</summary>
+    public static (int dx, int dz) FrontOffset(int rot) => (rot % 4) switch { 1 => (-1, 0), 2 => (0, -1), 3 => (1, 0), _ => (0, 1) };
 
     // ---------------- ghosts ----------------
     public void ClearGhost() { foreach (var c in _ghost.GetChildren()) c.QueueFree(); }
@@ -769,7 +871,7 @@ public partial class WorldView : Node3D
         foreach (var (o, ok) in objs)
         {
             var (w, d) = GameState.Footprint(o);
-            var y = o.Floor > 0 || _state.BuildingAt(o.X, o.Z) != null ? Base(o.Floor) : 0f;
+            var y = ObjectY(_state, o);
             var n = Models.Object(o.Kind);
             n.Position = last = new Vector3(o.X + w / 2f, y, o.Z + d / 2f);
             n.RotationDegrees = new Vector3(0, -90 * o.Rot, 0);

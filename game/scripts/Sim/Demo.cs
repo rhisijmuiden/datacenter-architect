@@ -30,7 +30,17 @@ public static class Demo
         // the datacenter: a closed concrete box with a hall, a corridor and the loading dock
         var dc = s.AddBuilding(BuildingKind.Datacenter, 8, 14, 26, 20, 1);
         var hall = s.AddRoom(RoomType.DataHall, 8, 14, 18, 20, 0);
-        s.AddRoom(RoomType.Corridor, 26, 14, 8, 12, 0);
+        s.AddRoom(RoomType.Corridor, 26, 18, 8, 8, 0);
+        // technical rooms: main switchgear with the ATS, and the UPS room with its batteries
+        s.AddRoom(RoomType.Switchgear, 26, 14, 4, 4, 0);
+        s.AddRoom(RoomType.UpsRoom, 30, 14, 4, 4, 0);
+        s.AddDoor(DoorType.Fire, 27, 18, 1, 0);
+        s.AddDoor(DoorType.Double, 31, 18, 1, 0);
+        s.AddObject(ObjKind.Switchgear, 26, 14, 0, 0);
+        s.AddObject(ObjKind.Switchgear, 28, 14, 0, 0);
+        s.AddObject(ObjKind.Ups, 30, 14, 0, 0);
+        s.AddObject(ObjKind.Ups, 32, 14, 0, 0);
+        for (var x = 30; x < 34; x++) s.AddObject(ObjKind.Battery, x, 16, 0, 0);
         s.AddRoom(RoomType.LoadingDock, 26, 26, 8, 8, 0);
         s.AddDoor(DoorType.RollUp, 28, 34, 1, 0);
         s.AddDoor(DoorType.Double, 28, 26, 1, 0);
@@ -40,6 +50,11 @@ public static class Demo
         foreach (var (z, rot) in new[] { (16, 0), (18, 2), (21, 0), (23, 2), (26, 0), (28, 2), (31, 0) })
             for (var x = 12; x < 25; x++) s.AddObject(ObjKind.Rack, x, z, rot, 0);
         for (var z = 15; z < 32; z += 4) s.AddObject(ObjKind.Crah, 9, z, 0, 0);
+        // floor PDUs at the end of the rows; the hall also has an overhead busbar
+        foreach (var z in new[] { 16, 23, 28 }) s.AddObject(ObjKind.Pdu, 25, z, 0, 0);
+        hall.Busbar = true;
+        hall.Containment = Containment.HotCold;
+
         s.AddObject(ObjKind.CrashCart, 24, 17, 0, 0);
 
         // office in brick with two floors, a lift, reception, a customer lounge and the director's office
@@ -65,6 +80,8 @@ public static class Demo
 
         // generators and landscaping
         for (var i = 0; i < 4; i++) s.AddObject(ObjKind.Generator, 9 + i * 4, 40, 0, 0);
+        s.AddObject(ObjKind.UndergroundTank, 10, 43, 0, 0);
+        s.AddObject(ObjKind.UndergroundTank, 16, 43, 0, 0);
         foreach (var x in new[] { 6, 10, 14, 18, 22, 46, 50, 54 }) s.AddObject(ObjKind.Tree, x, 8, 0, 0);
         foreach (var z in new[] { 12, 18, 24, 30, 46, 52 }) s.AddObject(ObjKind.Tree, 5, z, 0, 0);
         foreach (var z in new[] { 38, 44, 50, 54 }) s.AddObject(ObjKind.LampPost, 27, z, 0, 0);
@@ -73,8 +90,11 @@ public static class Demo
         s.AddObject(ObjKind.BikeRack, 14, 36, 0, 0);
 
         foreach (var b in s.Buildings) b.Stage = Stage.Done;
+        // chillers on the datacenter roof
+        foreach (var x in new[] { 10, 14, 18 }) s.AddObject(ObjKind.Chiller, x, 16, 0, GameState.RoofFloor);
         foreach (var r in s.Rooms) r.Stage = Stage.Done;
         foreach (var x in s.Objects) x.Status = ObjStatus.Live;
+        foreach (var r in s.Rooms) r.Temp = 23;
         // a warehouse going up, and a row of racks still on its way
         var wh = s.AddBuilding(BuildingKind.Warehouse, 40, 30, 12, 8, 1);
         wh.Stage = Stage.Walls; wh.Material = 18; wh.Work = 1.4;

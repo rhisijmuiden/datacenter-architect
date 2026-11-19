@@ -60,7 +60,7 @@ public class Nav
         }
         foreach (var o in _s.Objects)
         {
-            if (!o.Def.Blocks || (o.Def.Chain && o.Status < ObjStatus.Placed)) continue;
+            if (!o.Def.Blocks || o.Floor < 0 || o.Floor >= floors || (o.Def.Chain && o.Status < ObjStatus.Placed)) continue;
             foreach (var (x, z) in GameState.Cells(o))
                 if (_s.InPlot(x, z)) _walk[o.Floor][z * _n + x] = false;
         }
