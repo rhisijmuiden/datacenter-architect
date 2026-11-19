@@ -80,4 +80,4 @@ jobs:
         run: |
           $ghArgs = @("v$env:VERSION", "dist/DatacenterArchitect-$env:VERSION-Setup.exe", "--title", "Datacenter Architect $env:VERSION", "--generate-notes", "--target", "${{ github.sha }}")
           if ($env:CHANNEL -eq 'test') { $ghArgs += "--prerelease" }
-          gh release create @args
+          gh release create @ghArgs
