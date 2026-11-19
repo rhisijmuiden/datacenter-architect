@@ -75,7 +75,8 @@ Elke locatie toont vooraf de **beschikbare netcapaciteit (MVA)** en de **glasvez
 
 - **Koelmachines** buiten en **CRAH-units** in de zalen, elk met een capaciteit in kW.
 - Elke rack produceert warmte, afhankelijk van de klant. De koelbalk toont de belasting tegenover de capaciteit.
-- Racks staan **aaneengesloten in rijen**, zonder ruimte ertussen. Je plaatst ze rij voor rij (slepen), en twee rijen staan rug aan rug of met de voorkanten naar elkaar.
+- Racks staan **aaneengesloten in rijen**, zonder ruimte tussen de racks in een rij. Je plaatst ze rij voor rij (slepen).
+- **Tussen de rijen zit altijd een gang.** Aan de voorkant is dat de koude gang, aan de achterkant de warme gang. Engineers moeten bij de achterkant van de servers kunnen, dus een rij zonder vrije gang erachter geeft een waarschuwing.
 - **Zaal-upgrades:** een datazaal kun je upgraden in stappen. Elke stap kost geld en bouwtijd, verhoogt de effectieve koelcapaciteit en verlaagt het energieverbruik (PUE):
 
 | Niveau | Wat je bouwt | Koeling | PUE |

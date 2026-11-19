@@ -238,7 +238,8 @@ function example() {
   fillRoom(20, 7, 29, 10, "mmr"); fillRoom(2, 12, 7, 19, "dock"); fillRoom(9, 12, 29, 14, "corridor");
   fillRoom(9, 16, 13, 19, "security"); fillRoom(15, 16, 20, 19, "reception"); fillRoom(22, 16, 25, 19, "customer"); fillRoom(27, 16, 29, 19, "noc");
   // data hall: racks + CRAH (cooling deliberately tight)
-  for (const z of [3, 4, 7, 8]) for (let i = 5; i <= 16; i++) if (!(z === 8 && i > 13)) addObj("rack", i, z, (z === 3 || z === 7) ? 2 : 0);
+  // rows with aisles: hot aisle z2 | row A (front +z) | cold aisle z4-5 | row B (front -z) | hot aisle z7 | row C (front +z) | cold aisle z9-10
+  for (const [z, rot] of [[3, 0], [6, 2], [8, 0]]) for (let i = 5; i <= 16; i++) if (!(z === 8 && i > 13)) addObj("rack", i, z, rot);
   for (const i of [14, 15]) objects.push({ type: "rack", i, j: 8, rot: 0, st: 0, p: 0, n: ++rackSeq });
   addObj("crah", 2, 3, 0); addObj("crah", 2, 7, 0);
   addObj("ups", 20, 2, 0); addObj("ups", 22, 2, 0);
