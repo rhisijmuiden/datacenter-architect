@@ -47,6 +47,7 @@ public partial class Main : Node3D
         _cam = new CameraRig(); AddChild(_cam);
         _sound = new Ambience(); AddChild(_sound);
         _uiSounds = new UiSounds(); AddChild(_uiSounds);
+        AddChild(new Thumbnails());
         ApplyDisplay(); ApplyOther();
         var layer = new CanvasLayer(); AddChild(layer);
         _ui = new Control { Theme = Ui.BuildTheme(), MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -733,7 +734,7 @@ public partial class Main : Node3D
     }
 
     // ---------------- dev helpers ----------------
-    /// <summary>--screenshot path [--in-game] [--interior] [--new-game] [--info] [--options TAB] [--nl] [--hours N] [--driveway] [--curves] [--curvetool] [--gate] [--barrier]</summary>
+    /// <summary>--screenshot path [--in-game] [--interior] [--new-game] [--info] [--options TAB] [--category cat_x] [--nl] [--hours N] [--driveway] [--curves] [--curvetool] [--gate] [--barrier]</summary>
     async System.Threading.Tasks.Task Screenshot(string path, string[] args)
     {
         if (args.Contains("--nl")) Loc.SetLanguage("nl");
@@ -795,6 +796,8 @@ public partial class Main : Node3D
             _speed = 0;
         }
         if (args.Contains("--new-game")) _ui.AddChild(new NewGameDialog(_ => { }));
+        var ci = Array.IndexOf(args, "--category");
+        if (ci >= 0 && ci + 1 < args.Length) _hud?.ShowCategory(args[ci + 1]);
         if (args.Contains("--info")) OpenInfo();
         var oi = Array.IndexOf(args, "--options");
         if (oi >= 0) OpenOptions(oi + 1 < args.Length && int.TryParse(args[oi + 1], out var tab) ? tab : 0);

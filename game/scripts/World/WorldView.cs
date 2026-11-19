@@ -241,7 +241,7 @@ public partial class WorldView : Node3D
     /// <summary>Interior view for a building: roofs off and it is tall enough for the viewed floor.</summary>
     bool Open(Building b) => !_roofs && b.Floors > _viewFloor;
 
-    static Color WallColor(Building b) => b.Facade switch
+    public static Color WallColor(Building b) => b.Facade switch
     {
         Facade.Brick => new Color("#b5654a"),
         Facade.Glass => new Color("#7fa9c6"),
@@ -326,14 +326,27 @@ public partial class WorldView : Node3D
         foreach (var b in _state.Buildings.Where(b => b.Stage == Stage.Done)) DoneBuilding(_layout, b);
     }
 
+    /// <summary>Paint colour per surface; also used for the build menu thumbnails.</summary>
+    public static readonly Dictionary<Surface, Color> SurfaceColors = new()
+    {
+        [Surface.Asphalt] = Brand.Asphalt, [Surface.Parking] = new Color("#575d66"), [Surface.Footpath] = new Color("#d8ccb4"),
+        [Surface.BikePath] = new Color("#b4544a"), [Surface.Yard] = new Color("#b9aa8c"),
+    };
+
+    /// <summary>Post colour, panel colour and panel thickness per fence type.</summary>
+    public static (Color post, Color panel, float thick) FenceStyle(FenceType type) => type switch
+    {
+        FenceType.Mesh => (new Color("#8d969c"), new Color("#a9b2b8", 0.55f), 0.03f),
+        FenceType.Welded => (new Color("#2f5a3b"), new Color("#3d6b4a", 0.7f), 0.04f),
+        FenceType.Palisade => (new Color("#262c31"), new Color("#2c3338", 0.88f), 0.06f),
+        FenceType.Wall => (new Color("#b8b0a2"), new Color("#c4bcae"), 0.3f),
+        _ => (new Color("#3a4046"), new Color(Brand.Amber, 0.35f), 0.02f),
+    };
+
     void Surfaces(Node3D root)
     {
         var s = _state.PlotSize;
-        var cols = new Dictionary<Surface, Color>
-        {
-            [Surface.Asphalt] = Brand.Asphalt, [Surface.Parking] = new Color("#575d66"), [Surface.Footpath] = new Color("#d8ccb4"),
-            [Surface.BikePath] = new Color("#b4544a"), [Surface.Yard] = new Color("#b9aa8c"),
-        };
+        var cols = SurfaceColors;
         _curveCells = _state.Curves.SelectMany(c => c.Cells).ToHashSet();
         var stripes = new List<Transform3D>();
         var tiles = new List<Transform3D>();
@@ -579,14 +592,7 @@ public partial class WorldView : Node3D
                     if (Linked(x - 1, z) && Gate(x - 1, z)) panels.Add(new Transform3D(Basis.Identity, new Vector3(x, def.Height / 2, z + 0.5f)));
                     if (Linked(x, z - 1) && Gate(x, z - 1)) panels.Add(new Transform3D(Basis.Identity.Rotated(Vector3.Up, Mathf.Pi / 2), new Vector3(x + 0.5f, def.Height / 2, z)));
                 }
-            var (postCol, panelCol, thick) = type switch
-            {
-                FenceType.Mesh => (new Color("#8d969c"), new Color("#a9b2b8", 0.55f), 0.03f),
-                FenceType.Welded => (new Color("#2f5a3b"), new Color("#3d6b4a", 0.7f), 0.04f),
-                FenceType.Palisade => (new Color("#262c31"), new Color("#2c3338", 0.88f), 0.06f),
-                FenceType.Wall => (new Color("#b8b0a2"), new Color("#c4bcae"), 0.3f),
-                _ => (new Color("#3a4046"), new Color(Brand.Amber, 0.35f), 0.02f),
-            };
+            var (postCol, panelCol, thick) = FenceStyle(type);
             Multi(root, new BoxMesh { Size = new Vector3(0.1f, def.Height, 0.1f) }, posts, postCol);
             Multi(root, new BoxMesh { Size = new Vector3(1f, def.Height * 0.92f, thick) }, panels, panelCol);
         }
@@ -661,7 +667,7 @@ public partial class WorldView : Node3D
         }
     }
 
-    void DoorModel(Node3D root, Door d, float y, float wallH)
+    public static void DoorModel(Node3D root, Door d, float y, float wallH)
     {
         var def = Catalog.Doors[d.Type];
         var w = def.Width;

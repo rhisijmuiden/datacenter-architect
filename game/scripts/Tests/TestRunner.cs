@@ -28,7 +28,7 @@ public static class TestRunner
             ("rack chain", RackChainTests), ("gates", GateTests), ("curves", CurveTests), ("navigation", NavTests), ("creative", CreativeTests), ("demo", DemoTests),
             ("power chain", PowerTests), ("backup power", BackupTests), ("grid and suppliers", GridTests),
             ("cooling", CoolingTests), ("roof and underground", RoofTests), ("overlay rows", OverlayTests),
-            ("options", OptionsTests),
+            ("options", OptionsTests), ("thumbnails", ThumbnailTests),
         };
         foreach (var (name, t) in tests)
         {
@@ -109,6 +109,29 @@ public static class TestRunner
         TranslationServer.SetLocale("nl");
         Check(Loc.T("menu_new_game") != "menu_new_game", "Dutch lookup works");
         TranslationServer.SetLocale("en");
+    }
+
+    /// <summary>Every build item has a little 3D scene for its card picture.</summary>
+    static void ThumbnailTests()
+    {
+        var items = new List<UI.BuildItem>();
+        items.AddRange(Catalog.Objects.Keys.Select(k => new UI.BuildItem(UI.Mode.Object, (int)k)));
+        items.AddRange(Catalog.Surfaces.Keys.Select(k => new UI.BuildItem(UI.Mode.Surface, (int)k)));
+        items.AddRange(Catalog.Fences.Keys.Select(k => new UI.BuildItem(UI.Mode.Fence, (int)k)));
+        items.AddRange(Catalog.Buildings.Keys.Select(k => new UI.BuildItem(UI.Mode.Building, (int)k)));
+        items.AddRange(Catalog.Rooms.Keys.Select(k => new UI.BuildItem(UI.Mode.Room, (int)k)));
+        items.AddRange(Catalog.Doors.Keys.Select(k => new UI.BuildItem(UI.Mode.Door, (int)k)));
+        items.Add(new UI.BuildItem(UI.Mode.Row, (int)ObjKind.Rack));
+        items.Add(new UI.BuildItem(UI.Mode.Curve, (int)Surface.Asphalt));
+        var missing = new List<string>();
+        foreach (var it in items)
+        {
+            var n = World.Thumbnails.Scene(it);
+            if (n == null || n.GetChildCount() == 0) missing.Add(it.ToString());
+            n?.Free();
+        }
+        Check(missing.Count == 0, "every build item has a picture: " + string.Join(", ", missing));
+        Check(World.Thumbnails.Scene(UI.BuildItem.Select) == null, "select tool has no picture");
     }
 
     static void OptionsTests()
