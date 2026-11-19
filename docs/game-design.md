@@ -163,7 +163,7 @@ Stroom en bandbreedte komen niet vanzelf: je sluit zelf contracten af met levera
   - **Private peering** via een directe glasvezelverbinding (dark fiber) tussen jouw MMR en die van de concurrent.
   - **Publieke peering** via een **internet exchange** waar beide datacenters op zijn aangesloten.
   - Peering verlaagt je transitkosten en maakt je aantrekkelijker voor netwerkklanten, maar een concurrent wil er soms iets voor terug.
-- Concurrerende datacenters zijn **AI-spelers** in de regio die ook klanten en aanbestedingen proberen te winnen.
+- Concurrerende datacenters zijn **AI-spelers** in de regio die ook klanten en aanbestedingen proberen te winnen. Je zet ze aan of uit bij het starten van een nieuw spel (zie *Nieuw spel*).
 
 ## Klanten en economie
 
@@ -197,6 +197,20 @@ Naast losse klanten kun je **grote contracten** binnenhalen bij grote klanten, z
 - **Strenge SLA's** met hoge boetes bij storingen of te late oplevering, maar ook bonussen bij goede prestaties.
 - **Audits en certificeringen** (bijvoorbeeld ISO 27001 of Tier III) als voorwaarde om mee te mogen bieden.
 - **Reputatie**: een goed uitgevoerd groot contract opent de deur naar grotere klanten. Een mislukt contract kost reputatie.
+
+## Nieuw spel
+
+Bij het starten van een nieuw spel kies je de instellingen:
+
+| Instelling | Opties |
+|---|---|
+| **Concurrerende datacenters (AI)** | Aan / uit. Als ze aan staan: aantal (1 tot 5) en hoe agressief ze zijn |
+| **Locatietype** | Kaal terrein / stadskavel |
+| **Startkapitaal** | Laag / normaal / hoog |
+| **Moeilijkheid** | Bepaalt onder meer storingskans, wachttijden bij de netbeheerder en schommelingen in de stroomprijs |
+| **Willekeurige gebeurtenissen** | Aan / uit (netuitval, hittegolf, kabelbreuk, faillissement van een klant) |
+
+Zonder AI-concurrenten win je aanbestedingen op basis van je eigen prijs en kwaliteit, en is peering met andere datacenters niet beschikbaar.
 
 ## Camera en bediening
 
