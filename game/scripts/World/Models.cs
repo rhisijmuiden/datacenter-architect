@@ -190,19 +190,18 @@ public static class Models
                 Box(n, new Vector3(0, 1.3f, 0.105f), new Vector3(0.12f, 0.08f, 0.01f), Brand.Ok, glow: true);
                 break;
             case ObjKind.Barrier:
+            {
                 Box(n, new Vector3(-1.3f, 0.5f, 0), new Vector3(0.35f, 1f, 0.35f), White);
                 Box(n, new Vector3(-1.3f, 0.95f, 0), new Vector3(0.37f, 0.1f, 0.37f), Brand.Critical);
-                for (var i = 0; i < 6; i++)
-                    Box(n, new Vector3(-1.05f + i * 0.4f, 0.9f, 0), new Vector3(0.4f, 0.08f, 0.08f), i % 2 == 0 ? Brand.Critical : White);
+                // the arm pivots on the post and swings up when a vehicle comes
+                var arm = new Node3D { Name = "Arm", Position = new Vector3(-1.3f, 0.9f, 0) }; n.AddChild(arm);
+                for (var i = 0; i < 7; i++)
+                    Box(arm, new Vector3(0.25f + i * 0.4f, 0, 0), new Vector3(0.4f, 0.08f, 0.08f), i % 2 == 0 ? Brand.Critical : White);
                 break;
+            }
             case ObjKind.SlidingGate:
-                Box(n, new Vector3(-1.45f, 1.2f, 0), new Vector3(0.14f, 2.4f, 0.14f), Dark);
-                Box(n, new Vector3(1.45f, 1.2f, 0), new Vector3(0.14f, 2.4f, 0.14f), Dark);
-                var leaf = new Node3D { Name = "Leaf" }; n.AddChild(leaf);
-                Box(leaf, new Vector3(0, 2.2f, 0), new Vector3(2.8f, 0.08f, 0.06f), Dark);
-                Box(leaf, new Vector3(0, 0.15f, 0), new Vector3(2.8f, 0.08f, 0.06f), Dark);
-                for (var i = 0; i < 12; i++) Box(leaf, new Vector3(-1.32f + i * 0.24f, 1.2f, 0), new Vector3(0.04f, 2.0f, 0.04f), Dark);
-                Box(n, new Vector3(1.45f, 2.5f, 0), new Vector3(0.18f, 0.12f, 0.18f), Brand.Power, glow: true);
+            case ObjKind.SlidingGateLarge:
+                SlidingGate(n, k == ObjKind.SlidingGate ? 3 : 6);
                 break;
             case ObjKind.PedGate:
                 Box(n, new Vector3(-0.45f, 1.1f, 0), new Vector3(0.1f, 2.2f, 0.1f), Dark);
@@ -369,6 +368,31 @@ public static class Models
         var rack = Box(n, new Vector3(0, 1.05f, 0.62f), new Vector3(0.9f, 2.1f, 0.85f), Brand.Rack, 0.5f, 0.4f); rack.Name = "Rack"; rack.Visible = false;
         var tool = Box(fig, new Vector3(0.3f, 0.62f, 0.12f), new Vector3(0.12f, 0.2f, 0.06f), role == Role.Engineer ? Brand.Fiber : Steel); tool.Name = "Tool";
         return n;
+    }
+
+    /// <summary>
+    /// A cantilever sliding gate as wide as its footprint: posts at both ends, a motor box, and a leaf
+    /// named "Leaf" that slides sideways along the fence to open the full width of the road.
+    /// </summary>
+    static void SlidingGate(Node3D n, int cells)
+    {
+        var half = cells / 2f;
+        var span = cells - 0.12f;
+        var h = cells > 3 ? 2.6f : 2.4f;
+        Box(n, new Vector3(-half + 0.07f, h / 2, 0), new Vector3(0.16f, h, 0.16f), Dark);
+        Box(n, new Vector3(half - 0.07f, h / 2, 0), new Vector3(0.16f, h, 0.16f), Dark);
+        // guide posts and motor next to the opening, on the side the leaf slides to
+        Box(n, new Vector3(half + 0.25f, 0.35f, 0.25f), new Vector3(0.35f, 0.7f, 0.3f), new Color("#3b4652"));
+        Box(n, new Vector3(half - 0.07f, h + 0.1f, 0), new Vector3(0.22f, 0.14f, 0.22f), Brand.Power, glow: true);
+        var leaf = new Node3D { Name = "Leaf" }; n.AddChild(leaf);
+        Box(leaf, new Vector3(0, h - 0.2f, 0.12f), new Vector3(span, 0.1f, 0.08f), Dark);
+        Box(leaf, new Vector3(0, 0.18f, 0.12f), new Vector3(span, 0.16f, 0.1f), Dark);
+        var bars = (int)(span / 0.22f);
+        for (var i = 0; i <= bars; i++) Box(leaf, new Vector3(-span / 2 + i * span / bars, (h - 0.1f) / 2 + 0.1f, 0.12f), new Vector3(0.045f, h - 0.4f, 0.045f), Dark);
+        // diagonal brace and amber warning strip so the gate reads clearly from above
+        var brace = Box(leaf, new Vector3(0, (h - 0.1f) / 2 + 0.1f, 0.12f), new Vector3(Mathf.Sqrt(span * span + h * h) * 0.92f, 0.07f, 0.05f), Dark);
+        brace.RotationDegrees = new Vector3(0, 0, Mathf.RadToDeg(Mathf.Atan2(h - 0.4f, span)));
+        Box(leaf, new Vector3(0, h - 0.1f, 0.12f), new Vector3(span, 0.06f, 0.09f), Brand.Power);
     }
 
     public static Node3D Truck(TruckLoad load)

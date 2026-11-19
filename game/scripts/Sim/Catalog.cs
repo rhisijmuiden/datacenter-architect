@@ -28,6 +28,7 @@ public enum ObjKind
     GuardBooth, Intercom, Barrier, SlidingGate, PedGate,
     // power and cooling (step 4)
     Transformer, Switchgear, Ups, Battery, Pdu, DieselTank, UndergroundTank, Chiller, CoolingTower,
+    SlidingGateLarge,
 }
 
 /// <summary>Delivery chain for hall equipment: truck to the dock, fitter places it, engineer connects power and then fiber.</summary>
@@ -63,6 +64,13 @@ public record DoorDef(DoorType Type, string NameKey, int Width, long Cost, bool 
 
 public static class Catalog
 {
+    /// <summary>Gates in a fence that vehicles drive through.</summary>
+    public static bool IsVehicleGate(ObjKind k) => k is ObjKind.SlidingGate or ObjKind.SlidingGateLarge;
+    /// <summary>Any gate in a fence, for vehicles or people.</summary>
+    public static bool IsGate(ObjKind k) => IsVehicleGate(k) || k == ObjKind.PedGate;
+    /// <summary>Things on the road that a vehicle waits for until they are open.</summary>
+    public static bool IsVehicleStop(ObjKind k) => IsVehicleGate(k) || k == ObjKind.Barrier;
+
     public const int MaxFloors = 4;
     public const int MaxRow = 24;
 
@@ -93,6 +101,7 @@ public static class Catalog
         [ObjKind.Intercom] = new(ObjKind.Intercom, "obj_intercom", 1, 1, 3500, Where.Outside, false),
         [ObjKind.Barrier] = new(ObjKind.Barrier, "obj_barrier", 3, 1, 6500, Where.Paved, false),
         [ObjKind.SlidingGate] = new(ObjKind.SlidingGate, "obj_sliding_gate", 3, 1, 18000, Where.Fence, false),
+        [ObjKind.SlidingGateLarge] = new(ObjKind.SlidingGateLarge, "obj_sliding_gate_large", 6, 1, 32000, Where.Fence, false),
         [ObjKind.PedGate] = new(ObjKind.PedGate, "obj_ped_gate", 1, 1, 2500, Where.Fence, false),
         // power chain: transformer room, switchgear room, UPS and battery rooms, PDUs in the hall
         [ObjKind.Transformer] = new(ObjKind.Transformer, "obj_transformer", 2, 2, 220000, Where.Room, true, CapacityKw: 2500, Chain: true, Rooms: new[] { RoomType.Transformer }),
