@@ -144,6 +144,7 @@ button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
   </div>
   <div class="panel right">
     <button id="walk" class="on" aria-label="Walk animation" title="Walk"><svg viewBox="0 0 24 24"><circle cx="13" cy="4" r="2"/><path d="M10 21l2-6 3 3v3M8 12l3-4 3 1 2 4M11 8l-1 5"/></svg></button>
+    <button id="under" aria-label="Underground view" title="Underground"><svg viewBox="0 0 24 24"><path d="M3 9h18"/><path d="M6 13h12M8 17h8"/><rect x="7" y="14.5" width="10" height="5" rx="2.5"/></svg></button>
     <button id="night" aria-label="Day / night" title="Day / night"><svg viewBox="0 0 24 24"><path d="M20 14a8 8 0 1 1-10-10 7 7 0 0 0 10 10z"/></svg></button>
     <button id="lang">NL</button>
   </div>
@@ -191,6 +192,8 @@ button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 <div class="panel floors" id="floors" hidden>
   <span class="label" data-i="fTitle">Floors</span>
   <div class="fl" id="floorList"></div>
+  <span class="label" data-i="fPhase">Build phase</span>
+  <div class="row" id="phaseRow" style="display:flex;flex-wrap:wrap;gap:4px"></div>
   <label class="layer"><input type="checkbox" id="explode"><span data-i="fExplode">Exploded view</span></label>
   <label class="layer"><input type="checkbox" id="risers" checked><span data-i="fRisers">Show risers</span></label>
 </div>
@@ -211,7 +214,7 @@ button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 (() => {
 // ---------------- text ----------------
 const T = {
-  en: { tBld: "Building", fTitle: "Floors", fExplode: "Exploded view", fRisers: "Show risers", fRules: "Building in height", lgP: "Power riser", lgF: "Fiber riser", lgC: "Cooling pipes", lgL: "Freight lift",
+  en: { fPhase: "Build phase", tBld: "Building", fTitle: "Floors", fExplode: "Exploded view", fRisers: "Show risers", fRules: "Building in height", lgP: "Power riser", lgF: "Fiber riser", lgC: "Cooling pipes", lgL: "Freight lift",
     tMap: "Map", mSites: "Your locations", mLayers: "Map layers", lPower: "Power grid", lFiber: "Fiber routes", lComp: "Competitors", lPlots: "Plots for sale",
     sub: "Art style · v0.1", tChars: "Characters", tEnv: "Environment", hint: "Drag to rotate · scroll to zoom · click a character", prev: "← Previous", next: "Next →", nTitle: "Environment rules", role: "Staff", visitor: "Visitor",
     env: [
@@ -221,7 +224,7 @@ const T = {
       "<b>Life on site:</b> trees, hedges, benches, lamp posts, bike racks and people walking their routes.",
       "<b>Night mode:</b> lamp posts, windows and status lights glow, which makes alarms easy to spot."
     ] },
-  nl: { tBld: "Gebouw", fTitle: "Verdiepingen", fExplode: "Uitgeklapte weergave", fRisers: "Toon schachten", fRules: "In de hoogte bouwen", lgP: "Stroomschacht", lgF: "Glasvezelschacht", lgC: "Koelleidingen", lgL: "Goederenlift",
+  nl: { fPhase: "Bouwfase", tBld: "Gebouw", fTitle: "Verdiepingen", fExplode: "Uitgeklapte weergave", fRisers: "Toon schachten", fRules: "In de hoogte bouwen", lgP: "Stroomschacht", lgF: "Glasvezelschacht", lgC: "Koelleidingen", lgL: "Goederenlift",
     tMap: "Kaart", mSites: "Jouw locaties", mLayers: "Kaartlagen", lPower: "Stroomnet", lFiber: "Glasvezelroutes", lComp: "Concurrenten", lPlots: "Kavels te koop",
     sub: "Grafische stijl · v0.1", tChars: "Karakters", tEnv: "Omgeving", hint: "Sleep om te draaien · scroll om te zoomen · klik op een karakter", prev: "← Vorige", next: "Volgende →", nTitle: "Regels voor de omgeving", role: "Personeel", visitor: "Bezoeker",
     env: [
@@ -527,11 +530,136 @@ function fence(x1, z1, x2, z2) {
   const wire = mesh(new THREE.TorusGeometry(0.18, 0.02, 4, 10), 0x9aa4ad, sceneB, (x1 + x2) / 2, 2.8, (z1 + z2) / 2); wire.scale.x = len / 0.36; wire.rotation.y = -ang;
 }
 fence(-34, 16.4, -11, 16.4); fence(-6, 16.4, 34, 16.4); fence(34, 16.4, 34, -30); fence(-34, 16.4, -34, -30);
-// generator yard (fenced) at left back
+// generator yard: modern gensets + underground fuel tank
 const gy = new THREE.Group(); gy.position.set(-24, 0, -12); sceneB.add(gy);
-plane(14, 14, M(0xa9adb1), 0, 0.04, 0, gy);
-for (let i = 0; i < 3; i++) { mesh(rbox(5, 2.6, 2.4), 0xf0f2f3, gy, -1, 1.3, -4.5 + i * 4); mesh(rbox(5.02, 0.35, 2.42), i === 2 ? 0xffb23e : 0x3f9e6d, gy, -1, 2.1, -4.5 + i * 4); mesh(new THREE.CylinderGeometry(0.2, 0.2, 1.4, 8), 0x55606a, gy, -3, 3.3, -4.5 + i * 4); }
-const tank = mesh(new THREE.CylinderGeometry(1.2, 1.2, 7, 18), 0xdfe3e6, gy, 4.5, 1.4, 0); tank.rotation.x = Math.PI / 2;
+const yardMat = new THREE.MeshStandardMaterial({ map: panel("#b3b7bb", "#9ea3a8", [3, 3]), roughness: 0.95 });
+plane(18, 16, yardMat, 0, 0.04, 0, gy);
+const steel = { roughness: 0.25, metalness: 0.75 };
+const genFans = [], stacks = [];
+function genset(x, z, name, standby) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); gy.add(g);
+  mesh(rbox(7, 0.3, 3.3), 0xc9cdd1, g, 0, 0.15, 0);                          // concrete plinth
+  mesh(rbox(6.2, 0.35, 2.5), 0x26303a, g, 0, 0.47, 0);                        // base skirt
+  mesh(rbox(6.0, 2.2, 2.4), 0xeef1f4, g, 0, 1.75, 0, { roughness: 0.45, metalness: 0.15 }); // enclosure
+  mesh(rbox(6.1, 0.14, 2.5), 0x26303a, g, 0, 2.92, 0);                        // roof cap
+  mesh(rbox(6.02, 0.16, 2.42), standby ? 0xffb23e : 0x3fbf86, g, 0, 2.55, 0); // status band
+  mesh(rbox(6.02, 0.06, 2.42), 0xffb23e, g, 0, 0.72, 0);                      // brand line
+  for (const sd of [-1, 1]) {
+    for (let i = 0; i < 7; i++) mesh(rbox(1.5, 0.06, 0.04), 0x2f3943, g, 2.0, 0.95 + i * 0.2, sd * 1.21);   // radiator louvres
+    for (let i = 0; i < 2; i++) mesh(rbox(0.035, 1.9, 0.03), 0xb9c1c8, g, -2.2 + i * 1.6, 1.7, sd * 1.215); // door seams
+    for (let i = 0; i < 2; i++) mesh(rbox(0.08, 0.3, 0.05), 0x26303a, g, -1.6 + i * 1.6, 1.6, sd * 1.23);  // handles
+  }
+  const panelG = new THREE.Group(); panelG.position.set(-3.02, 1.7, 0); g.add(panelG);
+  mesh(rbox(0.08, 0.9, 1.1), 0x26303a, panelG, 0, 0, 0);
+  mesh(rbox(0.02, 0.4, 0.7), 0x0f2236, panelG, -0.05, 0.12, 0, { emissive: 0x2a8ad8, emissiveIntensity: 0.9 });
+  const led = mesh(new THREE.SphereGeometry(0.06, 8, 8), standby ? 0xffb23e : 0x5fd49b, panelG, -0.06, -0.28, 0.3, { emissive: standby ? 0xffb23e : 0x5fd49b, emissiveIntensity: 1.4 });
+  const lbl = label(name); lbl.scale.multiplyScalar(0.35); lbl.position.set(-3.08, 2.55, 0); g.add(lbl);
+  // radiator fan on roof
+  mesh(rbox(1.9, 0.35, 1.9), 0x26303a, g, 2.0, 3.12, 0);
+  const ring = mesh(new THREE.TorusGeometry(0.75, 0.06, 6, 24), 0x55606a, g, 2.0, 3.32, 0); ring.rotation.x = Math.PI / 2;
+  const fan = new THREE.Group(); fan.position.set(2.0, 3.3, 0); g.add(fan);
+  for (let b = 0; b < 4; b++) { const bl = mesh(rbox(1.4, 0.03, 0.26), 0x111820, fan, 0, 0, 0); bl.rotation.y = b * Math.PI / 4; }
+  fan.userData.speed = standby ? 0 : 0.35; genFans.push(fan);
+  // exhaust silencer + stack
+  const sil = mesh(new THREE.CylinderGeometry(0.32, 0.32, 2.4, 14), 0xc4cbd1, g, -1.2, 3.35, 0.4, steel); sil.rotation.z = Math.PI / 2;
+  mesh(new THREE.CylinderGeometry(0.18, 0.18, 1.6, 12), 0xc4cbd1, g, -2.5, 3.9, 0.4, steel);
+  mesh(new THREE.CylinderGeometry(0.26, 0.2, 0.12, 12), 0x26303a, g, -2.5, 4.75, 0.4);
+  stacks.push({ pos: new THREE.Vector3(-2.5, 4.8, 0.4), g, running: !standby });
+  // bollards
+  for (const [bx, bz] of [[-3.7, -1.8], [3.7, -1.8], [-3.7, 1.8], [3.7, 1.8]]) { mesh(new THREE.CylinderGeometry(0.12, 0.12, 1, 10), 0xffb23e, g, bx, 0.5, bz); mesh(new THREE.CylinderGeometry(0.125, 0.125, 0.12, 10), 0x26303a, g, bx, 0.75, bz); }
+  return g;
+}
+genset(-3, -5, "G1", false); genset(-3, -0.5, "G2", false); genset(-3, 4, "G3", true);
+// covered cable trench to the building
+mesh(rbox(10, 0.08, 1.2), 0x6e757c, gy, 7, 0.06, -5.5);
+for (let i = 0; i < 8; i++) mesh(rbox(0.05, 0.09, 1.2), 0x555c63, gy, 2.5 + i * 1.25, 0.07, -5.5);
+// above-ground fuel equipment: fill point cabinet, vent pipe, manholes
+mesh(rbox(1.2, 1.4, 0.8), 0xeef1f4, gy, 6.5, 0.7, 6.4); mesh(rbox(1.22, 0.16, 0.82), 0xffb23e, gy, 6.5, 1.25, 6.4);
+mesh(rbox(0.5, 0.35, 0.05), 0x26303a, gy, 6.5, 0.8, 6.82);
+mesh(new THREE.CylinderGeometry(0.07, 0.07, 4.2, 8), 0xc4cbd1, gy, 8.2, 2.1, 6.2, steel);
+const vc = mesh(new THREE.TorusGeometry(0.16, 0.05, 6, 12, Math.PI), 0xc4cbd1, gy, 8.2, 4.25, 6.05, steel); vc.rotation.y = Math.PI / 2;
+for (const mx of [3.5, 6.5]) { mesh(new THREE.CylinderGeometry(0.55, 0.55, 0.06, 20), 0x2d3338, gy, mx, 0.07, 1.5); mesh(new THREE.TorusGeometry(0.42, 0.03, 6, 20), 0xffb23e, gy, mx, 0.11, 1.5).rotation.x = Math.PI / 2; }
+// underground: soil volume, concrete bed, double-wall tank, fuel lines
+const under = new THREE.Group(); gy.add(under);
+const soil = new THREE.Mesh(rbox(18, 5.4, 16), new THREE.MeshStandardMaterial({ color: 0x7a5a3c, transparent: true, opacity: 0.22, depthWrite: false, side: THREE.DoubleSide })); soil.position.set(0, -2.72, 0); under.add(soil);
+const soilEdge = new THREE.LineSegments(new THREE.EdgesGeometry(rbox(18, 5.4, 16)), new THREE.LineBasicMaterial({ color: 0xc9a27a })); soilEdge.position.copy(soil.position); under.add(soilEdge);
+mesh(rbox(11, 0.4, 5.2), 0xb9bdc1, under, 5, -5.2, 2);
+const tankU = new THREE.Group(); tankU.position.set(5, -3.2, 2); under.add(tankU);
+const tb = mesh(new THREE.CylinderGeometry(1.8, 1.8, 9.5, 28), 0x2f6f5a, tankU, 0, 0, 0, { roughness: 0.5, metalness: 0.2 }); tb.rotation.z = Math.PI / 2;
+for (const sx of [-1, 1]) { const cap = mesh(new THREE.SphereGeometry(1.8, 24, 14, 0, Math.PI * 2, 0, Math.PI / 2), 0x2f6f5a, tankU, sx * 4.75, 0, 0, { roughness: 0.5, metalness: 0.2 }); cap.rotation.z = -sx * Math.PI / 2; cap.scale.y = 0.35; }
+for (let i = 0; i < 6; i++) { const r = mesh(new THREE.TorusGeometry(1.84, 0.07, 8, 32), i % 5 === 0 ? 0xffb23e : 0x275c4b, tankU, -4 + i * 1.6, 0, 0); r.rotation.y = Math.PI / 2; }
+for (const mx of [-1.5, 1.5]) mesh(new THREE.CylinderGeometry(0.4, 0.4, 1.6, 14), 0x275c4b, tankU, mx, 2.4, -0.5);
+const fuelPipe = (pts) => { const c = new THREE.CatmullRomCurve3(pts.map(q => new THREE.Vector3(q[0], q[1], q[2]))); const m = new THREE.Mesh(new THREE.TubeGeometry(c, 40, 0.09, 8, false), M(0xe0b23b, { emissive: 0xe0b23b, emissiveIntensity: 0.25 })); under.add(m); };
+fuelPipe([[3.5, -1.2, 1.5], [1, -1.0, 0], [-1, -0.9, -5], [-3, -0.3, -5]]);
+fuelPipe([[3.5, -1.2, 1.5], [0.5, -0.9, -0.5], [-3, -0.3, -0.5]]);
+fuelPipe([[3.5, -1.2, 1.5], [0.5, -0.9, 4], [-3, -0.3, 4]]);
+fuelPipe([[6.5, -1.2, 1.5], [6.5, -0.6, 6.4]]);
+mesh(new THREE.CylinderGeometry(0.05, 0.05, 4.6, 6), 0xff6b5e, under, 7.6, -2.6, 0.6); // leak sensor
+const soilFloor = new THREE.Mesh(new THREE.PlaneGeometry(900, 900), new THREE.MeshStandardMaterial({ color: 0x4a3a2a, roughness: 1 })); soilFloor.rotation.x = -Math.PI / 2; soilFloor.position.y = -5.6; sceneB.add(soilFloor); soilFloor.visible = false;
+under.visible = false;
+const smoke = [];
+
+// grid operator station (owned by the grid operator, upgradeable)
+const GRID = [
+  { mva: "2 MVA", kv: "10 kV", cost: "€ 85k", wait: { en: "6 months", nl: "6 maanden" }, name: { en: "Compact kiosk", nl: "Compact station" } },
+  { mva: "10 MVA", kv: "10 kV", cost: "€ 640k", wait: { en: "14 months", nl: "14 maanden" }, name: { en: "Customer station", nl: "Klantstation" } },
+  { mva: "50 MVA", kv: "50 kV", cost: "€ 6.8M", wait: { en: "30 months", nl: "30 maanden" }, name: { en: "Private substation", nl: "Eigen onderstation" } }
+];
+let gridLevel = 0;
+const gridG = new THREE.Group(); gridG.position.set(26, 0, 12); sceneB.add(gridG);
+function buildGrid(level) {
+  while (gridG.children.length) gridG.remove(gridG.children[0]);
+  const g = gridG;
+  const vent = (w, x, y, z, rotY = 0) => { for (let i = 0; i < 5; i++) { const v = mesh(rbox(w, 0.05, 0.04), 0x55606a, g, x, y + i * 0.14, z); v.rotation.y = rotY; } };
+  if (level === 0) {
+    plane(5, 4, M(0xb3b7bb), 0, 0.05, 0, g);
+    mesh(rbox(3.2, 2.5, 2.4), 0x8fa39a, g, 0, 1.25, 0, { roughness: 0.6 });
+    mesh(rbox(3.4, 0.15, 2.6), 0x5d6b66, g, 0, 2.58, 0);
+    for (const x of [-0.8, 0.8]) mesh(rbox(1.3, 2.0, 0.05), 0x7d9188, g, x, 1.1, 1.22);
+    vent(0.9, -0.8, 1.6, 1.25); vent(0.9, 0.8, 1.6, 1.25);
+    mesh(rbox(0.5, 0.5, 0.03), 0xffd23a, g, 0, 2.0, 1.26);
+  } else if (level === 1) {
+    plane(10, 7, M(0xb3b7bb), 0, 0.05, 0, g);
+    mesh(rbox(6.5, 3.4, 4), new THREE.MeshStandardMaterial({ map: brick([3, 2]), roughness: 0.95 }), g, -0.8, 1.7, 0);
+    mesh(rbox(6.9, 0.3, 4.4), 0x4b5560, g, -0.8, 3.5, 0);
+    mesh(rbox(1.8, 2.4, 0.06), 0x56636e, g, -2, 1.2, 2.02); mesh(rbox(1.8, 2.4, 0.06), 0x56636e, g, 0.6, 1.2, 2.02);
+    vent(1.2, -2, 2.6, 2.05); vent(1.2, 0.6, 2.6, 2.05);
+    mesh(rbox(0.5, 0.5, 0.03), 0xffd23a, g, 1.8, 2.6, 2.04);
+    mesh(rbox(2.2, 2.2, 2), 0x7b8a7a, g, 3.6, 1.1, 0); for (let f = 0; f < 5; f++) mesh(rbox(0.08, 1.8, 2.2), 0x6a786a, g, 2.8 + f * 0.4, 1.0, 0);
+    for (let b = 0; b < 3; b++) mesh(new THREE.CylinderGeometry(0.1, 0.15, 0.8, 8), 0xc9d2d8, g, 3.0 + b * 0.6, 2.6, 0);
+  } else {
+    plane(16, 11, M(0xb8bab5), 0, 0.05, 0, g);
+    mesh(rbox(5, 3.2, 4), new THREE.MeshStandardMaterial({ map: brick([2, 2]), roughness: 0.95 }), g, -5, 1.6, 2.5); mesh(rbox(5.4, 0.3, 4.4), 0x4b5560, g, -5, 3.3, 2.5);
+    for (let i = 0; i < 2; i++) { const x = 0.5 + i * 5; mesh(rbox(3.4, 2.8, 2.8), 0x7b8a7a, g, x, 1.4, -2); for (let f = 0; f < 6; f++) mesh(rbox(0.08, 2.3, 3), 0x6a786a, g, x - 1.3 + f * 0.5, 1.2, -2);
+      for (let b = 0; b < 3; b++) mesh(new THREE.CylinderGeometry(0.12, 0.18, 1.1, 8), 0xc9d2d8, g, x - 1 + b, 3.3, -2); }
+    for (const x of [-1.5, 7.5]) { mesh(rbox(0.25, 7, 0.25), 0x9aa4ad, g, x, 3.5, -4.5); }
+    mesh(rbox(9.3, 0.25, 0.25), 0x9aa4ad, g, 3, 6.8, -4.5);
+    const fm = new THREE.MeshStandardMaterial({ color: 0x8e9aa4, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false });
+    mesh(rbox(16, 2.4, 0.05), fm, g, 0, 1.2, -5.5); mesh(rbox(0.05, 2.4, 11), fm, g, 8, 1.2, 0); mesh(rbox(0.05, 2.4, 11), fm, g, -8, 1.2, 0);
+    mesh(rbox(0.5, 0.5, 0.03), 0xffd23a, g, -5, 2.4, 4.72);
+  }
+  const lb = label(GRID[level].mva); lb.scale.multiplyScalar(0.45); lb.position.set(0, level === 2 ? 8 : 4.6, 0); g.add(lb);
+  g.traverse(o => o.userData.grid = true);
+}
+buildGrid(0);
+const GT = {
+  en: { type: "Grid operator", cap: "Capacity", volt: "Voltage", next: "Next level", wait: "Lead time", cost: "Cost", up: "Request upgrade", max: "Maximum level reached", note: "The main connection is owned by the grid operator. You place the building on your site and request upgrades; they take time.", req: "Upgrade to {n} requested. Ready in {w}." },
+  nl: { type: "Netbeheerder", cap: "Capaciteit", volt: "Spanning", next: "Volgend niveau", wait: "Doorlooptijd", cost: "Kosten", up: "Upgrade aanvragen", max: "Hoogste niveau bereikt", note: "De hoofdaansluiting is van de netbeheerder. Jij plaatst het gebouw op je terrein en vraagt upgrades aan; die kosten tijd.", req: "Upgrade naar {n} aangevraagd. Klaar over {w}." }
+};
+function gridSelect() {
+  const L = GRID[gridLevel], N = GRID[gridLevel + 1], gt = GT[lang];
+  document.getElementById("mcard").hidden = false; document.getElementById("wx").hidden = true; document.getElementById("envNotes").hidden = true;
+  document.getElementById("mType").textContent = gt.type;
+  document.getElementById("mName").textContent = L.name[lang];
+  document.getElementById("mSw").style.background = "#ffb23e";
+  const rows = [[gt.cap, L.mva], [gt.volt, L.kv]];
+  if (N) rows.push([gt.next, N.name[lang] + " · " + N.mva], [gt.wait, N.wait[lang]], [gt.cost, N.cost]);
+  document.getElementById("mKv").innerHTML = rows.map(([k, v]) => `<span>${k}</span><span>${v}</span>`).join("");
+  document.getElementById("mNote").textContent = gt.note;
+  const btn = document.getElementById("mAction"); btn.textContent = N ? gt.up : gt.max; btn.disabled = !N; btn.style.opacity = N ? 1 : 0.5;
+  btn.onclick = () => { if (!N) return; toast(gt.req.replace("{n}", N.name[lang]).replace("{w}", N.wait[lang])); gridLevel++; buildGrid(gridLevel); gridSelect(); };
+  rigs.B.tG.set(26, 0, 10); rigs.B.dG = Math.min(rigs.B.dG, 40); autoSpin = false;
+}
 // trees, bushes, flowers
 const leafMats = [0x5c9a45, 0x4f8d3d, 0x6aa84f].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.85, flatShading: true }));
 const blossomMats = [0xe7a6c8, 0xd98fb9].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 0.85, flatShading: true }));
@@ -554,7 +682,7 @@ function bush(x, z) { const b = mesh(new THREE.IcosahedronGeometry(rnd(0.5, 0.75
 for (let i = 0; i < 7; i++) bush(-9 + i * 1.2, 3.2);
 for (let i = 0; i < 6; i++) bush(5 + i * 1.2, 3.2);
 for (let i = 0; i < 10; i++) bush(-34 + i * 2.2, 15.3);
-roundTree(-11, 10); roundTree(8, 10); blossom(-11.5, 1); blossom(8, 1.2); roundTree(27, 12); roundTree(30, 4);
+roundTree(-11, 10); roundTree(8, 10); blossom(-11.5, 1); blossom(8, 1.2); roundTree(31, -2); roundTree(30, 4);
 for (let i = 0; i < 14; i++) { const fx = rnd(-9, -4), fz = rnd(2.6, 3.8); mesh(new THREE.SphereGeometry(0.1, 6, 6), [0xffd23a, 0xff8a8a, 0xffffff][i % 3], sceneB, fx, 0.55, fz); }
 for (let i = 0; i < 90; i++) { const x = rnd(-120, 120), z = rnd(-110, -32); (Math.random() < 0.65 ? pine : roundTree)(x, z, rnd(0.9, 1.6)); }
 for (let i = 0; i < 30; i++) { const x = rnd(-120, 120), z = rnd(30, 90); (Math.random() < 0.5 ? pine : roundTree)(x, z, rnd(0.9, 1.5)); }
@@ -917,11 +1045,12 @@ const floorsD = [];
 const slabMat = new THREE.MeshStandardMaterial({ color: 0xc9d0d6, roughness: 0.9 });
 const wallMatD = new THREE.MeshStandardMaterial({ map: panel("#d6dce0", "#bcc4ca", [4, 1]), roughness: 0.9 });
 function floorGroup(level) { const g = new THREE.Group(); g.userData.level = level; g.userData.baseY = level * FH; g.position.y = level * FH; sceneD.add(g); floorsD.push(g);
-  mesh(rbox(W, 0.4, D), slabMat, g, 0, 0.2, 0);
+  mesh(rbox(W, 0.4, D), slabMat, g, 0, 0.2, 0).userData.kind = "slab";
   mesh(rbox(W, FH - 0.4, 0.4), wallMatD, g, 0, 0.4 + (FH - 0.4) / 2, -D / 2 + 0.2);
   mesh(rbox(0.4, FH - 0.4, D), wallMatD, g, -W / 2 + 0.2, 0.4 + (FH - 0.4) / 2, 0);
   mesh(rbox(W, 0.6, 0.42), wallMatD, g, 0, 0.7, D / 2 - 0.2); mesh(rbox(0.42, 0.6, D), wallMatD, g, W / 2 - 0.2, 0.7, 0);
   mesh(rbox(W + 0.1, 0.3, 0.45), 0xffb23e, g, 0, FH - 0.5, -D / 2 + 0.2);
+  g.children.forEach(c => { if (!c.userData.kind) c.userData.kind = "wall"; });
   return g; }
 function rackRow(g, x0, z, n, cage) { for (let i = 0; i < n; i++) { mesh(rbox(0.6, 2.1, 1.1), 0x23282f, g, x0 + i * 0.7, 0.4 + 1.05, z, { roughness: 0.5, metalness: 0.4 });
     mesh(rbox(0.08, 0.05, 0.02), 0x5fd49b, g, x0 + i * 0.7 - 0.1, 1.4, z + 0.56, { emissive: 0x5fd49b, emissiveIntensity: 1 }); }
@@ -930,7 +1059,7 @@ function rackRow(g, x0, z, n, cage) { for (let i = 0; i < n; i++) { mesh(rbox(0.
     const w = n * 0.7 + 1, cx = x0 + (n - 1) * 0.35; [[w, 0.05, cx, z - 1.6], [w, 0.05, cx, z + 1.6]].forEach(([a, b, x, zz]) => mesh(rbox(a, 2.6, b), cm, g, x, 1.7, zz)); mesh(rbox(0.05, 2.6, 3.2), cm, g, cx - w / 2, 1.7, z); mesh(rbox(0.05, 2.6, 3.2), cm, g, cx + w / 2, 1.7, z); } }
 // ground floor
 const f0 = floorGroup(0);
-mesh(rbox(0.3, FH - 0.4, 8), wallMatD, f0, 2, 2.5, -6); mesh(rbox(10, FH - 0.4, 0.3), wallMatD, f0, -7, 2.5, -1.5);
+mesh(rbox(0.3, FH - 0.4, 8), wallMatD, f0, 2, 2.5, -6).userData.kind = "iwall"; mesh(rbox(10, FH - 0.4, 0.3), wallMatD, f0, -7, 2.5, -1.5).userData.kind = "iwall";
 for (let i = 0; i < 4; i++) mesh(rbox(1.4, 1.9, 0.9), 0x404a55, f0, -13 + i * 1.8, 1.35, -8, { metalness: 0.4, roughness: 0.4 }); // UPS
 for (let i = 0; i < 3; i++) mesh(rbox(1.2, 1.6, 0.8), 0x3a4048, f0, -13 + i * 1.5, 1.2, -4); // batteries
 for (let i = 0; i < 4; i++) { mesh(rbox(1, 2.2, 0.8), 0xd8dde1, f0, -1 - i * 1.1, 1.5, -8); mesh(rbox(1.02, 0.25, 0.82), 0xffb23e, f0, -1 - i * 1.1, 2.5, -8); } // switchgear
@@ -964,6 +1093,35 @@ const peopleD = [];
   const c = buildChar(CHARS.find(d => d.id === id)); c.scale.setScalar(0.85); floorsD[lvl].add(c);
   peopleD.push({ c, path: path.map(p => new THREE.Vector3(p[0], 0.4, p[1])), seg: 0, u: Math.random(), speed: 1 });
 });
+// construction: foundation pit, rebar, tower crane
+const conG = new THREE.Group(); sceneD.add(conG);
+const found = mesh(rbox(W + 2, 0.6, D + 2), 0x9a9c9e, conG, 0, -0.25, 0);
+for (let i = -15; i <= 15; i += 1.5) mesh(rbox(0.06, 0.06, D), 0x8a5a3a, conG, i, 0.12, 0);
+for (let j = -9; j <= 9; j += 1.5) mesh(rbox(W, 0.06, 0.06), 0x8a5a3a, conG, 0, 0.14, j);
+const crane = new THREE.Group(); crane.position.set(-20, 0, -12); sceneD.add(crane);
+mesh(rbox(1.2, 26, 1.2), 0xffb23e, crane, 0, 13, 0); for (let i = 0; i < 13; i++) mesh(rbox(1.25, 0.12, 1.25), 0x26303a, crane, 0, i * 2, 0);
+const jib = new THREE.Group(); jib.position.set(0, 26, 0); crane.add(jib);
+mesh(rbox(30, 0.9, 0.9), 0xffb23e, jib, 10, 0, 0); mesh(rbox(8, 0.9, 0.9), 0xffb23e, jib, -6, 0, 0); mesh(rbox(3, 2, 2), 0x9aa4ad, jib, -8, -1, 0); mesh(rbox(1.8, 1.6, 1.6), 0x26303a, jib, 0.5, -1.2, 0);
+const hook = mesh(rbox(0.05, 10, 0.05), 0x26303a, jib, 18, -5, 0); const load = mesh(rbox(3, 0.4, 1.2), 0x9aa4ad, jib, 18, -10.2, 0);
+const PHASES = ["found", "walls", "roof", "inside"];
+let phase = "inside";
+const PT = { en: { found: "Foundation", walls: "Walls & doors", roof: "Roof", inside: "Interior" }, nl: { found: "Fundering", walls: "Muren & deuren", roof: "Dak", inside: "Inrichting" } };
+const PTXT = {
+  en: { found: ["Mark out the building on your plot and pour the foundation.", "The foundation sets the footprint and the maximum number of floors."], walls: ["Place outer walls, doors, entrances and the loading dock door.", "Add floors one by one; each floor needs stairs and a lift shaft."], roof: ["Close the building with a roof.", "Choose a roof type: plain, reinforced for chillers, or with solar panels."], inside: ["Draw internal walls to make rooms: data halls, MMR, UPS room, reception, customer room.", "Then place racks, cooling, power and cabling."] },
+  nl: { found: ["Zet het gebouw uit op je kavel en stort de fundering.", "De fundering bepaalt de plattegrond en het maximale aantal verdiepingen."], walls: ["Plaats buitenmuren, deuren, ingangen en de deur van het laadperron.", "Bouw verdieping voor verdieping; elke verdieping heeft een trap en een liftschacht nodig."], roof: ["Sluit het gebouw af met een dak.", "Kies een daktype: standaard, verzwaard voor koelmachines of met zonnepanelen."], inside: ["Teken binnenmuren om ruimtes te maken: datazalen, MMR, UPS-ruimte, ontvangsthal, klantenruimte.", "Daarna plaats je racks, koeling, stroom en bekabeling."] }
+};
+function applyPhase() {
+  const pi = PHASES.indexOf(phase);
+  floorsD.forEach(g => g.children.forEach(c => {
+    const k = c.userData.kind;
+    if (g.userData.level === 3) c.visible = pi >= 2;
+    else if (k === "slab") c.visible = pi >= 1;
+    else if (k === "wall") c.visible = pi >= 1;
+    else c.visible = pi >= 3;
+  }));
+  riserG.visible = pi >= 3 && document.getElementById("risers").checked; lift.visible = riserG.visible;
+  conG.visible = pi === 0; crane.visible = pi < 3;
+}
 let floorSel = "all", explode = false;
 const FLOORS = ["all", "roof", "f2", "f1", "f0"];
 const floorIdx = { roof: 3, f2: 2, f1: 1, f0: 0 };
@@ -972,10 +1130,15 @@ function renderFloors() {
   list.innerHTML = FLOORS.map(k => `<button data-k="${k}" class="${k === floorSel ? "on" : ""}"><b>${{ all: "▣", roof: "R", f2: "2", f1: "1", f0: "0" }[k]}</b><span>${FT[lang][k]}</span></button>`).join("");
   [...list.children].forEach(b => b.onclick = () => { floorSel = b.dataset.k; renderFloors(); });
   document.getElementById("fName").textContent = FT[lang][floorSel] + " · " + FT[lang]["s" + { all: "All", roof: "Roof", f2: "F2", f1: "F1", f0: "F0" }[floorSel]];
-  document.getElementById("fList").innerHTML = FT[lang].rules[floorSel].map(x => `<li>${x}</li>`).join("");
+  document.getElementById("fList").innerHTML = (phase === "inside" ? FT[lang].rules[floorSel] : PTXT[lang][phase]).map(x => `<li>${x}</li>`).join("");
+  if (phase !== "inside") document.getElementById("fName").textContent = PT[lang][phase];
+  const pr = document.getElementById("phaseRow");
+  pr.innerHTML = PHASES.map((k, i) => `<button data-k="${k}" style="padding:6px 9px;border-radius:6px;font-size:12.5px;font-weight:600;border:1px solid ${k === phase ? "var(--brand)" : "var(--line)"};background:${k === phase ? "var(--brand)" : "transparent"};color:${k === phase ? "#1b1408" : "var(--ink-dim)"}">${i + 1}. ${PT[lang][k]}</button>`).join("");
+  [...pr.children].forEach(b => b.onclick = () => { phase = b.dataset.k; applyPhase(); renderFloors(); });
 }
 document.getElementById("explode").onchange = e => { explode = e.target.checked; };
-document.getElementById("risers").onchange = e => { riserG.visible = e.target.checked; lift.visible = e.target.checked; };
+document.getElementById("risers").onchange = e => { applyPhase(); };
+applyPhase();
 function tickBuilding(dt, t) {
   const top = floorSel === "all" ? 3 : floorIdx[floorSel];
   floorsD.forEach(g => {
@@ -986,6 +1149,7 @@ function tickBuilding(dt, t) {
   });
   if (!reduce) {
     fansD.forEach(f => f.rotation.y += dt * 8);
+    if (crane.visible) { jib.rotation.y = Math.sin(t * 0.25) * 1.2; load.position.y = -10.2 + Math.sin(t * 0.6) * 3; hook.scale.y = 1; }
     liftCar.position.y = 1.7 + (Math.sin(t * 0.4) * 0.5 + 0.5) * 2 * FH;
     peopleD.forEach(w => { const a = w.path[w.seg], b = w.path[(w.seg + 1) % w.path.length]; const len = a.distanceTo(b) || 1; w.u += w.speed * dt / len; if (w.u >= 1) { w.u = 0; w.seg = (w.seg + 1) % w.path.length; }
       w.c.position.lerpVectors(a, b, w.u); w.c.rotation.y = Math.atan2(b.x - a.x, b.z - a.z); animChar(w.c, t, true, 1); });
@@ -1026,6 +1190,7 @@ function pick(e) {
   ray.setFromCamera(ndc, camera);
   if (view === "C") { const hc = ray.intersectObjects(sceneC.children, true); for (const h of hc) { if (!h.object.visible) continue; let o = h.object, vis = true; while (o) { if (!o.visible) vis = false; o = o.parent; } if (!vis) continue; if (h.object.userData.mapItem) { mapSelect(h.object.userData.mapItem); return; } } mapSelect(null); return; }
   const hits = ray.intersectObjects(view === "A" ? sceneA.children : sceneB.children, true);
+  if (view === "B") for (const h of hits) { if (h.object.userData.grid) { gridSelect(); return; } if (h.object.userData.char) break; }
   for (const h of hits) { const c = h.object.userData.char; if (c) { select(CHARS.indexOf(c.userData.def), view === "B" ? c : null); return; } }
 }
 
@@ -1075,6 +1240,7 @@ function setView(v) {
   document.getElementById("envNotes").hidden = v !== "B";
   document.getElementById("wx").hidden = v !== "B";
   document.getElementById("night").hidden = v !== "B";
+  document.getElementById("under").hidden = v !== "B";
   document.getElementById("roster").hidden = v !== "A";
   document.getElementById("card").hidden = v !== "A";
 }
@@ -1084,6 +1250,16 @@ document.getElementById("tabMap").onclick = () => setView("C");
 document.getElementById("tabBld").onclick = () => setView("D");
 let walking = true;
 document.getElementById("walk").onclick = e => { walking = !walking; e.currentTarget.classList.toggle("on", walking); };
+let underOn = false;
+document.getElementById("under").onclick = e => { underOn = !underOn; e.currentTarget.classList.toggle("on", underOn); setUnder(underOn); };
+function setUnder(on) {
+  under.visible = on;
+  [grassMatB, yardMat].forEach(m => { m.transparent = on; m.opacity = on ? 0.28 : 1; m.depthWrite = !on; m.needsUpdate = true; });
+  snowMat.visible = !on; soilFloor.visible = on;
+  if (on) { autoSpin = false; rigs.B.tG.set(-20, -1.5, -9); rigs.B.dG = 34; rigs.B.elG = 0.42; rigs.B.azG = -0.9; }
+  else { rigs.B.tG.set(-2, 0, 2); rigs.B.dG = 62; rigs.B.elG = 0.55; }
+  toast(on ? (lang === "nl" ? "Ondergrondse weergave: dubbelwandige dieseltank (60.000 L) met lekdetectie." : "Underground view: double-wall diesel tank (60,000 L) with leak detection.") : (lang === "nl" ? "Bovengrondse weergave" : "Surface view"));
+}
 let night = false;
 document.getElementById("night").onclick = e => { night = !night; e.currentTarget.classList.toggle("on", night); };
 const hint = document.getElementById("hint"); let hintGone = false;
@@ -1125,6 +1301,11 @@ function frame(now) {
     winMat.emissiveIntensity = 0.9 * nightMix;
     if (!reduce) {
       beacon.material.emissiveIntensity = 0.6 + Math.sin(t * 3) * 0.5;
+      genFans.forEach(f => f.rotation.y += f.userData.speed * dt * 60);
+      if (Math.random() < dt * 3) { const st = stacks[Math.floor(Math.random() * 2)]; const pz = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 6), new THREE.MeshBasicMaterial({ color: 0xdfe4e8, transparent: true, opacity: 0.35, depthWrite: false }));
+        const wp = st.pos.clone(); st.g.localToWorld(wp); pz.position.copy(wp); sceneB.add(pz); smoke.push({ m: pz, life: 0 }); }
+      for (let i = smoke.length - 1; i >= 0; i--) { const sm = smoke[i]; sm.life += dt; sm.m.position.y += dt * 1.2; sm.m.position.x += dt * 0.5; sm.m.scale.setScalar(1 + sm.life * 1.5); sm.m.material.opacity = Math.max(0, 0.35 - sm.life * 0.12);
+        if (sm.life > 3) { sceneB.remove(sm.m); sm.m.geometry.dispose(); sm.m.material.dispose(); smoke.splice(i, 1); } }
       arm.rotation.z = Math.max(0, Math.sin(t * 0.4)) * 1.35;
       walkers.forEach(w => {
         if (walking) { const a = w.path[w.seg], b = w.path[(w.seg + 1) % w.path.length]; const len = a.distanceTo(b) || 1; w.u += w.speed * dt / len;

@@ -52,6 +52,25 @@ Elke locatie toont vooraf de **beschikbare netcapaciteit (MVA)** en de **glasvez
 - **Onderhoud**: onderdelen slijten. Een engineer moet ze testen en onderhouden, en tijdens onderhoud draai je even op je redundante pad.
 - **Netuitval** is een gebeurtenis in het spel: de UPS overbrugt en de generatoren moeten binnen een paar seconden starten. Is je opzet niet goed, dan gaan racks uit.
 
+### Netaansluiting van de netbeheerder
+
+- De netbeheerder levert de hoofdaansluiting in een **eigen bijgebouw** dat je zelf op je terrein plaatst, bij voorkeur langs de openbare weg (de netbeheerder moet er altijd bij kunnen).
+- Het gebouw is van de netbeheerder. Jij vraagt **upgrades of verbouwingen** aan, met kosten en een doorlooptijd:
+
+| Niveau | Gebouw | Capaciteit | Doorlooptijd |
+|---|---|---|---|
+| 1 | Compact station | 2 MVA, 10 kV | 6 maanden |
+| 2 | Klantstation (gemetseld, met transformator) | 10 MVA, 10 kV | 14 maanden |
+| 3 | Eigen onderstation met transformatoren en portaal | 50 MVA, 50 kV | 30 maanden |
+
+- Tijdens een verbouwing kan de aansluiting tijdelijk beperkt zijn. Plan dat, bijvoorbeeld met de generatoren.
+
+### Generatoren en brandstof
+
+- Generatoren zijn moderne **containerunits** op een betonnen poer: met radiatorventilator op het dak, uitlaatdemper, bedieningspaneel met scherm en statuslampje, en aanrijdbeveiliging.
+- **Dieseltanks** plaats je bovengronds of **ondergronds**. Een ondergrondse, dubbelwandige tank met lekdetectie spaart ruimte en is veiliger, maar is duurder en vraagt graafwerk. Bovengronds zie je alleen het vulpunt, de ontluchtingspijp en de mangaten.
+- Met de **ondergrondse weergave** zie je tanks, brandstofleidingen en kabels onder de grond.
+
 ## Koeling
 
 - **Koelmachines** buiten en **CRAH-units** in de zalen, elk met een capaciteit in kW.
@@ -87,6 +106,20 @@ Verplicht of sterk aangeraden:
 
 Daarnaast wegen, paden, groen en uitbreidingsruimte. Gebouwen zijn opengewerkt, en daken kun je aan- en uitzetten.
 
+### Terrein vrij indelen
+
+- Het hele terrein dat je hebt gekocht deel je **zelf in**: waar het pand komt, de parkeerplaatsen, het laadperron, de beveiligingsloge, de ontvangsthal, de generatoren, de koelmachines, het station van de netbeheerder, groen en paden.
+- Er is geen vaste indeling. Elke keuze heeft gevolgen: een lange looproute van parkeerplaats naar ingang, vrachtwagens die niet kunnen keren, of een generator te dicht bij de buren.
+
+### Bouwproces
+
+Een gebouw bouw je in fases, elk met bouwtijd en kosten. Een bouwkraan en bouwvakkers zijn zichtbaar zolang er gebouwd wordt.
+
+1. **Fundering**: zet de plattegrond uit op je kavel en stort de fundering. De fundering bepaalt het maximale aantal verdiepingen.
+2. **Muren, deuren en ingangen**: buitenmuren, entrees, nooddeuren, de deur van het laadperron, en per verdieping een trap en liftschacht.
+3. **Dak**: standaard, verzwaard (voor koelmachines) of met zonnepanelen.
+4. **Inrichting**: binnenmuren plaatsen om ruimtes te maken, en daarna de inrichting (racks, koeling, stroom, bekabeling).
+
 ### Wegen en hekwerk
 
 - Een **parkeerplaats** werkt pas als hij met een weg op de **openbare weg** is aangesloten. Hetzelfde geldt voor het laadperron en de beveiligingsloge: vrachtwagens, personeel en bezoekers moeten er kunnen komen.
@@ -113,7 +146,7 @@ Binnen een gebouw **teken je zelf ruimtes**: muren trekken, deuren plaatsen en e
 | **Datazaal** | Racks van klanten | Racks, CRAH-units, kabelgoten, PDU's |
 | **Kooi / private suite** | Afgeschermd deel van een zaal voor één klant | Hekwerk, toegangslezer |
 | **Meet-me room (MMR)** | Hier komen alle netwerken binnen | ODF's, patchpanelen, provider-racks |
-| **UPS-ruimte** | Overbrugging bij stroomuitval | UPS-systemen |
+| **UPS-ruimte (technische ruimte)** | Overbrugging bij stroomuitval | UPS-systemen |
 | **Accuruimte** | Accubanken voor de UPS | Accukasten, extra koeling, brandblusinstallatie |
 | **Switchgear-ruimte** | Hoofdverdeling en ATS | Schakelkasten, ATS |
 | **NOC** | Bewaking van het hele terrein | Werkplekken, schermwand |
@@ -123,6 +156,7 @@ Binnen een gebouw **teken je zelf ruimtes**: muren trekken, deuren plaatsen en e
 | **Laadperron** | Leveringen ontvangen | Laaddeuren |
 | **Build room / staging** | Servers voorbereiden voordat ze de zaal in gaan | Werkbanken |
 | **Beveiligingsloge** | Check-in, badges uitgeven | Balie, toegangspoortjes |
+| **Ontvangsthal** | Ontvangst van klanten en bezoekers, wachten op begeleiding | Balie, zitjes, sluis naar het beveiligde deel |
 | **Klantenruimte** | Werkplek voor klanten die op locatie zijn | Bureaus, kluisjes |
 
 **Meet-me room in detail**
