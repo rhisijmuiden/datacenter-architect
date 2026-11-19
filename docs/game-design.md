@@ -460,7 +460,7 @@ Een **weerbericht** in de interface waarschuwt een paar dagen vooruit, zodat je 
   - **Koeling**: cold corridor, vrije koeling, waterkoeling, immersion cooling, restwarmte verkopen.
   - **Netwerk**: snellere poorten (100G, 400G, 800G), eigen dark fiber, een eigen internet exchange.
   - **Bouw**: prefab modules, sneller bouwen, hogere gebouwen, meer verdiepingen.
-  - **Bedrijf**: betere contracten, marketing, overheidsklanten, het hostingbedrijf.
+  - **Bedrijf**: betere contracten, marketing, overheidsklanten, het hostingbedrijf, **kantoorverhuur** (met de office manager: kantoren verhuren).
 - **Tijdperken**: nieuwe techniek komt beschikbaar naarmate de jaren in het spel verstrijken; AI-racks bijvoorbeeld pas vanaf een bepaald jaar.
 - **Voorstellen van personeel**: de netwerkarchitect of de facility manager stelt zelf iets voor, zoals "Voor € 2 miljoen krijgen we de nieuwe router van NordLink, dan wordt de latency 30% lager."
 - **Merken**: verzonnen leveranciers, elk met eigen voor- en nadelen.
@@ -546,8 +546,9 @@ Je begint als eigenaar met een leeg terrein. Functies en mogelijkheden komen vri
 | Bedrijfsjurist | Salesdirecteur | Meebieden op grote aanbestedingen |
 | Customer success manager | Salesdirecteur | Tevredener klanten, meer verlengingen, minder vertrek na storingen |
 | Inkoopmanager | CFO | Goedkopere energie- en carriercontracten |
+| Office manager | Operationeel manager; verhuur via research *Kantoorverhuur* | Kantoorruimte en hele kantoorpanden of -locaties verhuren; regelt alles rond meerdere kantoren (stap 9) |
 
-- Later komen er nog bij: marketingmanager en compliance-manager (stap 8) en een duurzaamheidsmanager (stap 9: lagere PUE, groene stroom, eigen zonnepanelen).
+- Later komen er nog bij: marketingmanager en compliance-manager (stap 8), een duurzaamheidsmanager (stap 9: lagere PUE, groene stroom, eigen zonnepanelen) en een **office manager** (research in stap 8, aannemen en verhuur in stap 9; zie *Campus, kantoren en warehouse*).
 - Zonder salesdirecteur komen er geen contracten. Je moet dus vanaf het begin nadenken over wat je bouwt en in welke volgorde.
 - **Scholing** is een upgrade per manager met tijd en kosten. Een voorbeeld: de facility manager volgt een hoogspanningscursus, en daarna mag je een 20 MVA-aansluiting aanvragen.
 - In de creatieve modus kun je alle unlocks direct aanzetten.
@@ -556,6 +557,7 @@ Je begint als eigenaar met een leeg terrein. Functies en mogelijkheden komen vri
 
 - Je ontwerpt een complete **campus** met meerdere gebouwen en bijgebouwen.
 - **Kantoorpanden** met meerdere verdiepingen deel je zelf in, met afdelingen, een **personeelskantine** en vergaderruimtes. Kantoorruimte kun je ook **verhuren aan grote klanten** op contractbasis.
+- **Office manager** (idee van Reinder, 19 november 2026): valt onder de operationeel manager. Met de research *Kantoorverhuur* in de tak Bedrijf (vraagt een office manager) kun je kantoorruimte, hele kantoorpanden en losse kantoorlocaties verhuren. Hij regelt alles rond meerdere kantoren zelf, zonder micromanagement: huurders en huurcontracten, bezetting en werkplekken, inrichting, kantine en schoonmaak, en het overzicht over al je kantoorlocaties.
 - In een **warehouse** sla je serverapparatuur op. Die apparatuur kun je ook verhuren aan klanten.
 
 ## Eigen hostingbedrijf
@@ -645,11 +647,15 @@ Bij het starten van een nieuw spel kies je de instellingen:
 
 | Instelling | Opties |
 |---|---|
-| **Concurrerende datacenters (AI)** | Aan / uit. Als ze aan staan: aantal (1 tot 5) en hoe agressief ze zijn |
+| **Concurrerende datacenters (AI)** | Aan / uit. Als ze aan staan: aantal (1 tot 5) en hoe agressief ze zijn. Ze bieden mee op aanbestedingen en hebben een marktaandeel (stap 9) |
 | **Locatietype** | Kaal terrein / stadskavel |
 | **Startkapitaal** | Laag / normaal / hoog |
 | **Moeilijkheid** | Bepaalt onder meer storingskans, wachttijden bij de netbeheerder en schommelingen in de stroomprijs |
 | **Willekeurige gebeurtenissen** | Aan / uit (netuitval, hittegolf, kabelbreuk, faillissement van een klant) |
+| **Marktnieuws** | Aan / uit. Nieuwsberichten die de vraag veranderen (stap 9) |
+| **Dynamische energieprijzen** | Aan / uit. Uit = vaste stroomprijs (stap 9) |
+| **Rampen** | Aan / uit (brand, overstroming, langdurige netstoring; stap 9) |
+| **Leveringsproblemen** | Aan / uit. Uit = vaste, korte levertijden (stap 9) |
 | **Creatieve modus** | Aan / uit, met losse schakelaars: onbeperkt geld, stroom geen beperking, koeling geen beperking, netwerk geen beperking, geen storingen, direct bouwen |
 
 **Creatieve modus** is bedoeld om zonder grinden lekker te bouwen. Je kiest zelf welke onderdelen je uitzet, bijvoorbeeld alleen onbeperkt geld en verder alles realistisch.
@@ -822,6 +828,12 @@ Goedgekeurd door Reinder op 19 november 2026; ze komen in de genoemde stap.
 - *Stap 7*: **voorraad reserveonderdelen** (schijven, voedingen, glasvezelkabels, optics, PDU's, koelfilters, UPS-accu's); raakt iets op, dan duurt een storing langer. **Automatisch bijbestellen** bij een minimumvoorraad, met levertijden per leverancier, en vrachtwagens die echt aanrijden. **Warehouse-medewerkers**: een magazijnier; hoe beter georganiseerd, hoe sneller racks en onderdelen op hun plek zijn. Een **voorraadscherm** met tekorten, verwachte leveringen en kosten.
 - *Stap 9*: **ruimtes**: een ontvangstzone bij het laadperron, een uitpakruimte (geen karton in de datazaal), een build room om servers te testen, opslag met stellingen, een kooi voor klantvoorraad en een afvalruimte voor karton en e-waste. **Inrichting**: palletstellingen, rolcontainers, **palletwagens** (bewust geen heftrucks), een werkbank, een inpaktafel, een kluis voor gevoelige onderdelen en barcodescanners. **Klantlogistiek**: klanten laten zendingen bezorgen die je opslaat en naar hun rack brengt (remote hands, extra inkomsten). **Dataveilig afvoeren**: een schijvenvernietiger die een certificaat geeft, goed voor de compliance.
 
+**Markt, risico's en beleving** (ideeënronde 2, goedgekeurd door Reinder op 19 november 2026)
+- *Stap 9*: **concurrenten** (AI-datacenterbedrijven) bieden mee op dezelfde aanbestedingen en hebben een **marktaandeel** per regio; uit te zetten bij een nieuw spel. **Overnames en beursgang**: een concurrent of een failliet datacenter opkopen en later naar de beurs gaan (via de CFO). **Marktnieuws** in een nieuwsticker (AI-boom, chiptekort, dure stroom) verandert de vraag; uit te zetten. **Dynamische energieprijzen**: stroom is 's nachts goedkoper en je kunt met je accu's stroom terugverkopen aan het net; uit te zetten. **ESG-score** met PUE, CO₂ en **waterverbruik (WUE)**. Waterverbruik bestaat nog niet in het spel en komt er dan bij: koeltorens en adiabatische koeling verbruiken water via een wateraansluiting met meter, dry coolers en gesloten circuits bijna niets. Sommige klanten eisen een minimale ESG-score; de duurzaamheidsmanager helpt. **Cyberaanvallen**: DDoS en ransomware, vooral bij het hostingbedrijf, met een **SOC** (security operations center) als tegenwicht. **Rampen**: brand, overstroming of een langere netstoring, met een **verzekering** die je afsluit; uit te zetten. **Leveringsproblemen**: transformatoren en generatoren met maanden levertijd, zodat je vooruit moet plannen; uit te zetten. **Sleutelpersoneel** met een naam en eigenschappen (bijvoorbeeld "ervaren in hoogspanning"), zonder micromanagement.
+- *Stap 10*: **klantmigraties**: een grote klant verhuist zichtbaar met vrachtwagens vol servers naar binnen, of vertrekt weer.
+- *Stap 11*: **timelapse** van je hele campus vanaf de eerste schop in de grond.
+- *Later*: **edge-datacenters** (kleine containerlocaties in steden, gekoppeld aan de hoofdcampus), **kleurenblindmodus** en zelf toetsen instellen.
+
 **Overige ideeën**
 - *Stap 7*: **hardware-levenscyclus**: servers en UPS-accu's verouderen en moeten worden vervangen. **Klantbezoeken en audits**: klanten komen kijken, en een nette site levert betere contracten op.
 - *Stap 8*: **waterkoeling en immersion cooling** voor AI- en GPU-klanten met racks van 50 kW of meer, en **restwarmte verkopen** aan een stadsverwarming of kas (via research).
@@ -844,9 +856,10 @@ Goedgekeurd door Reinder op 19 november 2026; ze komen in de genoemde stap.
 6. **Organisatie, klanten en economie** (testversie 0.5.0): CEO-kantoor en unlock-boom (CFO, inkoop, HR, sales, jurist, customer success, operations, facility, netwerk, security), sales, klanttypes, zones, contracten en aanbestedingen, boekhouding, leningen, investeerders, energiecontracten, faillissement, klantbezoeken. Zie *Organisatie, klanten en economie in het spel*.
 7. **Personeel en gebeurtenissen** (testversie 0.6.0): automatisch werven, beleid en serviceplannen, training en budgetten, automatische diensten, onderhoud en slijtage, storingen en reserveonderdelen, willekeurige gebeurtenissen, projectmanager bouw, klantbezoek 24/7. Zie *Personeel en gebeurtenissen in het spel*.
 8. **Beveiliging, research en reputatie** (testversie 0.7.0): camera's, videowall, glazen loge, beveiligingspolicies, research tree, voorstellen van NOC en netwerkarchitect, recensies, certificeringen, overheidsklanten, kantoormanager met kantoorverhuur. Zie *Beveiliging, research en reputatie in het spel*.
-9. **Groei**: campus, kantoren verhuren, warehouse, hostingbedrijf (cloud, dedicated servers met voorraad, grote contracten, dashboard), meerdere locaties en landen
-10. **Uiterlijk**: rondere 3D-poppetjes, first-person rondlopen door je datacenter (alleen kijken en luisteren), seizoenen en weer, dag en nacht
-11. **Afwerking en extra's**: tutorial met een begeleide eerste kavel, scenario's en uitdagingen met medailles ("red een failliet datacenter", "haal binnen 5 jaar 10 MW"), statistieken en grafieken door de tijd (omzet, PUE, uptime, verbruik), fotomodus, achievements en later Steam-ondersteuning, mod-ondersteuning (eigen gebouwen en objecten)
+9. **Groei**: campus, office manager en kantoren of kantoorlocaties verhuren, warehouse, hostingbedrijf (cloud, dedicated servers met voorraad, grote contracten, dashboard), meerdere locaties en landen, markt en concurrentie (aanbestedingen, overnames, beursgang, marktnieuws), dynamische energieprijzen, ESG-score met waterverbruik, cyberaanvallen en SOC, rampen en verzekering, leveringsproblemen, sleutelpersoneel
+10. **Uiterlijk**: rondere 3D-poppetjes, first-person rondlopen door je datacenter (alleen kijken en luisteren), klantmigraties met vrachtwagens, seizoenen en weer, dag en nacht
+   - *Speelronde na stap 10*: Reinder speelt het spel een tijdje en geeft bugs en verbeteringen door in een aparte thread; die worden opgelost voordat stap 11 begint.
+11. **Afwerking en extra's**: tutorial met een begeleide eerste kavel, scenario's en uitdagingen met medailles ("red een failliet datacenter", "haal binnen 5 jaar 10 MW"), statistieken en grafieken door de tijd (omzet, PUE, uptime, verbruik), fotomodus, timelapse van je campus, achievements en later Steam-ondersteuning, mod-ondersteuning (eigen gebouwen en objecten)
 
 Bij elke stap horen ook de uitbreidingen uit *Uitbreidingen en ideeën per stap*.
 
