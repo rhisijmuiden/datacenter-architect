@@ -761,6 +761,21 @@ Zo werkt stap 7 (versie 0.6.0) nu echt in de game:
 - In de **creatieve modus** zet "geen storingen" slijtage-storingen en kabelbreuken uit.
 - Nog niet in deze versie (volgt in een vervolgstap): ongedaan maken, slim slepen, zichtbare kabelgoten, VESDA en blusflessen als objecten, cross-connect-orders en de voorraadvrachtwagen.
 
+## Beveiliging, research en reputatie in het spel
+
+Zo werkt stap 8 (versie 0.7.0) nu echt in de game:
+
+- **Reputatiescherm** (ster-icoon rechtsboven, het vak Reputatie bovenin of de knoppen in de klanten- en beveiligingsbalk) met tabbladen links: Reputatie, Beveiliging, Certificaten, Research en Voorstellen.
+- **Nieuwe managers**: marketingmanager (meer aanvragen, goede recensies tellen zwaarder), compliance officer (certificaten), R&D-manager (research) en kantoormanager (onder operations; regelt verhuur van kantoren).
+- **Beveiligingsniveau** (0 tot 100) uit zeven onderdelen: hekwerk rondom (elektrisch na research), toegangspoort (portiersloge, slagboom, ANPR na research, intercom, palen tegen rammen), camera's (paal buiten, dome binnen in zalen, MMR en gangen), toegang (badgedeuren op alle zalen en de MMR, biometrie en mantrap na research), beveiligingsruimte (videowall en glazen loge), mensen (beveiligers) en policies. Banken, gemeenten en de overheid eisen een minimum.
+- **Policies**: ID-controle bij de ingang, begeleiding van bezoekers (een beveiliger loopt mee, je ziet hem lopen) en alleen bezoek tijdens kantooruren (07-19; veiliger, maar commerciële klanten zijn iets minder tevreden). Extra beveiligers worden automatisch aangenomen.
+- **Certificaten**: ISO 27001, Tier III, PCI DSS, overheid (BIO) en groen. Elk heeft eisen (beveiligingsniveau, redundantie, policies, groene stroom en PUE), een audit van 20 tot 45 dagen, een prijs en geldt drie jaar. Er is een jaarlijkse controle; wie niet meer voldoet verliest het certificaat. Verlengen gaat automatisch 60 dagen voor het einde. Klanten vragen erom: de overheid eist overheid plus ISO, banken eisen PCI, cloud, hyperscalers en AI willen Tier III. Een gevraagd certificaat helpt bij aanbestedingen.
+- **Research**: een R&D-lab (ruimte) met labtafels; per tafel één onderzoeker. Een project kost geld bij het inplannen en punten om af te ronden (maximaal vijf in de wachtrij). Zes takken: stroom (lithium-accu's, eco-UPS, zware busbar, peak shaving), koeling (koude gang, EC-fans, free cooling, restwarmte verkopen aan de stadsverwarming, vloeistofkoeling), netwerk (coherente optics, SDN, DDoS-bescherming), bouw (prefab, langere rijen, logistiek), beveiliging (biometrie, ANPR, mantrap, elektrisch hek, AI-video) en business (CRM, SLA-pakketten, ESG, overheidsmarkt, kantoorverhuur). Sommige techniek komt pas in latere jaren (2028). Vloeistofkoeling opent AI-klanten.
+- **Kantoorverhuur**: met de kantoormanager en het researchproject kantoorverhuur worden afgebouwde kantoorruimtes zonder bureaus verhuurd (€ 22 per m² per maand, meer met training). Hele panden en andere locaties verhuren volgt in stap 9.
+- **Recensies**: klanten schrijven af en toe een recensie over stroom, netwerk, support of beveiliging. De sterren volgen de kwaliteit die je levert en hun eigen tevredenheid; ze verschuiven de reputatie.
+- **Voorstellen**: managers sturen af en toe een offerte voor beter materiaal van een fictief merk (router, DDoS, CRAH-fans, UPS-firmware, beveiligingstechniek, CRM). Goedkeuren geeft een blijvende bonus tot een maximum; een voorstel vervalt na 20 dagen.
+- **Oudere savegames**: de koude gang en het elektrische hek tellen als al onderzocht.
+
 ## Grote datahallen
 
 Reinder wil echt grote hallen kunnen bouwen, op hyperscale-formaat met duizenden racks. Wat daarvoor nodig is:
@@ -828,7 +843,7 @@ Goedgekeurd door Reinder op 19 november 2026; ze komen in de genoemde stap.
 5. **Netwerk** (testversie 0.4.0): fiberducts, MMR, carriers, peering, verkeersweergave, NOC. Zie *Netwerk in het spel*.
 6. **Organisatie, klanten en economie** (testversie 0.5.0): CEO-kantoor en unlock-boom (CFO, inkoop, HR, sales, jurist, customer success, operations, facility, netwerk, security), sales, klanttypes, zones, contracten en aanbestedingen, boekhouding, leningen, investeerders, energiecontracten, faillissement, klantbezoeken. Zie *Organisatie, klanten en economie in het spel*.
 7. **Personeel en gebeurtenissen** (testversie 0.6.0): automatisch werven, beleid en serviceplannen, training en budgetten, automatische diensten, onderhoud en slijtage, storingen en reserveonderdelen, willekeurige gebeurtenissen, projectmanager bouw, klantbezoek 24/7. Zie *Personeel en gebeurtenissen in het spel*.
-8. **Beveiliging, research en reputatie**: camera's, videowall, glazen loge, beveiligingspolicies, research tree, voorstellen van NOC en netwerkarchitect, recensies, certificeringen, overheidsklanten
+8. **Beveiliging, research en reputatie** (testversie 0.7.0): camera's, videowall, glazen loge, beveiligingspolicies, research tree, voorstellen van NOC en netwerkarchitect, recensies, certificeringen, overheidsklanten, kantoormanager met kantoorverhuur. Zie *Beveiliging, research en reputatie in het spel*.
 9. **Groei**: campus, kantoren verhuren, warehouse, hostingbedrijf (cloud, dedicated servers met voorraad, grote contracten, dashboard), meerdere locaties en landen
 10. **Uiterlijk**: rondere 3D-poppetjes, first-person rondlopen door je datacenter (alleen kijken en luisteren), seizoenen en weer, dag en nacht
 11. **Afwerking en extra's**: tutorial met een begeleide eerste kavel, scenario's en uitdagingen met medailles ("red een failliet datacenter", "haal binnen 5 jaar 10 MW"), statistieken en grafieken door de tijd (omzet, PUE, uptime, verbruik), fotomodus, achievements en later Steam-ondersteuning, mod-ondersteuning (eigen gebouwen en objecten)

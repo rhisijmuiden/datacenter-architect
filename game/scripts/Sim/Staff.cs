@@ -10,10 +10,12 @@ public enum StaffRole
 {
     Support, Electrical, Cooling, NetworkEng, Noc, Guard, Logistics,
     Receptionist, Cleaner, RemoteHands, FireSafety, Canteen, GeneratorTech, Gardener, Helpdesk,
+    // step 8
+    Researcher,
 }
 
 /// <summary>Department that hires the role: its manager must be in place (and HR for any hire).</summary>
-public enum Dept { Operations, Facility, Network, Security }
+public enum Dept { Operations, Facility, Network, Security, Research }
 
 public enum Trait { None, Fast, Precise, NightOwl, Loyal }
 
@@ -87,6 +89,7 @@ public static class Staffing
             new[] { ObjKind.Generator, ObjKind.DieselTank, ObjKind.UndergroundTank }, 12, false),
         [StaffRole.Gardener] = new(StaffRole.Gardener, "staff_gardener", Dept.Operations, 3000, false, null, "#4f8a3c", Nothing, 0, false),
         [StaffRole.Helpdesk] = new(StaffRole.Helpdesk, "staff_helpdesk", Dept.Operations, 3800, false, null, "#6c5aa8", Nothing, 0, true),
+        [StaffRole.Researcher] = new(StaffRole.Researcher, "staff_researcher", Dept.Research, 5600, false, RoomType.Lab, "#f4f6f8", Nothing, 0, false),
     };
 
     /// <summary>Order in the staff screen: technical roles first, then services.</summary>
@@ -94,10 +97,10 @@ public static class Staffing
     {
         StaffRole.Electrical, StaffRole.Cooling, StaffRole.GeneratorTech, StaffRole.FireSafety, StaffRole.NetworkEng, StaffRole.Noc,
         StaffRole.Support, StaffRole.RemoteHands, StaffRole.Guard, StaffRole.Receptionist, StaffRole.Logistics, StaffRole.Cleaner,
-        StaffRole.Canteen, StaffRole.Gardener, StaffRole.Helpdesk,
+        StaffRole.Canteen, StaffRole.Gardener, StaffRole.Helpdesk, StaffRole.Researcher,
     };
 
-    public static Exec Manager(Dept d) => d switch { Dept.Facility => Exec.Facility, Dept.Network => Exec.Network, Dept.Security => Exec.Security, _ => Exec.Operations };
+    public static Exec Manager(Dept d) => d switch { Dept.Facility => Exec.Facility, Dept.Network => Exec.Network, Dept.Security => Exec.Security, Dept.Research => Exec.Research, _ => Exec.Operations };
 
     /// <summary>Who repairs a broken object. Generators fall back to electrical engineers (slower) when there is no generator technician.</summary>
     public static StaffRole? RepairRole(ObjKind k)
@@ -232,7 +235,7 @@ public partial class GameState
         if (!Has(Exec.Hr)) return "msg_needs_hr";
         if (!Has(Staffing.Manager(def.Dept))) return def.Dept switch
         {
-            Dept.Facility => "msg_needs_facility_mgr", Dept.Network => "msg_needs_network_mgr", Dept.Security => "msg_needs_security_mgr", _ => "msg_needs_ops",
+            Dept.Facility => "msg_needs_facility_mgr", Dept.Network => "msg_needs_network_mgr", Dept.Security => "msg_needs_security_mgr", Dept.Research => "msg_needs_research_mgr", _ => "msg_needs_ops",
         };
         if (def.Room is RoomType room)
         {
@@ -240,7 +243,7 @@ public partial class GameState
             if (r == StaffRole.Guard) ok |= Objects.Any(o => o.Kind == ObjKind.GuardBooth);
             if (!ok) return room switch
             {
-                RoomType.Noc => "msg_staff_needs_noc", RoomType.Security => "msg_needs_security_room", RoomType.Reception => "msg_needs_reception", _ => "msg_needs_canteen",
+                RoomType.Noc => "msg_staff_needs_noc", RoomType.Security => "msg_needs_security_room", RoomType.Reception => "msg_needs_reception", RoomType.Lab => "msg_needs_lab", _ => "msg_needs_canteen",
             };
         }
         return null;
@@ -263,7 +266,8 @@ public partial class GameState
             n = r switch
             {
                 StaffRole.Noc => Noc247 ? 3 : Objects.Any(o => o.Kind == ObjKind.NocWall) ? 1 : 0,
-                StaffRole.Guard => Has(Exec.Security) ? 1 : 0,
+                StaffRole.Guard => Has(Exec.Security) ? 1 + GuardsForPolicies : 0,
+                StaffRole.Researcher => LabBenches,
                 StaffRole.Receptionist => Deals.Count(d => d.State == DealState.Active) >= 4 ? 1 : 0,
                 StaffRole.Cleaner => (int)Math.Ceiling(halls / 2.0),
                 StaffRole.RemoteHands => RemoteHandsService ? Math.Max(1, (int)Math.Ceiling(rented / 120.0)) : 0,

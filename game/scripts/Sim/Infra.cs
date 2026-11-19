@@ -116,13 +116,13 @@ public static class Infra
             var info = new HallInfo { Room = h, LiveRacks = byHall[h].Count, ItKw = byHall[h].Sum(o => o.Def.PowerKw) };
             var inHall = live.Where(o => o.Floor == h.Floor && h.Contains(o.X, o.Z)).ToList();
             var feeds = inHall.Where(o => o.Kind == ObjKind.Pdu).Select(o => o.Def.CapacityKw).ToList();
-            if (h.Busbar) { feeds.Add(Catalog.BusbarKw); feeds.Add(Catalog.BusbarKw); }
+            if (h.Busbar) { feeds.Add(s.BusbarKw); feeds.Add(s.BusbarKw); }
             info.Feeds = feeds.Count;
             info.DistributionKw = feeds.Sum();
             info.AB = feeds.Count >= 2 && info.ItKw > 0 && feeds.Sum() - feeds.Max() >= info.ItKw;
             var cont = Catalog.Containments[h.Containment];
-            info.CrahKw = inHall.Where(o => o.Kind == ObjKind.Crah).Sum(o => o.Def.CoolingKw * Catalog.LevelFactor(o.Level)) * (1 + cont.CoolingBonus);
-            info.Pue = cont.Pue;
+            info.CrahKw = inHall.Where(o => o.Kind == ObjKind.Crah).Sum(o => o.Def.CoolingKw * Catalog.LevelFactor(o.Level)) * (1 + cont.CoolingBonus) * s.CrahFactor;
+            info.Pue = Math.Max(1.08, cont.Pue - s.PueSaving);
             r.Halls.Add(info);
         }
         r.CrahKw = r.Halls.Sum(h => h.CrahKw);
@@ -143,7 +143,7 @@ public static class Infra
         // ---- the power chain ----
         var trafos = live.Where(o => o.Kind == ObjKind.Transformer).Select(o => o.Def.CapacityKw).ToList();
         var switches = live.Where(o => o.Kind == ObjKind.Switchgear).Select(o => o.Def.CapacityKw).ToList();
-        var ups = live.Where(o => o.Kind == ObjKind.Ups).Select(o => o.Def.CapacityKw).ToList();
+        var ups = live.Where(o => o.Kind == ObjKind.Ups).Select(o => o.Def.CapacityKw * s.UpsFactor).ToList();
         var dist = r.Halls.Select(h => h.DistributionKw).Where(k => k > 0).ToList();
         var gridT = new List<double> { Catalog.GridTransformerKw }; gridT.AddRange(trafos);
         // a city-wide power cut: the generators take over behind the ATS, for as long as the diesel lasts
@@ -245,7 +245,7 @@ public static class Infra
         var genLoad = Math.Min(facilityDemand, r.GenKw);
         r.FuelHours = genLoad > 0 && r.GenKw > 0 ? r.FuelLitres / (genLoad * Catalog.FuelPerKwh) : 0;
         r.UpsKw = ups.Sum();
-        r.BatteryKwh = live.Where(o => o.Kind == ObjKind.Battery).Sum(o => o.Def.StorageKwh);
+        r.BatteryKwh = live.Where(o => o.Kind == ObjKind.Battery).Sum(o => o.Def.StorageKwh) * s.BatteryFactor;
         r.UpsMinutes = r.UpsKw > 0 && r.ItRunningKw > 0 ? r.BatteryKwh / r.ItRunningKw * 60 : 0;
         return r;
     }

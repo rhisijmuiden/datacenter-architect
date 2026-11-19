@@ -130,7 +130,7 @@ public class NewGameOptions
 /// <summary>All state that goes into a savegame. Workers and trucks are not saved; they restart from this state.</summary>
 public partial class GameState
 {
-    public const int CurrentFormat = 6;
+    public const int CurrentFormat = 7;
     /// <summary>Floor value for objects that stand on the roof of a building.</summary>
     public const int RoofFloor = -1;
     public const double WorkPerMaterial = 0.15;
@@ -254,6 +254,16 @@ public partial class GameState
             foreach (var o in Objects) o.Installed = Hours / 24;
             Notes.Add(("msg_staff_new", null));
         }
+        if (SaveFormat < 7)
+        {
+            // step 8: research. What an older game already used stays available: the cold corridor and the electric fence.
+            Researched ??= new();
+            if (Rooms.Any(r => r.Containment == Containment.ColdCorridor || (r.Upgrade == 1 && r.Containment == Containment.HotCold))) Researched.Add("cool_corridor");
+            if (Fences != null && Fences.Any(f => f == (byte)FenceType.Electric)) Researched.Add("sec_electric");
+            // the old security requirement (security manager and guard booth) now is a security level; signed contracts simply run on
+            Notes.Add(("msg_research_new", null));
+        }
+        Researched ??= new(); ResearchQueue ??= new(); Certs ??= new(); Quality ??= new(); Reviews ??= new(); OpenProposals ??= new(); Upgrades ??= new(); RepHistory ??= new();
         Staff ??= new(); Candidates ??= new(); StaffingLevel ??= new(); TrainingPoints ??= new();
         ActiveEvents ??= new(); Incidents ??= new(); PartStock ??= new(); PartMin ??= new(); PartOrders ??= new();
         foreach (var k in Contracts) k.Samples ??= new();
@@ -464,7 +474,7 @@ public partial class GameState
     {
         changed = 0;
         var def = Catalog.Fences[t];
-        if (def.NeedsResearch && !Creative.AllUnlocks) return "msg_needs_research";
+        if (def.NeedsResearch && !Done("sec_electric")) return "msg_needs_research";
         foreach (var (x, z) in FenceCells(x0, z0, w, d))
         {
             if (!InPlot(x, z) || InStation(x, z) || BuildingAt(x, z) != null || FenceAt(x, z) == t) continue;
@@ -545,6 +555,7 @@ public partial class GameState
             if (Doors.Any(o => o.Floor == door.Floor && o.Edges().Contains(e))) return "msg_occupied";
             if (door.Floor > 0 && IsOuterEdge(e)) return "msg_door_upper_outer";
         }
+        if (door.Type == DoorType.Mantrap && !Done("sec_mantrap")) return "msg_needs_research";
         if (!CanAfford(Catalog.Doors[door.Type].Cost)) return "msg_no_money";
         return null;
     }
@@ -634,6 +645,10 @@ public partial class GameState
         RoomType.Battery => "msg_needs_battery",
         RoomType.MeetMe => "msg_needs_mmr_room",
         RoomType.Noc => "msg_needs_noc_room",
+        RoomType.Lab => "msg_needs_lab",
+        RoomType.Security => "msg_needs_security_room",
+        RoomType.Reception => "msg_needs_reception",
+        RoomType.DataHall => "msg_needs_hall",
         _ => "msg_needs_upsroom",
     };
 
@@ -661,7 +676,7 @@ public partial class GameState
     }
 
     /// <summary>A row of objects (racks) placed side by side along one axis, all facing the same way.</summary>
-    public static List<(int x, int z)> RowCells(int ax, int az, int bx, int bz, ObjKind k, int rot)
+    public static List<(int x, int z)> RowCells(int ax, int az, int bx, int bz, ObjKind k, int rot, int max = Catalog.MaxRow)
     {
         var def = Catalog.Objects[k];
         var (w, d) = rot % 2 == 0 ? (def.W, def.D) : (def.D, def.W);
@@ -669,7 +684,7 @@ public partial class GameState
         var alongX = Math.Abs(bx - ax) >= Math.Abs(bz - az);
         var step = alongX ? w : d;
         var len = alongX ? bx - ax : bz - az;
-        var n = Math.Min(Catalog.MaxRow, Math.Abs(len) / step + 1);
+        var n = Math.Min(max, Math.Abs(len) / step + 1);
         var sign = len < 0 ? -1 : 1;
         for (var i = 0; i < n; i++) list.Add(alongX ? (ax + sign * i * step, az) : (ax, az + sign * i * step));
         return list;
@@ -852,6 +867,7 @@ public partial class GameState
         if (r.Stage != Stage.Done) return "msg_hall_not_ready";
         if (r.Upgrade != 0) return "msg_upgrade_busy";
         if (busbar ? r.Busbar : r.Containment >= Containment.ColdCorridor) return "msg_max_level";
+        if (!busbar && r.Containment == Containment.HotCold && !Done("cool_corridor")) return "msg_needs_research";
         if (!CanAfford(busbar ? Catalog.BusbarCost : HallUpgradeCost(r))) return "msg_no_money";
         return null;
     }
@@ -935,6 +951,9 @@ public partial class GameState
             var rng = OpsRng(day);
             StaffDay(day, rng);
             OpsDay(day, rng);
+            ResearchDay();
+            CertDay();
+            ReputationDay(day, rng);
             MoneyDay(day);
         }
     }

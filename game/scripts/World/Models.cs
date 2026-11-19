@@ -319,6 +319,79 @@ public static class Models
                         Box(n, new Vector3(-0.96f + x * 0.96f, 1.0f + y * 0.56f, -0.265f), new Vector3(0.84f, 0.44f, 0.01f), new Color(col, 0.9f), glow: true);
                     }
                 break;
+            case ObjKind.CameraPole:
+            {
+                // a camera on a pole with a little red recording light
+                Cyl(n, new Vector3(0, 1.8f, 0), 0.07f, 3.6f, Dark);
+                Box(n, new Vector3(0, 3.55f, 0.2f), new Vector3(0.08f, 0.08f, 0.4f), Dark);
+                var cam = new Node3D { Position = new Vector3(0, 3.45f, 0.42f), RotationDegrees = new Vector3(-20, 0, 0) };
+                n.AddChild(cam);
+                Box(cam, new Vector3(0, 0, 0), new Vector3(0.22f, 0.2f, 0.45f), White);
+                Box(cam, new Vector3(0, 0.12f, 0.02f), new Vector3(0.28f, 0.03f, 0.5f), White);
+                Box(cam, new Vector3(0, 0, 0.23f), new Vector3(0.14f, 0.12f, 0.02f), new Color("#1b2026"));
+                Box(cam, new Vector3(0.07f, 0.06f, 0.235f), new Vector3(0.03f, 0.03f, 0.01f), Brand.Critical, glow: true);
+                break;
+            }
+            case ObjKind.CameraDome:
+                // ceiling camera: a short pole from the cable tray height with a dark dome
+                Cyl(n, new Vector3(0, 2.55f, 0), 0.03f, 0.5f, Steel);
+                Cyl(n, new Vector3(0, 2.28f, 0), 0.16f, 0.06f, White);
+                Ball(n, new Vector3(0, 2.24f, 0), 0.13f, new Color("#1b2026"), 0.7f);
+                Box(n, new Vector3(0.1f, 2.27f, 0.1f), new Vector3(0.02f, 0.02f, 0.02f), Brand.Critical, glow: true);
+                break;
+            case ObjKind.SecurityWall:
+                // security video wall: 4 x 2 camera feeds above a desk with two consoles
+                Box(n, new Vector3(0, 0.37f, 0.25f), new Vector3(2.8f, 0.06f, 0.6f), White);
+                Box(n, new Vector3(0, 0.2f, 0.25f), new Vector3(2.7f, 0.36f, 0.5f), new Color("#3a414a"));
+                for (var x = 0; x < 4; x++)
+                    for (var y = 0; y < 2; y++)
+                    {
+                        Box(n, new Vector3(-1.08f + x * 0.72f, 1.1f + y * 0.44f, -0.35f), new Vector3(0.7f, 0.42f, 0.05f), Dark);
+                        var feed = (x + y) % 2 == 0 ? new Color("#7fa6b8") : new Color("#9bb59a");
+                        Box(n, new Vector3(-1.08f + x * 0.72f, 1.1f + y * 0.44f, -0.32f), new Vector3(0.64f, 0.36f, 0.01f), feed, glow: true);
+                    }
+                Box(n, new Vector3(-1.08f, 1.1f, -0.315f), new Vector3(0.1f, 0.05f, 0.01f), Brand.Critical, glow: true);
+                foreach (var x in new[] { -0.5f, 0.5f })
+                {
+                    Box(n, new Vector3(x, 0.58f, 0.3f), new Vector3(0.5f, 0.32f, 0.04f), Dark);
+                    Box(n, new Vector3(x, 0.58f, 0.325f), new Vector3(0.46f, 0.28f, 0.01f), Brand.Cooling, glow: true);
+                }
+                break;
+            case ObjKind.GlassLodge:
+            {
+                // glass lodge: a counter with a glass front and a guard's chair behind it
+                var glass = new Color("#9fd3ee", 0.35f);
+                Box(n, new Vector3(0, 0.55f, 0.85f), new Vector3(2.9f, 1.1f, 0.12f), new Color("#3a4652"));
+                Box(n, new Vector3(0, 1.12f, 0.85f), new Vector3(3f, 0.05f, 0.3f), White);
+                Box(n, new Vector3(0, 1.75f, 0.88f), new Vector3(2.9f, 1.2f, 0.04f), glass, 0.1f);
+                foreach (var x in new[] { -1.45f, 1.45f }) Box(n, new Vector3(x, 1.2f, 0), new Vector3(0.06f, 2.4f, 1.8f), glass, 0.1f);
+                Box(n, new Vector3(0, 2.4f, 0), new Vector3(3f, 0.08f, 1.9f), new Color("#2d4a6b"));
+                Box(n, new Vector3(0, 2.36f, 0.93f), new Vector3(3f, 0.04f, 0.04f), Brand.Critical);
+                Box(n, new Vector3(0.6f, 0.75f, 0.3f), new Vector3(1.1f, 0.05f, 0.6f), White);
+                Box(n, new Vector3(0.6f, 0.95f, 0.15f), new Vector3(0.45f, 0.3f, 0.04f), Dark);
+                Box(n, new Vector3(0.6f, 0.95f, 0.175f), new Vector3(0.4f, 0.25f, 0.01f), new Color("#7fa6b8"), glow: true);
+                Box(n, new Vector3(0.6f, 0.45f, -0.3f), new Vector3(0.5f, 0.08f, 0.5f), Dark);
+                Box(n, new Vector3(0.6f, 0.8f, -0.52f), new Vector3(0.5f, 0.6f, 0.06f), Dark);
+                break;
+            }
+            case ObjKind.Bollard:
+                Cyl(n, new Vector3(0, 0.45f, 0), 0.14f, 0.9f, new Color("#3b4148"));
+                Cyl(n, new Vector3(0, 0.75f, 0), 0.145f, 0.08f, Brand.Power);
+                Cyl(n, new Vector3(0, 0.6f, 0), 0.145f, 0.05f, Brand.Power);
+                break;
+            case ObjKind.LabBench:
+                // lab bench with a test rig, a laptop and a small rack of prototypes
+                Box(n, new Vector3(0, 0.88f, 0), new Vector3(1.9f, 0.06f, 0.8f), new Color("#e4e9ec"));
+                foreach (var x in new[] { -0.88f, 0.88f }) Box(n, new Vector3(x, 0.44f, 0), new Vector3(0.08f, 0.88f, 0.72f), Steel);
+                Box(n, new Vector3(-0.5f, 1.15f, -0.15f), new Vector3(0.6f, 0.5f, 0.4f), new Color("#3b4652"));
+                for (var i = 0; i < 3; i++) Box(n, new Vector3(-0.5f, 1.0f + i * 0.14f, 0.055f), new Vector3(0.5f, 0.08f, 0.01f), new Color("#55606b"));
+                Box(n, new Vector3(-0.68f, 1.3f, 0.06f), new Vector3(0.04f, 0.03f, 0.01f), Brand.Ok, glow: true);
+                Box(n, new Vector3(-0.6f, 1.16f, 0.06f), new Vector3(0.04f, 0.03f, 0.01f), Brand.Cooling, glow: true);
+                Box(n, new Vector3(0.45f, 0.92f, 0.1f), new Vector3(0.45f, 0.02f, 0.32f), Dark);
+                Box(n, new Vector3(0.45f, 1.06f, -0.06f), new Vector3(0.45f, 0.28f, 0.02f), Dark);
+                Box(n, new Vector3(0.45f, 1.06f, -0.045f), new Vector3(0.41f, 0.24f, 0.01f), new Color("#5fd49b"), glow: true);
+                Cyl(n, new Vector3(0.82f, 0.98f, 0.2f), 0.05f, 0.14f, new Color("#9fd3ee", 0.6f));
+                break;
             case ObjKind.CoolingTower:
                 Box(n, new Vector3(0, 0.15f, 0), new Vector3(1.95f, 0.3f, 1.95f), new Color("#9ea3a8"));
                 Box(n, new Vector3(0, 1.35f, 0), new Vector3(1.8f, 2.1f, 1.8f), new Color("#d6dde2"), 0.6f);
