@@ -84,6 +84,18 @@ public class PlacedObject
     public int Level { get; set; } = 1;
     /// <summary>Loading dock room where a delivered item waits.</summary>
     public int Dock { get; set; }
+    /// <summary>Step 7: wear (0..100) raises the chance of a fault; a broken object stops working until it is repaired.</summary>
+    public double Wear { get; set; }
+    public bool Broken { get; set; }
+    public double BrokenHour { get; set; }
+    public bool Noticed { get; set; }
+    /// <summary>Hours of repair work left, who works on it (employee id, -1 = contractor), and whether a spare part was available.</summary>
+    public double RepairLeft { get; set; }
+    public int RepairBy { get; set; }
+    public bool PartUsed { get; set; }
+    public double ContractorHour { get; set; }
+    /// <summary>Game day the object was installed (UPS units and batteries age).</summary>
+    public double Installed { get; set; }
     [JsonIgnore] public ObjDef Def => Catalog.Objects[Kind];
 }
 
@@ -104,6 +116,8 @@ public class NewGameOptions
 {
     public string Company { get; set; } = "My Datacenter";
     public bool AiCompetitors { get; set; } = true;
+    /// <summary>Random events: city-wide power cuts, heatwaves, cable cuts, fire alarms, customers going bankrupt.</summary>
+    public bool Events { get; set; } = true;
     /// <summary>0 = easy, 1 = normal, 2 = hard. Sets the starting balance.</summary>
     public int Difficulty { get; set; } = 1;
     public bool Creative { get; set; }
@@ -116,7 +130,7 @@ public class NewGameOptions
 /// <summary>All state that goes into a savegame. Workers and trucks are not saved; they restart from this state.</summary>
 public partial class GameState
 {
-    public const int CurrentFormat = 5;
+    public const int CurrentFormat = 6;
     /// <summary>Floor value for objects that stand on the roof of a building.</summary>
     public const int RoofFloor = -1;
     public const double WorkPerMaterial = 0.15;
@@ -234,6 +248,14 @@ public partial class GameState
         Contracts ??= new(); Peers ??= new();
         Execs ??= new(); Grandfathered ??= new(); Deals ??= new(); Loans ??= new(); Books ??= new();
         foreach (var d in Deals) d.RackIds ??= new();
+        if (SaveFormat < 6)
+        {
+            // step 7: staff, maintenance and events. Existing equipment counts as installed today.
+            foreach (var o in Objects) o.Installed = Hours / 24;
+            Notes.Add(("msg_staff_new", null));
+        }
+        Staff ??= new(); Candidates ??= new(); StaffingLevel ??= new(); TrainingPoints ??= new();
+        ActiveEvents ??= new(); Incidents ??= new(); PartStock ??= new(); PartMin ??= new(); PartOrders ??= new();
         foreach (var k in Contracts) k.Samples ??= new();
         SaveFormat = CurrentFormat;
         Touch();
@@ -582,6 +604,7 @@ public partial class GameState
         var o = new PlacedObject { Kind = k, X = x, Z = z, Rot = rot, Floor = floor };
         if (CanPlace(o) != null) return null;
         o.Id = NextId++;
+        o.Installed = Hours / 24;
         Spend(o.Def.Cost);
         o.Status = o.Def.Chain && !Creative.InstantBuild ? ObjStatus.Ordered : ObjStatus.Live;
         Objects.Add(o);
@@ -662,7 +685,7 @@ public partial class GameState
     {
         get
         {
-            var gens = Objects.Where(o => o.Kind == ObjKind.Generator).Select(o => o.Def.GenKw).OrderByDescending(k => k).ToList();
+            var gens = Objects.Where(o => o.Kind == ObjKind.Generator && !o.Broken).Select(o => o.Def.GenKw).OrderByDescending(k => k).ToList();
             return gens.Count <= 1 ? 0 : gens.Skip(1).Sum();
         }
     }
@@ -851,6 +874,7 @@ public partial class GameState
         var before = (int)(Hours / 24);
         var hourBefore = (int)Hours;
         Hours += hours;
+        UpdateOps(hours);
         UpdateInfra(hours);
         UpdateNetwork(hours, hourBefore);
         var days = (int)(Hours / 24) - before;
@@ -859,6 +883,9 @@ public partial class GameState
             var day = before + i + 1;
             NetworkDay(day);
             OrgDay(day);
+            var rng = OpsRng(day);
+            StaffDay(day, rng);
+            OpsDay(day, rng);
             MoneyDay(day);
         }
     }

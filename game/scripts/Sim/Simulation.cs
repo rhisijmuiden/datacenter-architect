@@ -4,9 +4,9 @@ using System.Linq;
 
 namespace DatacenterArchitect.Sim;
 
-public enum Role { Builder, Fitter, Engineer, Truck, Visitor }
+public enum Role { Builder, Fitter, Engineer, Truck, Visitor, Staff }
 
-public enum TruckLoad { Material, Equipment }
+public enum TruckLoad { Material, Equipment, Customer }
 
 /// <summary>A worker or a truck walking or driving over the site. Agents are not saved; they restart from the game state.</summary>
 public class Agent
@@ -34,6 +34,9 @@ public class Agent
     public int ReverseFrom = -1;
     /// <summary>Engineer patching a cross-connect at the ODF in Target.</summary>
     public bool Xc;
+    /// <summary>Staff on site: the employee (negative for a contractor) and the trade.</summary>
+    public int EmpId;
+    public StaffRole Staff;
     public bool Moving => WayI < Way.Count;
 }
 
@@ -62,7 +65,7 @@ public sealed class Site
 /// trucks bring material to the yard, builders carry it to sites and build stage by stage;
 /// trucks bring racks to the loading dock, fitters place them, an engineer connects power and then fiber.
 /// </summary>
-public class Simulation
+public partial class Simulation
 {
     public const double WalkSpeed = 16, CarrySpeed = 12, TruckSpeed = 60; // cells per game hour
     public const int CarryUnits = 10, TruckMaterial = 40, TruckItems = 12;
@@ -193,9 +196,11 @@ public class Simulation
                 case Role.Engineer: Engineer(a, dt); break;
                 case Role.Truck: Truck(a, dt); break;
                 case Role.Visitor: Visitor(a, dt); break;
+                case Role.Staff: StaffWalk(a, dt); break;
             }
         }
         PlanVisits(dt);
+        SyncStaff(dt);
         Agents.RemoveAll(a => a.Gone);
         if (!_firstLive && S.LiveRacks > 0) { _firstLive = true; Say("msg_first_rack_live"); }
     }
@@ -206,7 +211,7 @@ public class Simulation
         foreach (var b in S.Buildings.Where(b => b.Stage != Stage.Done)) { b.Stage = Stage.Done; b.Material = 0; b.Work = 0; changed = true; }
         foreach (var r in S.Rooms.Where(r => r.Stage != Stage.Done)) { r.Stage = Stage.Done; r.Material = 0; r.Work = 0; changed = true; }
         foreach (var o in S.Objects.Where(o => o.Status != ObjStatus.Live)) { o.Status = ObjStatus.Live; changed = true; }
-        foreach (var a in Agents.Where(a => a.Role != Role.Visitor && (a.Role != Role.Builder || a.Phase != 0))) Reset(a);
+        foreach (var a in Agents.Where(a => a.Role is not (Role.Visitor or Role.Staff) && (a.Role != Role.Builder || a.Phase != 0))) Reset(a);
         Agents.RemoveAll(a => a.Role == Role.Truck);
         if (changed) S.Touch();
     }
@@ -282,44 +287,70 @@ public class Simulation
     void Cool(int id, double hours) => _cooldown[id] = _now + hours;
 
     // ---------------- customer visits ----------------
-    /// <summary>At most this many customers are on site at the same time, however big the campus.</summary>
-    public const int MaxVisitors = 15;
-    /// <summary>Days between visits of one customer, per product: colocation customers come by now and then, not every day.</summary>
+    /// <summary>
+    /// Customers come by around the clock, as in a real datacenter: most during office hours, fewer in the evening and only a few at night.
+    /// How many are on site at once grows with the racks you rent out (about 2%), at least 3 and at most 40 to keep the game light.
+    /// </summary>
+    public int MaxVisitors => Math.Clamp((int)Math.Round(RentedRacks() * 0.02), 3, 40);
+    /// <summary>Days between visits of one customer, per product.</summary>
     public static double VisitDays(Product p) => p switch { Product.PerU => 60, Product.Rack => 40, Product.Cage => 25, _ => 18 };
     readonly Random _rng = new(1234);
     double _visitClock;
 
-    /// <summary>Expected customer visits per day for the contracts that run now.</summary>
-    public double VisitsPerDay()
-    {
-        var sum = 0.0;
-        foreach (var d in S.Deals.Where(d => d.State == DealState.Active))
-            sum += (d.Legacy ? Math.Max(1, d.RackIds.Count / 6.0) : 1) / VisitDays(d.Product);
-        return sum;
-    }
+    int RentedRacks() => S.Deals.Where(d => d.State == DealState.Active).Sum(d => d.Legacy ? d.RackIds.Count : d.Racks + d.Units / Org.UnitsPerRack);
 
-    /// <summary>Once per game hour, during the day, a customer may come by to work on its equipment.</summary>
+    /// <summary>Visits of one customer per day: per contract, plus one per 30 rented racks for the big ones (they have people on site all the time).</summary>
+    static double DealVisits(Deal d) => (d.Legacy ? Math.Max(1, d.RackIds.Count / 6.0) : 1) / VisitDays(d.Product) + (d.Legacy ? 0 : d.Racks / 30.0 / 7);
+
+    /// <summary>Expected customer visits per day for the contracts that run now.</summary>
+    public double VisitsPerDay() => S.Deals.Where(d => d.State == DealState.Active).Sum(DealVisits);
+
+    /// <summary>Share of the day's visits that falls in this hour: office hours busy, evenings quieter, nights quiet.</summary>
+    public static double HourWeight(double hour) => hour >= 8 && hour < 18 ? 1.6 : hour >= 6 && hour < 23 ? 0.6 : 0.25;
+
+    /// <summary>Once per game hour a customer may come by to work on its equipment, or a new customer moves equipment in through the loading dock.</summary>
     void PlanVisits(double dt)
     {
         _visitClock += dt;
         if (_visitClock < 1) return;
         _visitClock -= 1;
         var hour = S.Hours % 24;
-        if (hour < 8 || hour >= 18) return;
+        PlanMove(hour);
         if (Agents.Count(a => a.Role == Role.Visitor) >= MaxVisitors) return;
-        var perHour = VisitsPerDay() / 10;
-        if (_rng.NextDouble() >= perHour) return;
+        var perHour = VisitsPerDay() / 24 * HourWeight(hour);
+        if (_rng.NextDouble() >= Math.Min(0.95, perHour)) return;
         var deals = S.Deals.Where(d => d.State == DealState.Active).ToList();
-        var weights = deals.Select(d => (d.Legacy ? Math.Max(1, d.RackIds.Count / 6.0) : 1) / VisitDays(d.Product)).ToList();
+        var weights = deals.Select(DealVisits).ToList();
         var x = _rng.NextDouble() * weights.Sum();
         Deal pick = null;
         for (var i = 0; i < deals.Count && pick == null; i++) { x -= weights[i]; if (x <= 0) pick = deals[i]; }
         pick ??= deals.LastOrDefault();
-        if (pick == null) return;
-        var ids = pick.RackIds.Count > 0 ? pick.RackIds : S.Objects.Where(o => o.Kind == ObjKind.Rack && S.HallOf(o)?.Zone == HallZone.PerU).Select(o => o.Id).ToList();
-        var rack = ids.Count == 0 ? null : S.Objects.FirstOrDefault(o => o.Id == ids[_rng.Next(ids.Count)]);
+        var rack = RackOf(pick);
         if (rack == null) return;
         StartVisit(rack);
+    }
+
+    PlacedObject RackOf(Deal d)
+    {
+        if (d == null) return null;
+        var ids = d.RackIds.Count > 0 ? d.RackIds : S.Objects.Where(o => o.Kind == ObjKind.Rack && S.HallOf(o)?.Zone == HallZone.PerU).Select(o => o.Id).ToList();
+        return ids.Count == 0 ? null : S.Objects.FirstOrDefault(o => o.Id == ids[_rng.Next(ids.Count)]);
+    }
+
+    /// <summary>
+    /// Customers that just signed move their equipment in: a truck backs up to the loading dock and two of their people
+    /// carry it to the racks. Runs by itself, now and then, during the first weeks of a contract.
+    /// </summary>
+    void PlanMove(double hour)
+    {
+        if (hour < 7 || hour >= 20 || Agents.Any(a => a.Role == Role.Truck && a.Load == TruckLoad.Customer) || Cooling(-3)) return;
+        var fresh = S.Deals.Where(d => d.State == DealState.Active && !d.Legacy && d.Product != Product.PerU && S.Day - d.StartDay < 30 && d.RackIds.Count > 0).ToList();
+        if (fresh.Count == 0 || _rng.NextDouble() >= 0.04 * fresh.Count) return;
+        var deal = fresh[_rng.Next(fresh.Count)];
+        var docks = Docks();
+        if (docks.Count == 0) return;
+        var aprons = docks.Select(d => d.apron).ToHashSet();
+        if (!SendTruck(TruckLoad.Customer, (x, z) => aprons.Contains((x, z)), 0, new List<int> { deal.Id })) Cool(-3, 6);
     }
 
     /// <summary>A customer parks (or comes in from the road), walks to the rack, works there for a while and leaves.</summary>
@@ -525,7 +556,7 @@ public class Simulation
             else if (!SendTruck(TruckLoad.Material, (x, z) => yard.Contains((x, z)), Math.Min(TruckMaterial, (outstanding + 9) / 10 * 10), null))
             { Say("msg_yard_no_road", null, 24); Cool(-1, 1); }
         }
-        // racks and cooling units to the loading dock
+        // racks and cooling units (and customers moving in) to the loading dock
         var onTruck = trucks.SelectMany(t => t.Items).ToHashSet();
         var waiting = S.Objects.Where(o => o.Status == ObjStatus.Ordered && !onTruck.Contains(o.Id) && HallReady(o)).OrderBy(o => o.Id).ToList();
         if (waiting.Count > 0 && trucks.Count(t => t.Load == TruckLoad.Equipment) < 2 && !Cooling(-2))
@@ -554,7 +585,7 @@ public class Simulation
         t.Way.Add((entry.x + 0.5, entry.z + 0.5, 0));
         foreach (var p in path) t.Way.Add((p.X + 0.5, p.Z + 0.5, 0));
         // at a dock the truck stops short of the door instead of driving into the building
-        if (load == TruckLoad.Equipment && t.Way.Count > 0)
+        if (load is TruckLoad.Equipment or TruckLoad.Customer && t.Way.Count > 0)
         {
             var (lx, lz, _) = t.Way[^1];
             if (ParkSpot(((int)Math.Floor(lx), (int)Math.Floor(lz))) is { } spot)
@@ -585,12 +616,17 @@ public class Simulation
         switch (a.Phase)
         {
             case 1:
-                if (Drive(a, dt)) { a.Phase = 2; a.Timer = UnloadHours; Park(a); }
+                if (Drive(a, dt))
+                {
+                    a.Phase = 2; a.Timer = a.Load == TruckLoad.Customer ? 1.5 : UnloadHours; Park(a);
+                    if (a.Load == TruckLoad.Customer) Movers(a);
+                }
                 return;
             case 2:
                 a.Timer -= dt;
                 if (a.Timer > 0) return;
                 if (a.Load == TruckLoad.Material) S.MaterialStock += a.Carry;
+                else if (a.Load == TruckLoad.Customer) { }
                 else
                 {
                     var (cx, cz) = Cell(a);
@@ -612,6 +648,24 @@ public class Simulation
             case 3:
                 if (Drive(a, dt)) a.Gone = true;
                 return;
+        }
+    }
+
+    /// <summary>Two people of a moving customer walk from the loading dock to their racks with boxes, and back.</summary>
+    void Movers(Agent truck)
+    {
+        var deal = S.DealById(truck.Items.FirstOrDefault());
+        var (cx, cz) = Cell(truck);
+        var dock = Docks().OrderBy(d => Math.Abs(d.apron.x - cx) + Math.Abs(d.apron.z - cz)).FirstOrDefault();
+        if (deal == null || dock.dock == null) return;
+        for (var i = 0; i < 2; i++)
+        {
+            var rack = RackOf(deal);
+            if (rack == null) return;
+            var a = new Agent { Id = _nextAgent++, Role = Role.Visitor, X = dock.inside.x + 0.5, Z = dock.inside.z + 0.5, Target = rack.Id, Phase = 1, Loaded = true, Carry = 1, Timer = i * 0.1 };
+            if (!Go(a, rack.Floor, (x, z) => Math.Abs(x - rack.X) + Math.Abs(z - rack.Z) == 1, NavMode.Walk)) continue;
+            a.CarryObj = dock.inside.x * 1000 + dock.inside.z;
+            Agents.Add(a);
         }
     }
 
