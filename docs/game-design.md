@@ -1,6 +1,6 @@
 # Game design document: Datacenter Architect
 
-*Versie 0.2, 19 november 2026. Een levend document dat met de game meegroeit.*
+*Versie 0.3, 19 november 2026. Een levend document dat met de game meegroeit.*
 
 ## In één zin
 
@@ -14,6 +14,15 @@ Een offline bouw- en managementsimulatie voor Windows 11 waarin je grond koopt e
 4. **Sluit klanten aan** die racks huren en betalen per maand.
 5. **Groei en houd het in balans**: meer racks vragen meer stroom en koeling. Kom je tekort, dan krijg je waarschuwingen en uiteindelijk storingen.
 6. Met de winst koop je grond bij of bouw je verder uit.
+
+## Visie: een relaxte bouwgame
+
+- **Jij bent de directeur.** Je bepaalt de grote lijn: waar je bouwt, wat je bouwt en waarin je investeert. Personeel voert het werk zelf uit.
+- **Bouwen staat voorop.** Het ontwerpen, bouwen, onderhouden en uitbreiden van een datacenter is de kern. Er zijn geen harde doelen of tijdslimieten; je speelt in je eigen tempo.
+- **Geen micromanagement.** Je hoeft geen kabels te leggen of roosters te vullen. Dat gaat automatisch, of je stelt een manager aan die het regelt. Wie meer controle wil, kan dat later per onderdeel aanzetten.
+- **Wel spanning als je dat wilt.** Met geld als drijfveer kun je failliet gaan als je meer uitgeeft dan er binnenkomt. In de creatieve modus zet je dat uit.
+- **De keten:** meer sales → meer contracten → meer racks → meer stroom → meer koeling en meer netwerkcapaciteit. Alles hangt samen en is zichtbaar.
+- **Groot bouwen:** van een klein pand in de stad tot een complete campus met meerdere gebouwen, verdiepingen, kantoren, een warehouse en een researchcenter.
 
 ## Locaties
 
@@ -357,6 +366,106 @@ De tijd loopt door een **jaarcyclus** met lente, zomer, herfst en winter, en wis
 
 Een **weerbericht** in de interface waarschuwt een paar dagen vooruit, zodat je je kunt voorbereiden.
 
+## Hoogspanning en stroomnet op de campus
+
+- De netbeheerder levert **hoogspanning** (middenspanning, bijvoorbeeld 10 kV) met een vermogen dat je stap voor stap uitbreidt: 2, 10, 20 en 50 MVA. Elke stap heeft een wachttijd en kosten.
+- Je bouwt zelf **transformatorruimtes** (vaak in de kelder) die hoogspanning omzetten naar laagspanning. Elke transformator heeft een capaciteit; extra transformatoren geven meer vermogen en redundantie.
+- Je kiest tussen **fictieve stroomleveranciers** met verschillende prijzen, contractduur en groene stroom. Je kunt meerdere leveranciers combineren.
+- De berekening telt alles mee: netaansluiting, transformatoren, UPS, generatoren (N, N+1 of 2N) en de verdeling naar de zalen.
+- Je verkoopt rackstroom als product: bijvoorbeeld **16 A, 32 A of 3-fase 32 A** per rack. Wat je verkoopt, moet je grid kunnen leveren.
+- **Stroomweergave:** in de stroom-overlay lopen bolletjes van de netaansluiting via transformatoren, UPS en PDU's naar de racks. Hoe drukker het is, hoe sneller en voller de stroom loopt. Knelpunten kleuren rood.
+
+## Glasvezelnet buiten en netwerk binnen
+
+- Glasvezel komt binnen via **fiberducts** (mantelbuizen) onder de stoep en het terrein. Elke duct heeft een maximaal aantal vezels. Heb je meer nodig, dan koop je een **upgrade** (extra duct of een duct met meer capaciteit).
+- **Carriers** sluiten aan via de **meet-me room**. Je sluit contracten per Mbit/s of per poort af.
+- **Peering:** AI-concurrenten willen met je peeren. Ze vragen bijvoorbeeld een rack in jouw meet-me room, en jij spreekt de voorwaarden af.
+- **Verkeersweergave:** in de netwerk-overlay lopen bolletjes over de vezels en door de MMR. Je ziet live hoeveel verkeer je doet per carrier en per klant.
+- Een **Network Operations Center (NOC)** en later een eigen **netwerkteam** beheren het netwerk, de carriers, peering en de MMR, en optimaliseren het verkeer.
+
+## Koeling uitgebreid
+
+- **Koeltorens** kun je op het dak zetten of los op het terrein.
+- CRAH-units en koelmachines kun je **upgraden** naar meer capaciteit.
+- Koelinstallaties hebben **onderhoud** nodig. Dat doen de **critical facility engineers**, die ook stroom en generatoren onderhouden. Wordt onderhoud uitgesteld, dan stijgt de kans op storingen.
+
+## Grote zalen inrichten
+
+- In een grote zaal plaats je racks per rij in één keer, bijvoorbeeld **een rij van 24 racks**. Een volle rij kost meer, maar scheelt klikken.
+- Alle voorkanten in een rij kijken dezelfde kant op. De achterkanten (de warme kant) komen samen in de **warme gang**, de voorkanten in de **koude gang**.
+- Je kunt ook **mini-datahallen** bouwen: kleine, losse zalen voor een specifieke klant of een snelle uitbreiding.
+- **Zones:** je wijst een zaal of een deel ervan aan voor een bepaald gebruik:
+
+| Zone | Wat de klant koopt |
+|---|---|
+| Colocatie per U | Losse rack-units, per U verkocht |
+| Gedeelde colocatie | Een rack waarin meerdere klanten samen staan |
+| Volle racks | Een compleet rack per klant |
+| Kooi of suite | Een afgesloten deel voor één klant |
+| Eigen cloud | Racks voor je eigen hostingbedrijf |
+
+## Sales en klanttypes
+
+- Een **salesafdeling** brengt contracten binnen. Meer salesmedewerkers geven meer aanvragen. Een aanvraag vraagt bijvoorbeeld "12 volle racks, 32 A, 2 × 10 Gbit/s". Heb je de ruimte, dan teken je.
+- Klanten verschillen sterk:
+
+| Klanttype | Racks | Stroom | Netwerk | Eisen |
+|---|---|---|---|---|
+| Videostreaming | Veel | Middel | Zeer veel | Meerdere carriers |
+| Social media | Veel | Middel | Veel | Lage latency, peering |
+| Websitehosting (ook adult) | Middel | Middel | Veel | 24/7 support |
+| Cryptomining | Zeer veel | Zeer veel | Weinig | Goedkope stroom, veel koeling |
+| Clouddienst | Veel | Veel | Veel | 2N-stroom, groei |
+| Gemeente | Weinig | Laag | Laag | Beveiligingscertificering |
+| Ministerie of overheidsdienst | Middel | Middel | Middel | Hoog beveiligingsniveau, eigen suite |
+
+- Klanten komen willekeurig binnen, zodat elk spel anders verloopt.
+
+## Beveiliging, certificeringen en reputatie
+
+- Je verhoogt je **beveiligingsniveau** met upgrades: pasjessysteem, camera's binnen en buiten, een hoger hek, **stroom op het hek**, een **sluis** in plaats van alleen een slagboom, en beveiligers die **rondes lopen**.
+- Een hoger niveau levert **certificeringen** op (bijvoorbeeld ISO 27001 en een overheidskeurmerk). Daarmee komen nieuwe klanten in beeld, zoals ministeries en gemeentes.
+- Certificeringen en goede prestaties verhogen je **reputatie**, en een betere reputatie trekt grotere klanten aan.
+
+## Researchcenter
+
+- Bouw een **researchcenter** om nieuwe technieken te ontgrendelen in een **research tree**: efficiëntere koeling, betere UPS'en, nieuwe hekken en beveiliging, automatisering, hogere rackdichtheid en nieuwe producten.
+- Research kost tijd en geld, en levert upgrades en betere reputatie op.
+
+## Gebeurtenissen
+
+- **Willekeurige gebeurtenissen** maken het spel levendig: een stroomstoring in de hele stad (de generatoren slaan aan), een CRAH-unit die kapotgaat (een engineer gaat ernaartoe), een kabelbreuk, een hittegolf of een klant die failliet gaat.
+- Gebeurtenissen kun je in de creatieve modus of bij een nieuw spel uitzetten.
+
+## Bouwen met bouwvakkers
+
+- Je zet uit waar de **buitenmuren** komen. Daarna komen **bouwvakkers** die de fundering, muren, het dak en ook het **hekwerk** zichtbaar bouwen.
+- Dat mag eenvoudig blijven: het laat zien dat er gebouwd wordt en hoe lang het nog duurt.
+
+## Campus, kantoren en warehouse
+
+- Je ontwerpt een complete **campus** met meerdere gebouwen en bijgebouwen.
+- **Kantoorpanden** met meerdere verdiepingen deel je zelf in, met afdelingen, een **personeelskantine** en vergaderruimtes. Kantoorruimte kun je ook **verhuren aan grote klanten** op contractbasis.
+- In een **warehouse** sla je serverapparatuur op. Die apparatuur kun je ook verhuren aan klanten.
+
+## Eigen hostingbedrijf
+
+- Later in het spel kun je een **eigen hostingbedrijf** starten, een aparte fictieve BV onder jouw datacenter.
+- Dat bedrijf huurt racks in jouw datacenter en heeft eigen personeel en technici nodig.
+- Het verkoopt **VPS'en, dedicated servers en een public cloud**. Groeit de cloud, dan heeft het meer racks nodig.
+- Je wijst een zaal aan als **eigen cloud** voor dit bedrijf.
+
+## Automatisering en personeel
+
+- Diensten en roosters worden **automatisch** ingevuld. Stel je een **manager** aan, dan regelt die zijn team.
+- Wie het leuk vindt, kan later handmatige roosters per afdeling aanzetten.
+
+## Schaal en techniek voor grote campussen
+
+- De game moet **heel groot** kunnen worden: grote terreinen, meerdere gebouwen en veel verdiepingen.
+- Godot 4 kan dit aan als we het slim opbouwen: het terrein wordt in **blokken (chunks)** geladen, gelijke objecten zoals racks worden met **MultiMesh** in één keer getekend, verre objecten krijgen een eenvoudiger model (**LOD**), en de simulatie (stroom, koeling, netwerk, geld) rekent per tik los van het beeld. Verdiepingen die je niet bekijkt, worden niet getekend.
+- **Poppetjes** worden ronder en meer driedimensionaal, met een sterkere eigen stijl in de lijn van de referentiebeelden.
+
 ## Nieuw spel
 
 Bij het starten van een nieuw spel kies je de instellingen:
@@ -368,6 +477,9 @@ Bij het starten van een nieuw spel kies je de instellingen:
 | **Startkapitaal** | Laag / normaal / hoog |
 | **Moeilijkheid** | Bepaalt onder meer storingskans, wachttijden bij de netbeheerder en schommelingen in de stroomprijs |
 | **Willekeurige gebeurtenissen** | Aan / uit (netuitval, hittegolf, kabelbreuk, faillissement van een klant) |
+| **Creatieve modus** | Aan / uit, met losse schakelaars: onbeperkt geld, stroom geen beperking, koeling geen beperking, netwerk geen beperking, geen storingen, direct bouwen |
+
+**Creatieve modus** is bedoeld om zonder grinden lekker te bouwen. Je kiest zelf welke onderdelen je uitzet, bijvoorbeeld alleen onbeperkt geld en verder alles realistisch.
 
 Zonder AI-concurrenten win je aanbestedingen op basis van je eigen prijs en kwaliteit, en is peering met andere datacenters niet beschikbaar.
 
@@ -395,11 +507,16 @@ Zonder AI-concurrenten win je aanbestedingen op basis van je eigen prijs en kwal
 
 ## Eerste mijlpalen
 
-1. **Fundament en huisstijl** (dit document, de huisstijl, de repo-structuur)
+1. **Fundament en huisstijl** (klaar)
 2. **Technische basis** (klaar): Godot-project, camera, bouwgrid, installer, talen, lokale savegames, Info-scherm
-3. **Terreinprototype**: grond kopen, gebouwen plaatsen, netstroom en glasvezel, generatoren met N+1-check
-4. **Datacenter van binnen**: zalen, racks, kabelgoten, interne stroom- en netwerkinfrastructuur, koeling, klanten en economie
-5. **Personeelsmodule**: werven, functies, roosters, taken en tevredenheid
+3. **Bouwen en creatieve modus**: nieuw spel met creatieve modus, terrein indelen (wegen, paden, hekwerk, groen, licht), buitenmuren uitzetten met bouwvakkers, verdiepingen, ruimtes tekenen, racks per rij
+4. **Stroom en koeling**: netaansluiting en hoogspanning, transformatorruimtes, UPS, generatoren met N+1, koeling en koeltorens, stroom-overlay met bolletjes
+5. **Netwerk**: fiberducts, MMR, carriers, peering, verkeersweergave, NOC
+6. **Klanten en economie**: sales, klanttypes, zones, contracten, energiecontracten, faillissement
+7. **Personeel en gebeurtenissen**: werven, automatische diensten, onderhoud, storingen en willekeurige gebeurtenissen
+8. **Beveiliging, research en reputatie**: research tree, certificeringen, overheidsklanten
+9. **Groei**: campus, kantoren verhuren, warehouse, eigen hostingbedrijf, meerdere locaties
+10. **Uiterlijk**: rondere 3D-poppetjes, seizoenen en weer, dag en nacht
 
 ## Open vragen
 
