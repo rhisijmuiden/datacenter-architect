@@ -687,7 +687,7 @@ public partial class Main : Node3D
     }
 
     // ---------------- dev helpers ----------------
-    /// <summary>--screenshot path [--in-game] [--interior] [--new-game] [--info] [--options TAB] [--nl] [--hours N] [--driveway]</summary>
+    /// <summary>--screenshot path [--in-game] [--interior] [--new-game] [--info] [--options TAB] [--nl] [--hours N] [--driveway] [--curves] [--gate] [--barrier]</summary>
     async System.Threading.Tasks.Task Screenshot(string path, string[] args)
     {
         if (args.Contains("--nl")) Loc.SetLanguage("nl");
@@ -711,6 +711,26 @@ public partial class Main : Node3D
                 _cam.SetView(0.62f, 0.78f, 78, new Vector3(30, 0, 34));
                 Inspect(new Vector2I(44, 34));
                 if (args.Contains("--driveway")) _cam.SetView(0.5f, 0.75f, 16, new Vector3(29.5f, 0, 64));
+                if (args.Contains("--gate") || args.Contains("--barrier"))
+                {
+                    // run until a truck is at the gate (or barrier) and it is half open
+                    var kind = args.Contains("--gate") ? ObjKind.SlidingGate : ObjKind.Barrier;
+                    var g = _state.Objects.First(o => o.Kind == kind);
+                    for (var i = 0; i < 4000; i++)
+                    {
+                        _sim.Tick(0.005);
+                        if (_sim.GateOpen.TryGetValue(g.Id, out var v) && v > 0.45 && v < 0.75 && _sim.Agents.Any(a => a.Role == Role.Truck && a.Phase == 1)) break;
+                    }
+                    _cam.SetView(0.9f, 0.7f, 22, new Vector3(g.X + 1.5f, 0, g.Z + 1));
+                }
+                if (args.Contains("--curves"))
+                {
+                    // a winding footpath and an L-shaped road to show the rounded edges
+                    for (var i = 0; i < 8; i++) _state.PaintSurface(46 + i, 52 + i / 2, 2, 2, Surface.Footpath, out _);
+                    _state.PaintSurface(40, 56, 3, 8, Surface.Asphalt, out _);
+                    _state.PaintSurface(40, 53, 12, 3, Surface.Asphalt, out _);
+                    _cam.SetView(0.6f, 0.85f, 26, new Vector3(46, 0, 57));
+                }
             }
             _hud.Notify(Loc.T("msg_building_done", Loc.T("bld_office")), Brand.Ok);
             _hud.Notify(Loc.T("msg_first_rack_live"), Brand.Ok);

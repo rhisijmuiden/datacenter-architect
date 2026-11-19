@@ -74,7 +74,7 @@ public partial class Hud : Control
             new BuildItem(Mode.Fence, (int)FenceType.Mesh), new BuildItem(Mode.Fence, (int)FenceType.Welded),
             new BuildItem(Mode.Fence, (int)FenceType.Palisade), new BuildItem(Mode.Fence, (int)FenceType.Wall),
             new BuildItem(Mode.Fence, (int)FenceType.Electric),
-            O(ObjKind.SlidingGate), O(ObjKind.PedGate), O(ObjKind.Barrier), O(ObjKind.GuardBooth), O(ObjKind.Intercom),
+            O(ObjKind.SlidingGate), O(ObjKind.SlidingGateLarge), O(ObjKind.PedGate), O(ObjKind.Barrier), O(ObjKind.GuardBooth), O(ObjKind.Intercom),
         }),
         ("cat_buildings", new[]
         {

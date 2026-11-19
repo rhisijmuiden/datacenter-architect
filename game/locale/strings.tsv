@@ -173,6 +173,7 @@ obj_guardbooth	Guard booth	Beveiligingshokje
 obj_intercom	Intercom	Intercom
 obj_barrier	Barrier	Slagboom
 obj_sliding_gate	Sliding gate	Schuifpoort
+obj_sliding_gate_large	Large sliding gate	Grote schuifpoort
 obj_ped_gate	Pedestrian gate	Voetgangerspoort
 surf_grass	Grass (remove paving)	Gras (bestrating weg)
 surf_asphalt	Asphalt	Asfalt

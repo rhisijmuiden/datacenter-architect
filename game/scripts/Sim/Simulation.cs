@@ -30,6 +30,8 @@ public class Agent
     public TruckLoad Load;
     public List<int> Items = new();
     public bool Gone;
+    /// <summary>From this waypoint on the agent drives backwards (a truck backing up to a dock); -1 for never.</summary>
+    public int ReverseFrom = -1;
     public bool Moving => WayI < Way.Count;
 }
 
@@ -179,6 +181,7 @@ public class Simulation
         if (S.Creative.InstantBuild) FinishEverything();
         SyncCrew();
         DispatchTrucks();
+        UpdateGates(dt);
         foreach (var a in Agents.ToList())
         {
             switch (a.Role)
@@ -264,7 +267,7 @@ public class Simulation
             }
             var dx = tx - a.X; var dz = tz - a.Z;
             var dist = Math.Sqrt(dx * dx + dz * dz);
-            if (dist > 1e-6) a.Heading = Math.Atan2(dx, dz);
+            if (dist > 1e-6) a.Heading = Math.Atan2(dx, dz) + (a.ReverseFrom >= 0 && a.WayI >= a.ReverseFrom ? Math.PI : 0);
             if (dist <= budget) { a.X = tx; a.Z = tz; budget -= dist; a.WayI++; }
             else { a.X += dx / dist * budget; a.Z += dz / dist * budget; budget = 0; }
         }
@@ -465,6 +468,29 @@ public class Simulation
         t.Way.Add((entry.x + 0.5, S.PlotSize + 0.5, 0));
         t.Way.Add((entry.x + 0.5, entry.z + 0.5, 0));
         foreach (var p in path) t.Way.Add((p.X + 0.5, p.Z + 0.5, 0));
+        // at a dock the truck stops short of the door instead of driving into the building
+        if (load == TruckLoad.Equipment && t.Way.Count > 0)
+        {
+            var (lx, lz, _) = t.Way[^1];
+            if (ParkSpot(((int)Math.Floor(lx), (int)Math.Floor(lz))) is { } spot)
+            {
+                // drop the last cells that lie between the parking spot and the door
+                double ox = Math.Sin(spot.heading), oz = Math.Cos(spot.heading);
+                double ex = spot.x - ox * 2.75, ez = spot.z - oz * 2.75;
+                t.Way.RemoveAt(t.Way.Count - 1);
+                while (t.Way.Count > 3)
+                {
+                    var (wx, wz, _) = t.Way[^1];
+                    var along = (wx - ex) * ox + (wz - ez) * oz;
+                    var side = Math.Abs((wx - ex) * oz - (wz - ez) * ox);
+                    if (along < 2.75 && side < 1.5) t.Way.RemoveAt(t.Way.Count - 1); else break;
+                }
+                // turn round a few metres out and back up to the door
+                t.Way.Add((spot.x + ox * 3, spot.z + oz * 3, 0));
+                t.ReverseFrom = t.Way.Count;
+                t.Way.Add((spot.x, spot.z, 0));
+            }
+        }
         Agents.Add(t);
         return true;
     }
@@ -474,7 +500,7 @@ public class Simulation
         switch (a.Phase)
         {
             case 1:
-                if (Move(a, dt, TruckSpeed)) { a.Phase = 2; a.Timer = UnloadHours; }
+                if (Drive(a, dt)) { a.Phase = 2; a.Timer = UnloadHours; Park(a); }
                 return;
             case 2:
                 a.Timer -= dt;
@@ -493,15 +519,87 @@ public class Simulation
                 a.Carry = 0; a.Items.Clear();
                 // drive back the same way and off along the road
                 var back = a.Way.Take(a.Way.Count - 1).Reverse().ToList();
-                a.Way.Clear(); a.WayI = 0;
+                a.Way.Clear(); a.WayI = 0; a.ReverseFrom = -1;
                 a.Way.AddRange(back);
                 a.Way.Add((S.PlotSize + 40, S.PlotSize + 3.2, 0));
                 a.Phase = 3;
                 return;
             case 3:
-                if (Move(a, dt, TruckSpeed)) a.Gone = true;
+                if (Drive(a, dt)) a.Gone = true;
                 return;
         }
+    }
+
+    // ---------------- gates and barriers ----------------
+    /// <summary>How far each sliding gate or barrier is open, 0 (closed) to 1 (open), by object id.</summary>
+    public readonly Dictionary<int, double> GateOpen = new();
+    public const double GateHours = 0.06, GateReach = 9, TruckNose = 3.6;
+
+    void UpdateGates(double dt)
+    {
+        var trucks = Agents.Where(a => a.Role == Role.Truck).ToList();
+        foreach (var o in S.Objects.Where(o => Catalog.IsVehicleStop(o.Kind)))
+        {
+            var (w, d) = GameState.Footprint(o);
+            var cx = o.X + w / 2.0; var cz = o.Z + d / 2.0;
+            var want = trucks.Any(t => Math.Abs(t.X - cx) + Math.Abs(t.Z - cz) < GateReach + w / 2.0);
+            GateOpen.TryGetValue(o.Id, out var v);
+            v = Math.Clamp(v + (want ? 1 : -1) * dt / GateHours, 0, 1);
+            GateOpen[o.Id] = v;
+        }
+    }
+
+    /// <summary>A gate or barrier on this cell that is not fully open.</summary>
+    bool Closed(double x, double z)
+    {
+        var o = S.ObjectAt((int)Math.Floor(x), (int)Math.Floor(z));
+        return o != null && Catalog.IsVehicleStop(o.Kind) && (!GateOpen.TryGetValue(o.Id, out var v) || v < 0.98);
+    }
+
+    /// <summary>Drives a truck along its way, stopping with its nose before a gate or barrier until it is open.</summary>
+    bool Drive(Agent a, double dt)
+    {
+        var budget = dt * TruckSpeed;
+        var look = budget + TruckNose;
+        // walk the remaining way and find the first closed gate within reach of the nose
+        double px = a.X, pz = a.Z, travelled = 0, stop = double.MaxValue;
+        for (var i = a.WayI; i < a.Way.Count && travelled < look && stop == double.MaxValue; i++)
+        {
+            var (tx, tz, _) = a.Way[i];
+            var seg = Math.Sqrt((tx - px) * (tx - px) + (tz - pz) * (tz - pz));
+            for (var d = 0.25; d <= seg && travelled + d < look; d += 0.25)
+                if (Closed(px + (tx - px) * d / seg, pz + (tz - pz) * d / seg)) { stop = travelled + d; break; }
+            travelled += seg; px = tx; pz = tz;
+        }
+        if (stop == double.MaxValue) return Move(a, dt, TruckSpeed);
+        var allowed = Math.Max(0, stop - TruckNose);
+        if (allowed <= 1e-6) return false;
+        return Move(a, dt, Math.Min(TruckSpeed, allowed / dt));
+    }
+
+    /// <summary>A truck at a loading dock turns round and backs up to the roll-up door, so it never pokes into the building.</summary>
+    void Park(Agent a)
+    {
+        if (a.Load != TruckLoad.Equipment) return;
+        foreach (var d in Docks())
+            if (ParkSpot(d.apron) is { } spot && Math.Abs(spot.x - a.X) + Math.Abs(spot.z - a.Z) < 0.2)
+            {
+                a.Heading = spot.heading;
+                return;
+            }
+    }
+
+    /// <summary>Where a truck stands at a dock: its rear at the door, nose pointing away from the building.</summary>
+    (double x, double z, double heading)? ParkSpot((int x, int z) cell)
+    {
+        foreach (var (_, apron, inside) in Docks())
+        {
+            if (apron != cell) continue;
+            double ox = apron.x - inside.x, oz = apron.z - inside.z;
+            var ex = (apron.x + inside.x) / 2.0 + 0.5; var ez = (apron.z + inside.z) / 2.0 + 0.5;
+            return (ex + ox * 2.75, ez + oz * 2.75, Math.Atan2(ox, oz));
+        }
+        return null;
     }
 
     // ---------------- fitters ----------------
