@@ -1,6 +1,6 @@
 # Game design document: Datacenter Architect
 
-*Versie 0.4, 19 november 2026. Een levend document dat met de game meegroeit.*
+*Versie 0.5, 19 november 2026. Een levend document dat met de game meegroeit.*
 
 ## In één zin
 
@@ -524,6 +524,30 @@ Je begint als eigenaar met een leeg terrein. Functies en mogelijkheden komen vri
 - Je wijst een zaal aan als **eigen cloud** voor dit bedrijf.
 - Het hostingbedrijf wordt ontgrendeld door de **algemeen directeur**. Je kunt klein beginnen met een **private cloud** in een kleine ruimte van je eigen datacenter, en later een **extra kantoorlocatie** openen.
 
+## Training, budgetten en kwaliteit
+
+- Personeel heeft bij aanname een niveau, maar je kunt ze ook **intern laten trainen** met een opleidingsbudget. Getrainde engineers werken sneller, maken minder fouten en lossen storingen slimmer op.
+- Per afdeling zet je een **budget** neer, bijvoorbeeld voor de **netwerkkwaliteit**. Met meer budget bouwt het netwerkteam een state-of-the-art netwerk.
+- De NOC of de netwerkarchitect stuurt je af en toe een **voorstel**, zoals: "Voor € 240.000 krijgen we de nieuwste router van *Corelink*. Dan dalen de latency en de storingskans." Jij keurt het goed of af. Merknamen zijn altijd verzonnen.
+- Kwaliteit levert **recensies** op, over netwerk, stroom, support en beveiliging. Die tellen op tot je **reputatie**, en een hogere reputatie trekt interessantere klanten.
+
+## Klantbezoek en sfeer
+
+- Klanten komen dagelijks op locatie om hun servers te onderhouden. Je ziet ze inchecken, naar hun rack lopen en weer vertrekken.
+- Voor hen bouw je een **klantruimte** met bijvoorbeeld een frisdrankautomaat, een magnetron, banken en werkterminals. Een goede klantruimte verhoogt de klanttevredenheid.
+- In de datahallen zet je **monitorkarretjes** (crash carts) neer, zodat klanten hun server ter plekke kunnen beheren.
+- **Sfeer**: racks hebben knipperende statuslampjes, en dat blijft licht voor de pc. Zoom je in op een hal, dan hoor je het bekende datacentergeluid: het zoemen van de koeling en het schelle gieren van 1U-servers. Het volume hangt af van de afstand en het aantal racks.
+
+## Hostingbedrijf uitgewerkt
+
+Het hostingbedrijf is een tweede spel in het spel, zonder micromanagement:
+
+- **Diensten**: een public cloud met VPS'en, en **dedicated servers** in soorten zoals webhosting, opslag en GPU.
+- **Voorraad**: dedicated servers moeten op voorraad liggen in je **warehouse**. Medewerkers bouwen ze in elkaar, maken ze klaar voor de klant en installeren ze in het datacenter. Dat zie je gebeuren, maar je hoeft het niet zelf aan te sturen.
+- **Afdelingen**: het hostingbedrijf heeft een eigen sales- en supportafdeling. Kleine contracten lopen vanzelf. **Grote contracten** komen af en toe naar boven en moet je zelf tekenen, bijvoorbeeld: "Wij zijn een streamingdienst en willen 2.400 servers binnen twee maanden."
+- **Dashboard** met grafieken: hoeveel racks er beschikbaar zijn voor dedicated verhuur, hoeveel hardware op voorraad ligt, hoeveel er actief is en wat het per maand oplevert. Je stuurt bij met prijzen, voorraad en capaciteit.
+- **Internationaal**: later bouw je ook in een ander land een datacenter, met een eigen kantoor. Daarna kan het hostingbedrijf internationale diensten aanbieden.
+
 ## Automatisering en personeel
 
 - Diensten en roosters worden **automatisch** ingevuld. Stel je een **manager** aan, dan regelt die zijn team.
@@ -578,13 +602,13 @@ Zonder AI-concurrenten win je aanbestedingen op basis van je eigen prijs en kwal
 
 1. **Fundament en huisstijl** (klaar)
 2. **Technische basis** (klaar): Godot-project, camera, bouwgrid, installer, talen, lokale savegames, Info-scherm
-3. **Bouwen en creatieve modus**: nieuw spel met creatieve modus, terrein indelen (wegen, paden, hekwerk, groen, licht), bouwmaterialenplek met vrachtwagens, bouwvakkers die buitenmuren en dak bouwen, hallen zelf uitmeten met deurkeuze, verdiepingen, kantoren inrichten, racks per rij met de opbouwketen (levering, monteurs, aansluiten)
+3. **Bouwen en creatieve modus**: nieuw spel met creatieve modus, terrein indelen (wegen, paden, hekwerk, groen, licht), bouwmaterialenplek met vrachtwagens, bouwvakkers die buitenmuren en dak bouwen, hallen zelf uitmeten met deurkeuze, verdiepingen, kantoren inrichten, racks per rij met de opbouwketen (levering, monteurs, aansluiten), klantruimte en monitorkarretjes, knipperende lampjes en servergeluid
 4. **Stroom en koeling**: netaansluiting en hoogspanning, transformatorruimtes, UPS, generatoren met N+1, koeling en koeltorens, stroom-overlay met bolletjes
 5. **Netwerk**: fiberducts, MMR, carriers, peering, verkeersweergave, NOC
 6. **Organisatie, klanten en economie**: CEO-kantoor en unlock-boom (CFO met leningen, HR, salesdirecteur), sales, klanttypes, zones, contracten, energiecontracten, faillissement
-7. **Personeel en gebeurtenissen**: werven, automatische diensten, onderhoud, storingen en willekeurige gebeurtenissen
-8. **Beveiliging, research en reputatie**: research tree, certificeringen, overheidsklanten
-9. **Groei**: campus, kantoren verhuren, warehouse, eigen hostingbedrijf, meerdere locaties
+7. **Personeel en gebeurtenissen**: werven, training en budgetten, automatische diensten, onderhoud, storingen en willekeurige gebeurtenissen
+8. **Beveiliging, research en reputatie**: research tree, voorstellen van NOC en netwerkarchitect, recensies, certificeringen, overheidsklanten
+9. **Groei**: campus, kantoren verhuren, warehouse, hostingbedrijf (cloud, dedicated servers met voorraad, grote contracten, dashboard), meerdere locaties en landen
 10. **Uiterlijk**: rondere 3D-poppetjes, seizoenen en weer, dag en nacht
 
 ## Open vragen
