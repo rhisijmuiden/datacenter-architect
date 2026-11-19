@@ -73,6 +73,19 @@ button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 .pill.ok { background: rgba(95,212,155,0.18); color: var(--ok); }
 .pill.bad { background: rgba(255,107,94,0.18); color: var(--bad); }
 .pill.warn { background: rgba(255,178,62,0.18); color: var(--brand); }
+.upg { margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.08); }
+.upg .lbl { font-family: var(--display); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 5px; display: flex; justify-content: space-between; }
+.upg .opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.upg button { font: 600 11.5px/1.2 var(--body); color: var(--ink); background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; padding: 5px 4px; cursor: pointer; }
+.upg button.on { border-color: var(--cool); background: rgba(85,210,242,0.16); color: var(--cool); }
+.upg .note { font-size: 11.5px; color: var(--ink-dim); margin-top: 5px; }
+.orders { position: fixed; left: 262px; top: 86px; width: 270px; padding: 10px 12px; display: grid; gap: 6px; }
+.orders .wo { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; font-size: 12.5px; }
+.orders .wo small { color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.orders .wo .pb { grid-column: 1 / -1; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.08); overflow: hidden; }
+.orders .wo .pb i { display: block; height: 100%; }
+.orders .empty { font-size: 12.5px; color: var(--ink-dim); }
+@media (max-width: 900px) { .orders { display: none; } }
 .room ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-size: 12.5px; color: var(--ink-dim); }
 .room li { display: flex; gap: 6px; align-items: baseline; }
 .room li b { width: 14px; flex: none; text-align: center; font-weight: 700; }
@@ -111,6 +124,7 @@ button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
     <div class="stat"><span class="label" data-i="sRooms">Rooms OK</span><div class="v" id="vRooms">0</div></div>
     <div class="stat"><span class="label" data-i="sCool">Hall cooling</span><div class="v" id="vCool">0%</div><div class="bar"><i id="bCool" style="background:var(--cool)"></i></div></div>
     <div class="stat"><span class="label" data-i="sUps">UPS load</span><div class="v" id="vUps">0%</div><div class="bar"><i id="bUps" style="background:var(--brand)"></i></div></div>
+    <div class="stat"><span class="label">PUE</span><div class="v" id="vPue">1.65</div></div>
     <div class="stat"><span class="label" data-i="sCost">Build cost</span><div class="v" id="vCost">€ 0</div></div>
   </div>
   <div class="panel right-tools">
@@ -130,6 +144,8 @@ button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
   <div class="palette" id="palette"></div>
 </nav>
 
+<div class="panel orders" id="orders" aria-live="polite"><span class="label" data-i="woTitle">Work orders</span><div id="woList"></div></div>
+
 <aside class="panel rooms" aria-label="Rooms">
   <span class="label" data-i="rTitle">Rooms and requirements</span>
   <div id="roomList" style="display:grid;gap:8px"></div>
@@ -143,14 +159,14 @@ button:focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
 (() => {
 // ---------------- text ----------------
 const T = {
-  en: { sub: "AMS-01 · Ground floor", sRooms: "Rooms OK", sCool: "Hall cooling", sUps: "UPS load", sCost: "Build cost", tTools: "Tools", rTitle: "Rooms and requirements", rotate: "Rotate (R)",
+  en: { sub: "AMS-01 · Ground floor", sRooms: "Rooms OK", sCool: "Hall cooling", sUps: "UPS load", sCost: "Build cost", woTitle: "Work orders", woEmpty: "No open work. New racks get a work order automatically.", woPower: "Connect A/B power feed", woFiber: "Pull fiber and copper to ToR", woWho: "Datacenter technician", woDone: "Rack {n} connected and live", upTitle: "Hall upgrade", up0: "Open hall", up1: "Hot/cold aisles", up2: "Cold corridor", upNote: ["No aisle separation: cold and hot air mix.", "Rows face each other with blanking panels.", "Closed cold aisle with glass roof and doors: no mixing."], upCost: "cost", tTools: "Tools", rTitle: "Rooms and requirements", rotate: "Rotate (R)",
     tools: { select: "Inspect", wall: "Wall", door: "Door", room: "Room", object: "Object", erase: "Erase" },
     palRoom: "Room type", palObj: "Objects", palNone: "Tip",
     hints: { select: "Click a room on the grid or in the list to see what it still needs.", wall: "Drag to draw a wall. Walls snap to straight lines.", door: "Click a wall to place or remove a door. Rooms need a door to be reachable.", room: "Drag a rectangle to mark the floor as this room type.", object: "Click to place. <span class='k'>R</span> rotates. Red means the spot is blocked.", erase: "Drag over walls, objects and floor to remove them." },
     tipText: "Pick a tool above. Start with walls, add doors, mark rooms, then furnish them.",
     area: "Area", min: "min.", door: "Has a door", needs: "Needs", cooling: "Cooling", of: "of", none: "No rooms yet. Use the Room tool to mark one.",
     undo: "Undone", blocked: "That spot is blocked", saved: "Room complete: {r}", invalid: "Draw inside the building" },
-  nl: { sub: "AMS-01 · Begane grond", sRooms: "Ruimtes OK", sCool: "Koeling zaal", sUps: "UPS-belasting", sCost: "Bouwkosten", tTools: "Gereedschap", rTitle: "Ruimtes en eisen", rotate: "Draaien (R)",
+  nl: { sub: "AMS-01 · Begane grond", sRooms: "Ruimtes OK", sCool: "Koeling zaal", sUps: "UPS-belasting", sCost: "Bouwkosten", woTitle: "Werkorders", woEmpty: "Geen open werk. Nieuwe racks krijgen vanzelf een werkorder.", woPower: "A/B-stroomvoeding aansluiten", woFiber: "Glasvezel en koper naar ToR trekken", woWho: "Datacenter technicus", woDone: "Rack {n} aangesloten en live", upTitle: "Zaal-upgrade", up0: "Open zaal", up1: "Warme/koude gang", up2: "Cold corridor", upNote: ["Geen scheiding: koude en warme lucht mengen.", "Rijen met de voorkant naar elkaar, met blindplaten.", "Afgesloten koude gang met glazen dak en deuren: geen menging."], upCost: "kosten", tTools: "Gereedschap", rTitle: "Ruimtes en eisen", rotate: "Draaien (R)",
     tools: { select: "Bekijken", wall: "Muur", door: "Deur", room: "Ruimte", object: "Object", erase: "Gum" },
     palRoom: "Ruimtetype", palObj: "Objecten", palNone: "Tip",
     hints: { select: "Klik op een ruimte op het grid of in de lijst om te zien wat er nog nodig is.", wall: "Sleep om een muur te tekenen. Muren lopen altijd recht.", door: "Klik op een muur om een deur te plaatsen of weg te halen. Een ruimte heeft een deur nodig.", room: "Sleep een rechthoek om de vloer als dit ruimtetype te markeren.", object: "Klik om te plaatsen. <span class='k'>R</span> draait. Rood betekent dat de plek bezet is.", erase: "Sleep over muren, objecten en vloer om ze weg te halen." },
@@ -223,6 +239,7 @@ function example() {
   fillRoom(9, 16, 13, 19, "security"); fillRoom(15, 16, 20, 19, "reception"); fillRoom(22, 16, 25, 19, "customer"); fillRoom(27, 16, 29, 19, "noc");
   // data hall: racks + CRAH (cooling deliberately tight)
   for (const z of [3, 4, 7, 8]) for (let i = 5; i <= 16; i++) if (!(z === 8 && i > 13)) addObj("rack", i, z, (z === 3 || z === 7) ? 2 : 0);
+  for (const i of [14, 15]) objects.push({ type: "rack", i, j: 8, rot: 0, st: 0, p: 0, n: ++rackSeq });
   addObj("crah", 2, 3, 0); addObj("crah", 2, 7, 0);
   addObj("ups", 20, 2, 0); addObj("ups", 22, 2, 0);
   addObj("battery", 26, 2); addObj("battery", 27, 2); addObj("battery", 28, 2);
@@ -260,7 +277,8 @@ for (let j = BZ0; j <= BZ1 + 1; j++) gridPts.push(new THREE.Vector3(BX0 - GW / 2
 const gridLines = new THREE.LineSegments(new THREE.BufferGeometry().setFromPoints(gridPts), new THREE.LineBasicMaterial({ color: 0x5b6b78, transparent: true, opacity: 0.25 })); scene.add(gridLines);
 
 const floorG = new THREE.Group(), wallG = new THREE.Group(), objG = new THREE.Group(), ghostG = new THREE.Group(), selG = new THREE.Group();
-[floorG, wallG, objG, ghostG, selG].forEach(g => scene.add(g));
+const contG = new THREE.Group();
+[floorG, wallG, objG, ghostG, selG, contG].forEach(g => scene.add(g));
 let wallsHigh = true;
 const WALL_H = () => wallsHigh ? 2.8 : 0.6;
 const wallMat = new THREE.MeshStandardMaterial({ color: 0xd6dce0, roughness: 0.85 });
@@ -317,8 +335,57 @@ function model(type) {
   return g;
 }
 function footprint(o) { const def = OBJS[o.type]; const rot = o.rot % 2; const w = rot ? def.d : def.w, d = rot ? def.w : def.d; const out = []; for (let dj = 0; dj < d; dj++) for (let di = 0; di < w; di++) out.push([o.i + di, o.j + dj]); return { w, d, cells: out }; }
-function placeModel(o, g) { const f = footprint(o); const m = model(o.type); m.position.set(cx(o.i) + (f.w - 1) / 2, 0.02, cz(o.j) + (f.d - 1) / 2); m.rotation.y = -o.rot * Math.PI / 2; g.add(m); return m; }
-function rebuildObjects() { objG.clear(); objects.forEach(o => placeModel(o, objG)); }
+function placeModel(o, g) { const f = footprint(o); const m = model(o.type); m.position.set(cx(o.i) + (f.w - 1) / 2, 0.02, cz(o.j) + (f.d - 1) / 2); m.rotation.y = -o.rot * Math.PI / 2; g.add(m);
+  if (o.type === "rack" && o.st < 2) { const col = o.st === 0 ? 0xffb23e : 0xff7a2f; const mk = new THREE.Mesh(new THREE.OctahedronGeometry(0.3), new THREE.MeshStandardMaterial({ color: col, emissive: col, emissiveIntensity: 0.6 })); mk.position.set(m.position.x, 3.1, m.position.z); mk.userData.marker = true; g.add(mk);
+    m.traverse(x => { if (x.material && x.material.emissive && x.material.color.getHex() === 0x5fd49b) { x.material = x.material.clone(); x.material.color.setHex(0xff6b5e); x.material.emissive.setHex(0xff6b5e); } }); }
+  return m; }
+function rebuildObjects() { objG.clear(); objects.forEach(o => placeModel(o, objG)); rebuildContainment(); }
+let hallLevel = 0, rackSeq = 0;
+function pendingRacks() { return objects.filter(o => o.type === "rack" && o.st < 2).sort((a, b) => a.n - b.n); }
+function renderOrders() { const T = t(), q = pendingRacks(), el = document.getElementById("woList"); if (!el) return;
+  if (!q.length) { el.innerHTML = `<div class="empty">${T.woEmpty}</div>`; return; }
+  el.innerHTML = q.slice(0, 4).map((o, k) => { const pw = o.st === 0, pct = k === 0 ? Math.round(o.p * 100) : 0;
+    return `<div class="wo"><span>Rack ${String(o.n).padStart(2, "0")} · ${pw ? T.woPower : T.woFiber}</span><small>${pct}%</small><small style="grid-column:1/-1">${T.woWho}${k ? " · " + (lang === "nl" ? "wacht" : "queued") : ""}</small><div class="pb"><i style="width:${pct}%;background:${pw ? "var(--brand)" : "var(--fiber)"}"></i></div></div>`; }).join(""); }
+let tech = null, woT = 0;
+function makeTech() { const g = new THREE.Group(); g.scale.setScalar(1.35); const m = (geo, c, y) => { const x = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: c, roughness: 0.7 })); x.position.y = y; x.castShadow = true; g.add(x); return x; };
+  m(new THREE.CylinderGeometry(0.2, 0.24, 0.75, 12), 0xffd23e, 0.75); m(new THREE.CylinderGeometry(0.08, 0.08, 0.45, 8), 0x2d3b4c, 0.22).position.x = -0.1; const l2 = m(new THREE.CylinderGeometry(0.08, 0.08, 0.45, 8), 0x2d3b4c, 0.22); l2.position.x = 0.1;
+  m(new THREE.SphereGeometry(0.22, 16, 12), 0xc68b5e, 1.32); m(new THREE.TorusGeometry(0.22, 0.05, 6, 16), 0x7a5b3a, 0.98).rotation.x = Math.PI / 2; return g; }
+function tickOrders(dt, now) {
+  if (!tech) { tech = makeTech(); scene.add(tech); tech.position.set(cx(17), 0, cz(10)); }
+  const q = pendingRacks(), o = q[0];
+  objG.children.forEach(c => { if (c.userData.marker) { c.rotation.y += dt * 2; c.position.y = 3.1 + Math.sin(now / 300) * 0.08; } });
+  if (!o) { renderOrdersThrottled(dt); return; }
+  const [di, dj] = FRONT[o.rot % 4], tx = cx(o.i + di), tz = cz(o.j + dj);
+  const dx = tx - tech.position.x, dz = tz - tech.position.z, d = Math.hypot(dx, dz);
+  if (d > 0.08) { const sp = Math.min(d, dt * 3); tech.position.x += dx / d * sp; tech.position.z += dz / d * sp; tech.rotation.y = Math.atan2(dx, dz); tech.position.y = Math.abs(Math.sin(now / 90)) * 0.05; }
+  else { tech.rotation.y = Math.atan2(cx(o.i) - tech.position.x, cz(o.j) - tech.position.z); tech.position.y = 0; o.p += dt / 2.5;
+    if (o.p >= 1) { o.p = 0; o.st++; rebuildObjects(); if (o.st === 2) { toast(t().woDone.replace("{n}", String(o.n).padStart(2, "0"))); render(); } } }
+  renderOrdersThrottled(dt);
+}
+function renderOrdersThrottled(dt) { woT -= dt; if (woT <= 0) { woT = 0.15; renderOrders(); } }
+const HALL_UP = [{ f: 1.0, pue: 1.65, cost: 0 }, { f: 1.12, pue: 1.5, cost: 18000 }, { f: 1.35, pue: 1.3, cost: 64000 }];
+const FRONT = [[0, 1], [-1, 0], [0, -1], [1, 0]];
+function coldAisleCells() {
+  const rack = {}; objects.forEach(o => { if (o.type === "rack") rack[o.i + "," + o.j] = o; });
+  const out = new Set();
+  objects.forEach(o => { if (o.type !== "rack") return; const [di, dj] = FRONT[o.rot % 4]; const path = [];
+    for (let k = 1; k <= 3; k++) { const ii = o.i + di * k, jj = o.j + dj * k, r = rack[ii + "," + jj];
+      if (r) { if ((r.rot % 4) === ((o.rot + 2) % 4) && path.length) path.forEach(c => out.add(c)); break; }
+      if (cells[jj]?.[ii]?.wall) break; path.push(ii + "," + jj); } });
+  return out;
+}
+const glassMat = new THREE.MeshStandardMaterial({ color: 0x55d2f2, transparent: true, opacity: 0.28, roughness: 0.1, metalness: 0.1, depthWrite: false });
+const frameMat = new THREE.MeshStandardMaterial({ color: 0x55d2f2, roughness: 0.4 });
+function rebuildContainment() {
+  if (typeof contG === "undefined") return; contG.clear(); if (hallLevel < 2) return;
+  const set = coldAisleCells();
+  set.forEach(key => { const [i, j] = key.split(",").map(Number);
+    const roof = new THREE.Mesh(new THREE.BoxGeometry(1, 0.04, 1), glassMat); roof.position.set(cx(i), 2.32, cz(j)); contG.add(roof);
+    for (const [di, dj] of [[1, 0], [-1, 0]]) if (!set.has((i + di) + "," + (j + dj))) {
+      const d = new THREE.Mesh(new THREE.BoxGeometry(0.04, 2.3, 1), glassMat); d.position.set(cx(i) + di * 0.5, 1.15, cz(j)); contG.add(d);
+      const fr = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 1), frameMat); fr.position.set(cx(i) + di * 0.5, 2.3, cz(j)); contG.add(fr);
+      const h = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.5, 0.04), frameMat); h.position.set(cx(i) + di * 0.52, 1.1, cz(j)); contG.add(h); } });
+}
 function occupied(i, j, except) { return objects.some(o => o !== except && footprint(o).cells.some(([a, b]) => a === i && b === j)); }
 function canPlace(o) { return footprint(o).cells.every(([i, j]) => cells[j]?.[i] && cells[j][i].inside && !cells[j][i].wall && !occupied(i, j)); }
 
@@ -344,7 +411,7 @@ function evalRoom(r) {
   if (def.door) items.push({ ok: r.door, txt: t().door });
   Object.entries(def.need).forEach(([k, n]) => { const have = r.counts[k] || 0; items.push({ ok: have >= n, txt: `${OBJS[k][lang]}: ${have} / ${n}` }); });
   let warn = null;
-  if (r.type === "datahall") { const load = (r.counts.rack || 0) * OBJS.rack.kw, cap = (r.counts.crah || 0) * OBJS.crah.cool; const pct = cap ? Math.round(load / cap * 100) : 0; warn = { pct, load, cap }; items.push({ ok: pct <= 100, warn: pct > 85 && pct <= 100, txt: `${t().cooling}: ${load} ${t().of} ${cap} kW (${pct}%)` }); }
+  if (r.type === "datahall") { const load = (r.counts.rack || 0) * OBJS.rack.kw, cap = Math.round((r.counts.crah || 0) * OBJS.crah.cool * HALL_UP[hallLevel].f); const pct = cap ? Math.round(load / cap * 100) : 0; warn = { pct, load, cap }; items.push({ ok: pct <= 100, warn: pct > 85 && pct <= 100, txt: `${t().cooling}: ${load} ${t().of} ${cap} kW (${pct}%)` }); }
   const ok = items.every(x => x.ok);
   return { ok, items, warn };
 }
@@ -355,20 +422,24 @@ function render() {
   if (!roomsCache.length) { list.innerHTML = `<p style="margin:0;font-size:13px;color:var(--ink-dim)">${t().none}</p>`; }
   else list.innerHTML = roomsCache.map((r, k) => { const e = evalRoom(r); const def = ROOMS[r.type]; const anyWarn = e.items.some(x => x.warn);
     return `<div class="room ${k === selRoom ? "sel" : ""}" data-k="${k}"><div class="hd"><span class="sw" style="background:${def.c}"></span>${def[lang]}<small>${r.area} m²</small><span class="pill ${e.ok ? (anyWarn ? "warn" : "ok") : "bad"}">${e.ok ? "OK" : "!"}</span></div>
-      <ul>${e.items.map(x => `<li class="${x.ok ? (x.warn ? "warn" : "ok") : "bad"}"><b>${x.ok ? (x.warn ? "!" : "✓") : "✕"}</b><span>${x.txt}</span></li>`).join("")}</ul></div>`; }).join("");
+      <ul>${e.items.map(x => `<li class="${x.ok ? (x.warn ? "warn" : "ok") : "bad"}"><b>${x.ok ? (x.warn ? "!" : "✓") : "✕"}</b><span>${x.txt}</span></li>`).join("")}</ul>${r.type === "datahall" ? upgradeHtml() : ""}</div>`; }).join("");
+  [...list.querySelectorAll(".upg button")].forEach(b => b.onclick = ev => { ev.stopPropagation(); hallLevel = +b.dataset.l; render(); });
   [...list.querySelectorAll(".room")].forEach(el => el.onclick = () => { selRoom = +el.dataset.k; highlightRoom(); render(); });
   // stats
   const okCount = roomsCache.filter(r => evalRoom(r).ok).length;
   document.getElementById("vRooms").innerHTML = `${okCount}<small> / ${roomsCache.length}</small>`;
   const racks = objects.filter(o => o.type === "rack").length, crah = objects.filter(o => o.type === "crah").length, ups = objects.filter(o => o.type === "ups").length;
-  const coolPct = crah ? Math.round(racks * OBJS.rack.kw / (crah * OBJS.crah.cool) * 100) : 0; const upsPct = ups ? Math.round(racks * OBJS.rack.kw / (ups * OBJS.ups.ups) * 100) : 0;
+  const coolPct = crah ? Math.round(racks * OBJS.rack.kw / (crah * OBJS.crah.cool * HALL_UP[hallLevel].f) * 100) : 0; const upsPct = ups ? Math.round(racks * OBJS.rack.kw / (ups * OBJS.ups.ups) * 100) : 0;
   const setBar = (id, bid, v) => { document.getElementById(id).textContent = v + "%"; const b = document.getElementById(bid); b.style.width = Math.min(100, v) + "%"; b.style.background = v > 100 ? "var(--bad)" : v > 85 ? "var(--brand)" : (bid === "bCool" ? "var(--cool)" : "var(--ok)"); };
   setBar("vCool", "bCool", coolPct); setBar("vUps", "bUps", upsPct);
   let cost = 0; for (const row of cells) for (const c of row) { if (c.wall === 1) cost += COST.wall; else if (c.wall === 2) cost += COST.door; else if (c.room) cost += COST.floor; }
-  objects.forEach(o => cost += OBJS[o.type].cost);
+  objects.forEach(o => cost += OBJS[o.type].cost); cost += HALL_UP[hallLevel].cost;
+  document.getElementById("vPue").textContent = HALL_UP[hallLevel].pue.toFixed(2);
   document.getElementById("vCost").textContent = "€ " + cost.toLocaleString(lang === "nl" ? "nl-NL" : "en-GB");
   highlightRoom();
 }
+function upgradeHtml() { const T = t(); const u = HALL_UP[hallLevel];
+  return `<div class="upg"><div class="lbl"><span>${T.upTitle}</span><span>PUE ${u.pue.toFixed(2)} · +${Math.round((u.f - 1) * 100)}% ${T.sCool.toLowerCase()}</span></div><div class="opts">${[T.up0, T.up1, T.up2].map((n, l) => `<button data-l="${l}" class="${l === hallLevel ? "on" : ""}">${n}</button>`).join("")}</div><div class="note">${T.upNote[hallLevel]}${u.cost ? ` (${T.upCost} € ${u.cost.toLocaleString(lang === "nl" ? "nl-NL" : "en-GB")})` : ""}</div></div>`; }
 function highlightRoom() {
   selG.clear(); const r = roomsCache[selRoom]; if (!r) return;
   const m = new THREE.MeshBasicMaterial({ color: 0xffb23e, transparent: true, opacity: 0.35, depthWrite: false });
@@ -457,7 +528,7 @@ function commitDrag() {
     objects = objects.filter(o => !footprint(o).cells.some(([a, b]) => set.has(a + "," + b)));
     cs.forEach(([i, j]) => { const c = cells[j][i]; const outer = i === BX0 || i === BX1 || j === BZ0 || j === BZ1; if (c.wall && !outer) c.wall = 0; else if (c.wall === 2 && outer) c.wall = 1; else if (!c.wall) c.room = null; }); selRoom = -1; render(); }
 }
-function tryPlace(c) { const o = { type: objType, i: c[0], j: c[1], rot: objRot }; if (!canPlace(o)) { toast(t().blocked); return; } snapshot(); const before = roomsCache.filter(r => evalRoom(r).ok).length; objects.push(o); render(); const after = roomsCache.filter(r => evalRoom(r).ok); if (after.length > before) { const r = roomsCache.find(r => r.cells.some(([a, b]) => a === o.i && b === o.j)); if (r && evalRoom(r).ok) toast(t().saved.replace("{r}", ROOMS[r.type][lang])); } }
+function tryPlace(c) { const o = { type: objType, i: c[0], j: c[1], rot: objRot }; if (objType === "rack") { o.st = 0; o.p = 0; o.n = ++rackSeq; } if (!canPlace(o)) { toast(t().blocked); return; } snapshot(); const before = roomsCache.filter(r => evalRoom(r).ok).length; objects.push(o); render(); const after = roomsCache.filter(r => evalRoom(r).ok); if (after.length > before) { const r = roomsCache.find(r => r.cells.some(([a, b]) => a === o.i && b === o.j)); if (r && evalRoom(r).ok) toast(t().saved.replace("{r}", ROOMS[r.type][lang])); } }
 function toggleDoor(c) { const cell = cells[c[1]][c[0]]; if (!cell.wall) return; snapshot(); cell.wall = cell.wall === 2 ? 1 : 2; render(); }
 function selectAt(c) { const k = roomsCache.findIndex(r => r.cells.some(([a, b]) => a === c[0] && b === c[1])); selRoom = k; render(); const el = document.querySelector(`.room[data-k="${k}"]`); if (el) el.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
 
@@ -486,8 +557,9 @@ addEventListener("resize", resize); resize();
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 let prev = performance.now();
 function frame(now) {
-  const dt = Math.min(0.05, (now - prev) / 1000); prev = now;
+  const rawDt = (now - prev) / 1000, dt = Math.min(0.05, rawDt); prev = now;
   az += (azG - az) * Math.min(1, dt * 7); el += (elG - el) * Math.min(1, dt * 7); dist += (dG - dist) * Math.min(1, dt * 5); target.lerp(tG, Math.min(1, dt * 7)); placeCam();
+  tickOrders(Math.min(0.5, rawDt), now);
   if (toastT > 0) { toastT -= dt; if (toastT <= 0) toastEl.hidden = true; }
   if (!reduce && selG.children.length) selG.children[0].material.opacity = 0.25 + Math.sin(now / 250) * 0.12;
   renderer.render(scene, camera); requestAnimationFrame(frame);
