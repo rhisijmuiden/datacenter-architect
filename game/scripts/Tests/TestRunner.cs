@@ -31,6 +31,7 @@ public static class TestRunner
             ("cooling", CoolingTests), ("roof and underground", RoofTests), ("overlay rows", OverlayTests),
             ("options", OptionsTests), ("thumbnails", ThumbnailTests), ("network", NetworkTests), ("network money", NetworkMoneyTests), ("peering", PeeringTests),
             ("organisation", OrgTests), ("customers", CustomerTests), ("tenders", TenderTests), ("finance", FinanceTests), ("old saves get customers", LegacyTests), ("customer visits", VisitTests),
+            ("servers in racks", ServerTests), ("large halls", LargeHallTests),
             ("staff", StaffTests), ("faults and repairs", FaultTests), ("maintenance and parts", MaintenanceTests), ("events", EventTests), ("old saves get staff", StaffMigrationTests),
         };
         foreach (var (name, t) in tests)
@@ -876,6 +877,72 @@ public static class TestRunner
         var o = s.AddObject(k, x, z, 0, floor);
         if (o != null) { o.Status = ObjStatus.Live; s.Touch(false); }
         return o;
+    }
+
+    static void ServerTests()
+    {
+        var heights = new HashSet<int>();
+        var models = new HashSet<World.ServerFill.Model>();
+        var ok = true;
+        for (var id = 1; id <= 300; id++)
+        {
+            var units = World.ServerFill.For(id);
+            var used = new bool[World.ServerFill.RackUnits];
+            foreach (var u in units)
+            {
+                heights.Add(u.Height); models.Add(u.Model);
+                if (u.Height != World.ServerFill.Units(u.Model)) ok = false;
+                for (var i = u.U; i < u.U + u.Height; i++)
+                {
+                    if (i < 0 || i >= used.Length || used[i]) { ok = false; continue; }
+                    used[i] = true;
+                }
+            }
+            if (units.Count < 4 || !units.Any(u => u.Model == World.ServerFill.Model.Switch1U)) ok = false;
+        }
+        Check(ok, "servers fit in 42U without overlapping, with a switch on top");
+        Check(new[] { 1, 2, 3, 4, 7 }.All(heights.Contains), "servers of 1U, 2U, 3U, 4U and 7U");
+        Check(models.Count == Enum.GetValues<World.ServerFill.Model>().Length, "every server model is used");
+        Check(World.ServerFill.For(42).SequenceEqual(World.ServerFill.For(42)), "a rack always holds the same servers");
+        Check(!World.ServerFill.For(42).SequenceEqual(World.ServerFill.For(43)), "racks differ from each other");
+        var code = World.ServerFill.Material.Shader.Code;
+        Check(code.Contains("TIME") && code.Contains("INSTANCE_CUSTOM"), "LEDs blink in the shader, per instance");
+    }
+
+    /// <summary>Thousands of racks: lookups stay correct and placing a rack only redraws its own chunk.</summary>
+    static void LargeHallTests()
+    {
+        var s = Bench.Build(2000);
+        Check(s.Racks == 2000, "benchmark hall holds 2000 racks");
+        // the cell index agrees with a plain search, also after adding and erasing
+        bool Same()
+        {
+            foreach (var (x, z) in new[] { (7, 5), (30, 6), (8, 8), (5, 6), (66, 40), (2, 2), (67, 6) })
+            {
+                var slow = s.Objects.FirstOrDefault(o => o.Floor == 0 && GameState.Cells(o).Contains((x, z)));
+                if (s.ObjectAt(x, z) != slow) return false;
+            }
+            return true;
+        }
+        Check(Same(), "cell index matches a full search");
+        var added = s.AddObject(ObjKind.Rack, 67, 6, 0, 0);
+        Check(added != null && s.ObjectAt(67, 6) == added && Same(), "index follows a placed rack");
+        s.Erase(67, 6, 1, 1, 0);
+        Check(s.ObjectAt(67, 6) == null && Same(), "index follows an erased rack");
+        var layout = s.LayoutRevision;
+        s.AddObject(ObjKind.Rack, 67, 6, 0, 0);
+        Check(s.LayoutRevision == layout, "placing a rack does not rebuild walls and paving");
+
+        var r = new World.RackRenderer();
+        IEnumerable<(PlacedObject, float)> Racks() => s.Objects.Where(o => o.Kind == ObjKind.Rack).Select(o => (o, 0.3f));
+        var first = r.Update(Racks());
+        Check(first == r.ChunkCount && first > 4, "racks are split into chunks");
+        Check(r.Update(Racks()) == 0, "nothing changed, nothing rebuilt");
+        s.AddObject(ObjKind.Rack, 68, 6, 0, 0);
+        Check(r.Update(Racks()) == 1, "one new rack rebuilds one chunk");
+        s.Objects.First(o => o.Kind == ObjKind.Rack && o.X == 30).Status = ObjStatus.Placed;
+        Check(r.Update(Racks()) == 1, "a rack going offline rebuilds only its chunk");
+        r.Clear(); r.Free();
     }
 
     static void PowerTests()

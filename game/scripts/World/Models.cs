@@ -67,6 +67,7 @@ public static class Models
             case ObjKind.Rack:
                 Box(n, new Vector3(0, 1.05f, 0), new Vector3(0.985f, 2.1f, 0.95f), Brand.Rack, 0.5f, 0.4f);
                 Box(n, new Vector3(0, 1.05f, 0.476f), new Vector3(0.9f, 1.95f, 0.01f), new Color("#363c44"), 0.4f, 0.3f);
+                n.AddChild(ServerFill.Instance(3, true));
                 break;
             case ObjKind.Crah:
                 Box(n, new Vector3(0, 1.0f, 0), new Vector3(0.95f, 2f, 1.9f), White, 0.5f);

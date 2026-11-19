@@ -296,12 +296,57 @@ public partial class GameState
     }
 
     /// <summary>Object covering a cell on a floor. Lifts cover every floor of their building.</summary>
-    public PlacedObject ObjectAt(int x, int z, int floor = 0) => Objects.FirstOrDefault(o =>
+    public PlacedObject ObjectAt(int x, int z, int floor = 0)
+    {
+        // A cell index keeps this O(1) with thousands of racks; it is rebuilt whenever the state is touched
+        // or the object list changes size, and a hit is checked against the object itself.
+        EnsureObjectIndex();
+        PlacedObject best = null; var bestI = int.MaxValue;
+        if (_objIndex.TryGetValue((x, z, floor), out var hit) && Covers(Objects[hit], x, z, floor)) { best = Objects[hit]; bestI = hit; }
+        if (floor >= 0)
+            foreach (var i in _liftIndex)
+                if (i < bestI && Covers(Objects[i], x, z, floor)) { best = Objects[i]; bestI = i; }
+        return best;
+    }
+
+    /// <summary>Objects the building and fence layout depends on: gates in fences, lifts and plant on roofs.</summary>
+    public static bool ShapesLayout(PlacedObject o) => Catalog.IsGate(o.Kind) || o.Kind == ObjKind.Lift || o.Floor == RoofFloor;
+
+    static bool Covers(PlacedObject o, int x, int z, int floor)
     {
         if (o.Floor != floor && (o.Kind != ObjKind.Lift || floor < 0)) return false;
         var (w, d) = Footprint(o);
         return x >= o.X && x < o.X + w && z >= o.Z && z < o.Z + d;
-    });
+    }
+
+    readonly Dictionary<(int x, int z, int floor), int> _objIndex = new();
+    readonly List<int> _liftIndex = new();
+    int _objIndexRev = -1, _objIndexCount = -1;
+
+    void EnsureObjectIndex()
+    {
+        if (_objIndexRev == Revision && _objIndexCount == Objects.Count) return;
+        _objIndexRev = Revision; _objIndexCount = Objects.Count;
+        _objIndex.Clear(); _liftIndex.Clear();
+        for (var i = 0; i < Objects.Count; i++) IndexAdd(i);
+    }
+
+    /// <summary>Add the object just appended to the list to an up-to-date index, so placing a row stays cheap.</summary>
+    void IndexObject(int i)
+    {
+        _objIndexRev = Revision; _objIndexCount = Objects.Count;
+        IndexAdd(i);
+    }
+
+    void IndexAdd(int i)
+    {
+        var o = Objects[i];
+        if (o.Kind == ObjKind.Lift) { _liftIndex.Add(i); return; }
+        var (w, d) = Footprint(o);
+        for (var x = o.X; x < o.X + w; x++)
+            for (var z = o.Z; z < o.Z + d; z++)
+                _objIndex.TryAdd((x, z, o.Floor), i);
+    }
 
     public static IEnumerable<(int x, int z, int dir)> Perimeter(int x, int z, int w, int d)
     {
@@ -607,8 +652,11 @@ public partial class GameState
         o.Installed = Hours / 24;
         Spend(o.Def.Cost);
         o.Status = o.Def.Chain && !Creative.InstantBuild ? ObjStatus.Ordered : ObjStatus.Live;
+        var indexed = _objIndexRev == Revision && _objIndexCount == Objects.Count;
         Objects.Add(o);
-        Touch();
+        // most objects (racks above all) do not change walls, roofs or fences: skip the layout rebuild for them
+        Touch(ShapesLayout(o));
+        if (indexed) IndexObject(Objects.Count - 1);
         return o;
     }
 
@@ -633,12 +681,13 @@ public partial class GameState
     {
         bool In(int x, int z) => x >= x0 && z >= z0 && x < x0 + w && z < z0 + d;
         var changed = false;
+        var layout = false;
         foreach (var o in Objects.Where(o => (o.Floor == floor || (o.Kind == ObjKind.Lift && floor == 0) || (roof && o.Floor == RoofFloor)) && Cells(o).Any(c => In(c.x, c.z))).ToList())
         {
-            Objects.Remove(o); Refund(o.Def.Cost / 2); changed = true;
+            Objects.Remove(o); Refund(o.Def.Cost / 2); changed = true; layout |= ShapesLayout(o);
         }
-        foreach (var door in Doors.Where(o => o.Floor == floor && In(o.X, o.Z)).ToList()) { Doors.Remove(door); changed = true; }
-        if (changed) { Touch(); return true; }
+        foreach (var door in Doors.Where(o => o.Floor == floor && In(o.X, o.Z)).ToList()) { Doors.Remove(door); changed = true; layout = true; }
+        if (changed) { Touch(layout); return true; }
         foreach (var r in Rooms.Where(r => r.Floor == floor && In(r.X, r.Z) && In(r.X + r.W - 1, r.Z + r.D - 1)).ToList())
         {
             RemoveRoom(r); changed = true;

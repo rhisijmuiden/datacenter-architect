@@ -677,11 +677,18 @@ public partial class Hud : Control
         Active(_netBtn, mode == 3);
     }
 
+    string _goalsSig;
+
     public void UpdateGoals(IEnumerable<(string key, bool done)> goals)
     {
+        // only rebuild the labels when a goal changed (or the language did)
+        var list = goals.ToList();
+        var sig = string.Join(";", list.Select(g => g.key + (g.done ? "1" : "0"))) + Loc.Language;
+        if (sig == _goalsSig) return;
+        _goalsSig = sig;
         foreach (var c in _goals.GetChildren()) c.QueueFree();
         _goals.AddChild(Ui.Heading("goals_title", 13));
-        foreach (var (key, done) in goals)
+        foreach (var (key, done) in list)
         {
             var l = Ui.Text((done ? "✓  " : "○  ") + Loc.T(key), 14, done ? Brand.Ok : Brand.Ink);
             l.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
