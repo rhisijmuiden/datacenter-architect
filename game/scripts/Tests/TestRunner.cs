@@ -30,6 +30,7 @@ public static class TestRunner
             ("power chain", PowerTests), ("backup power", BackupTests), ("grid and suppliers", GridTests),
             ("cooling", CoolingTests), ("roof and underground", RoofTests), ("overlay rows", OverlayTests),
             ("options", OptionsTests), ("thumbnails", ThumbnailTests), ("network", NetworkTests), ("network money", NetworkMoneyTests), ("peering", PeeringTests),
+            ("organisation", OrgTests), ("customers", CustomerTests), ("tenders", TenderTests), ("finance", FinanceTests), ("old saves get customers", LegacyTests), ("customer visits", VisitTests),
         };
         foreach (var (name, t) in tests)
         {
@@ -39,6 +40,9 @@ public static class TestRunner
         GD.Print($"Tests: {_pass} passed, {_fail} failed");
         return _fail;
     }
+
+    /// <summary>Gives a test game every director and manager, fully trained, as older savegames get them.</summary>
+    static void Unlock(GameState s) => s.Grandfathered = Enum.GetValues<Exec>().ToList();
 
     static SemVer V(string s) { SemVer.TryParse(s, out var v); return v; }
 
@@ -100,11 +104,17 @@ public static class TestRunner
         used.AddRange(Catalog.Suppliers.Select(g => g.DescKey));
         used.AddRange(Catalog.Containments.Values.Select(g => g.NameKey));
         used.AddRange(Catalog.Objects.Values.Where(d => d.Rooms != null).Select(GameState.NeedsRoomKey));
+        // organisation, customers and the books build keys from the catalogue
+        foreach (var e in Org.Execs.Values) used.AddRange(new[] { e.Key, e.Key + "_unlocks", e.Key + "_train_1", e.Key + "_train_2" });
+        used.AddRange(Org.Customers.Values.Select(c => c.Key));
+        used.AddRange(Enum.GetNames<HallZone>().Select(n => "zone_" + n.ToLowerInvariant()));
+        used.AddRange(new[] { "inc_contracts", "inc_network", "cost_energy", "cost_network", "cost_crew", "cost_salaries", "cost_site", "cost_sla", "cost_interest", "cost_build", "fin_loans", "fin_investors", "fin_repay", "fin_dividend" }.Select(k => "book_" + k));
+        used.AddRange(new[] { "min_digital", "min_infrastructure", "min_finance", "min_health", "cust_name_municipality", "cust_legacy" });
         // every msg_/hint_/goal_ key mentioned in the scripts must exist
-        foreach (var file in new[] { "res://scripts/Main.cs", "res://scripts/Sim/GameState.cs", "res://scripts/Sim/Simulation.cs", "res://scripts/UI/Hud.cs", "res://scripts/UI/Menus.cs", "res://scripts/UI/PowerPanel.cs", "res://scripts/UI/NetworkPanel.cs", "res://scripts/Sim/GameState.Network.cs", "res://scripts/Sim/Network.cs", "res://scripts/World/WorldView.cs", "res://scripts/UI/OptionsDialog.cs" })
+        foreach (var file in new[] { "res://scripts/Main.cs", "res://scripts/Sim/GameState.cs", "res://scripts/Sim/Simulation.cs", "res://scripts/UI/Hud.cs", "res://scripts/UI/Menus.cs", "res://scripts/UI/PowerPanel.cs", "res://scripts/UI/NetworkPanel.cs", "res://scripts/Sim/GameState.Network.cs", "res://scripts/Sim/Network.cs", "res://scripts/World/WorldView.cs", "res://scripts/UI/OptionsDialog.cs", "res://scripts/UI/CompanyPanel.cs", "res://scripts/Sim/Org.cs" })
         {
             var text = FileAccess.GetFileAsString(file);
-            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(text, "\"((msg|hint|goal|cr|crew|hud|new|inspect|projects|prio|cat|power|grid|supplier|backup|chain|link|cool|halls?|advice|action|res|opt|menu|tool|net|spof|carrier)_[a-z0-9_]+)\""))
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(text, "\"((msg|hint|goal|cr|crew|hud|new|inspect|projects|prio|cat|power|grid|supplier|backup|chain|link|cool|halls?|advice|action|res|opt|menu|tool|net|spof|carrier|co|org|sales|zones?|leads|prod|deal|req|contracts|tenders?|fin|book|cust|bankrupt|customers)_[a-z0-9_]+)\""))
                 used.Add(m.Groups[1].Value);
         }
         var absent = used.Distinct().Where(k => !en.ContainsKey(k)).ToList();
@@ -481,6 +491,7 @@ public static class TestRunner
     {
         var c = new CreativeOptions { NoPowerLimit = true, NoCoolingLimit = true, UnlimitedMoney = true, InstantBuild = instant };
         var s = GameState.New(new NewGameOptions { Difficulty = 0, AiCompetitors = ai, Creative = true, CreativeOptions = c });
+        Unlock(s);
         var b = s.AddBuilding(BuildingKind.Datacenter, 4, 4, 30, 20, 1);
         b.Stage = Stage.Done;
         var hall = s.AddRoom(RoomType.DataHall, 4, 4, 20, 20, 0);
@@ -562,6 +573,7 @@ public static class TestRunner
 
         // lead time, hourly samples and daily money in a career game
         var s = GameState.New(new NewGameOptions { Difficulty = 0, AiCompetitors = false });
+        Unlock(s);
         var b = s.AddBuilding(BuildingKind.Datacenter, 4, 4, 30, 20, 1); b.Stage = Stage.Done;
         s.AddRoom(RoomType.DataHall, 4, 4, 20, 20, 0); s.AddRoom(RoomType.MeetMe, 24, 9, 5, 5, 0);
         foreach (var r in s.Rooms) r.Stage = Stage.Done;
@@ -604,6 +616,246 @@ public static class TestRunner
         // customers order cross-connects as networks sit in the MMR
         a.NetworkDay(1);
         Check(a.XcPending > 0, "customers order cross-connects");
+    }
+
+    /// <summary>A career game with a finished datacenter, an executive room and an office; power, cooling and network are no limit.</summary>
+    static (GameState s, Room hall, Room exec, Room office) OrgSite(bool ai = false)
+    {
+        var c = new CreativeOptions { NoPowerLimit = true, NoCoolingLimit = true, NoNetworkLimit = true };
+        var s = GameState.New(new NewGameOptions { Difficulty = 0, AiCompetitors = ai, Creative = true, CreativeOptions = c });
+        s.Seed = 42;
+        var b = s.AddBuilding(BuildingKind.Datacenter, 4, 4, 30, 20, 1); b.Stage = Stage.Done;
+        var hall = s.AddRoom(RoomType.DataHall, 4, 4, 20, 20, 0);
+        var exec = s.AddRoom(RoomType.Executive, 24, 4, 6, 4, 0);
+        var office = s.AddRoom(RoomType.Office, 24, 8, 6, 6, 0);
+        foreach (var r in s.Rooms) r.Stage = Stage.Done;
+        return (s, hall, exec, office);
+    }
+
+    static void Furnish(GameState s, Room r, int n)
+    {
+        for (var i = 0; i < n; i++) { s.AddObject(ObjKind.Desk, r.X, r.Z + i, 0, 0); s.AddObject(ObjKind.Chair, r.X + 3, r.Z + i, 0, 0); }
+    }
+
+    static void OrgTests()
+    {
+        var (s, _, exec, office) = OrgSite();
+        Check(s.CanHire(Exec.Ceo) == "msg_needs_ceo_office", "the CEO needs a furnished office");
+        s.AddObject(ObjKind.Desk, exec.X, exec.Z, 0, 0);
+        Check(s.Offices == 0, "a desk alone is not an office");
+        s.AddObject(ObjKind.Chair, exec.X + 3, exec.Z, 0, 0);
+        Check(s.Offices == 1, "desk and chair make an office");
+        Check(s.CanHire(Exec.Sales) == "msg_needs_exec", "the sales director reports to the CEO");
+        var money = s.Money;
+        Check(s.HireExec(Exec.Ceo) == null && s.Has(Exec.Ceo) && s.Money == money - Org.Execs[Exec.Ceo].HireFee, "hire the CEO");
+        Check(s.CanHire(Exec.Sales) == "msg_needs_office", "every director needs an own office");
+        Furnish(s, exec, 3);
+        Check(s.Offices == 1, "one room is one office, however many desks");
+        // more executive rooms
+        var b2 = s.AddBuilding(BuildingKind.Office, 4, 30, 30, 12, 1); b2.Stage = Stage.Done;
+        for (var i = 0; i < 6; i++) { var r = s.AddRoom(RoomType.Executive, 4 + i * 5, 30, 5, 4, 0); r.Stage = Stage.Done; Furnish(s, r, 1); }
+        Check(s.Offices == 7, "seven offices");
+        Check(s.HireExec(Exec.Sales) == null && s.HireExec(Exec.Hr) == null, "sales director and HR");
+        Check(s.CanHire(Exec.Legal) == null, "legal counsel unlocks after the sales director");
+        Check(s.CanHire(Exec.Facility) == "msg_needs_exec", "the facility manager reports to operations");
+        Check(s.HireExec(Exec.Operations) == null && s.CanHire(Exec.Facility) == null, "operations unlocks the facility manager");
+        Check(s.CanDismiss(Exec.Ceo) == "msg_exec_needed", "the CEO cannot go while others report to it");
+        // crew needs HR and operations
+        var fresh = OrgSite().s;
+        Check(fresh.ChangeCrew(Role.Builder, 1) == "msg_needs_hr" && fresh.Builders == 4, "more builders need HR");
+        Check(fresh.ChangeCrew(Role.Builder, -1) == null && fresh.ChangeCrew(Role.Builder, 1) == null, "back up to the starting crew is fine");
+        Check(s.ChangeCrew(Role.Builder, 2) == null && s.Builders == 6, "HR recruits builders");
+        Check(s.ChangeCrew(Role.Fitter, 1) == null, "operations allows technical staff");
+        Check(s.WorkSpeed > 1, "operations makes crews faster");
+        // grid needs the facility manager and training
+        Check(fresh.CanRequestGrid(1) == "msg_needs_facility", "10 MVA needs a facility manager");
+        Check(s.HireExec(Exec.Facility) == null && s.CanRequestGrid(1) == null && s.CanRequestGrid(2) == "msg_needs_hv_training", "facility manager: 10 MVA, training for 20 MVA");
+        Check(s.Train(Exec.Facility) == null && s.Hire(Exec.Facility).TrainingDaysLeft > 0, "training takes days");
+        for (var d = 1; d <= 16; d++) s.OrgDay(d);
+        Check(s.Training(Exec.Facility) == 1 && s.CanRequestGrid(2) == null && s.CanRequestGrid(3) == "msg_needs_hv_training", "after the course 20 MVA is open");
+        // network manager for carriers
+        Check(fresh.CanOrderCarrier(1, 10) == "msg_needs_netmgr", "carriers need a network manager");
+        // sales reps need workplaces
+        Check(s.CanAddRep(1) == "msg_needs_workplace", "a rep needs a desk in an office room");
+        Furnish(s, office, 2);
+        Check(s.ChangeReps(2) == null && s.CanAddRep(1) == "msg_needs_workplace", "two desks, two reps");
+        Check(s.SalariesPerMonth == Org.Execs.Values.Where(e => s.Hire(e.Role) != null).Sum(e => e.Salary) + 2 * Org.SalesRepSalary, "salaries add up");
+        // creative unlocks everything
+        var cr = GameState.New(new NewGameOptions { Creative = true, CreativeOptions = CreativeOptions.All() });
+        Check(cr.Has(Exec.Legal) && cr.CanRequestGrid(3) == null, "creative: all unlocked");
+    }
+
+    static void CustomerTests()
+    {
+        var (s, hall, exec, _) = OrgSite();
+        for (var i = 0; i < 10; i++) Live(s, ObjKind.Rack, 6 + i, 6);
+        var rng = new Random(1);
+        var lead = s.MakeLead(0, rng, CustomerType.Hosting);
+        lead.Product = Product.Rack; lead.Racks = 4; lead.Amp32 = false; lead.AB = false; lead.TwoN = false; lead.Green = false; lead.Carriers = 1;
+        s.Deals.Add(lead);
+        Check(s.Meets(lead) && s.CanSign(lead) == null, "4 racks free in a full-rack hall");
+        var big = s.MakeLead(0, rng, CustomerType.Hosting);
+        big.Product = Product.Rack; big.Racks = 20; big.Amp32 = false; big.AB = false; big.TwoN = false; big.Green = false;
+        s.Deals.Add(big);
+        Check(s.Check(big).Any(r => r.Key == "req_racks" && r.Status == ReqStatus.Fail) && s.Sign(big) == "msg_reqs_missing", "not enough racks");
+        Check(s.Sign(lead) == null && lead.State == DealState.Active && lead.RackIds.Count == 4, "sign: four racks rented");
+        Check(s.RackOwners().Count == 4 && s.FreeRacksFor(big, out _).Count == 6, "rented racks are no longer for sale");
+        var green = s.MakeLead(0, rng, CustomerType.Smb); green.Product = Product.Rack; green.Racks = 1; green.Green = true; green.AB = green.Amp32 = green.TwoN = false;
+        Check(s.Check(green).Any(r => r.Key == "req_green" && r.Status == ReqStatus.Fail), "green customers need a green energy contract");
+        s.SetSupplier(2);
+        Check(s.Check(green).First(r => r.Key == "req_green").Status == ReqStatus.Ok, "switching to green energy");
+        // zones
+        var peru = s.MakeLead(0, rng, CustomerType.Startup); peru.Product = Product.PerU; peru.Units = 10; peru.Green = false;
+        Check(s.FreeUnits() == 0 && !s.Meets(peru), "no per-U hall, no units");
+        var b2 = s.Buildings[0];
+        var hall2 = s.AddRoom(RoomType.DataHall, 4, 4 + 20, 10, 0, 0);
+        // a second hall inside the first building is not possible here; switch the zone of the first hall instead
+        var cage = s.MakeLead(0, rng, CustomerType.Streaming); cage.Product = Product.Cage; cage.Racks = 6; cage.Amp32 = cage.AB = cage.TwoN = cage.Green = false;
+        Check(s.Check(cage).First(r => r.Key == "req_cage").Status == ReqStatus.Fail, "cages need a cage hall");
+        s.SetZone(hall, HallZone.Cage);
+        Check(s.FreeRacksFor(cage, out var hid).Count == 6 && hid == hall.Id, "the six free racks form a cage");
+        s.SetZone(hall, HallZone.PerU);
+        Check(s.FreeUnits() == 6 * Org.UnitsPerRack, "per U: 42 units per free rack; rented racks keep their tenant");
+        // 32 A needs A/B and aisles; with power as no limit A/B counts as met, aisles do not
+        s.SetZone(hall, HallZone.FullRacks);
+        var dense = s.MakeLead(0, rng, CustomerType.Crypto); dense.Product = Product.Rack; dense.Racks = 2; dense.Amp32 = true; dense.Green = false;
+        Check(s.FreeRacksFor(dense, out _).Count == 0, "32 A racks need hot/cold aisles");
+        hall.Containment = Containment.HotCold;
+        Check(s.FreeRacksFor(dense, out _).Count == 6, "with aisles 32 A is fine");
+        // income, service and satisfaction
+        var money = s.Money;
+        s.Advance(24);
+        Check(s.Books.Last().Lines["inc_contracts"] == (long)Math.Round(lead.Monthly / 30.0), "a day of rent");
+        var rack = s.Objects.First(o => o.Id == lead.RackIds[0]);
+        rack.Status = ObjStatus.Placed; s.Touch(false);
+        s.Advance(24);
+        Check(lead.Served < 1 && lead.Satisfaction < 80, "a rack down: lower service and satisfaction");
+        rack.Status = ObjStatus.Live; s.Touch(false);
+        // demolished racks are replaced
+        s.Objects.Remove(rack); s.Touch();
+        s.Advance(24);
+        Check(lead.RackIds.Count == 4 && !lead.RackIds.Contains(rack.Id), "a demolished rack is replaced by a free one");
+        // renewals
+        lead.Satisfaction = 90; lead.EndDay = s.Day + 0.5;
+        s.Advance(24);
+        Check(lead.State == DealState.Active && lead.EndDay > s.Day + 300, "a happy customer renews");
+        lead.Satisfaction = 30; lead.EndDay = s.Day + 0.5;
+        s.Advance(24);
+        Check(lead.State == DealState.Ended && lead.RackIds.Count == 0 && s.Notes.Any(n => n.key == "msg_contract_ended"), "an unhappy customer leaves at the end");
+        // leads come from sales
+        var (t, _, te, _) = OrgSite();
+        t.Advance(24 * 10);
+        Check(t.Deals.Count == 0, "no sales director, no customers");
+        Furnish(t, te, 1);
+        var b3 = t.AddBuilding(BuildingKind.Office, 4, 30, 12, 6, 1); b3.Stage = Stage.Done;
+        var e2 = t.AddRoom(RoomType.Executive, 4, 30, 6, 4, 0); e2.Stage = Stage.Done; Furnish(t, e2, 1);
+        t.HireExec(Exec.Ceo); t.HireExec(Exec.Sales);
+        t.Advance(24 * 10);
+        Check(t.Deals.Any(d => d.State == DealState.Lead), "the sales director brings in requests");
+        Check(t.Deals.All(d => d.Monthly > 0 && (d.Racks > 0 || d.Units > 0)), "requests have a size and a price");
+        Check(t.Deals.Count(d => d.State == DealState.Lead) <= Org.MaxLeads, "at most eight open requests");
+        _ = hall2; _ = b2; _ = exec; _ = money;
+    }
+
+    static void TenderTests()
+    {
+        var (s, hall, _, _) = OrgSite(ai: true);
+        s.Grandfathered = new List<Exec> { Exec.Ceo, Exec.Sales };
+        s.NextTenderDay = 1;
+        s.OrgDay(1);
+        var t = s.Deals.FirstOrDefault(d => d.State == DealState.Tender);
+        Check(t != null && t.Tender && t.Racks >= 12 && t.Monthly > 0 && s.Notes.Any(n => n.key == "msg_new_tender"), "a tender comes in");
+        Check(s.CanBid(t) == "msg_needs_legal", "bidding needs a legal counsel");
+        s.Grandfathered.Add(Exec.Legal);
+        Check(s.PlaceBid(t, 85) == null && t.State == DealState.Bid, "bid 85%");
+        var asked = t.Monthly;
+        s.Reputation = 100;
+        var won = s.ResolveBid(t, new Random(3));
+        Check(won && t.State == DealState.Building && t.Monthly == (long)Math.Round(asked * 0.85 / 100) * 100 && t.DeadlineDay > s.Day, "a low bid with a good name wins; build before the deadline");
+        var money = s.Money; var rep = s.Reputation;
+        t.DeadlineDay = s.Day + 0.5;
+        s.Advance(24);
+        Check(t.State == DealState.Lost && s.Money < money && s.Reputation < rep && s.Notes.Any(n => n.key == "msg_tender_failed"), "a missed deadline costs a fine and reputation");
+        // delivering on time
+        var t2 = new Deal { Id = s.NextId++, Name = "Test", Type = CustomerType.Bank, Product = Product.Hall, Tender = true, Racks = 4, Monthly = 50000, Months = 36, State = DealState.Building, DeadlineDay = s.Day + 100 };
+        s.Deals.Add(t2);
+        s.SetZone(hall, HallZone.PrivateHall);
+        for (var i = 0; i < 4; i++) Live(s, ObjKind.Rack, 6 + i, 10);
+        s.Advance(24);
+        Check(t2.State == DealState.Active && t2.RackIds.Count == 4, "delivered: the hall is the customer's");
+        var other = new Deal { Product = Product.Hall, Racks = 1 };
+        Check(s.FreeRacksFor(other, out _).Count == 0, "a private hall has one tenant");
+    }
+
+    static void FinanceTests()
+    {
+        var (s, _, _, _) = OrgSite();
+        Check(s.CanBorrow(1_000_000) == "msg_needs_cfo", "loans need a CFO");
+        s.Grandfathered = new List<Exec> { Exec.Ceo, Exec.Cfo };
+        var money = s.Money;
+        Check(s.Borrow(1_000_000) == null && s.Money == money + 1_000_000 && s.Debt == 1_000_000, "borrow 1 million");
+        Check(s.Borrow(20_000_000) == "msg_credit_limit", "the bank has a limit");
+        var l = s.Loans[0];
+        Check(l.Payment == GameState.Annuity(1_000_000, l.Rate, GameState.LoanMonths) && l.Payment > 1_000_000 / 60, "annuity above the bare principal");
+        s.Advance(24 * 31);
+        Check(s.Loans[0].Balance < 1_000_000 && s.Loans[0].MonthsLeft == GameState.LoanMonths - 1 && s.Books.Any(b => b.Lines.ContainsKey("cost_interest")), "a monthly instalment");
+        money = s.Money;
+        Check(s.Repay(s.Loans[0]) == null && s.Loans.Count == 0 && s.Money < money, "repay early");
+        var offer = s.InvestorOffer;
+        money = s.Money;
+        Check(s.TakeInvestment() == null && s.InvestorShare > 0.09 && s.Money == money + offer, "sell 10% to an investor");
+        for (var i = 0; i < 4; i++) s.TakeInvestment();
+        Check(s.CanInvest() == "msg_investors_max" && s.InvestorShare <= 0.49 + 1e-9, "you keep the majority");
+        Check(s.Books.Last().Lines.ContainsKey("cost_crew") && s.Books.Last().Lines.ContainsKey("cost_site"), "the books keep crew and site costs");
+        // energy contracts
+        s.Hours += 24 * 30;
+        s.SetSupplier(0);
+        Check(s.SwitchFee(1) == 0, "nothing running: no fee");
+        // bankruptcy
+        var (b, _, _, _) = OrgSite();
+        b.Money = -10;
+        b.Advance(24);
+        Check(b.DaysInRed == 1 && b.Notes.Any(n => n.key == "msg_in_red"), "in the red: a warning");
+        b.Money = -1_000_000;
+        b.Advance(24 * 30);
+        Check(b.Bankrupt && b.Notes.Any(n => n.key == "msg_bankrupt"), "30 days in the red: bankrupt");
+        var h = b.Hours; b.Advance(24);
+        Check(b.Hours == h, "a bankrupt game stands still");
+        var u = GameState.New(new NewGameOptions { Creative = true, CreativeOptions = new CreativeOptions { UnlimitedMoney = true } });
+        u.Money = -5; u.Advance(24 * 40);
+        Check(!u.Bankrupt, "unlimited money never goes bankrupt");
+    }
+
+    static void VisitTests()
+    {
+        var s = Demo.Build();
+        var sim = new Simulation(s);
+        var perDay = sim.VisitsPerDay();
+        Check(perDay > 0 && perDay < 2, $"a few customers visit per day, not all of them ({perDay:0.00})");
+        var rack = s.Objects.First(o => o.Id == s.Deals.First(d => d.State == DealState.Active).RackIds[0]);
+        var a = sim.StartVisit(rack);
+        Check(a != null && a.Role == Role.Visitor, "a customer walks to its rack");
+        for (var i = 0; i < 400 && !a.Gone; i++) sim.Tick(0.05);
+        Check(a.Gone, "and leaves again after the visit");
+        // a huge campus still has only a handful of customers on site
+        for (var i = 0; i < 200; i++) s.Deals.Add(new Deal { Id = s.NextId++, Product = Product.Rack, State = DealState.Active, RackIds = new List<int> { rack.Id }, Racks = 1, Monthly = 100, EndDay = 9999 });
+        s.Hours = 24 * 20 + 9;
+        for (var i = 0; i < 24 * 20; i++) sim.Tick(0.05);
+        Check(sim.Agents.Count(x => x.Role == Role.Visitor) <= Simulation.MaxVisitors, "never more than 15 customers on site");
+    }
+
+    static void LegacyTests()
+    {
+        var (s, _, _, _) = OrgSite();
+        for (var i = 0; i < 5; i++) Live(s, ObjKind.Rack, 6 + i, 6);
+        s.SaveFormat = 4; s.Deals.Clear();
+        s.Migrate();
+        var d = s.Deals.SingleOrDefault();
+        Check(d != null && d.Legacy && d.RackIds.Count == 5 && d.Monthly == 4500, "old racks keep their rent with existing customers");
+        Check(s.Has(Exec.Network) && s.Has(Exec.Facility) && s.CanRequestGrid(3) == null && !s.Has(Exec.Sales), "old games keep their network and grid options");
+        SaveSystem.Save(s, "unit-test-org");
+        var l = SaveSystem.Load("unit-test-org");
+        Check(l != null && l.Deals.Count == 1 && l.Deals[0].RackIds.Count == 5 && l.Grandfathered.Count == 4, "save roundtrip customers");
     }
 
     static (GameState s, Room hall, Room swr, Room upsr) PowerSite(CreativeOptions c = null)
@@ -693,6 +945,7 @@ public static class TestRunner
     static void GridTests()
     {
         var s = GameState.New(new NewGameOptions { Difficulty = 0 });
+        Unlock(s);
         Check(s.GridCapacityKw == 2000, "every site starts with 2 MVA");
         var money = s.Money;
         Check(s.RequestGrid(1) == null && s.GridRequest == 1 && s.GridDaysLeft == 30, "request 10 MVA: 30 days lead time");
@@ -705,6 +958,7 @@ public static class TestRunner
         Check(s.Notes.Any(n => n.key == "msg_grid_ready"), "player is told the grid is ready");
         Check(s.RequestGrid(1) == "msg_nothing_changed", "cannot request the same level");
         var instant = GameState.New(new NewGameOptions { Creative = true, CreativeOptions = new CreativeOptions { InstantBuild = true, UnlimitedMoney = true } });
+        Unlock(instant);
         Check(instant.RequestGrid(3) == null && instant.GridLevel == 3, "creative instant build: 50 MVA right away");
         s.SetSupplier(0);
         Check(Math.Abs(s.EnergyPrice() - 0.18) < 1e-9, "fixed price supplier");

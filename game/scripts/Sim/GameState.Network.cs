@@ -17,6 +17,7 @@ public partial class GameState
     {
         if (carrier < 0 || carrier >= Catalog.Carriers.Length) return "msg_nothing_changed";
         if (ContractOf(carrier) != null) return "msg_carrier_exists";
+        if (!Has(Exec.Network)) return "msg_needs_netmgr";
         if (!Network.MmrReady(this)) return "msg_needs_mmr";
         var def = Catalog.Carriers[carrier];
         if (!Network.FreeSubduct(this, def.Pit)) return Net.Pits.Any(p => p.Street == def.Pit) ? "msg_duct_full" : "msg_needs_pit";
@@ -96,6 +97,7 @@ public partial class GameState
     public string CanPeer(int rival, bool proposal)
     {
         if (!Options.AiCompetitors) return "msg_no_rivals";
+        if (!Has(Exec.Network)) return "msg_needs_netmgr";
         if (rival < 0 || rival >= Catalog.Rivals.Length) return "msg_nothing_changed";
         var p = PeerOf(rival);
         if (p != null && p.State is PeerState.Building or PeerState.Active) return "msg_nothing_changed";
@@ -211,7 +213,7 @@ public partial class GameState
                 var bill = Network.BurstCost(k, net.Noc);
                 if (bill >= 1 && !Creative.UnlimitedMoney)
                 {
-                    Money -= (long)Math.Round(bill);
+                    Money -= (long)Math.Round(bill); Book("cost_network", -(long)Math.Round(bill));
                     Notes.Add(("msg_burst_bill", Catalog.Carriers[k.Carrier].Name));
                 }
                 k.Samples.Clear();
@@ -223,7 +225,8 @@ public partial class GameState
     public double NetworkPerDay()
     {
         var sum = 0.0;
-        foreach (var k in Contracts.Where(k => k.Active)) sum -= Network.MonthlyCost(k) / 30;
+        var discount = Has(Exec.Procurement) ? 0.9 - 0.025 * Training(Exec.Procurement) : 1;
+        foreach (var k in Contracts.Where(k => k.Active)) sum -= Network.MonthlyCost(k) * discount / 30;
         foreach (var p in Peers.Where(p => p.State == PeerState.Active)) sum += Catalog.Rivals[p.Rival].Monthly / 30.0;
         sum += CrossConnects * Catalog.XcMonthlyFee / 30.0;
         return sum;

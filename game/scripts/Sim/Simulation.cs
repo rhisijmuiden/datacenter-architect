@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace DatacenterArchitect.Sim;
 
-public enum Role { Builder, Fitter, Engineer, Truck }
+public enum Role { Builder, Fitter, Engineer, Truck, Visitor }
 
 public enum TruckLoad { Material, Equipment }
 
@@ -192,8 +192,10 @@ public class Simulation
                 case Role.Fitter: Fitter(a, dt); break;
                 case Role.Engineer: Engineer(a, dt); break;
                 case Role.Truck: Truck(a, dt); break;
+                case Role.Visitor: Visitor(a, dt); break;
             }
         }
+        PlanVisits(dt);
         Agents.RemoveAll(a => a.Gone);
         if (!_firstLive && S.LiveRacks > 0) { _firstLive = true; Say("msg_first_rack_live"); }
     }
@@ -204,7 +206,7 @@ public class Simulation
         foreach (var b in S.Buildings.Where(b => b.Stage != Stage.Done)) { b.Stage = Stage.Done; b.Material = 0; b.Work = 0; changed = true; }
         foreach (var r in S.Rooms.Where(r => r.Stage != Stage.Done)) { r.Stage = Stage.Done; r.Material = 0; r.Work = 0; changed = true; }
         foreach (var o in S.Objects.Where(o => o.Status != ObjStatus.Live)) { o.Status = ObjStatus.Live; changed = true; }
-        foreach (var a in Agents.Where(a => a.Role != Role.Builder || a.Phase != 0)) Reset(a);
+        foreach (var a in Agents.Where(a => a.Role != Role.Visitor && (a.Role != Role.Builder || a.Phase != 0))) Reset(a);
         Agents.RemoveAll(a => a.Role == Role.Truck);
         if (changed) S.Touch();
     }
@@ -279,6 +281,87 @@ public class Simulation
     bool Cooling(int id) => _cooldown.TryGetValue(id, out var t) && t > _now;
     void Cool(int id, double hours) => _cooldown[id] = _now + hours;
 
+    // ---------------- customer visits ----------------
+    /// <summary>At most this many customers are on site at the same time, however big the campus.</summary>
+    public const int MaxVisitors = 15;
+    /// <summary>Days between visits of one customer, per product: colocation customers come by now and then, not every day.</summary>
+    public static double VisitDays(Product p) => p switch { Product.PerU => 60, Product.Rack => 40, Product.Cage => 25, _ => 18 };
+    readonly Random _rng = new(1234);
+    double _visitClock;
+
+    /// <summary>Expected customer visits per day for the contracts that run now.</summary>
+    public double VisitsPerDay()
+    {
+        var sum = 0.0;
+        foreach (var d in S.Deals.Where(d => d.State == DealState.Active))
+            sum += (d.Legacy ? Math.Max(1, d.RackIds.Count / 6.0) : 1) / VisitDays(d.Product);
+        return sum;
+    }
+
+    /// <summary>Once per game hour, during the day, a customer may come by to work on its equipment.</summary>
+    void PlanVisits(double dt)
+    {
+        _visitClock += dt;
+        if (_visitClock < 1) return;
+        _visitClock -= 1;
+        var hour = S.Hours % 24;
+        if (hour < 8 || hour >= 18) return;
+        if (Agents.Count(a => a.Role == Role.Visitor) >= MaxVisitors) return;
+        var perHour = VisitsPerDay() / 10;
+        if (_rng.NextDouble() >= perHour) return;
+        var deals = S.Deals.Where(d => d.State == DealState.Active).ToList();
+        var weights = deals.Select(d => (d.Legacy ? Math.Max(1, d.RackIds.Count / 6.0) : 1) / VisitDays(d.Product)).ToList();
+        var x = _rng.NextDouble() * weights.Sum();
+        Deal pick = null;
+        for (var i = 0; i < deals.Count && pick == null; i++) { x -= weights[i]; if (x <= 0) pick = deals[i]; }
+        pick ??= deals.LastOrDefault();
+        if (pick == null) return;
+        var ids = pick.RackIds.Count > 0 ? pick.RackIds : S.Objects.Where(o => o.Kind == ObjKind.Rack && S.HallOf(o)?.Zone == HallZone.PerU).Select(o => o.Id).ToList();
+        var rack = ids.Count == 0 ? null : S.Objects.FirstOrDefault(o => o.Id == ids[_rng.Next(ids.Count)]);
+        if (rack == null) return;
+        StartVisit(rack);
+    }
+
+    /// <summary>A customer parks (or comes in from the road), walks to the rack, works there for a while and leaves.</summary>
+    public Agent StartVisit(PlacedObject rack)
+    {
+        var park = Enumerable.Range(0, S.PlotSize * S.PlotSize).Select(i => (x: i % S.PlotSize, z: i / S.PlotSize))
+            .Where(c => S.SurfaceAt(c.x, c.z) == Surface.Parking && Nav.Walkable(c.x, c.z, 0)).ToList();
+        var start = park.Count > 0 ? park[_rng.Next(park.Count)] : SpawnCell();
+        var a = new Agent { Id = _nextAgent++, Role = Role.Visitor, X = start.x + 0.5, Z = start.z + 0.5, Target = rack.Id, Goal = start, Phase = 1 };
+        var home = start;
+        if (!Go(a, rack.Floor, (x, z) => Math.Abs(x - rack.X) + Math.Abs(z - rack.Z) == 1, NavMode.Walk)) return null;
+        a.CarryObj = home.x * 1000 + home.z; // where the visitor parked, to walk back to
+        Agents.Add(a);
+        return a;
+    }
+
+    void Visitor(Agent a, double dt)
+    {
+        a.Working = false;
+        switch (a.Phase)
+        {
+            case 1: // walking in
+                if (!Move(a, dt, WalkSpeed * 0.8)) return;
+                a.Phase = 2; a.Timer = 0.5 + _rng.NextDouble() * 2;
+                return;
+            case 2: // at the rack
+                a.Working = true;
+                a.Timer -= dt;
+                if (a.Timer > 0 && S.Objects.Any(o => o.Id == a.Target)) return;
+                a.Phase = 0;
+                return;
+            case 3: // walking out
+                if (Move(a, dt, WalkSpeed * 0.8)) a.Gone = true;
+                return;
+            default: // leave
+                int hx = a.CarryObj / 1000, hz = a.CarryObj % 1000;
+                if (!Go(a, 0, (x, z) => x == hx && z == hz, NavMode.Walk)) { a.Gone = true; return; }
+                a.Phase = 3;
+                return;
+        }
+    }
+
     // ---------------- builders ----------------
     void Builder(Agent a, double dt)
     {
@@ -316,7 +399,7 @@ public class Simulation
                 var add = Math.Min(dt, s4.WorkAvailable);
                 if (add <= 1e-9) { Reset(a); a.Timer = 0.05; return; }
                 a.Working = true;
-                s4.Work += add;
+                s4.Work += add * S.WorkSpeed;
                 if (s4.Work >= s4.WorkNeed - 1e-9) Complete(s4);
                 return;
         }

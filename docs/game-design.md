@@ -1,6 +1,6 @@
 # Game design document: Datacenter Architect
 
-*Versie 0.6, 19 november 2026. Een levend document dat met de game meegroeit.*
+*Versie 0.7, 19 november 2026. Een levend document dat met de game meegroeit.*
 
 ## In één zin
 
@@ -275,6 +275,22 @@ Personeel is een eigen module. Welke functies je kunt werven, hangt af van je di
 - **Faciliteiten**: meer personeel vraagt meer kantoorruimte, parkeerplekken en een kantine.
 - Elke storing, elk ticket en elke levering wordt een **taak** die een geschikte medewerker oppakt. Zonder de juiste mensen blijft een taak liggen.
 
+**Extra functies (stap 7)**
+
+| Functie | Wat doet hij |
+|---|---|
+| Receptionist | Ontvangt klanten in de ontvangsthal; inchecken gaat sneller |
+| Schoonmaker | Houdt de zalen stofvrij; anders gaan servers en koeling eerder stuk |
+| Remote hands | Herstart servers en wisselt schijven voor klanten; levert extra inkomsten op |
+| NOC-operator | Bewaakt 24/7 stroom, koeling en netwerk en meldt storingen eerder |
+| Brandveiligheidsmedewerker | Onderhoudt het gasblussysteem en de branddetectie |
+| Kantine- en facilitair medewerker | Houdt koffie, frisdrank en kantine op peil; goed voor de tevredenheid |
+| Monteur generatoren | Tankt diesel en test de generatoren elke maand |
+| Hovenier | Onderhoudt het groen; goed voor de uitstraling en reputatie |
+| IT-helpdesk | Helpt je eigen kantoorpersoneel |
+
+- Een **projectmanager bouw** (onder de operationeel manager) laat bouwvakkers en monteurs sneller werken en meer projecten tegelijk draaien.
+
 ## Leveranciers en inkoop
 
 Stroom en bandbreedte komen niet vanzelf: je sluit zelf contracten af met leveranciers, en je moet ze op tijd upgraden als je groeit.
@@ -434,6 +450,20 @@ Een **weerbericht** in de interface waarschuwt een paar dagen vooruit, zodat je 
 
 ## Researchcenter
 
+*Uitgewerkt voor stap 8.*
+
+- **Onderzoekspunten** verdien je met een **R&D-ruimte** en engineers, en extra met certificeringen en tevreden klanten.
+- **Vijf takken** in de research tree:
+  - **Stroom**: betere UPS'en, lithium-accu's, hoogspanning tot 150 kV, batterijopslag, eigen zon en wind.
+  - **Koeling**: cold corridor, vrije koeling, waterkoeling, immersion cooling, restwarmte verkopen.
+  - **Netwerk**: snellere poorten (100G, 400G, 800G), eigen dark fiber, een eigen internet exchange.
+  - **Bouw**: prefab modules, sneller bouwen, hogere gebouwen, meer verdiepingen.
+  - **Bedrijf**: betere contracten, marketing, overheidsklanten, het hostingbedrijf.
+- **Tijdperken**: nieuwe techniek komt beschikbaar naarmate de jaren in het spel verstrijken; AI-racks bijvoorbeeld pas vanaf een bepaald jaar.
+- **Voorstellen van personeel**: de netwerkarchitect of de facility manager stelt zelf iets voor, zoals "Voor € 2 miljoen krijgen we de nieuwe router van NordLink, dan wordt de latency 30% lager."
+- **Merken**: verzonnen leveranciers, elk met eigen voor- en nadelen.
+- In stap 8 komen ook een **marketingmanager** (meer aanvragen, sneller reputatie) en een **compliance-manager** (audits en certificeringen zoals ISO 27001 en Tier III, nodig voor overheid en banken).
+
 - Bouw een **researchcenter** om nieuwe technieken te ontgrendelen in een **research tree**: efficiëntere koeling, betere UPS'en, nieuwe hekken en beveiliging, automatisering, hogere rackdichtheid en nieuwe producten.
 - Research kost tijd en geld, en levert upgrades en betere reputatie op.
 
@@ -506,10 +536,16 @@ Je begint als eigenaar met een leeg terrein. Functies en mogelijkheden komen vri
 | Financieel directeur (CFO) | CEO | Leningen afsluiten en aflossen, investeerders, financiële rapportages, lagere rente en kostenvoordelen |
 | HR-manager | CEO | Personeel werven (vacaturebord), salarisbeleid, trainingen |
 | Salesdirecteur | CEO | Een salesteam starten, contracten binnenhalen, grote aanbestedingen |
-| Facility manager | CEO + HR | Technisch personeel (engineers, monteurs), onderhoudsplanning, via **scholing** hogere spanningen en grotere netaansluitingen (10, 20, 50 MVA) |
-| Netwerkmanager | CEO + HR | Netwerkteam, NOC, carrier- en peeringcontracten |
-| Security manager | CEO + HR | Beveiligers, badgesysteem, certificeringen (via research) |
+| Operationeel manager | CEO + HR | Alle operationele zaken: technisch personeel, ploegen werken sneller; facility-, netwerk- en securitymanager vallen hieronder |
+| Facility manager | Operationeel manager | Technisch personeel (engineers, monteurs), onderhoudsplanning, via **scholing** hogere spanningen en grotere netaansluitingen (10, 20, 50 MVA) |
+| Netwerkmanager | Operationeel manager | Netwerkteam, NOC, carrier- en peeringcontracten |
+| Security manager | Operationeel manager | Beveiligers, badgesysteem, certificeringen (via research) |
 
+| Bedrijfsjurist | Salesdirecteur | Meebieden op grote aanbestedingen |
+| Customer success manager | Salesdirecteur | Tevredener klanten, meer verlengingen, minder vertrek na storingen |
+| Inkoopmanager | CFO | Goedkopere energie- en carriercontracten |
+
+- Later komen er nog bij: marketingmanager en compliance-manager (stap 8), projectmanager bouw (stap 7) en een duurzaamheidsmanager (stap 9: lagere PUE, groene stroom, eigen zonnepanelen).
 - Zonder salesdirecteur komen er geen contracten. Je moet dus vanaf het begin nadenken over wat je bouwt en in welke volgorde.
 - **Scholing** is een upgrade per manager met tijd en kosten. Een voorbeeld: de facility manager volgt een hoogspanningscursus, en daarna mag je een 20 MVA-aansluiting aanvragen.
 - In de creatieve modus kun je alle unlocks direct aanzetten.
@@ -557,12 +593,26 @@ Je begint als eigenaar met een leeg terrein. Functies en mogelijkheden komen vri
 
 ## Klantbezoek en sfeer
 
-- Klanten komen dagelijks op locatie om hun servers te onderhouden. Je ziet ze inchecken, naar hun rack lopen en weer vertrekken.
+- Klanten komen **af en toe** op locatie om aan hun servers te werken, net als in het echt: niet elke dag, maar willekeurig en vrij weinig. Je ziet ze parkeren, naar hun rack lopen, er een tijdje werken en weer vertrekken.
+- Ook met duizenden racks staan er hooguit **10 tot 20 klanten** tegelijk op je terrein (in het spel maximaal 15). Dat is realistisch en goed voor de prestaties.
 - Voor hen bouw je een **klantruimte** met bijvoorbeeld een frisdrankautomaat, een magnetron, banken en werkterminals. Een goede klantruimte verhoogt de klanttevredenheid.
 - In de datahallen zet je **monitorkarretjes** (crash carts) neer, zodat klanten hun server ter plekke kunnen beheren.
 - **Sfeer**: racks hebben knipperende statuslampjes, en dat blijft licht voor de pc. Zoom je in op een hal, dan hoor je het bekende datacentergeluid: het zoemen van de koeling en het schelle gieren van 1U-servers. Het volume hangt af van de afstand en het aantal racks.
 
 ## Hostingbedrijf uitgewerkt
+
+*Extra ideeën voor stap 9:*
+
+- **Producten die je zelf samenstelt**: VPS, dedicated servers, cloud-opslag, managed Kubernetes, GPU-servers voor AI en back-up as a service. Per product kies je de prijs, de specs en de SLA.
+- **Eigen racks**: je hosting draait in je eigen datacenter en concurreert dus om ruimte met je colocatieklanten.
+- **Serverinkoop en voorraad**: servers koop je in bij verzonnen merken, met levertijden en een magazijn. Zit een server vol, dan bestel je bij.
+- **Klantenportaal-dashboard**: aantal klanten, omzet per product, churn, tickets en een uptime-meter.
+- **Supportteam en tickets**: meer klanten betekent meer tickets. Te traag reageren kost recensies.
+- **Marketingcampagnes**: Black Friday-acties, studentenkorting of een gratis proefperiode.
+- **Incidenten**: een DDoS-aanval, een overbelaste node of een klant met een spamserver. Jij kiest hoe je reageert.
+- **Eigen merk**: naam en logo van je hostingbedrijf, zichtbaar op het gebouw en de bussen.
+- **Regio's**: hosting over meerdere locaties, met georedundantie als premium product.
+- **Overname of beursgang** in het late spel.
 
 Het hostingbedrijf is een tweede spel in het spel, zonder micromanagement:
 
@@ -660,6 +710,81 @@ Zo werkt stap 5 (versie 0.4.0) nu echt in de game:
 - In de creatieve modus zet "netwerk geen beperking" de keten uit; "direct bouwen" levert poorten, upgrades en dark fiber direct.
 - Later: klanten met eigen netwerkeisen en meerdere carriers (stap 6), kabelbreuk en storingen (stap 7), voorstellen van de NOC en de netwerkarchitect (stap 8).
 
+## Organisatie, klanten en economie in het spel
+
+Zo werkt stap 6 (versie 0.5.0) nu echt in de game:
+
+- **Organisatie**: je begint als eigenaar. Bouw een **directiekamer** met een bureau en een stoel; dan kun je een **CEO** aannemen. Elke directeur en manager heeft een eigen ingerichte directiekamer nodig. Het bedrijfsscherm (tabblad Organisatie) toont de boom: CEO → CFO (→ inkoopmanager), HR-manager, salesdirecteur (→ bedrijfsjurist, customer success manager) en operationeel manager (vereist ook HR; → facility-, netwerk- en securitymanager). Elke functie heeft een aannamebedrag, een maandsalaris en twee trainingen met kosten en dagen. Laten gaan kan, maar niet zolang er iemand onder valt.
+- **Wat ze ontgrendelen**: HR werft meer personeel dan de startploeg (4 bouwvakkers, 2 monteurs, 1 engineer); monteurs en engineers vragen ook een operationeel manager, die de ploegen 10% sneller laat werken (+10% per training). De facility manager ontgrendelt 10 MVA, zijn eerste training 20 MVA en de tweede 50 MVA. De netwerkmanager regelt carriers, de IX en peering. De security manager plus een portiersloge is nodig voor gemeentes, ministeries en banken. De CFO regelt leningen en investeerders. De inkoopmanager geeft 5% korting op energie en 10% op carriers (meer met training). De customer success manager laat de tevredenheid minder dalen en meer klanten verlengen. De bedrijfsjurist is nodig om op aanbestedingen te bieden.
+- **Sales**: zonder salesdirecteur komen er geen klanten. Verkopers hebben elk een bureau in een kantoorruimte nodig en kosten € 4.200 per maand. Hoe meer verkopers, training en reputatie, hoe meer en grotere aanvragen (maximaal 8 tegelijk, elk 12 tot 22 dagen geldig).
+- **Klanttypes**: startup, MKB, hostingbedrijf, websitehosting (ook adult), videostreaming, social media, cryptomining, clouddienst, gemeente en ministerie; voor aanbestedingen ook banken en hyperscalers. Elk type heeft eigen producten, omvang, verkeer per rack, aantal carriers, kans op 32 A, 2N, groene stroom en beveiliging, en een minimale reputatie.
+- **Zones**: per datahal kies je wat je verkoopt: volle racks, colocatie per U (42 U per rack), kooien, een eigen hal (één klant) of eigen cloud (voor stap 9). Dat kan in het bedrijfsscherm en in het infopaneel van de hal.
+- **Producten en prijzen**: colocatie € 42 per U, een volle rack van 16 A (3,7 kW) € 780 en van 32 A (7,4 kW) € 1.250 per maand; kooien +15%, een eigen hal +10%, 2N +10%, maal een factor per klanttype. Per-U-klanten kosten € 6 per U per maand aan support.
+- **Eisen**: elke aanvraag toont per eis ✓, ! of ✕: vrije racks of units in een hal met de juiste zone (een kooi binnen één hal, een eigen hal zonder andere klanten), A/B-voeding, voor 32 A ook warme/koude gangen, 2N-UPS, generatoren N+1 (waarschuwing), onverkochte transitcapaciteit, aantal carriers, een groen energiecontract en beveiliging. Tekenen kan als er geen ✕ meer staat.
+- **Contracten**: na het tekenen krijgt de klant vaste racks. Elke dag wordt gemeten welk deel van die racks draait en online is. Huur wordt naar rato betaald; bij uitval betaal je een SLA-boete en daalt de tevredenheid. Een gesloopt rack wordt vervangen door een vrij rack. Aan het eind verlengt een tevreden klant (60 of hoger, 45 met customer success); anders vertrekt hij. Onder de 15 vertrekt hij meteen. Voortijdig beëindigen kost drie maanden huur.
+- **Aanbestedingen**: ongeveer elke maand schrijft een grote klant een aanbesteding uit (24 tot 200 racks, eigen kooi of hal, 2N, meerdere carriers, 36 tot 60 maanden, prijs per kW). Met een bedrijfsjurist bied je 85, 100 of 115% van de vraagprijs. Na 10 dagen beslist de klant: lagere prijs, betere reputatie, training van de jurist en nu al aan de eisen voldoen helpen; AI-concurrenten bieden mee. Gewonnen? Dan lever je binnen 90 tot 180 dagen op. Lukt dat niet, dan vervalt het contract, betaal je drie maanden als boete en verlies je reputatie.
+- **Reputatie** (0 tot 100, start 30): stijgt met verlengingen, opgeleverde aanbestedingen en tevreden klanten; daalt bij vertrek en gemiste deadlines. Een hogere reputatie geeft meer en grotere klanten en betere kansen bij aanbestedingen.
+- **Boekhouding**: per maand inkomsten en kosten per post (klantcontracten, cross-connects en peering, energie, carriers, ploegen, directie en sales, terrein en support, SLA-boetes, rente, bouw) en het bedrijfsresultaat. Klik op het saldo bovenin om de financiën te openen.
+- **Leningen**: de bank leent tot € 2 miljoen plus 24 maanden omzet, tegen 6,5% (min 1% per CFO-training, min 0,5% bij reputatie 60+), terug te betalen in 60 maanden. Vervroegd aflossen kan altijd.
+- **Investeerders**: verkoop 10% van het bedrijf voor 10% van de bedrijfswaarde. Investeerders krijgen elke maand hun deel van de winst. Je houdt altijd minstens 51%.
+- **Energiecontracten**: een vast contract loopt 1 tot 5 jaar. Eerder overstappen kost ongeveer drie maanden stroomrekening (de eerste 14 dagen gratis). Variabel kan altijd.
+- **Faillissement**: sta je in het rood, dan krijg je waarschuwingen. Na 30 dagen in het rood ga je failliet: het spel stopt en je laadt een savegame of gaat terug naar het hoofdmenu. Met onbeperkt geld (creatieve modus) kan dat niet.
+- **Klantbezoeken**: klanten komen willekeurig langs, alleen overdag: per-U-klanten ongeveer eens per 60 dagen, racks eens per 40, kooien eens per 25 en eigen hallen eens per 18 dagen. Er zijn nooit meer dan 15 klanten tegelijk op het terrein. Ze dragen een cyaan bezoekersbadge.
+- **Oudere savegames**: racks die al huur opleverden, blijven bij "Bestaande klanten" (€ 900 per rack per maand). HR, operations, facility (volledig getraind) en netwerk zijn al geregeld, zodat niets ophoudt te werken.
+- In de **creatieve modus** zet "alle unlocks" de hele organisatie open.
+
+## Grote datahallen
+
+Reinder wil echt grote hallen kunnen bouwen, op hyperscale-formaat met duizenden racks. Wat daarvoor nodig is:
+
+- **Groter terrein**: nu is een kavel 64 × 64 meter. Grotere kavels en aangrenzende grond bijkopen (stap 9) maken hallen van honderden meters mogelijk.
+- **Snel plaatsen**: rijen langer dan 24 racks, en een blokgereedschap dat een heel vlak met rijen, gangen en containment in één keer vult.
+- **Prestaties**: racks en andere herhaalde objecten worden met MultiMesh getekend, objecten krijgen een ruimtelijke index (geen lijst doorzoeken per cel), en verre hallen krijgen een eenvoudig model (LOD). Simulatie per hal in plaats van per rack waar dat kan.
+- **Klanten blijven beperkt**: ook bij duizenden racks heb je meestal enkele tientallen klanten en staan er hooguit 10 tot 20 tegelijk binnen.
+
+## Uitbreidingen en ideeën per stap
+
+Goedgekeurd door Reinder op 19 november 2026; ze komen in de genoemde stap.
+
+**Bouwen prettiger maken**
+- *Stap 7*: **ongedaan maken / opnieuw** (Ctrl+Z, ook bij grote ingrepen), **slim slepen** (muren, rackrijen en kabelgoten in één beweging, met maten en kosten live in beeld), **snap en hulplijnen** (uitlijnen, symmetrie, draaien in stappen van 15° naast 90°).
+- *Stap 9*: **kant-en-klare modules** en blauwdrukken (een datazaal, UPS-ruimte of kantoorvleugel in één keer plaatsen; eigen ontwerpen opslaan) en **prefab datacontainers** om snel uit te breiden.
+- *Stap 10*: **gevelbouwer** (materiaal, kleur, logo, luifel, gevelverlichting, groene daken en muren per gevel), **doorsnede-weergave** per verdieping, **bouwanimaties** (steigers, betonmolens, een kraan die echt hijst), **interieurdetails** (verhoogde vloer met tegels, plafondgoten, brandblussers, nooduitgangsbordjes, kabels in de goten) en **sfeerlicht** (blauwe ledstrips in de koude gang, rode noodverlichting bij storing).
+
+**Bekabeling**
+- *Stap 7*: **zichtbare kabelgoten** boven de racks of onder een verhoogde vloer, die je als een pad trekt met bochten en T-splitsingen; glasvezel in oranje, koper en stroom in grijs en zwart. **Kabels liggen echt in de goten**: hoe meer klanten, hoe voller. Een overvolle goot kleurt waarschuwingsoranje en wordt een risico. **Automatisch routeren** stelt met één klik het netste pad voor. Een **kabelmanagement-score** geeft minder storingen, snellere engineers en betere audits. **Storingseffect**: een kabel die uitvalt flitst rood, de bolletjes stoppen en zoeken een weg via de B-route.
+- *Stap 10*: **gloeiende flow-lijnen** waarvan de dikte de belasting toont (stroom amber, netwerk oranje, koeling cyaan, zoals overal in de huisstijl), **A/B-feeds in twee tinten**, een **close-up van een rack** (patchkabels, knipperende poortlampjes, PDU-meters) en een **röntgenweergave ondergronds** (ducts, mantelbuizen, de hoogspanningskabel naar het onderstation).
+
+**Buiten**
+- *Stap 8*: **veiligheid**: camera's op palen, een dubbel hek met een strook niemandsland, ram-barrières en paaltjes tegen voertuigen, slagbomen met kentekenherkenning, een helikopterplatform voor VIP's.
+- *Stap 9*: **energie**: zonnepark op dak of veld, kleine windmolens, batterijcontainer, gasturbine of brandstofcel als backup, een eigen onderstation met hoogspanningsmasten. **Koeling**: dry coolers op het dak, een buffertank voor koud water en een warmtewisselaar naar de stadsverwarming. **Logistiek**: vrachtwagenparkeerplaats, containerstalling, afvalpers, dieseltankplaats en een overdekte fietsenstalling. **Personeel en klanten**: laadpalen, buitenterras, rookplek, bushalte en een eigen pendelbusje. **Vergunningen**: buren klagen over geluid en licht, en dan moet je groen en een geluidswal plaatsen.
+- *Stap 10*: **natuur en water**: vijver of wadi voor regenwater (ook bluswater), bloemenweides, bomenlanen, sloten met bruggetjes, een geluidswal. **Uitstraling**: een groot lichtgevend logobord, vlaggenmast, entree met fontein of kunstwerk en gevelverlichting.
+
+**In de datahallen**
+- *Stap 7*: **veiligheid**: VESDA-rookdetectie, gasblussysteem met flessen, noodknoppen, camera's per gang en een mantrap bij de ingang (die laatste via research in stap 8). **Werkplekken**: crashkar met monitor, kast met reserveonderdelen, build-tafel en ladder.
+- *Stap 9*: **racktypes**: 42U, 48U en 52U, open frames, GPU-racks met waterkoeling, rear-door coolers en een immersion-tank. **Afscheiding**: kooien met gaas, private suites met een eigen badgedeur, containment met deuren en een glazen dak. **Koeling en stroom in de hal**: in-row units, temperatuursensoren per rack met een warmtebeeld-overlay, PDU's per rack, RPP-kasten aan het eind van de rij en stroommeters.
+- *Stap 10*: verhoogde vloer met geperforeerde tegels, plafondgoten, rij- en racklabels, vloermarkeringen, knipperende ledjes, het zoemen van de servers, blauw licht in de koude gang en rood in de warme gang, engineers met karretjes, kooideuren die opengaan en een robot die 's nachts inspecteert.
+
+**Kantoren**
+- *Stap 7*: **bezetting**: werkplekken tellen; te weinig plekken maakt personeel ontevreden, flexplekken zijn goedkoper. **Comfort en welzijn**: kantine, fitnessruimte, douches, dakterras en gamingruimte verhogen de tevredenheid en verlagen het verloop.
+- *Stap 9*: **ruimtes**: open kantoortuin, vergaderzalen in verschillende maten, een boardroom, belcellen, stilteruimte, serverkast voor de eigen IT, archief en printerhoek. **Klantgericht**: een experience center met een glazen wand naar de datazaal, een ontvangstbalie met logowand en VIP-vergaderruimtes.
+- *Stap 10*: **afdelingen met een eigen sfeer** (support met headsets en dashboards, sales met een gong bij elke deal, finance met dossierkasten, de NOC met een videowall), **meubels** (zit-sta-bureaus, ergonomische stoelen, lockers, whiteboards, loungehoek, pingpongtafel, koffiebar met barista), een **kantoorstijl** naar keuze (modern, industrieel, startup of corporate) die klanten en personeel merken, en **leven in het kantoor**: mensen lopen naar de koffie, vergaderen, bellen en vieren verjaardagen met taart.
+
+**Meet-me room**
+- *Stap 7*: **cross-connect-orders** in een eigen overzicht; engineers patchen ze zichtbaar met een oranje glasvezelkabel. **Kabelmanagement** met verticale goten, labels en kleurcodes; een rommelige MMR geeft meer storingen en een lagere auditscore.
+- *Stap 8*: **strenge toegang**: een eigen badgedeur, logboek en camera; alleen netwerkpersoneel en carriers met een afspraak mogen erin.
+- *Stap 9*: **carrier-kooien**: carriers huren een eigen kooi of rack in de MMR (extra huur). **Twee MMR's**, aan elke kant van het gebouw één, met eigen ducts en routes. **Patchpanelen per verdieping** (intermediate distribution frames), zodat niet alles via de MMR beneden hoeft. **Carrier-ecosysteem**: hoe meer carriers, hoe aantrekkelijker voor klanten, zichtbaar als groeiende netwerkkaart. **Eigen internet exchange** in het late spel: je verdient aan de poorten van anderen.
+
+**Intern warehouse**
+- *Stap 7*: **voorraad reserveonderdelen** (schijven, voedingen, glasvezelkabels, optics, PDU's, koelfilters, UPS-accu's); raakt iets op, dan duurt een storing langer. **Automatisch bijbestellen** bij een minimumvoorraad, met levertijden per leverancier, en vrachtwagens die echt aanrijden. **Warehouse-medewerkers**: een magazijnier; hoe beter georganiseerd, hoe sneller racks en onderdelen op hun plek zijn. Een **voorraadscherm** met tekorten, verwachte leveringen en kosten.
+- *Stap 9*: **ruimtes**: een ontvangstzone bij het laadperron, een uitpakruimte (geen karton in de datazaal), een build room om servers te testen, opslag met stellingen, een kooi voor klantvoorraad en een afvalruimte voor karton en e-waste. **Inrichting**: palletstellingen, rolcontainers, **palletwagens** (bewust geen heftrucks), een werkbank, een inpaktafel, een kluis voor gevoelige onderdelen en barcodescanners. **Klantlogistiek**: klanten laten zendingen bezorgen die je opslaat en naar hun rack brengt (remote hands, extra inkomsten). **Dataveilig afvoeren**: een schijvenvernietiger die een certificaat geeft, goed voor de compliance.
+
+**Overige ideeën**
+- *Stap 7*: **hardware-levenscyclus**: servers en UPS-accu's verouderen en moeten worden vervangen. **Klantbezoeken en audits**: klanten komen kijken, en een nette site levert betere contracten op.
+- *Stap 8*: **waterkoeling en immersion cooling** voor AI- en GPU-klanten met racks van 50 kW of meer, en **restwarmte verkopen** aan een stadsverwarming of kas (via research).
+- *Stap 9*: **batterijopslag en een eigen windmolen** om pieken op te vangen en goedkoper stroom in te kopen. **Grote datahallen** (zie hierboven).
+- *Stap 11*: zie *Afwerking en extra's*.
+
 ## Bewust niet in scope
 
 - Geen mailserver en geen backups naar externe servers (FTP/SCP). Het is een offline game.
@@ -673,11 +798,14 @@ Zo werkt stap 5 (versie 0.4.0) nu echt in de game:
 3. **Bouwen en creatieve modus**: nieuw spel met creatieve modus, terrein indelen (wegen, paden, hekwerk, groen, licht), bouwmaterialenplek met vrachtwagens, bouwvakkers die buitenmuren en dak bouwen, hallen zelf uitmeten met deurkeuze, verdiepingen, kantoren inrichten, racks per rij met de opbouwketen (levering, monteurs, aansluiten), klantruimte met koffie, monitorkarretjes, projectprioriteit, gevels (baksteen, beton, glas; datacenter als betonnen box), automatische verlichting, knipperende lampjes en servergeluid
 4. **Stroom en koeling** (testversie 0.3.0): netaansluiting en hoogspanning, transformatorruimtes, UPS, generatoren met N+1, koeling en koeltorens, stroom-overlay met bolletjes. Zie *Stroom en koeling in het spel*.
 5. **Netwerk** (testversie 0.4.0): fiberducts, MMR, carriers, peering, verkeersweergave, NOC. Zie *Netwerk in het spel*.
-6. **Organisatie, klanten en economie**: CEO-kantoor en unlock-boom (CFO met leningen, HR, salesdirecteur), sales, klanttypes, zones, contracten, energiecontracten, faillissement
+6. **Organisatie, klanten en economie** (testversie 0.5.0): CEO-kantoor en unlock-boom (CFO, inkoop, HR, sales, jurist, customer success, operations, facility, netwerk, security), sales, klanttypes, zones, contracten en aanbestedingen, boekhouding, leningen, investeerders, energiecontracten, faillissement, klantbezoeken. Zie *Organisatie, klanten en economie in het spel*.
 7. **Personeel en gebeurtenissen**: werven, training en budgetten, automatische diensten, onderhoud, storingen en willekeurige gebeurtenissen
 8. **Beveiliging, research en reputatie**: camera's, videowall, glazen loge, beveiligingspolicies, research tree, voorstellen van NOC en netwerkarchitect, recensies, certificeringen, overheidsklanten
 9. **Groei**: campus, kantoren verhuren, warehouse, hostingbedrijf (cloud, dedicated servers met voorraad, grote contracten, dashboard), meerdere locaties en landen
 10. **Uiterlijk**: rondere 3D-poppetjes, first-person rondlopen door je datacenter (alleen kijken en luisteren), seizoenen en weer, dag en nacht
+11. **Afwerking en extra's**: tutorial met een begeleide eerste kavel, scenario's en uitdagingen met medailles ("red een failliet datacenter", "haal binnen 5 jaar 10 MW"), statistieken en grafieken door de tijd (omzet, PUE, uptime, verbruik), fotomodus, achievements en later Steam-ondersteuning, mod-ondersteuning (eigen gebouwen en objecten)
+
+Bij elke stap horen ook de uitbreidingen uit *Uitbreidingen en ideeën per stap*.
 
 ## Open vragen
 
