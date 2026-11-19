@@ -1,6 +1,6 @@
 # Game design document: Datacenter Architect
 
-*Versie 0.3, 19 november 2026. Een levend document dat met de game meegroeit.*
+*Versie 0.4, 19 november 2026. Een levend document dat met de game meegroeit.*
 
 ## In één zin
 
@@ -101,6 +101,7 @@ Elke locatie toont vooraf de **beschikbare netcapaciteit (MVA)** en de **glasvez
 
 ### Racks plaatsen en aansluiten
 
+- Zie ook **Opbouwketen van racks**: eerst levering per vrachtwagen en plaatsing door monteurs.
 - Een nieuw geplaatst rack is nog niet live. Er komt automatisch een **werkorder** bij, die een **datacenter technicus** oppakt.
 - De technicus loopt naar het rack en sluit eerst de **A/B-stroomvoeding** aan op de PDU's en de busbar. Daarna trekt hij **glasvezel en koper** naar de ToR-switch of de MMR.
 - Pas dan is het rack live en kan de klant erin. Te weinig technici betekent een wachtrij en klanten die later kunnen beginnen.
@@ -245,7 +246,7 @@ Binnen een gebouw **teken je zelf ruimtes**: muren trekken, deuren plaatsen en e
 
 ## Personeel
 
-Personeel is een eigen module. Je **werft medewerkers** en ziet ze als poppetjes over het terrein lopen.
+Personeel is een eigen module. Welke functies je kunt werven, hangt af van je directeuren (zie **Organisatie en unlocks**). Je **werft medewerkers** en ziet ze als poppetjes over het terrein lopen.
 
 **Functies**
 
@@ -439,8 +440,75 @@ Een **weerbericht** in de interface waarschuwt een paar dagen vooruit, zodat je 
 
 ## Bouwen met bouwvakkers
 
-- Je zet uit waar de **buitenmuren** komen. Daarna komen **bouwvakkers** die de fundering, muren, het dak en ook het **hekwerk** zichtbaar bouwen.
-- Dat mag eenvoudig blijven: het laat zien dat er gebouwd wordt en hoe lang het nog duurt.
+Alles wat je bouwt, zie je echt gebeuren. Je ontwerpt, en daarna gaan aannemers aan de slag.
+
+**Bouwplaats en materiaal**
+
+- Je wijst zelf een **bouwmaterialenplek** aan op het terrein (een zone die je tekent, bij voorkeur aan de oprit).
+- **Vrachtwagens** rijden over de openbare weg en jouw oprit naar die plek en laden daar materiaal uit: stenen, staal, dakplaten, kabelgoten.
+- Zonder materialenplek of zonder route vanaf de weg kan er niet gebouwd worden. Het spel waarschuwt dan.
+
+**Bouwvakkers en materieel**
+
+- Je **huurt een aantal bouwvakkers** in via een aannemer. Meer bouwvakkers betekent sneller bouwen en hogere kosten per dag.
+- Bouwvakkers halen materiaal op bij de materialenplek en bouwen in fases: fundering, buitenmuren, deuren, dak, binnenmuren.
+- Er rijdt zichtbaar **materieel** rond: een bouwkraan, een graafmachine voor de fundering en een verreiker voor het dak.
+- Een gebouw uitbreiden werkt hetzelfde: je trekt de plattegrond groter, en de bouwvakkers breken de oude muur open en bouwen verder.
+
+**Hallen zelf uitmeten**
+
+- Een hal teken je zelf met de muurtool: je **meet de afmetingen** zelf uit, met de maten in meters zichtbaar tijdens het slepen.
+- Daarna plaats je **deuren**. Je kiest uit soorten, elk met eigen breedte, prijs en beveiliging:
+
+| Deur | Gebruik |
+|---|---|
+| Enkele deur | Personeel, kantoor |
+| Dubbele deur | Hallen, nodig om racks naar binnen te rijden |
+| Brandwerende deur | Verplicht tussen hal en UPS- of batterijruimte |
+| Beveiligde deur met badgelezer | Klantruimtes, MMR, kooien |
+| Roldeur of sectionaaldeur | Laadperron, warehouse |
+| Sluisdeur (mantrap) | Ingang van het datacenter, na research |
+
+- Een hal is pas bruikbaar als er een deur in zit die breed genoeg is voor racks, met een route naar het laadperron.
+
+## Opbouwketen van racks
+
+Racks plaatsen is geen klik-en-klaar, maar een keten die je ziet gebeuren:
+
+1. **Bestellen**: je plaatst racks in een hal (los of per rij van 24). Ze staan eerst als doorzichtige plannen in de hal.
+2. **Levering**: een **vrachtwagen** komt naar het **laadperron** en laadt de racks uit.
+3. **Plaatsen**: **monteurs** rijden de racks via de gangen en de deur naar de hal en zetten ze op hun plek.
+4. **Stroom**: een **datacenter engineer** sluit de A/B-voeding aan (amber markering).
+5. **Glasvezel en koper**: de engineer hangt de bekabeling aan (oranje markering).
+6. **Te koop**: daarna is het rack **beschikbaar voor verkoop** en kan sales het verhuren.
+
+Hetzelfde geldt voor mini-halls, kooien en apparatuur zoals UPS'en en koelunits: levering, plaatsen, aansluiten. In de creatieve modus met "direct bouwen" sla je de keten over.
+
+## Organisatie en unlocks
+
+Je begint als eigenaar met een leeg terrein. Functies en mogelijkheden komen vrij door het juiste personeel aan te nemen. Er is geen micromanagement: wie je aanneemt, regelt zijn eigen terrein.
+
+**Eerst een kantoor**
+
+- Het eerste wat je bouwt, is een **kantoortje voor de algemeen directeur** (CEO). Dat kan in een tijdelijke unit of in een echt kantoorpand.
+- Kantoren richt je zelf in: een **bureau, stoel, kast, plant, vergadertafel**. Een kantoor werkt zodra er minimaal een bureau en een stoel staan. Een mooiere inrichting geeft een kleine bonus.
+- Elke directeur heeft een eigen kantoor nodig. Een team heeft werkplekken nodig in een afdelingsruimte.
+
+**Unlock-boom**
+
+| Functie | Vereist | Ontgrendelt |
+|---|---|---|
+| Algemeen directeur (CEO) | Kantoor | Andere directeuren aannemen, het hostingbedrijf starten, een extra kantoorlocatie |
+| Financieel directeur (CFO) | CEO | Leningen afsluiten en aflossen, investeerders, financiële rapportages, lagere rente en kostenvoordelen |
+| HR-manager | CEO | Personeel werven (vacaturebord), salarisbeleid, trainingen |
+| Salesdirecteur | CEO | Een salesteam starten, contracten binnenhalen, grote aanbestedingen |
+| Facility manager | CEO + HR | Technisch personeel (engineers, monteurs), onderhoudsplanning, via **scholing** hogere spanningen en grotere netaansluitingen (10, 20, 50 MVA) |
+| Netwerkmanager | CEO + HR | Netwerkteam, NOC, carrier- en peeringcontracten |
+| Security manager | CEO + HR | Beveiligers, badgesysteem, certificeringen (via research) |
+
+- Zonder salesdirecteur komen er geen contracten. Je moet dus vanaf het begin nadenken over wat je bouwt en in welke volgorde.
+- **Scholing** is een upgrade per manager met tijd en kosten. Een voorbeeld: de facility manager volgt een hoogspanningscursus, en daarna mag je een 20 MVA-aansluiting aanvragen.
+- In de creatieve modus kun je alle unlocks direct aanzetten.
 
 ## Campus, kantoren en warehouse
 
@@ -454,6 +522,7 @@ Een **weerbericht** in de interface waarschuwt een paar dagen vooruit, zodat je 
 - Dat bedrijf huurt racks in jouw datacenter en heeft eigen personeel en technici nodig.
 - Het verkoopt **VPS'en, dedicated servers en een public cloud**. Groeit de cloud, dan heeft het meer racks nodig.
 - Je wijst een zaal aan als **eigen cloud** voor dit bedrijf.
+- Het hostingbedrijf wordt ontgrendeld door de **algemeen directeur**. Je kunt klein beginnen met een **private cloud** in een kleine ruimte van je eigen datacenter, en later een **extra kantoorlocatie** openen.
 
 ## Automatisering en personeel
 
@@ -509,10 +578,10 @@ Zonder AI-concurrenten win je aanbestedingen op basis van je eigen prijs en kwal
 
 1. **Fundament en huisstijl** (klaar)
 2. **Technische basis** (klaar): Godot-project, camera, bouwgrid, installer, talen, lokale savegames, Info-scherm
-3. **Bouwen en creatieve modus**: nieuw spel met creatieve modus, terrein indelen (wegen, paden, hekwerk, groen, licht), buitenmuren uitzetten met bouwvakkers, verdiepingen, ruimtes tekenen, racks per rij
+3. **Bouwen en creatieve modus**: nieuw spel met creatieve modus, terrein indelen (wegen, paden, hekwerk, groen, licht), bouwmaterialenplek met vrachtwagens, bouwvakkers die buitenmuren en dak bouwen, hallen zelf uitmeten met deurkeuze, verdiepingen, kantoren inrichten, racks per rij met de opbouwketen (levering, monteurs, aansluiten)
 4. **Stroom en koeling**: netaansluiting en hoogspanning, transformatorruimtes, UPS, generatoren met N+1, koeling en koeltorens, stroom-overlay met bolletjes
 5. **Netwerk**: fiberducts, MMR, carriers, peering, verkeersweergave, NOC
-6. **Klanten en economie**: sales, klanttypes, zones, contracten, energiecontracten, faillissement
+6. **Organisatie, klanten en economie**: CEO-kantoor en unlock-boom (CFO met leningen, HR, salesdirecteur), sales, klanttypes, zones, contracten, energiecontracten, faillissement
 7. **Personeel en gebeurtenissen**: werven, automatische diensten, onderhoud, storingen en willekeurige gebeurtenissen
 8. **Beveiliging, research en reputatie**: research tree, certificeringen, overheidsklanten
 9. **Groei**: campus, kantoren verhuren, warehouse, eigen hostingbedrijf, meerdere locaties
