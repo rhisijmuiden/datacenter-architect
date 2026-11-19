@@ -140,6 +140,31 @@ Personeel is een eigen module. Je **werft medewerkers** en ziet ze als poppetjes
 - **Faciliteiten**: meer personeel vraagt meer kantoorruimte, parkeerplekken en een kantine.
 - Elke storing, elk ticket en elke levering wordt een **taak** die een geschikte medewerker oppakt. Zonder de juiste mensen blijft een taak liggen.
 
+## Leveranciers en inkoop
+
+Stroom en bandbreedte komen niet vanzelf: je sluit zelf contracten af met leveranciers, en je moet ze op tijd upgraden als je groeit.
+
+**Stroom**
+
+- **Netbeheerder**: regelt je aansluiting en **gecontracteerd transportvermogen** (kVA/MVA). Een upgrade vraag je aan en heeft een **wachttijd** (maanden in speltijd) en aansluitkosten. Op een krappe stadskavel kan de wachtrij lang zijn.
+- **Energieleverancier**: levert de stroom zelf, met een prijs per kWh. Je kiest uit contractvormen:
+  - **Vast** voor 1 tot 5 jaar: zekerheid, maar je zit eraan vast.
+  - **Variabel**: volgt de marktprijs, die in het spel schommelt.
+  - **Groene stroom**: duurder, maar sommige klanten eisen het.
+- Gebruik je meer dan je gecontracteerde vermogen, dan betaal je **boetes** of schakelt de netbeheerder je af.
+- Later kun je eigen opwek toevoegen, bijvoorbeeld zonnepanelen op het dak of een eigen gasturbine.
+
+**Netwerk**
+
+- **Carriers (IP-transit)**: je koopt bandbreedte in **per Mbit**, met een **commit** (minimale afname) en de mogelijkheid tot **burst** daarboven, afgerekend via de 95e percentiel. Meer commit betekent een lagere prijs per Mbit.
+- **Poortcapaciteit upgraden**: van 1G naar 10G, 100G of 400G. Een upgrade kost geld en heeft een levertijd.
+- Klanten gebruiken bandbreedte. Raakt een carrier vol, dan krijgen klanten vertraging en dalen de tevredenheid en je inkomsten.
+- **Peering met concurrerende datacenters**: je kunt met andere datacenters in de regio afspraken maken.
+  - **Private peering** via een directe glasvezelverbinding (dark fiber) tussen jouw MMR en die van de concurrent.
+  - **Publieke peering** via een **internet exchange** waar beide datacenters op zijn aangesloten.
+  - Peering verlaagt je transitkosten en maakt je aantrekkelijker voor netwerkklanten, maar een concurrent wil er soms iets voor terug.
+- Concurrerende datacenters zijn **AI-spelers** in de regio die ook klanten en aanbestedingen proberen te winnen.
+
 ## Klanten en economie
 
 Klanten huren ruimte in je datacenter in verschillende vormen:
