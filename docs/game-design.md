@@ -460,7 +460,7 @@ Een **weerbericht** in de interface waarschuwt een paar dagen vooruit, zodat je 
   - **Koeling**: cold corridor, vrije koeling, waterkoeling, immersion cooling, restwarmte verkopen.
   - **Netwerk**: snellere poorten (100G, 400G, 800G), eigen dark fiber, een eigen internet exchange.
   - **Bouw**: prefab modules, sneller bouwen, hogere gebouwen, meer verdiepingen.
-  - **Bedrijf**: betere contracten, marketing, overheidsklanten, het hostingbedrijf, **kantoorverhuur** (met de office manager: kantoren verhuren).
+  - **Bedrijf**: betere contracten, marketing, overheidsklanten, het hostingbedrijf, **kantoorverhuur** (met de kantoormanager).
 - **Tijdperken**: nieuwe techniek komt beschikbaar naarmate de jaren in het spel verstrijken; AI-racks bijvoorbeeld pas vanaf een bepaald jaar.
 - **Voorstellen van personeel**: de netwerkarchitect of de facility manager stelt zelf iets voor, zoals "Voor € 2 miljoen krijgen we de nieuwe router van NordLink, dan wordt de latency 30% lager."
 - **Merken**: verzonnen leveranciers, elk met eigen voor- en nadelen.
@@ -546,9 +546,9 @@ Je begint als eigenaar met een leeg terrein. Functies en mogelijkheden komen vri
 | Bedrijfsjurist | Salesdirecteur | Meebieden op grote aanbestedingen |
 | Customer success manager | Salesdirecteur | Tevredener klanten, meer verlengingen, minder vertrek na storingen |
 | Inkoopmanager | CFO | Goedkopere energie- en carriercontracten |
-| Office manager | Operationeel manager; verhuur via research *Kantoorverhuur* | Kantoorruimte en hele kantoorpanden of -locaties verhuren; regelt alles rond meerdere kantoren (stap 9) |
+| Kantoormanager (office manager) | Operationeel manager + research *Kantoorverhuur* | Kantoorruimte verhuren (stap 8); hele kantoorpanden en -locaties verhuren en alles rond meerdere kantoren regelen (stap 9) |
 
-- Later komen er nog bij: marketingmanager en compliance-manager (stap 8), een duurzaamheidsmanager (stap 9: lagere PUE, groene stroom, eigen zonnepanelen) en een **office manager** (research in stap 8, aannemen en verhuur in stap 9; zie *Campus, kantoren en warehouse*).
+- Later komen er nog bij: marketingmanager en compliance-manager (stap 8), een duurzaamheidsmanager (stap 9: lagere PUE, groene stroom, eigen zonnepanelen) en een **kantoormanager** (stap 8 kantoorruimte verhuren, stap 9 hele panden en locaties; zie *Campus, kantoren en warehouse*).
 - Zonder salesdirecteur komen er geen contracten. Je moet dus vanaf het begin nadenken over wat je bouwt en in welke volgorde.
 - **Scholing** is een upgrade per manager met tijd en kosten. Een voorbeeld: de facility manager volgt een hoogspanningscursus, en daarna mag je een 20 MVA-aansluiting aanvragen.
 - In de creatieve modus kun je alle unlocks direct aanzetten.
@@ -557,7 +557,7 @@ Je begint als eigenaar met een leeg terrein. Functies en mogelijkheden komen vri
 
 - Je ontwerpt een complete **campus** met meerdere gebouwen en bijgebouwen.
 - **Kantoorpanden** met meerdere verdiepingen deel je zelf in, met afdelingen, een **personeelskantine** en vergaderruimtes. Kantoorruimte kun je ook **verhuren aan grote klanten** op contractbasis.
-- **Office manager** (idee van Reinder, 19 november 2026): valt onder de operationeel manager. Met de research *Kantoorverhuur* in de tak Bedrijf (vraagt een office manager) kun je kantoorruimte, hele kantoorpanden en losse kantoorlocaties verhuren. Hij regelt alles rond meerdere kantoren zelf, zonder micromanagement: huurders en huurcontracten, bezetting en werkplekken, inrichting, kantine en schoonmaak, en het overzicht over al je kantoorlocaties.
+- **Kantoormanager / office manager** (idee van Reinder, 19 november 2026): valt onder de operationeel manager en werkt samen met de research *Kantoorverhuur*. In stap 8 verhuurt hij kantoorruimte, in stap 9 ook hele kantoorpanden en losse kantoorlocaties. Hij regelt alles rond meerdere kantoren zelf, zonder micromanagement: huurders en huurcontracten, bezetting en werkplekken, inrichting, kantine en schoonmaak, en het overzicht over al je kantoorlocaties.
 - In een **warehouse** sla je serverapparatuur op. Die apparatuur kun je ook verhuren aan klanten.
 
 ## Eigen hostingbedrijf
@@ -856,7 +856,7 @@ Goedgekeurd door Reinder op 19 november 2026; ze komen in de genoemde stap.
 6. **Organisatie, klanten en economie** (testversie 0.5.0): CEO-kantoor en unlock-boom (CFO, inkoop, HR, sales, jurist, customer success, operations, facility, netwerk, security), sales, klanttypes, zones, contracten en aanbestedingen, boekhouding, leningen, investeerders, energiecontracten, faillissement, klantbezoeken. Zie *Organisatie, klanten en economie in het spel*.
 7. **Personeel en gebeurtenissen** (testversie 0.6.0): automatisch werven, beleid en serviceplannen, training en budgetten, automatische diensten, onderhoud en slijtage, storingen en reserveonderdelen, willekeurige gebeurtenissen, projectmanager bouw, klantbezoek 24/7. Zie *Personeel en gebeurtenissen in het spel*.
 8. **Beveiliging, research en reputatie** (testversie 0.7.0): camera's, videowall, glazen loge, beveiligingspolicies, research tree, voorstellen van NOC en netwerkarchitect, recensies, certificeringen, overheidsklanten, kantoormanager met kantoorverhuur. Zie *Beveiliging, research en reputatie in het spel*.
-9. **Groei**: campus, office manager en kantoren of kantoorlocaties verhuren, warehouse, hostingbedrijf (cloud, dedicated servers met voorraad, grote contracten, dashboard), meerdere locaties en landen, markt en concurrentie (aanbestedingen, overnames, beursgang, marktnieuws), dynamische energieprijzen, ESG-score met waterverbruik, cyberaanvallen en SOC, rampen en verzekering, leveringsproblemen, sleutelpersoneel
+9. **Groei**: campus, warehouse, hostingbedrijf (cloud, dedicated servers met voorraad, grote contracten, dashboard), meerdere locaties en landen, markt en concurrentie (aanbestedingen, overnames, beursgang, marktnieuws), dynamische energieprijzen, ESG-score met waterverbruik, cyberaanvallen en SOC, rampen en verzekering, leveringsproblemen, sleutelpersoneel
 10. **Uiterlijk**: rondere 3D-poppetjes, first-person rondlopen door je datacenter (alleen kijken en luisteren), klantmigraties met vrachtwagens, seizoenen en weer, dag en nacht
    - *Speelronde na stap 10*: Reinder speelt het spel een tijdje en geeft bugs en verbeteringen door in een aparte thread; die worden opgelost voordat stap 11 begint.
 11. **Afwerking en extra's**: tutorial met een begeleide eerste kavel, scenario's en uitdagingen met medailles ("red een failliet datacenter", "haal binnen 5 jaar 10 MW"), statistieken en grafieken door de tijd (omzet, PUE, uptime, verbruik), fotomodus, timelapse van je campus, achievements en later Steam-ondersteuning, mod-ondersteuning (eigen gebouwen en objecten)
