@@ -15,6 +15,8 @@ public partial class CameraRig : Node3D
     bool _rotating, _panning;
     public Rect2 Bounds = new(-20, -20, 104, 104);
     public bool InputEnabled = true;
+    /// <summary>Ease towards the target (Options: smooth camera); off = follow instantly.</summary>
+    public bool Smooth = true;
 
     public override void _Ready()
     {
@@ -75,10 +77,11 @@ public partial class CameraRig : Node3D
                 (Input.IsKeyPressed(Key.S) ? 1 : 0) - (Input.IsKeyPressed(Key.W) ? 1 : 0));
             if (k != Vector2.Zero) Pan(k.X, k.Y, Distance * dt * 0.9f);
         }
-        Yaw = Mathf.Lerp(Yaw, _yawT, Mathf.Min(1, dt * 7));
-        Pitch = Mathf.Lerp(Pitch, _pitchT, Mathf.Min(1, dt * 7));
-        Distance = Mathf.Lerp(Distance, _distT, Mathf.Min(1, dt * 6));
-        Position = Position.Lerp(_targetT, Mathf.Min(1, dt * 7));
+        float E(float rate) => Smooth ? Mathf.Min(1, dt * rate) : 1;
+        Yaw = Mathf.Lerp(Yaw, _yawT, E(7));
+        Pitch = Mathf.Lerp(Pitch, _pitchT, E(7));
+        Distance = Mathf.Lerp(Distance, _distT, E(6));
+        Position = Position.Lerp(_targetT, E(7));
         Apply();
     }
 

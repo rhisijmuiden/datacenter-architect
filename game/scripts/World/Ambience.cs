@@ -21,7 +21,7 @@ public partial class Ambience : Node
 
     public override void _Ready()
     {
-        _player = new AudioStreamPlayer { Stream = new AudioStreamGenerator { MixRate = Rate, BufferLength = 0.25f }, VolumeDb = -6 };
+        _player = new AudioStreamPlayer { Stream = new AudioStreamGenerator { MixRate = Rate, BufferLength = 0.25f }, VolumeDb = -6, Bus = Core.AudioMixer.Ambience };
         AddChild(_player);
         _player.Play();
         _pb = _player.GetStreamPlayback() as AudioStreamGeneratorPlayback;

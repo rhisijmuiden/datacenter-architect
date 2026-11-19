@@ -8,7 +8,7 @@ namespace DatacenterArchitect.UI;
 /// <summary>Title screen: a panel on the left over the slowly turning world.</summary>
 public partial class MainMenu : Control
 {
-    public Action Continue, NewGame, LoadGame, Info, ToggleLanguage, Quit;
+    public Action Continue, NewGame, LoadGame, Options, Info, ToggleLanguage, Quit;
     Button _continue, _lang;
 
     public override void _Ready()
@@ -35,6 +35,7 @@ public partial class MainMenu : Control
         v.AddChild(_continue);
         v.AddChild(Big("menu_new_game", () => NewGame?.Invoke()));
         v.AddChild(Big("menu_load", () => LoadGame?.Invoke()));
+        v.AddChild(Big("menu_options", () => Options?.Invoke()));
         v.AddChild(Big("menu_info", () => Info?.Invoke()));
         _lang = Big("", () => ToggleLanguage?.Invoke());
         _lang.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
@@ -192,11 +193,12 @@ public partial class SaveLoadDialog : Modal
 /// <summary>Pause menu (Esc).</summary>
 public partial class PauseMenu : Modal
 {
-    public PauseMenu(Action save, Action load, Action info, Action toMenu, Action quit) : base("pause_title", 380)
+    public PauseMenu(Action save, Action load, Action options, Action info, Action toMenu, Action quit) : base("pause_title", 380)
     {
         Body.AddChild(Ui.Primary("pause_resume", Close));
         Body.AddChild(Ui.Secondary("pause_save", () => { Close(); save(); }));
         Body.AddChild(Ui.Secondary("menu_load", () => { Close(); load(); }));
+        Body.AddChild(Ui.Secondary("menu_options", () => { Close(); options(); }));
         Body.AddChild(Ui.Secondary("menu_info", () => { Close(); info(); }));
         Body.AddChild(Ui.Secondary("pause_main_menu", () => { Close(); toMenu(); }));
         Body.AddChild(Ui.Secondary("menu_quit", () => { Close(); quit(); }));

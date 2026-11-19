@@ -382,3 +382,77 @@ msg_hall_upgrade_done	Hall upgrade finished: {0}.	Hal-upgrade klaar: {0}.
 msg_busbar_done	Busbar installed: racks can draw power from above.	Busbar aangelegd: racks halen hun stroom nu van boven.
 msg_hall_hot	A data hall overheated: racks were shut down to protect them.	Een datahal is oververhit: racks zijn uitgeschakeld om ze te beschermen.
 msg_hall_cool	Cooling is back in order: the racks are running again.	De koeling is weer op orde: de racks draaien weer.
+# ---- options menu ----
+menu_options	Options	Opties
+hud_options	Options	Opties
+opt_title	Options	Opties
+opt_tab_display	Display	Beeld
+opt_tab_graphics	Graphics	Graphics
+opt_tab_audio	Audio	Geluid
+opt_tab_game	Game	Spel
+opt_section_screen	Screen	Scherm
+opt_section_performance	Performance	Prestaties
+opt_window_mode	Window mode	Venstermodus
+opt_window_mode_help	Borderless fullscreen switches fastest between the game and other programs.	Randloos volledig scherm wisselt het snelst tussen de game en andere programma's.
+opt_mode_windowed	Windowed	Venster
+opt_mode_borderless	Borderless fullscreen	Randloos volledig scherm
+opt_mode_fullscreen	Fullscreen	Volledig scherm
+opt_monitor	Monitor	Beeldscherm
+opt_monitor_n	Monitor {0} ({1} × {2})	Beeldscherm {0} ({1} × {2})
+opt_resolution	Resolution	Resolutie
+opt_res_native	Native: {0} × {1}   ({2})	Eigen resolutie: {0} × {1}   ({2})
+opt_resolution_help_window	Size of the game window.	Grootte van het spelvenster.
+opt_resolution_help_full	In fullscreen the 3D world is drawn at this resolution while text stays sharp. Lower is faster.	In volledig scherm wordt de 3D-wereld op deze resolutie getekend terwijl tekst scherp blijft. Lager is sneller.
+opt_ui_scale	Interface size	Grootte interface
+opt_ui_scale_help	Makes menus and text larger or smaller, for example on a 4K screen.	Maakt menu's en tekst groter of kleiner, bijvoorbeeld op een 4K-scherm.
+opt_vsync	V-Sync	V-Sync
+opt_vsync_help	Prevents screen tearing; off can feel more responsive.	Voorkomt scheuren in het beeld; uit kan sneller aanvoelen.
+opt_max_fps	Frame rate limit	Maximale framerate
+opt_fps_unlimited	Unlimited	Onbeperkt
+opt_fps_n	{0} FPS	{0} FPS
+opt_fullscreen_hotkey	Tip: Alt+Enter or F11 switches between windowed and fullscreen at any time.	Tip: met Alt+Enter of F11 wissel je altijd tussen venster en volledig scherm.
+opt_confirm	Keep these display settings? Reverting in {0} s.	Deze beeldinstellingen houden? Terugzetten over {0} s.
+opt_keep	Keep	Houden
+opt_revert	Revert	Terugzetten
+opt_section_quality	Quality	Kwaliteit
+opt_preset_low	Performance	Prestaties
+opt_preset_medium	Balanced	Gebalanceerd
+opt_preset_high	Quality	Kwaliteit
+opt_preset_help	Sets shadows, ambient occlusion, fog and anti-aliasing in one go.	Zet schaduwen, ambient occlusion, nevel en anti-aliasing in één keer.
+opt_section_graphics	Graphics	Graphics
+opt_shadows	Shadows	Schaduwen
+opt_shadows_help	Shadows of buildings, trees and equipment.	Schaduwen van gebouwen, bomen en apparatuur.
+opt_ao	Ambient occlusion	Ambient occlusion
+opt_ao_help	Soft shading in corners and under objects.	Zachte schaduw in hoeken en onder objecten.
+opt_fog	Haze in the distance	Nevel in de verte
+opt_fog_help	Light haze that fades the far edge of the map.	Lichte nevel die de verre rand van de kaart laat vervagen.
+opt_msaa	Anti-aliasing	Anti-aliasing
+opt_msaa_help	Smooths jagged edges. Higher costs more graphics power.	Strijkt kartelranden glad. Hoger vraagt meer van de videokaart.
+opt_off	Off	Uit
+opt_section_effects	Visual effects	Visuele effecten
+opt_blinking	Blinking status lights	Knipperende statuslampjes
+opt_blinking_help	The LEDs on live racks blink.	De lampjes op actieve racks knipperen.
+opt_moving	Moving parts	Bewegende onderdelen
+opt_moving_help	Turning fans, crane jibs and markers.	Draaiende ventilatoren, kraanarmen en markeringen.
+opt_smooth_camera	Smooth camera	Vloeiende camera
+opt_smooth_camera_help	The camera glides to its new position instead of jumping.	De camera glijdt naar de nieuwe positie in plaats van te springen.
+opt_section_volume	Volume	Volume
+opt_vol_master	Main volume	Hoofdvolume
+opt_vol_ambience	Server room	Serverruimte
+opt_vol_ambience_help	Fans, cooling and the whine of servers when you zoom in on a hall.	Ventilatoren, koeling en het zoemen van servers als je inzoomt op een zaal.
+opt_vol_interface	Interface	Interface
+opt_vol_interface_help	Button clicks and notification chimes.	Klikjes van knoppen en meldingsgeluiden.
+opt_section_sounds	Sound effects	Geluidseffecten
+opt_snd_ambience	Server room sound	Geluid van de serverruimte
+opt_snd_ambience_help	The hum you hear near live racks.	Het gezoem dat je hoort bij actieve racks.
+opt_snd_clicks	Button clicks	Klikjes van knoppen
+opt_snd_notifications	Notification chimes	Meldingsgeluid
+opt_snd_background	Mute in the background	Dempen op de achtergrond
+opt_snd_background_help	Silence the game while another window has focus.	Zet het geluid uit zolang een ander venster actief is.
+opt_section_language	Language	Taal
+opt_section_saves	Saving	Opslaan
+opt_autosave	Autosave every	Automatisch opslaan elke
+opt_autosave_help	The last three autosaves are kept.	De laatste drie automatische opslagen blijven bewaard.
+opt_minutes_n	{0} min	{0} min
+opt_reset	Reset to defaults	Standaardwaarden
+opt_done	Done	Klaar

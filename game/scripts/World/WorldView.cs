@@ -31,6 +31,23 @@ public partial class WorldView : Node3D
     readonly Random _rng = new(7);
     FontFile _font;
     public DirectionalLight3D Sun { get; private set; }
+    WorldEnvironment _env;
+    /// <summary>Options: blinking rack LEDs and moving parts (crane jibs, fans, markers).</summary>
+    public bool BlinkingLights = true, MovingParts = true;
+
+    /// <summary>Apply the visual effect switches from the Options menu.</summary>
+    public void ApplyEffects(AppSettings s)
+    {
+        if (Sun != null) Sun.ShadowEnabled = s.Shadows;
+        if (_env?.Environment != null)
+        {
+            _env.Environment.SsaoEnabled = s.AmbientOcclusion;
+            _env.Environment.FogEnabled = s.Fog;
+        }
+        BlinkingLights = s.BlinkingLights;
+        MovingParts = s.MovingParts;
+        if (IsInsideTree()) GetViewport().Msaa3D = s.Msaa switch { 2 => Viewport.Msaa.Msaa2X, 4 => Viewport.Msaa.Msaa4X, 8 => Viewport.Msaa.Msaa8X, _ => Viewport.Msaa.Disabled };
+    }
 
     int _viewFloor;
     bool _roofs = true;
@@ -40,7 +57,7 @@ public partial class WorldView : Node3D
 
     public override void _Ready()
     {
-        var env = new WorldEnvironment
+        _env = new WorldEnvironment
         {
             Environment = new Godot.Environment
             {
@@ -56,7 +73,7 @@ public partial class WorldView : Node3D
                 SsaoEnabled = true,
             }
         };
-        AddChild(env);
+        AddChild(_env);
         Sun = new DirectionalLight3D { ShadowEnabled = true, LightEnergy = 0.95f, LightColor = new Color("#fff0d8"), RotationDegrees = new Vector3(-52, -38, 0) };
         Sun.DirectionalShadowMaxDistance = 160;
         AddChild(Sun);
@@ -755,17 +772,21 @@ public partial class WorldView : Node3D
 
     void Animate(double delta)
     {
+        if (MovingParts)
         foreach (var c in _cranes)
         {
             var jib = c.GetNodeOrNull<Node3D>("Jib");
             if (jib != null) jib.RotateY((float)delta * 0.15f);
         }
-        foreach (var m in _objects.GetChildren().OfType<Node3D>().Where(n => n.Name.ToString().StartsWith("Marker")))
-            m.RotateY((float)delta * 2f);
-        foreach (var f in _fans) if (IsInstanceValid(f)) f.RotateY((float)delta * 9f);
+        if (MovingParts)
+        {
+            foreach (var m in _objects.GetChildren().OfType<Node3D>().Where(n => n.Name.ToString().StartsWith("Marker")))
+                m.RotateY((float)delta * 2f);
+            foreach (var f in _fans) if (IsInstanceValid(f)) f.RotateY((float)delta * 9f);
+        }
         // blinking status lights: flip a few LEDs a few times a second, cheap on any PC
         _blinkTimer -= delta;
-        if (_leds != null && _blinkTimer <= 0)
+        if (_leds != null && _blinkTimer <= 0 && BlinkingLights)
         {
             _blinkTimer = 0.12;
             var n = Math.Max(1, _leds.InstanceCount / 12);

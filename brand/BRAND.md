@@ -40,10 +40,11 @@ Vaste regel: stroom is altijd amber, koeling is altijd cyaan en glasvezel is alt
 
 ## Interface-indeling
 
-- **Links:** het bouwmenu (Grond, Gebouwen, Stroom, Koeling, Netwerk, Datazalen, Beveiliging, Personeel, Klanten). De actieve knop krijgt een amberkleurige streep links.
+- **Onder:** de bouwbalk met categorieën als tabbladen met icoon (Selecteren, Grond, Beveiliging, Gebouwen, Ruimtes, Inrichting, Datazalen, Stroom, Koeling, Netwerk, Personeel, Klanten). Elke categorie heeft een eigen accentkleur (stroom amber, koeling cyaan, glasvezel oranje); de open categorie krijgt een streep bovenaan in die kleur. Daarboven schuift een lade met de onderdelen als kaartjes met naam en prijs.
+- **Rechtsonder:** de bulldozer (slopen) als losse grote knop, met links daarvan de tijdsbediening.
 - **Boven:** de resourcebalken voor stroom, koeling, racks en glasvezel, met het saldo rechts.
 - **Rechts:** de camera (draaien, daken aan/uit), de overlay-weergaven, de taalwissel en de Info-knop.
-- **Onder:** meldingen links en de tijdsbediening rechts.
+- **Links boven de bouwbalk:** meldingen.
 - Panelen hebben 10px afgeronde hoeken, een dunne lichte rand en een zachte schaduw.
 
 ## 3D-stijl

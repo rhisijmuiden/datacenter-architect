@@ -661,3 +661,13 @@ Zo werkt stap 4 (versie 0.3.0) nu echt in de game:
 
 - Hoe heet het spel definitief? *Datacenter Architect* is de werktitel.
 - Is er een campagne met scenario's, of alleen vrij spelen?
+
+## Opties en bediening
+
+- **Bouwbalk onderaan** het scherm met duidelijke categorieën (icoon, naam en eigen accentkleur). Klik op een categorie om de lade met onderdelen te openen, nog een keer klikken sluit hem. De **bulldozer** (slopen) staat los rechtsonder; nog een keer klikken zet hem weer uit.
+- **Optiemenu** vanuit het hoofdmenu, het pauzemenu (Esc) en het tandwiel rechtsboven in het spel. Alles wordt direct toegepast en lokaal bewaard (user://settings.cfg).
+  - **Beeld:** venster, randloos volledig scherm of volledig scherm; resolutie (alle gangbare 4:3, 16:9, 16:10, 21:9, 32:9 en 4K-resoluties die op het scherm passen); beeldscherm kiezen bij meerdere schermen; grootte van de interface (75 tot 150%); V-Sync; maximale framerate. In volledig scherm blijft het scherm op zijn eigen resolutie en wordt alleen de 3D-wereld op de gekozen resolutie getekend (met FSR), zodat tekst scherp blijft. Een wijziging van modus, resolutie of scherm moet je binnen 15 seconden bevestigen, anders gaat hij terug. Alt+Enter of F11 wisselt altijd tussen venster en volledig scherm.
+  - **Graphics:** snelkeuze Prestaties, Gebalanceerd of Kwaliteit; schaduwen, ambient occlusion, nevel en anti-aliasing los aan en uit; visuele effecten: knipperende statuslampjes, bewegende onderdelen (ventilatoren, kraanarmen), vloeiende camera.
+  - **Geluid:** hoofdvolume plus aparte schuiven voor de serverruimte en de interface; geluidseffecten los aan en uit (serverruimte, klikjes, meldingsgeluid) en dempen als de game op de achtergrond staat.
+  - **Spel:** taal (Engels of Nederlands) en hoe vaak automatisch wordt opgeslagen.
+- **Standaardwaarden** zet beeld, graphics en geluid terug; taal en updatekanaal blijven staan.

@@ -65,7 +65,71 @@ public static class Ui
         t.SetConstant("separation", "HSeparator", 10);
         t.SetStylebox("scroll", "VScrollBar", Box(new Color(0, 0, 0, 0), 3, null, 0, 0));
         t.SetStylebox("grabber", "VScrollBar", Box(new Color(1, 1, 1, 0.15f), 3, null, 0, 0));
+        t.SetStylebox("scroll", "HScrollBar", Box(new Color(0, 0, 0, 0), 3, null, 0, 0));
+        t.SetStylebox("grabber", "HScrollBar", Box(new Color(1, 1, 1, 0.15f), 3, null, 0, 0));
+        t.SetStylebox("grabber_highlight", "HScrollBar", Box(new Color(1, 1, 1, 0.3f), 3, null, 0, 0));
+        // sliders: thin track, amber fill, round amber knob
+        var track = Box(new Color(1, 1, 1, 0.12f), 3, null, 0, 0); track.ContentMarginTop = track.ContentMarginBottom = 3;
+        var fill = Box(Brand.Amber, 3, null, 0, 0); fill.ContentMarginTop = fill.ContentMarginBottom = 3;
+        t.SetStylebox("slider", "HSlider", track);
+        t.SetStylebox("grabber_area", "HSlider", fill);
+        t.SetStylebox("grabber_area_highlight", "HSlider", fill);
+        t.SetIcon("grabber", "HSlider", Knob(Brand.Amber));
+        t.SetIcon("grabber_highlight", "HSlider", Knob(Brand.Amber.Lightened(0.2f)));
+        t.SetStylebox("focus", "HSlider", Box(new Color(0, 0, 0, 0), 4, null, 0, 0));
+        // drop-downs look like input fields
+        t.SetStylebox("normal", "OptionButton", Box(new Color(1, 1, 1, 0.06f), 7, Brand.Line, 1, 9));
+        t.SetStylebox("hover", "OptionButton", Box(Brand.PanelHover, 7, Brand.Line, 1, 9));
+        t.SetStylebox("pressed", "OptionButton", Box(Brand.PanelHover, 7, Brand.Amber, 1, 9));
+        t.SetStylebox("focus", "OptionButton", Box(new Color(0, 0, 0, 0), 7, Brand.Amber, 1, 9));
+        t.SetColor("font_color", "OptionButton", Brand.Ink);
+        // on/off switches in brand colours, no button background
+        var clear = Box(new Color(0, 0, 0, 0), 7, null, 0, 4);
+        foreach (var k in new[] { "normal", "pressed", "hover", "hover_pressed", "disabled" }) t.SetStylebox(k, "CheckButton", clear);
+        t.SetIcon("checked", "CheckButton", Switch(true, false)); t.SetIcon("unchecked", "CheckButton", Switch(false, false));
+        t.SetIcon("checked_disabled", "CheckButton", Switch(true, true)); t.SetIcon("unchecked_disabled", "CheckButton", Switch(false, true));
+        t.SetStylebox("separator", "VSeparator", new StyleBoxLine { Color = Brand.Line, Thickness = 1, Vertical = true });
         return t;
+    }
+
+    /// <summary>Switch icon drawn in code: amber track with the knob right when on, grey with the knob left when off.</summary>
+    static ImageTexture Switch(bool on, bool disabled)
+    {
+        const int w = 44, h = 24, r = h / 2;
+        var img = Image.CreateEmpty(w, h, false, Image.Format.Rgba8);
+        var track = on ? Brand.Amber : new Color(1, 1, 1, 0.16f);
+        var knobC = on ? Brand.PanelSolid : Brand.Ink;
+        var kx = on ? w - r : r;
+        for (var y = 0; y < h; y++)
+            for (var x = 0; x < w; x++)
+            {
+                var px = new Vector2(x + 0.5f, y + 0.5f);
+                var cx = Mathf.Clamp(px.X, r, w - r);
+                var dTrack = px.DistanceTo(new Vector2(cx, r));
+                var aTrack = Mathf.Clamp(r - dTrack, 0, 1);
+                var dKnob = px.DistanceTo(new Vector2(kx, r));
+                var aKnob = Mathf.Clamp(r - 3 - dKnob, 0, 1);
+                var c = new Color(track, track.A * aTrack).Blend(new Color(knobC, aKnob));
+                if (disabled) c.A *= 0.45f;
+                img.SetPixel(x, y, c);
+            }
+        return ImageTexture.CreateFromImage(img);
+    }
+
+    /// <summary>Round slider knob drawn in code.</summary>
+    static ImageTexture Knob(Color c)
+    {
+        const int n = 18;
+        var img = Image.CreateEmpty(n, n, false, Image.Format.Rgba8);
+        for (var y = 0; y < n; y++)
+            for (var x = 0; x < n; x++)
+            {
+                var d = new Vector2(x + 0.5f - n / 2f, y + 0.5f - n / 2f).Length();
+                var a = Mathf.Clamp(n / 2f - d, 0, 1);
+                var inner = d < n / 2f - 3 ? c : Brand.PanelSolid.Lerp(c, 0.25f);
+                img.SetPixel(x, y, new Color(inner, a));
+            }
+        return ImageTexture.CreateFromImage(img);
     }
 
     /// <summary>Uppercase condensed label used for headings (0.08em tracking approximated by font spacing).</summary>
