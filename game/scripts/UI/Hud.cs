@@ -36,12 +36,12 @@ public partial class Hud : Control
     public Action<Facade> FacadeChanged;
     public Action<int> CyclePriority;
     public Action RotateLeft, RotateRight, ToggleGrid, ToggleRoofs, FloorUp, FloorDown, OpenInfo, OpenOptions, OpenMenu, ToggleLanguage, OpenPower, OpenNetwork;
-    public Action<int> ToggleOverlay, OpenCompany, OpenStaff;
+    public Action<int> ToggleOverlay, OpenCompany, OpenStaff, OpenReputation;
     public Func<GameState> State;
 
     readonly Dictionary<string, (Label value, ProgressBar bar)> _bars = new();
     Label _money, _date, _company, _toolHint, _floorLabel, _creative;
-    Label _staffStat;
+    Label _staffStat, _repStat;
     bool _alert;
     Button _langBtn, _roofBtn, _powerBtn, _coolBtn, _netBtn;
     Label _pue;
@@ -81,6 +81,7 @@ public partial class Hud : Control
             new BuildItem(Mode.Fence, (int)FenceType.Palisade), new BuildItem(Mode.Fence, (int)FenceType.Wall),
             new BuildItem(Mode.Fence, (int)FenceType.Electric),
             O(ObjKind.SlidingGate), O(ObjKind.SlidingGateLarge), O(ObjKind.PedGate), O(ObjKind.Barrier), O(ObjKind.GuardBooth), O(ObjKind.Intercom),
+            O(ObjKind.CameraPole), O(ObjKind.Bollard), O(ObjKind.CameraDome), O(ObjKind.SecurityWall), O(ObjKind.GlassLodge), new BuildItem(Mode.Door, (int)DoorType.Mantrap),
         }),
         ("cat_buildings", new[]
         {
@@ -94,9 +95,9 @@ public partial class Hud : Control
         ("cat_interior", new[]
         {
             O(ObjKind.Desk), O(ObjKind.Chair), O(ObjKind.Cabinet), O(ObjKind.Plant), O(ObjKind.MeetingTable),
-            O(ObjKind.Sofa), O(ObjKind.Coffee), O(ObjKind.Vending), O(ObjKind.Microwave), O(ObjKind.Terminal),
+            O(ObjKind.Sofa), O(ObjKind.Coffee), O(ObjKind.Vending), O(ObjKind.Microwave), O(ObjKind.Terminal), O(ObjKind.LabBench),
         }),
-        ("cat_halls", new[] { new BuildItem(Mode.Row, (int)ObjKind.Rack), O(ObjKind.Crah), O(ObjKind.Pdu), O(ObjKind.CrashCart) }),
+        ("cat_halls", new[] { new BuildItem(Mode.Row, (int)ObjKind.Rack), O(ObjKind.Crah), O(ObjKind.Pdu), O(ObjKind.CrashCart), O(ObjKind.CameraDome) }),
         ("cat_power", new[]
         {
             O(ObjKind.Transformer), O(ObjKind.Switchgear), O(ObjKind.Ups), O(ObjKind.Battery), O(ObjKind.Pdu),
@@ -160,6 +161,13 @@ public partial class Hud : Control
         _staffStat = Ui.Number("0", 18); _staffStat.AutoTranslateMode = AutoTranslateModeEnum.Disabled; _staffStat.AutowrapMode = TextServer.AutowrapMode.Off;
         fv.AddChild(_staffStat);
         sh.AddChild(fv);
+        var rv = new VBoxContainer { MouseFilter = MouseFilterEnum.Stop, TooltipText = "hud_reputation_tip", MouseDefaultCursorShape = CursorShape.PointingHand, CustomMinimumSize = new Vector2(70, 0) };
+        rv.AddThemeConstantOverride("separation", 2);
+        rv.GuiInput += e => { if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) OpenReputation?.Invoke(ReputationPanel.TabReputation); };
+        rv.AddChild(Ui.Heading("res_reputation", 12));
+        _repStat = Ui.Number("30", 18); _repStat.AutoTranslateMode = AutoTranslateModeEnum.Disabled; _repStat.AutowrapMode = TextServer.AutowrapMode.Off;
+        rv.AddChild(_repStat);
+        sh.AddChild(rv);
         var mv = new VBoxContainer { MouseFilter = MouseFilterEnum.Stop, TooltipText = "hud_money_tip", MouseDefaultCursorShape = CursorShape.PointingHand }; mv.AddThemeConstantOverride("separation", 2);
         mv.GuiInput += e => { if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) OpenCompany?.Invoke(CompanyPanel.TabFinance); };
         mv.AddChild(Ui.Heading("res_money", 12));
@@ -232,6 +240,8 @@ public partial class Hud : Control
         _alert = faults + events > 0;
         _staffStat.Text = s.Staff.Count + (faults > 0 ? $" · ⚠ {faults}" : "") + (s.GridDown ? " · ⚡" : events > 0 ? " · !" : "");
         _staffStat.AddThemeColorOverride("font_color", faults > 0 || s.GridDown ? Brand.Critical : events > 0 ? Brand.Warning : Brand.Ink);
+        _repStat.Text = "★ " + Math.Round(s.Reputation).ToString("0") + (s.OpenProposals.Count > 0 ? " · !" : "");
+        _repStat.AddThemeColorOverride("font_color", s.Reputation >= 65 ? Brand.Ok : s.Reputation >= 40 ? Brand.Amber : Brand.Critical);
         _money.Text = c.UnlimitedMoney ? "∞" : Ui.Money(s.Money);
         _money.AddThemeColorOverride("font_color", s.Money < 0 && !c.UnlimitedMoney ? Brand.Critical : Brand.Ok);
         var culture = new System.Globalization.CultureInfo(Loc.Language == "nl" ? "nl-NL" : "en-GB");
@@ -417,7 +427,8 @@ public partial class Hud : Control
         price.AutoTranslateMode = AutoTranslateModeEnum.Disabled; price.MouseFilter = MouseFilterEnum.Ignore;
         v.AddChild(price);
         b.AddChild(v);
-        if (it.Mode == Mode.Fence && Catalog.Fences[(FenceType)it.Arg].NeedsResearch && locked) { b.Disabled = true; b.TooltipText = Loc.T("hud_needs_research"); b.Modulate = new Color(1, 1, 1, 0.5f); }
+        if (((it.Mode == Mode.Fence && Catalog.Fences[(FenceType)it.Arg].NeedsResearch && State?.Invoke()?.Done("sec_electric") != true)
+             || (it.Mode == Mode.Door && it.Arg == (int)DoorType.Mantrap && State?.Invoke()?.Done("sec_mantrap") != true)) && locked) { b.Disabled = true; b.TooltipText = Loc.T("hud_needs_research"); b.Modulate = new Color(1, 1, 1, 0.5f); }
         var item = it;
         b.Pressed += () => Pick(item);
         if (_item == it)
@@ -466,6 +477,8 @@ public partial class Hud : Control
                 _sub.AddChild(TrayButton("co_tab_tenders", "tender", () => OpenCompany?.Invoke(CompanyPanel.TabTenders)));
                 _sub.AddChild(TrayButton("co_tab_finance", "money", () => OpenCompany?.Invoke(CompanyPanel.TabFinance)));
                 _sub.AddChild(TrayButton("co_tab_org", "org", () => OpenCompany?.Invoke(CompanyPanel.TabOrg)));
+                _sub.AddChild(TrayButton("rp_tab_reputation", "star", () => OpenReputation?.Invoke(ReputationPanel.TabReputation)));
+                _sub.AddChild(TrayButton("rp_tab_research", "flask", () => OpenReputation?.Invoke(ReputationPanel.TabResearch)));
                 var s = State?.Invoke();
                 if (s != null)
                 {
@@ -482,6 +495,14 @@ public partial class Hud : Control
                 nv.AddThemeConstantOverride("icon_max_width", 18);
                 nv.CustomMinimumSize = new Vector2(150, 0); nv.SizeFlagsVertical = SizeFlags.ExpandFill;
                 _sub.AddChild(nv);
+            }
+            if (cat == "cat_security")
+            {
+                var sv = Ui.Secondary("rp_tab_security", () => OpenReputation?.Invoke(ReputationPanel.TabSecurity));
+                sv.Icon = GD.Load<Texture2D>("res://assets/icons/shield.svg");
+                sv.AddThemeConstantOverride("icon_max_width", 18);
+                sv.CustomMinimumSize = new Vector2(150, 0); sv.SizeFlagsVertical = SizeFlags.ExpandFill;
+                _sub.AddChild(sv);
             }
             if (cat is "cat_power" or "cat_cooling")
             {
@@ -642,6 +663,8 @@ public partial class Hud : Control
         h.AddChild(_langBtn);
         h.AddChild(Ui.IconButton("org", "hud_company", () => OpenCompany?.Invoke(CompanyPanel.TabOrg)));
         h.AddChild(Ui.IconButton("crew", "hud_staff", () => OpenStaff?.Invoke(StaffPanel.TabTeam)));
+        h.AddChild(Ui.IconButton("star", "hud_reputation", () => OpenReputation?.Invoke(ReputationPanel.TabReputation)));
+        h.AddChild(Ui.IconButton("flask", "hud_research", () => OpenReputation?.Invoke(ReputationPanel.TabResearch)));
         h.AddChild(Ui.IconButton("settings", "hud_options", () => OpenOptions?.Invoke()));
         h.AddChild(Ui.IconButton("info", "hud_info", () => OpenInfo?.Invoke()));
         h.AddChild(Ui.IconButton("menu", "hud_menu", () => OpenMenu?.Invoke()));

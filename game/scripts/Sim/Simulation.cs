@@ -34,6 +34,8 @@ public class Agent
     public int ReverseFrom = -1;
     /// <summary>Engineer patching a cross-connect at the ODF in Target.</summary>
     public bool Xc;
+    /// <summary>Guard walking along with the visitor in Target (security policy "escort").</summary>
+    public bool Escort;
     /// <summary>Staff on site: the employee (negative for a contractor) and the trade.</summary>
     public int EmpId;
     public StaffRole Staff;
@@ -196,7 +198,7 @@ public partial class Simulation
                 case Role.Engineer: Engineer(a, dt); break;
                 case Role.Truck: Truck(a, dt); break;
                 case Role.Visitor: Visitor(a, dt); break;
-                case Role.Staff: StaffWalk(a, dt); break;
+                case Role.Staff: if (a.Escort) EscortWalk(a, dt); else StaffWalk(a, dt); break;
             }
         }
         PlanVisits(dt);
@@ -317,6 +319,8 @@ public partial class Simulation
         var hour = S.Hours % 24;
         PlanMove(hour);
         if (Agents.Count(a => a.Role == Role.Visitor) >= MaxVisitors) return;
+        // policy: no visits outside office hours
+        if (S.PolicyOfficeHours && (hour < 7 || hour >= 19)) return;
         var perHour = VisitsPerDay() / 24 * HourWeight(hour);
         if (_rng.NextDouble() >= Math.Min(0.95, perHour)) return;
         var deals = S.Deals.Where(d => d.State == DealState.Active).ToList();
@@ -364,6 +368,7 @@ public partial class Simulation
         if (!Go(a, rack.Floor, (x, z) => Math.Abs(x - rack.X) + Math.Abs(z - rack.Z) == 1, NavMode.Walk)) return null;
         a.CarryObj = home.x * 1000 + home.z; // where the visitor parked, to walk back to
         Agents.Add(a);
+        if (S.PolicyEscort && S.Working(StaffRole.Guard).Any()) StartEscort(a, rack);
         return a;
     }
 

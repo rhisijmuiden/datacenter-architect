@@ -102,6 +102,17 @@ public static class Demo
         s.AddObject(ObjKind.Chair, 40, 16, 2, 1);
         s.AddObject(ObjKind.Chair, 43, 16, 2, 1);
 
+        // R&D lab upstairs next to the NOC, with two lab benches
+        s.AddRoom(RoomType.Lab, 46, 12, 8, 8, 1);
+        s.AddDoor(DoorType.Badge, 46, 14, 0, 1);
+        s.AddObject(ObjKind.LabBench, 48, 13, 0, 1);
+        s.AddObject(ObjKind.LabBench, 48, 16, 0, 1);
+        // cameras: on poles along the driveway, and domes in the hall
+        s.AddObject(ObjKind.CameraPole, 31, 54, 0, 0);
+        s.AddObject(ObjKind.CameraPole, 26, 36, 0, 0);
+        s.AddObject(ObjKind.CameraDome, 10, 20, 0, 0);
+        s.AddObject(ObjKind.CameraDome, 10, 29, 0, 0);
+
         // generators and landscaping
         for (var i = 0; i < 4; i++) s.AddObject(ObjKind.Generator, 9 + i * 4, 40, 0, 0);
         s.AddObject(ObjKind.UndergroundTank, 10, 43, 0, 0);

@@ -15,9 +15,9 @@ public enum Facade { Concrete, Brick, Glass, Cladding }
 /// <summary>Construction stage that is being worked on. Done means finished.</summary>
 public enum Stage { Foundation, Walls, Roof, Done }
 
-public enum RoomType { DataHall, MeetMe, UpsRoom, Office, Executive, Meeting, Canteen, Lounge, Reception, Security, LoadingDock, Storage, Corridor, Transformer, Switchgear, Battery, Noc }
+public enum RoomType { DataHall, MeetMe, UpsRoom, Office, Executive, Meeting, Canteen, Lounge, Reception, Security, LoadingDock, Storage, Corridor, Transformer, Switchgear, Battery, Noc, Lab }
 
-public enum DoorType { Single, Double, Fire, Badge, RollUp }
+public enum DoorType { Single, Double, Fire, Badge, RollUp, Mantrap }
 
 public enum ObjKind
 {
@@ -31,6 +31,8 @@ public enum ObjKind
     SlidingGateLarge,
     // network (step 5)
     Odf, CoreRouter, Spine, NocWall,
+    // security and research (step 8)
+    CameraPole, CameraDome, SecurityWall, GlassLodge, LabBench, Bollard,
 }
 
 /// <summary>Delivery chain for hall equipment: truck to the dock, fitter places it, engineer connects power and then fiber.</summary>
@@ -128,6 +130,14 @@ public static class Catalog
         [ObjKind.CoreRouter] = new(ObjKind.CoreRouter, "obj_core_router", 1, 1, 180000, Where.Room, true, PowerKw: 3, Chain: true, Ports: 32, Gbps: 400, Rooms: new[] { RoomType.MeetMe }),
         [ObjKind.Spine] = new(ObjKind.Spine, "obj_spine", 1, 1, 65000, Where.Hall, true, PowerKw: 2, Chain: true, Ports: 48, Gbps: 400),
         [ObjKind.NocWall] = new(ObjKind.NocWall, "obj_noc_wall", 3, 1, 48000, Where.Room, true, PowerKw: 1.5, Rooms: new[] { RoomType.Noc }),
+        // security: cameras on poles outside and in the halls, the video wall and glass lodge in the security room, bollards against vehicles
+        [ObjKind.CameraPole] = new(ObjKind.CameraPole, "obj_camera_pole", 1, 1, 6500, Where.Outside, false, PowerKw: 0.05),
+        [ObjKind.CameraDome] = new(ObjKind.CameraDome, "obj_camera_dome", 1, 1, 1800, Where.Room, false, PowerKw: 0.02, Rooms: new[] { RoomType.DataHall, RoomType.MeetMe, RoomType.Corridor }),
+        [ObjKind.SecurityWall] = new(ObjKind.SecurityWall, "obj_security_wall", 3, 1, 42000, Where.Room, true, PowerKw: 1.2, Rooms: new[] { RoomType.Security }),
+        [ObjKind.GlassLodge] = new(ObjKind.GlassLodge, "obj_glass_lodge", 3, 2, 36000, Where.Room, true, Rooms: new[] { RoomType.Reception, RoomType.Security }),
+        [ObjKind.Bollard] = new(ObjKind.Bollard, "obj_bollard", 1, 1, 1200, Where.Outside, true),
+        // research: a lab bench in the R&D lab, one researcher each
+        [ObjKind.LabBench] = new(ObjKind.LabBench, "obj_lab_bench", 2, 1, 14000, Where.Room, true, PowerKw: 0.5, Rooms: new[] { RoomType.Lab }),
     };
 
     /// <summary>Capacity multiplier per upgrade level for CRAH units, chillers and cooling towers.</summary>
@@ -259,6 +269,7 @@ public static class Catalog
         [RoomType.Switchgear] = new(RoomType.Switchgear, "room_switchgear", "#BFA77E"),
         [RoomType.Battery] = new(RoomType.Battery, "room_battery", "#B9B08A"),
         [RoomType.Noc] = new(RoomType.Noc, "room_noc", "#7F8FA8"),
+        [RoomType.Lab] = new(RoomType.Lab, "room_lab", "#9FC2B8"),
     };
 
     public static readonly Dictionary<DoorType, DoorDef> Doors = new()
@@ -268,6 +279,7 @@ public static class Catalog
         [DoorType.Fire] = new(DoorType.Fire, "door_fire", 1, 1800, false),
         [DoorType.Badge] = new(DoorType.Badge, "door_badge", 1, 3200, false),
         [DoorType.RollUp] = new(DoorType.RollUp, "door_rollup", 3, 5200, true),
+        [DoorType.Mantrap] = new(DoorType.Mantrap, "door_mantrap", 1, 24000, false),
     };
 
     public static readonly Dictionary<Role, long> WagePerDay = new()
