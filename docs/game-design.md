@@ -249,6 +249,7 @@ Binnen een gebouw **teken je zelf ruimtes**: muren trekken, deuren plaatsen en e
 - Een **goederenlift** is nodig om racks en materiaal naar boven te brengen. Mensen lopen via een **trap** (2 × 5 m) of nemen de **personenlift** (2 × 2 m); ze kiezen zelf de kortste route (een trap voor een verdieping of twee, de lift voor meer). Een goederenlift mag ook door mensen gebruikt worden. **Trappen** zijn verplicht als vluchtroute.
 - Op het **dak** kun je koelmachines, dry coolers en zonnepanelen plaatsen. Dat bespaart grond, maar vraagt een sterk dak.
 - Warmte stijgt op: hogere zalen vragen iets meer koeling.
+- Datacenters en kantoren kunnen een **kelder** krijgen (zie Playtest ronde 3), het niveau onder de begane grond.
 - In de bouwmodus kies je een verdieping. Alles daarboven wordt verborgen, en met de uitgeklapte weergave zie je alle verdiepingen tegelijk.
 
 ## Personeel
@@ -977,4 +978,4 @@ Elk ding heeft één vaste plek: **bouwen onderaan, beheren links, kijken rechts
 - **R&D-budget**: beleidskeuze in vijf stappen (Basis tot Maximaal, €0 tot €7.500 per dag), sneller onderzoek (×1 tot ×2,1). Alleen betaald op dagen dat het lab werkt.
 - **Woon-werkverkeer**: ongeveer de helft van het personeel fietst, een deel van de automobilisten rijdt elektrisch. Fietsers hebben fietsenrekken (5) of een fietsenhok met e-bike laders (10) nodig, anders komen ze met de auto. Laadpalen maken de vakken ernaast EV-vakken (groen, "EV"). Puur visueel.
 - **Kantoorinrichting**: een afgebouwde kantoorruimte wordt automatisch ingericht (bureaus, stoelen, planten, kasten, tafels, banken, koffie) en krijgt schilderwerk, vloer en kunst in een stijl: standaard, support (tech: schermen, dashboards) of formeel (directie). De speler kan de stijl wisselen. De inspector toont welke kantoorruimtes het bedrijf nodig heeft.
-- **Gepland**: kelder onder het datacenter voor stroomapparatuur (ontwerpkeuze).
+- **Kelder**: bij het bouwen van een datacenter of kantoor kun je een kelder aanvinken (kost 1,5 keer een verdieping, de fundering duurt drie keer zo lang). Een ontwerpkeuze: transformatoren, switchgear, UPS, accu's en opslag kunnen ondergronds, zodat de begane grond vrij blijft voor zalen. Geen buitendeuren, geen loading dock of receptie in de kelder; bereikbaar via trap, personenlift of goederenlift (zware spullen alleen via de goederenlift). Met Page Down onder de begane grond zie je het ondergrondse aanzicht.

@@ -15,7 +15,7 @@ namespace DatacenterArchitect.World;
 public partial class WorldView : Node3D
 {
     public const float FloorH = 3.6f, Slab = 0.3f, CutH = 1.5f;
-    public static float Base(int floor) => Slab + floor * FloorH;
+    public static float Base(int floor) => Slab + GameState.Level(floor) * FloorH;
 
     Node3D _static, _layout, _objects, _sites, _agentsRoot, _ghost, _pallets;
     readonly List<Node3D> _fans = new();
@@ -69,7 +69,9 @@ public partial class WorldView : Node3D
 
     int _viewFloor;
     bool _roofs = true;
-    public int ViewFloor { get => _viewFloor; set { _viewFloor = Math.Clamp(value, 0, Catalog.MaxFloors - 1); Invalidate(); } }
+    public int ViewFloor { get => _viewFloor; set { _viewFloor = value == GameState.BasementFloor ? value : Math.Clamp(value, 0, Catalog.MaxFloors - 1); Invalidate(); } }
+    /// <summary>The basement level is in view: the ground, the outside and buildings without a basement are hidden.</summary>
+    public bool Underground => _viewFloor == GameState.BasementFloor && !_roofs;
     public bool Roofs { get => _roofs; set { _roofs = value; Invalidate(); } }
     bool _fullWalls;
     /// <summary>First-person view: walls of the open floor go up to the ceiling and a ceiling closes the room.</summary>
@@ -353,7 +355,7 @@ public partial class WorldView : Node3D
 
     // ---------------- buildings ----------------
     /// <summary>Interior view for a building: roofs off and it is tall enough for the viewed floor.</summary>
-    bool Open(Building b) => !_roofs && b.Floors > _viewFloor;
+    bool Open(Building b) => !_roofs && b.HasFloor(_viewFloor);
 
     public static Color WallColor(Building b) => b.Facade switch
     {
@@ -443,6 +445,17 @@ public partial class WorldView : Node3D
     {
         foreach (var c in _layout.GetChildren()) c.QueueFree();
         PlaceGrid();
+        var under = Underground;
+        foreach (var c in _static.GetChildren().OfType<Node3D>()) if (c != _grid) c.Visible = !under;
+        if (_sites != null) _sites.Visible = !under;
+        if (_pallets != null) _pallets.Visible = !under;
+        if (_bikes != null) _bikes.Visible = !under;
+        if (under)
+        {
+            Underworld(_layout);
+            foreach (var b in _state.Buildings.Where(b => b.Stage == Stage.Done && b.Basement)) DoneBuilding(_layout, b);
+            return;
+        }
         Surfaces(_layout);
         DockBays(_layout);
         PlotMeadow(_layout);
@@ -778,18 +791,38 @@ public partial class WorldView : Node3D
         bool Gate(int x, int z) { var g = _state.ObjectAt(x, z); return g != null && Catalog.IsGate(g.Kind); }
     }
 
+    static readonly Color BasementWall = new("#9a9d9f");
+
+    /// <summary>
+    /// The basement level: a soil cut-away at basement depth with the concrete pits of the basements, and a faint
+    /// outline of every building above so the player knows where things are on the surface.
+    /// </summary>
+    void Underworld(Node3D root)
+    {
+        var s = _state.PlotSize;
+        var y = Base(GameState.BasementFloor);
+        Box(root, new Vector3(s / 2f, y - 0.3f, s / 2f), new Vector3(s + 40, 0.5f, s + 40), new Color("#4a3b2c"), 1f).MaterialOverride = SurfaceMat(new Color("#4a3b2c"), 1f);
+        foreach (var b in _state.Buildings.Where(b => b.Stage == Stage.Done))
+        {
+            Outline(root, b.X, b.Z, b.W, b.D, y + 0.03f, 0.12f, new Color(b.Basement ? Brand.Concrete : new Color("#c9b79a"), 0.8f));
+            if (b.Basement) Box(root, new Vector3(b.X + b.W / 2f, y - 0.04f, b.Z + b.D / 2f), new Vector3(b.W + 0.4f, 0.08f, b.D + 0.4f), Brand.Concrete, 0.95f);
+        }
+    }
+
     void DoneBuilding(Node3D root, Building b)
     {
         var col = WallColor(b);
         var open = Open(b);
-        Box(root, new Vector3(b.X + b.W / 2f, Slab / 2, b.Z + b.D / 2f), new Vector3(b.W + 0.2f, Slab, b.D + 0.2f), Brand.Concrete, 0.95f).MaterialOverride = SurfaceMat(Brand.Concrete, 0.95f);
+        var under = Underground;
+        if (!under) Box(root, new Vector3(b.X + b.W / 2f, Slab / 2, b.Z + b.D / 2f), new Vector3(b.W + 0.2f, Slab, b.D + 0.2f), Brand.Concrete, 0.95f).MaterialOverride = SurfaceMat(Brand.Concrete, 0.95f);
         var top = open ? _viewFloor : b.Floors - 1;
-        for (var f = 0; f <= top; f++)
+        var levels = under ? new[] { GameState.BasementFloor } : Enumerable.Range(0, top + 1).ToArray();
+        foreach (var f in levels)
         {
             var cut = open && f == _viewFloor;
             var h = cut && !_fullWalls ? CutH : FloorH;
             if (cut && _fullWalls) Box(root, new Vector3(b.X + b.W / 2f, Base(f) + FloorH - 0.06f, b.Z + b.D / 2f), new Vector3(b.W, 0.12f, b.D), new Color("#dfe3e6"), 0.95f);
-            if (f > 0) Box(root, new Vector3(b.X + b.W / 2f, Base(f) - 0.1f, b.Z + b.D / 2f), new Vector3(b.W, 0.2f, b.D), Brand.Concrete, 0.95f);
+            if (f != 0) Box(root, new Vector3(b.X + b.W / 2f, Base(f) - 0.1f, b.Z + b.D / 2f), new Vector3(b.W, 0.2f, b.D), Brand.Concrete, 0.95f);
             if (cut) Box(root, new Vector3(b.X + b.W / 2f, Base(f) + 0.005f, b.Z + b.D / 2f), new Vector3(b.W - 0.1f, 0.01f, b.D - 0.1f), new Color("#c4c9cd"), 0.95f);
             var edges = GameState.Perimeter(b.X, b.Z, b.W, b.D).ToHashSet();
             if (cut)
@@ -797,7 +830,7 @@ public partial class WorldView : Node3D
                     foreach (var e in GameState.Perimeter(r.X, r.Z, r.W, r.D)) edges.Add(e);
             var doors = _state.Doors.Where(d => d.Floor == f).ToList();
             var doorEdges = doors.SelectMany(d => d.Edges()).ToHashSet();
-            Walls(root, edges.Where(e => !doorEdges.Contains(e)), Base(f), h, col, cut ? new Color("#e4e8eb") : col, b);
+            Walls(root, edges.Where(e => !doorEdges.Contains(e)), Base(f), h, f == GameState.BasementFloor ? BasementWall : col, cut ? new Color("#e4e8eb") : col, b);
             foreach (var d in doors.Where(d => d.Edges().Any(edges.Contains))) DoorModel(root, d, Base(f), h);
             if (!cut) FacadeDetail(root, b, f);
             if (cut)
@@ -1097,13 +1130,13 @@ public partial class WorldView : Node3D
     {
         var b = s.BuildingAt(o.X, o.Z);
         if (o.Floor == GameState.RoofFloor) return b == null ? 0 : Base(b.Floors) + 0.32f;
-        return o.Floor > 0 || b != null ? Base(o.Floor) : 0f;
+        return o.Floor != 0 || b != null ? Base(o.Floor) : 0f;
     }
 
     bool ObjectVisible(PlacedObject o)
     {
         var b = _state.BuildingAt(o.X, o.Z);
-        if (b == null) return true;
+        if (b == null) return !Underground;
         if (b.Stage != Stage.Done) return _state.IsPlanned(b) && o.Floor == System.Math.Min(_viewFloor, b.Floors - 1);
         if (o.Floor == GameState.RoofFloor) return !Open(b);
         if (Catalog.IsShaft(o.Kind)) return Open(b);
@@ -1115,7 +1148,7 @@ public partial class WorldView : Node3D
         foreach (var c in _objects.GetChildren()) c.QueueFree();
         _fans.Clear(); _gates.Clear(); _markers.Clear();
         if (_state == null) { _racks.Clear(); return; }
-        GridStationModel();
+        if (!Underground) GridStationModel();
         HallDecor();
         OfficeDecor();
         var racks = new List<(PlacedObject, float)>();
@@ -1138,8 +1171,8 @@ public partial class WorldView : Node3D
             if (Catalog.IsShaft(o.Kind) && _state.BuildingAt(o.X, o.Z) is { } sb)
             {
                 // stairs and lifts serve every floor: draw them on the floor in view
-                var f = Math.Clamp(_viewFloor, 0, sb.Floors - 1);
-                n = Models.Shaft(o.Kind, f == sb.Floors - 1 && sb.Floors > 1);
+                var f = _viewFloor == GameState.BasementFloor && sb.Basement ? _viewFloor : Math.Clamp(_viewFloor, 0, sb.Floors - 1);
+                n = Models.Shaft(o.Kind, f == sb.Floors - 1 && sb.Levels > 1);
                 pos.Y = Base(f);
             }
             else n = Models.Object(o.Kind);
@@ -1184,7 +1217,7 @@ public partial class WorldView : Node3D
     bool AgentVisible(Agent a)
     {
         var b = _state.BuildingAt((int)Math.Floor(a.X), (int)Math.Floor(a.Z));
-        if (b == null || b.Stage != Stage.Done) return a.Floor == 0;
+        if (b == null || b.Stage != Stage.Done) return a.Floor == 0 && !Underground;
         return Open(b) && a.Floor == _viewFloor;
     }
 

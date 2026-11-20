@@ -114,7 +114,7 @@ public partial class GameState
 
     // ---------------- disasters and insurance ----------------
     /// <summary>What the insurer sees as the value of your equipment and buildings.</summary>
-    [JsonIgnore] public long AssetValue => Objects.Sum(o => o.Def.Cost) + Buildings.Sum(b => BuildingCost(b.Kind, b.W, b.D, b.Floors));
+    [JsonIgnore] public long AssetValue => Objects.Sum(o => o.Def.Cost) + Buildings.Sum(b => BuildingCost(b));
     [JsonIgnore] public long InsurancePerMonth => (long)Math.Round(AssetValue * InsuranceRate[Math.Clamp(Insurance, 0, 2)] / 10) * 10;
     public void SetInsurance(int level) { Insurance = Math.Clamp(level, 0, 2); Touch(false); }
 
@@ -185,7 +185,7 @@ public partial class GameState
                 break;
             default: // fire in an office or warehouse
                 var b = Buildings.Where(x => x.Kind != BuildingKind.Datacenter && x.Stage == Stage.Done).OrderBy(_ => rng.Next()).FirstOrDefault();
-                damage += b != null ? BuildingCost(b.Kind, b.W, b.D, b.Floors) / 6 : 20_000;
+                damage += b != null ? BuildingCost(b) / 6 : 20_000;
                 break;
         }
         Damage(damage, (long)(monthly * 0.05));

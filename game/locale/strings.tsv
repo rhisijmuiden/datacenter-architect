@@ -1806,3 +1806,8 @@ need_workplaces	Workplaces (desks)	Werkplekken (bureaus)
 need_director_offices	Director's offices	Directiekamers
 office_auto_note	New office rooms are furnished automatically when they are finished.	Nieuwe kantoorruimtes worden na de bouw automatisch ingericht.
 ev_interior_done	The interior designer furnished the {0}.	De interieurontwerper heeft de {0} ingericht.
+hud_basement	Basement	Kelder
+hud_basement_tip	Add a basement under the building: a good place for transformers, switchgear, UPS and batteries. Reach it with stairs or a freight lift.	Voeg een kelder onder het gebouw toe: een goede plek voor transformatoren, schakelinstallaties, UPS en accu's. Bereikbaar met een trap of goederenlift.
+hud_floor_basement	Basement	Kelder
+msg_no_basement	Only datacenters and offices can have a basement.	Alleen datacenters en kantoren kunnen een kelder hebben.
+msg_not_in_basement	This room needs daylight and a street door; it cannot go in the basement.	Deze ruimte heeft daglicht en een straatdeur nodig; die kan niet in de kelder.

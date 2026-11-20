@@ -31,13 +31,13 @@ public class Nav
         _rev = _s.Revision;
         _n = _s.PlotSize;
         _areas.Clear();
-        var floors = Catalog.MaxFloors;
+        var floors = GameState.BasementFloor + 1;
         _walk = new bool[floors][];
         _walls = new HashSet<(int, int, int)>[floors];
         _doors = new Dictionary<(int, int, int), bool>[floors];
         _truck = new bool[_n * _n];
         _cost = new float[_n * _n];
-        for (var f = 0; f < floors; f++)
+        foreach (var f in GameState.FloorIds)
         {
             var w = new bool[_n * _n];
             for (var z = 0; z < _n; z++)
@@ -45,7 +45,7 @@ public class Nav
                 {
                     bool ok;
                     if (f == 0) ok = !_s.InStation(x, z);
-                    else { var b = _s.BuildingAt(x, z); ok = b != null && b.Stage == Stage.Done && b.Floors > f; }
+                    else { var b = _s.BuildingAt(x, z); ok = b != null && b.Stage == Stage.Done && b.HasFloor(f); }
                     if (ok && f == 0 && _s.FenceAt(x, z) != FenceType.None)
                     {
                         var g = _s.ObjectAt(x, z);
@@ -61,7 +61,7 @@ public class Nav
         }
         foreach (var o in _s.Objects)
         {
-            if (!o.Def.Blocks || o.Floor < 0 || o.Floor >= floors || (o.Def.Chain && o.Status < ObjStatus.Placed)) continue;
+            if (!o.Def.Blocks || o.Floor < 0 || o.Floor >= floors || _walk[o.Floor] == null || (o.Def.Chain && o.Status < ObjStatus.Placed)) continue;
             foreach (var (x, z) in GameState.Cells(o))
                 if (_s.InPlot(x, z)) _walk[o.Floor][z * _n + x] = false;
         }
@@ -159,7 +159,7 @@ public class Nav
     public bool Walkable(int x, int z, int f)
     {
         Rebuild();
-        return _s.InPlot(x, z) && f >= 0 && f < _walk.Length && _walk[f][z * _n + x];
+        return _s.InPlot(x, z) && f >= 0 && f < _walk.Length && _walk[f] != null && _walk[f][z * _n + x];
     }
 
     /// <summary>
@@ -170,6 +170,7 @@ public class Nav
     {
         Rebuild();
         if (x == nx && z == nz) return true;
+        if (f < 0 || f >= _walk.Length || _walk[f] == null) return false;
         bool Open(int cx, int cz) => _s.InPlot(cx, cz) ? _walk[f][cz * _n + cx] : f == 0;
         bool Edge(int ax, int az, int dx, int dz) => Cross(f, EdgeBetween(ax, az, dx, dz), NavMode.Walk);
         if (f < 0 || f >= _walk.Length || !Open(nx, nz)) return false;
@@ -256,6 +257,7 @@ public class Nav
     public List<Pt> FindOnFloor(IEnumerable<(int x, int z)> starts, int f, Func<int, int, bool> goal, NavMode m, (int x, int z)? target = null)
     {
         Rebuild();
+        if (f < 0 || f >= _walk.Length || _walk[f] == null) return null;
         if (target is { } tg && starts is (int, int)[] { Length: 1 } one && !Connected(one[0].Item1, one[0].Item2, tg.x, tg.z, f, m)) return null;
         var size = _n * _n;
         if (_dist.Length != size) { _dist = new float[size]; _prev = new int[size]; _stampOf = new int[size]; _stamp = 0; }
@@ -305,11 +307,11 @@ public class Nav
         var starts = new[] { (start.X, start.Z) };
         if (start.F == goalFloor) return FindOnFloor(starts, start.F, goal, m, target);
         List<Pt> best = null; var bestCost = double.MaxValue;
-        var floors = Math.Abs(goalFloor - start.F);
+        var floors = Math.Abs(GameState.Level(goalFloor) - GameState.Level(start.F));
         foreach (var link in _s.Objects.Where(o => Catalog.ShaftAllows(o.Kind, m)))
         {
             var b = _s.BuildingAt(link.X, link.Z);
-            if (b == null || b.Stage != Stage.Done || b.Floors <= Math.Max(start.F, goalFloor)) continue;
+            if (b == null || b.Stage != Stage.Done || !b.HasFloor(start.F) || !b.HasFloor(goalFloor)) continue;
             var cells = GameState.Cells(link).ToHashSet();
             var a = FindOnFloor(starts, start.F, (x, z) => cells.Contains((x, z)), m);
             if (a == null) continue;

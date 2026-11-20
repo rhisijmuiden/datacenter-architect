@@ -1,4 +1,5 @@
 using System;
+using DatacenterArchitect.Sim;
 using System.Collections.Generic;
 using DatacenterArchitect.Core;
 using Godot;
@@ -207,6 +208,8 @@ public static class Ui
         return m;
     }
 
+    /// <summary>Player-facing name of a floor: basement, ground or floor N.</summary>
+    public static string FloorName(int f) => f == GameState.BasementFloor ? Loc.T("hud_floor_basement") : f == 0 ? Loc.T("hud_floor_ground") : Loc.T("hud_floor_n", f);
     public static string Money(long v) => (v < 0 ? "-€ " : "€ ") + Math.Abs(v).ToString("N0", Loc.Language == "nl" ? new System.Globalization.CultureInfo("nl-NL") : new System.Globalization.CultureInfo("en-GB"));
 }
 

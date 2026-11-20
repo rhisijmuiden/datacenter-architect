@@ -520,7 +520,7 @@ public partial class Simulation
     void Unreachable(Agent a, Site s)
     {
         var name = s.NameKey;
-        Say(s.R != null && s.R.Floor > 0 ? "msg_site_needs_lift" : "msg_site_unreachable", name);
+        Say(s.R != null && s.R.Floor != 0 ? "msg_site_needs_lift" : "msg_site_unreachable", name);
         Cool(s.Id, 2);
         Reset(a);
     }
@@ -846,7 +846,7 @@ public partial class Simulation
                 var cells = GameState.Cells(o1).ToHashSet();
                 if (!Go(a, o1.Floor, (x, z) => cells.Contains((x, z)), NavMode.Carry))
                 {
-                    Say(o1.Floor > 0 ? "msg_hall_needs_lift" : "msg_hall_needs_wide_door", null, 12);
+                    Say(o1.Floor != 0 ? "msg_hall_needs_lift" : "msg_hall_needs_wide_door", null, 12);
                     Cool(o1.Id, 3); Reset(a); return;
                 }
                 a.CarryObj = o1.Id;

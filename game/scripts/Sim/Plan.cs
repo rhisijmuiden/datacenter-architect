@@ -42,7 +42,7 @@ public partial class GameState
     {
         if (Planned is not { Count: > 0 }) yield break;
         var set = PlanSet;
-        foreach (var b in Buildings.Where(b => set.Contains(b.Id))) yield return ("building", b.Id, Catalog.Buildings[b.Kind].NameKey, BuildingCost(b.Kind, b.W, b.D, b.Floors));
+        foreach (var b in Buildings.Where(b => set.Contains(b.Id))) yield return ("building", b.Id, Catalog.Buildings[b.Kind].NameKey, BuildingCost(b));
         foreach (var r in Rooms.Where(r => set.Contains(r.Id))) yield return ("room", r.Id, Catalog.Rooms[r.Type].NameKey, Catalog.RoomCost(r.W, r.D));
         foreach (var d in Doors.Where(d => set.Contains(d.Id))) yield return ("door", d.Id, Catalog.Doors[d.Type].NameKey, Catalog.Doors[d.Type].Cost);
         foreach (var o in Objects.Where(o => set.Contains(o.Id))) yield return ("object", o.Id, o.Def.NameKey, o.Def.Cost);

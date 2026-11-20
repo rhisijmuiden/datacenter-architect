@@ -33,6 +33,7 @@ public partial class Hud : Control
     public Action<BuildItem> ToolChanged;
     public Action<int> SpeedChanged, FloorsChanged;
     public Action<Facade> FacadeChanged;
+    public Action<bool> BasementChanged;
     public Action<int> CyclePriority;
     public Action Walk;
     public Action Photo;
@@ -71,6 +72,7 @@ public partial class Hud : Control
     readonly Dictionary<string, Button> _catBtns = new();
     Button _selectBtn, _eraseBtn, _undoBtn, _redoBtn, _planBtn;
     HBoxContainer _floorsRow, _facadeRow;
+    CheckBox _basement;
     SpinBox _floors;
     OptionButton _facade;
     PanelContainer _projectsPanel;
@@ -519,6 +521,9 @@ public partial class Hud : Control
         _floors = new SpinBox { MinValue = 1, MaxValue = Catalog.MaxFloors, Value = 1, CustomMinimumSize = new Vector2(90, 0) };
         _floors.ValueChanged += val => FloorsChanged?.Invoke((int)val);
         _floorsRow.AddChild(_floors);
+        _basement = new CheckBox { Text = "hud_basement", TooltipText = "hud_basement_tip", FocusMode = FocusModeEnum.None };
+        _basement.Toggled += on => BasementChanged?.Invoke(on);
+        _floorsRow.AddChild(_basement);
         head.AddChild(_floorsRow);
         _facadeRow = new HBoxContainer(); _facadeRow.AddThemeConstantOverride("separation", 6);
         var fa = Ui.Heading("hud_facade", 13); fa.VerticalAlignment = VerticalAlignment.Center;
@@ -727,6 +732,8 @@ public partial class Hud : Control
         _eraseBtn.AddThemeStyleboxOverride("normal", erasing ? Ui.Box(new Color(Brand.Critical, 0.35f), 12, Brand.Critical, 2, 10, true) : Ui.Box(Brand.Panel, 12, Brand.Line, 1, 10, true));
         _eraseBtn.AddThemeColorOverride("icon_normal_color", erasing ? Brand.Ink : Brand.InkDim);
         _floorsRow.Visible = _item.Mode == Mode.Building;
+        _basement.Visible = _item.Mode == Mode.Building && GameState.BasementAllowed((BuildingKind)_item.Arg);
+        if (!_basement.Visible && _basement.ButtonPressed) _basement.ButtonPressed = false;
         _facadeRow.Visible = _item.Mode == Mode.Building && _item.Arg == (int)BuildingKind.Office;
         var sel = Math.Max(0, _facade.Selected);
         _facade.Clear();
@@ -771,6 +778,9 @@ public partial class Hud : Control
         }
         else { b.RemoveThemeStyleboxOverride("normal"); b.RemoveThemeColorOverride("font_color"); }
     }
+
+    /// <summary>Tick the basement option of the building tool (screenshots).</summary>
+    public void TickBasement(bool on) => _basement.ButtonPressed = on;
 
     public void Pick(BuildItem item)
     {
@@ -851,7 +861,7 @@ public partial class Hud : Control
 
     public void SetView(int floor, bool roofs)
     {
-        _floorLabel.Text = floor == 0 ? Loc.T("hud_floor_ground") : Loc.T("hud_floor_n", floor);
+        _floorLabel.Text = Ui.FloorName(floor);
         Active(_roofBtn, !roofs);
     }
 
