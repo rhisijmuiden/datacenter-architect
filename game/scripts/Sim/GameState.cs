@@ -24,6 +24,10 @@ public class Building
     public int Material { get; set; }
     /// <summary>Builder-hours spent on the current stage.</summary>
     public double Work { get; set; }
+    /// <summary>A floor is being added on top of the finished building: hours left and the total, for progress.</summary>
+    public bool Raising { get; set; }
+    public double RaiseLeft { get; set; }
+    public double RaiseHours { get; set; }
     public bool Contains(int x, int z) => x >= X && z >= Z && x < X + W && z < Z + D;
     /// <summary>Whether the building has this floor (the basement included).</summary>
     public bool HasFloor(int f) => f == GameState.BasementFloor ? Basement : f >= 0 && f < Floors;
@@ -60,6 +64,8 @@ public class Room
     public bool Hot { get; set; }
     /// <summary>Data halls: what the hall is sold as (full racks, per U, cages, a private hall).</summary>
     public HallZone Zone { get; set; }
+    /// <summary>Data halls: the customer types hosted here. Empty means every type is welcome.</summary>
+    public List<CustomerType> Clients { get; set; } = new();
     public bool Contains(int x, int z) => x >= X && z >= Z && x < X + W && z < Z + D;
 }
 
@@ -983,6 +989,48 @@ public partial class GameState
         return null;
     }
 
+    // ---------------- extra floors ----------------
+    /// <summary>A storey on top of a finished building costs what a storey costs when you build it.</summary>
+    public static long LevelCost(Building b) => Catalog.Buildings[b.Kind].CostPerCellPerFloor * b.W * b.D;
+    /// <summary>Hours to add a storey: a day for setting up and a little longer for bigger buildings.</summary>
+    public static double LevelHours(Building b) => 24 + b.W * b.D / 10.0;
+
+    public string CanAddLevel(Building b)
+    {
+        if (b == null) return "msg_nothing_changed";
+        if (b.Stage != Stage.Done || IsPlanned(b)) return "msg_building_not_ready";
+        if (b.Raising) return "msg_upgrade_busy";
+        if (b.Floors >= Catalog.MaxFloors) return "msg_max_floors";
+        if (!CanAfford(LevelCost(b))) return "msg_no_money";
+        return null;
+    }
+
+    /// <summary>
+    /// Put a storey on a finished building. The building keeps working while the crane builds on the roof; the new
+    /// floor opens when it is done. Rooftop plant stays on the (new) roof.
+    /// </summary>
+    public string AddLevel(Building b)
+    {
+        var why = CanAddLevel(b);
+        if (why != null) return why;
+        Spend(LevelCost(b));
+        b.Raising = true;
+        b.RaiseHours = b.RaiseLeft = LevelHours(b);
+        if (Creative.InstantBuild) FinishLevel(b);
+        Touch();
+        return null;
+    }
+
+    void FinishLevel(Building b)
+    {
+        b.Floors++;
+        b.Raising = false; b.RaiseLeft = 0;
+        Notes.Add(("msg_level_done", Catalog.Buildings[b.Kind].NameKey));
+        Touch();
+    }
+
+    public static double RaiseProgress(Building b) => b.RaiseHours <= 0 ? 0 : Math.Clamp(1 - b.RaiseLeft / b.RaiseHours, 0, 1);
+
     public static long HallUpgradeCost(Room r) => r.Containment >= Containment.ColdCorridor ? 0 : Catalog.Containments[r.Containment + 1].CostPerM2 * r.W * r.D;
 
     public string CanUpgradeHall(Room r, bool busbar)
@@ -1029,6 +1077,11 @@ public partial class GameState
                 Notes.Add(("msg_grid_ready", Catalog.GridLevels[GridLevel].Mva.ToString(System.Globalization.CultureInfo.InvariantCulture)));
                 Touch(false);
             }
+        }
+        foreach (var b in Buildings.Where(b => b.Raising).ToList())
+        {
+            b.RaiseLeft -= hours;
+            if (b.RaiseLeft <= 0 || Creative.InstantBuild) FinishLevel(b);
         }
         foreach (var r in Rooms.Where(r => r.Upgrade != 0))
         {

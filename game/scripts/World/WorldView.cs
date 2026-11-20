@@ -858,7 +858,7 @@ public partial class WorldView : Node3D
             if (_state.Logo.OnBuildings) BuildingSign(root, b, roofY);
             // a few rooftop units so the roof is not empty, unless the player put plant there
             var roofPlant = _state.Objects.Any(o => o.Floor == GameState.RoofFloor && b.Contains(o.X, o.Z));
-            for (var i = 0; i < (roofPlant ? 0 : Math.Min(4, b.W / 6)); i++)
+            for (var i = 0; i < (roofPlant || b.Raising ? 0 : Math.Min(4, b.W / 6)); i++)
                 if (Assets.Place(root, "made/roof_unit.glb", new Vector3(b.X + 3 + i * 5, roofY + 0.25f, b.Z + 2.5f), 1, 0, Models.MadeMat) == null)
                     Box(root, new Vector3(b.X + 3 + i * 5, roofY + 0.75f, b.Z + 2.5f), new Vector3(2.5f, 1f, 1.6f), new Color("#e3e7ea"));
         }
@@ -1003,6 +1003,8 @@ public partial class WorldView : Node3D
             if (_state.IsPlanned(b)) PlanBuilding(_sites, b);
             else SiteBuilding(_sites, b);
         }
+        if (!Underground)
+            foreach (var b in _state.Buildings.Where(b => b.Stage == Stage.Done && b.Raising)) RaiseSite(_sites, b);
         // planned rooms: on the floor in view (inside a planned building, or an open finished one)
         foreach (var r in _state.Rooms.Where(r => _state.IsPlanned(r)))
         {
@@ -1023,6 +1025,50 @@ public partial class WorldView : Node3D
             Box(_sites, new Vector3(r.X + r.W / 2f, y + 0.03f, r.Z + 0.1f), new Vector3(r.W, 0.02f, 0.08f), tape);
             Box(_sites, new Vector3(r.X + r.W / 2f, y + 0.03f, r.Z + r.D - 0.1f), new Vector3(r.W, 0.02f, 0.08f), tape);
         }
+    }
+
+    /// <summary>A storey going up on a finished building: new walls rising on the roof, scaffolding, a crane and the progress.</summary>
+    void RaiseSite(Node3D root, Building b)
+    {
+        var p = (float)GameState.RaiseProgress(b);
+        var col = WallColor(b);
+        var y = Base(b.Floors) + 0.3f;
+        var h = Math.Max(0.25f, FloorH * p);
+        var edges = GameState.Perimeter(b.X, b.Z, b.W, b.D).ToList();
+        Walls(root, edges, y, h, col, col, b);
+        var top = y + h;
+        var scaf = new List<Transform3D>();
+        for (var x = b.X; x <= b.X + b.W; x += 2)
+            foreach (var z in new[] { b.Z - 0.7f, b.Z + b.D + 0.7f })
+                scaf.Add(new Transform3D(Basis.Identity.Scaled(new Vector3(1, top + 1, 1)), new Vector3(x, (top + 1) / 2, z)));
+        for (var z = b.Z; z <= b.Z + b.D; z += 2)
+            foreach (var x in new[] { b.X - 0.7f, b.X + b.W + 0.7f })
+                scaf.Add(new Transform3D(Basis.Identity.Scaled(new Vector3(1, top + 1, 1)), new Vector3(x, (top + 1) / 2, z)));
+        Multi(root, new BoxMesh { Size = new Vector3(0.06f, 1, 0.06f) }, scaf, new Color("#9aa4ab"), false);
+        // walkway boards round the top of the scaffold
+        foreach (var (c, size) in new[]
+        {
+            (new Vector3(b.X + b.W / 2f, top, b.Z - 0.7f), new Vector3(b.W + 1.4f, 0.05f, 0.6f)),
+            (new Vector3(b.X + b.W / 2f, top, b.Z + b.D + 0.7f), new Vector3(b.W + 1.4f, 0.05f, 0.6f)),
+            (new Vector3(b.X - 0.7f, top, b.Z + b.D / 2f), new Vector3(0.6f, 0.05f, b.D + 1.4f)),
+            (new Vector3(b.X + b.W + 0.7f, top, b.Z + b.D / 2f), new Vector3(0.6f, 0.05f, b.D + 1.4f)),
+        })
+            Box(root, c, size, new Color("#b48a52"));
+        foreach (var (cx, cz, reach) in CranesFor(b, _state.PlotSize))
+        {
+            var crane = Crane(Math.Max(12, (b.Floors + 1) * FloorH + 8), reach);
+            crane.Position = new Vector3(cx, 0, cz);
+            crane.RotationDegrees = new Vector3(0, (cx * 37 + cz * 11) % 360, 0);
+            root.AddChild(crane);
+            _cranes.Add(crane);
+        }
+        root.AddChild(new Label3D
+        {
+            Text = $"{Loc.T("site_raising")} {Mathf.RoundToInt(p * 100)}%",
+            Font = _font, FontSize = 56, PixelSize = 0.02f, OutlineSize = 12, OutlineModulate = new Color("#111D2B"),
+            Modulate = Brand.Amber, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = true,
+            Position = new Vector3(b.X + b.W / 2f, top + 3f, b.Z + b.D / 2f),
+        });
     }
 
     void SiteBuilding(Node3D root, Building b)

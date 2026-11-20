@@ -382,6 +382,18 @@ public partial class GameState
         r.Zone = z; Touch(false);
     }
 
+    /// <summary>Choose which customer types a data hall hosts (empty or all types = everyone). Racks already rented stay rented.</summary>
+    public void SetHallClients(Room r, IEnumerable<CustomerType> types)
+    {
+        if (r.Type != RoomType.DataHall) return;
+        var list = types.Distinct().OrderBy(t => t).ToList();
+        r.Clients = list.Count == Enum.GetValues<CustomerType>().Length ? new List<CustomerType>() : list;
+        Touch(false);
+    }
+
+    /// <summary>Whether a data hall takes this customer type.</summary>
+    public static bool HallTakes(Room r, CustomerType t) => r.Clients == null || r.Clients.Count == 0 || r.Clients.Contains(t);
+
     /// <summary>Rack id → deal id, for racks rented out.</summary>
     public Dictionary<int, int> RackOwners()
     {
@@ -419,7 +431,7 @@ public partial class GameState
         var inf = Infra;
         var zone = ZoneFor(d.Product);
         var pick = new List<int>();
-        foreach (var h in inf.Halls.Where(h => h.Room.Zone == zone && h.Room.Stage == Stage.Done && HallFits(d, h)))
+        foreach (var h in inf.Halls.Where(h => h.Room.Zone == zone && h.Room.Stage == Stage.Done && HallTakes(h.Room, d.Type) && HallFits(d, h)))
         {
             var racks = Objects.Where(o => o.Kind == ObjKind.Rack && o.Floor == h.Room.Floor && h.Room.Contains(o.X, o.Z)).ToList();
             if (d.Product == Product.Hall && racks.Any(o => owners.ContainsKey(o.Id))) continue; // a private hall has one tenant
@@ -434,11 +446,12 @@ public partial class GameState
     }
 
     /// <summary>Units for sale in per-U halls: 42 U per working rack, minus what is rented.</summary>
-    public int FreeUnits()
+    public int FreeUnits(CustomerType? type = null)
     {
         var working = WorkingRacks();
         var owners = RackOwners();
-        var racks = Objects.Count(o => o.Kind == ObjKind.Rack && working.Contains(o.Id) && !owners.ContainsKey(o.Id) && HallOf(o)?.Zone == HallZone.PerU);
+        var racks = Objects.Count(o => o.Kind == ObjKind.Rack && working.Contains(o.Id) && !owners.ContainsKey(o.Id) &&
+            HallOf(o) is { Zone: HallZone.PerU } h && (type == null || HallTakes(h, type.Value)));
         return racks * Org.UnitsPerRack - Deals.Where(d => d.State == DealState.Active && d.Product == Product.PerU).Sum(d => d.Units);
     }
 
@@ -457,7 +470,7 @@ public partial class GameState
         var inv = System.Globalization.CultureInfo.InvariantCulture;
         if (d.Product == Product.PerU)
         {
-            var free = FreeUnits();
+            var free = FreeUnits(d.Type);
             list.Add(new Req("req_units", free.ToString(), d.Units + " U", free >= d.Units ? ReqStatus.Ok : ReqStatus.Fail));
         }
         else
@@ -465,9 +478,14 @@ public partial class GameState
             var free = FreeRacksFor(d, out _).Count;
             list.Add(new Req(d.Product switch { Product.Cage => "req_cage", Product.Hall => "req_hall", _ => "req_racks" }, free.ToString(), d.Racks.ToString(), free >= d.Racks ? ReqStatus.Ok : ReqStatus.Fail));
         }
+        var zoneHalls = Rooms.Where(r => r.Type == RoomType.DataHall && r.Zone == ZoneFor(d.Product)).ToList();
+        if (zoneHalls.Count > 0 && !zoneHalls.Any(r => HallTakes(r, d.Type)))
+        {
+            list.Add(new Req("req_hall_clients", "", "", ReqStatus.Fail));
+        }
         if (d.Amp32 || d.AB || d.TwoN)
         {
-            var anyAb = Creative.NoPowerLimit || Infra.Halls.Any(h => h.Room.Zone == ZoneFor(d.Product) && HallFits(d, h));
+            var anyAb = Creative.NoPowerLimit || Infra.Halls.Any(h => h.Room.Zone == ZoneFor(d.Product) && HallTakes(h.Room, d.Type) && HallFits(d, h));
             list.Add(new Req(d.Amp32 ? "req_amp32" : "req_ab", "", "", anyAb ? ReqStatus.Ok : ReqStatus.Fail));
         }
         if (d.TwoN)
