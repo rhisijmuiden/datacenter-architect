@@ -1816,3 +1816,10 @@ hall_clients_tip	Which customers this hall hosts. Pick one or more types to keep
 inspect_hall_clients	Customers: {0}	Klanten: {0}
 action_hall_clients	Choose customers	Klanten kiezen
 req_hall_clients	A hall that hosts this customer type	Een hal die dit klanttype host
+msg_building_not_ready	The building is not finished yet.	Het gebouw is nog niet af.
+msg_max_floors	This building already has the maximum of 4 floors.	Dit gebouw heeft al het maximum van 4 verdiepingen.
+msg_level_done	The extra floor on the {0} is finished.	De extra verdieping op het {0} is klaar.
+inspect_raising	Extra floor being built: {0}%	Extra verdieping in aanbouw: {0}%
+action_add_level	Add floor ({0})	Verdieping toevoegen ({0})
+action_add_level_max	Maximum floors reached	Maximaal aantal verdiepingen bereikt
+site_raising	Extra floor	Extra verdieping
