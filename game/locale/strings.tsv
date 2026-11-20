@@ -71,7 +71,7 @@ cat_security	Security	Beveiliging
 cat_staff	Staff	Personeel
 cat_customers	Customers	Klanten
 hud_coming_soon	Coming in a later update	Komt in een volgende update
-hint_select	Click a building, room or rack for details. Right-drag rotates, wheel zooms, WASD pans, Q and E turn. T shows roofs, Page Up and Down change floor. P shows the power overlay, H the cooling overlay, N the network overlay.	Klik op een gebouw, ruimte of rack voor details. Rechts slepen draait, scrollwiel zoomt, WASD schuift, Q en E draaien. T toont daken, Page Up en Down wisselen van verdieping. P toont de stroomweergave, H de koelweergave, N de netwerkweergave.
+hint_select	Click a building, room or rack for details. Right-drag rotates, wheel zooms, WASD pans, Q and E turn. T shows roofs, Page Up and Down change floor. P shows the power overlay, H the cooling overlay, N the network overlay. Ctrl+Z undoes, Ctrl+Y redoes.	Klik op een gebouw, ruimte of rack voor details. Rechts slepen draait, scrollwiel zoomt, WASD schuift, Q en E draaien. T toont daken, Page Up en Down wisselen van verdieping. P toont de stroomweergave, H de koelweergave, N de netwerkweergave. Ctrl+Z maakt ongedaan, Ctrl+Y doet opnieuw.
 hint_place	Click to place. R rotates. Red means it cannot go there.	Klik om te plaatsen. R draait. Rood betekent dat het daar niet kan.
 hint_erase	Drag over what you want to remove. Objects and doors go first, then rooms, then buildings and paving.	Sleep over wat je wilt weghalen. Eerst objecten en deuren, dan ruimtes, dan gebouwen en bestrating.
 hud_rotate_left	Rotate left (Q)	Links draaien (Q)
@@ -102,7 +102,7 @@ hint_fence	Drag a line, or a rectangle to fence it all round. Put a sliding gate
 hint_building	Drag out the floor plan. Builders lay the foundation, put up the walls and the roof. Material comes by truck to your yard.	Sleep de plattegrond uit. Bouwvakkers storten de fundering en bouwen muren en dak. Materiaal komt per vrachtwagen naar je materialenplek.
 hint_room	Drag a room inside a finished building. Builders put up the inner walls. Lights are added automatically.	Sleep een ruimte binnen een afgebouwd gebouw. Bouwvakkers zetten de binnenmuren. Verlichting komt er vanzelf in.
 hint_door	Point at a wall and click. Racks only fit through double doors and roll-up doors.	Wijs een muur aan en klik. Racks passen alleen door dubbele deuren en roldeuren.
-hint_row	Drag a row of up to 24 racks. R turns the fronts. Leave an aisle between rows so engineers reach the back.	Sleep een rij van maximaal 24 racks. R draait de voorkanten. Laat een gang tussen de rijen zodat engineers bij de achterkant kunnen.
+hint_row	Drag a row of up to 24 racks; R turns the fronts. Drag wider to fill a block of rows in one go: pairs face each other across a cold aisle, with hot aisles between the pairs (R starts with the backs).	Sleep een rij van maximaal 24 racks; R draait de voorkanten. Sleep breder om in één keer een blok rijen te vullen: paren kijken elkaar aan over een koude gang, met warme gangen ertussen (R begint met de achterkanten).
 cat_rooms	Rooms	Ruimtes
 cat_interior	Interior	Inrichting
 hud_creative	Creative	Creatief
@@ -1768,3 +1768,13 @@ ov_adv_goal	Next goal: {0}	Volgende doel: {0}
 ov_goals_count	{0} of {1} done	{0} van {1} klaar
 ov_messages_none	No messages yet.	Nog geen meldingen.
 parking_bays	{0} bays	{0} vakken
+hud_undo	Undo (Ctrl+Z)	Ongedaan maken (Ctrl+Z)
+hud_redo	Redo (Ctrl+Y)	Opnieuw (Ctrl+Y)
+hud_undo_what	Undo: {0} (Ctrl+Z)	Ongedaan maken: {0} (Ctrl+Z)
+hud_redo_what	Redo: {0} (Ctrl+Y)	Opnieuw: {0} (Ctrl+Y)
+msg_undone	Undone: {0}	Ongedaan gemaakt: {0}
+msg_redone	Done again: {0}	Opnieuw gedaan: {0}
+msg_nothing_to_undo	Nothing to undo.	Niets om ongedaan te maken.
+msg_nothing_to_redo	Nothing to redo.	Niets om opnieuw te doen.
+row_rows	{0} rows with aisles	{0} rijen met gangen
+erase_objects	{0} objects	{0} objecten

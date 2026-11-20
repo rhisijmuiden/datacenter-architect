@@ -35,6 +35,8 @@ public partial class Hud : Control
     public Action<Facade> FacadeChanged;
     public Action<int> CyclePriority;
     public Action Walk;
+    /// <summary>Undo and redo the last building action (Ctrl+Z / Ctrl+Y), from the buttons above the bulldozer.</summary>
+    public Action Undo, Redo;
     public Action RotateLeft, RotateRight, ToggleGrid, ToggleRoofs, FloorUp, FloorDown, OpenInfo, OpenOptions, OpenMenu, ToggleLanguage, OpenPower, OpenNetwork;
     public Action<int> ToggleOverlay, OpenCompany, OpenStaff, OpenReputation, OpenGrowth;
     public Func<GameState> State;
@@ -64,7 +66,7 @@ public partial class Hud : Control
     PanelContainer _inspectPanel;
     readonly List<Button> _speedBtns = new();
     readonly Dictionary<string, Button> _catBtns = new();
-    Button _selectBtn, _eraseBtn;
+    Button _selectBtn, _eraseBtn, _undoBtn, _redoBtn;
     HBoxContainer _floorsRow, _facadeRow;
     SpinBox _floors;
     OptionButton _facade;
@@ -544,7 +546,36 @@ public partial class Hud : Control
         _eraseBtn.AddThemeStyleboxOverride("pressed", Ui.Box(new Color(Brand.Critical, 0.35f), 12, Brand.Critical, 2, 10, true));
         _eraseBtn.Pressed += () => Pick(_item.Mode == Mode.Erase ? BuildItem.Select : new BuildItem(Mode.Erase));
         AddChild(_eraseBtn);
+        // undo and redo sit just above the bulldozer
+        _undoBtn = SmallCorner("undo", "hud_undo", 2, () => Undo?.Invoke());
+        _redoBtn = SmallCorner("redo", "hud_redo", 1, () => Redo?.Invoke());
         RefreshCategory();
+    }
+
+    Button SmallCorner(string icon, string tip, int slot, Action a)
+    {
+        const float size = 38;
+        var b = new Button { Icon = GD.Load<Texture2D>($"res://assets/icons/{icon}.svg"), TooltipText = tip, ExpandIcon = true, CustomMinimumSize = new Vector2(size, size), IconAlignment = HorizontalAlignment.Center };
+        b.AnchorLeft = b.AnchorRight = b.AnchorTop = b.AnchorBottom = 1;
+        b.OffsetRight = -12 - (slot - 1) * (size + 6); b.OffsetLeft = b.OffsetRight - size;
+        b.OffsetBottom = -12 - BarHeight - 8; b.OffsetTop = b.OffsetBottom - size;
+        b.AddThemeConstantOverride("icon_max_width", 20);
+        b.AddThemeStyleboxOverride("normal", Ui.Box(Brand.Panel, 10, Brand.Line, 1, 6, true));
+        b.AddThemeStyleboxOverride("hover", Ui.Box(Brand.PanelHover, 10, Brand.Amber, 1, 6, true));
+        b.AddThemeStyleboxOverride("pressed", Ui.Box(new Color(Brand.Amber, 0.3f), 10, Brand.Amber, 1, 6, true));
+        b.AddThemeStyleboxOverride("disabled", Ui.Box(new Color(Brand.Panel, 0.6f), 10, Brand.Line, 1, 6, true));
+        b.Pressed += a;
+        AddChild(b);
+        return b;
+    }
+
+    /// <summary>Grey out undo and redo when there is nothing to take back or do again; tooltips name the action.</summary>
+    public void SetUndo(string undo, string redo)
+    {
+        if (_undoBtn == null) return;
+        _undoBtn.Disabled = undo == null; _redoBtn.Disabled = redo == null;
+        _undoBtn.TooltipText = undo == null ? Loc.T("hud_undo") : Loc.T("hud_undo_what", Loc.T(undo));
+        _redoBtn.TooltipText = redo == null ? Loc.T("hud_redo") : Loc.T("hud_redo_what", Loc.T(redo));
     }
 
     Button CatButton(string key, string icon, Color accent, Action a)
