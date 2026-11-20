@@ -136,7 +136,12 @@ public partial class WorldView : Node3D
         // side road heading north along the west of the plot
         Plane(root, new Vector3(-9, -0.014f, s / 2f - 60), new Vector2(6, 2 * s + 120), Brand.Asphalt);
         // fibre pits of carriers along the road (orange = fiber)
-        foreach (var x in Catalog.StreetPits.Select((_, i) => _state.StreetPit(i))) Plane(root, new Vector3(x + 0.5f, -0.006f, s + 1.6f), new Vector2(0.9f, 0.9f), Brand.Fiber); // flush covers, no bump in a driveway
+        foreach (var x in Catalog.StreetPits.Select((_, i) => _state.StreetPit(i)))
+        {
+            // flush cover in the pavement with a grey frame, like a real handhole
+            Plane(root, new Vector3(x + 0.5f, -0.009f, s + Catalog.StreetPitOffset), new Vector2(1.1f, 1.1f), new Color("#8d8a84"));
+            Plane(root, new Vector3(x + 0.5f, -0.006f, s + Catalog.StreetPitOffset), new Vector2(0.9f, 0.9f), Brand.Fiber);
+        }
         // plot corner posts
         foreach (var c in new[] { new Vector3(0, 0, 0), new Vector3(s, 0, 0), new Vector3(0, 0, s), new Vector3(s, 0, s) })
             Box(root, c + new Vector3(0, 0.6f, 0), new Vector3(0.25f, 1.2f, 0.25f), Brand.Power);

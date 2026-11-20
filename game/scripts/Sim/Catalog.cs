@@ -194,6 +194,8 @@ public static class Catalog
     // ---------------- network ----------------
     /// <summary>Carrier pits in the pavement of the public road (x positions). Your own fiber pit connects to the nearest one.</summary>
     public static readonly int[] StreetPits = { 8, 30, 52 };
+    /// <summary>Street pits sit in the pavement across the public road (plot edge + this many metres), never on the carriageway.</summary>
+    public const float StreetPitOffset = 7.8f;
     public static string PitName(int pit) => ((char)('A' + pit)).ToString();
     /// <summary>Subducts in your own fiber pit's duct per level: every carrier, IX port or dark fiber needs one.</summary>
     public static int Subducts(int level) => level switch { >= 3 => 12, 2 => 8, _ => 4 };
