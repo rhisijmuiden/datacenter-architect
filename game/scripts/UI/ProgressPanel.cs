@@ -15,9 +15,9 @@ namespace DatacenterArchitect.UI;
 /// </summary>
 public partial class ProgressPanel : Modal
 {
-    public const int TabStats = 0, TabScenario = 1, TabAchievements = 2, TabTimelapse = 3;
-    static readonly string[] Tabs = { "pg_tab_stats", "pg_tab_scenario", "pg_tab_achievements", "pg_tab_timelapse" };
-    static readonly string[] TabIcons = { "stats", "medal", "trophy", "film" };
+    public const int TabStats = 0, TabScenario = 1, TabAchievements = 2, TabTimelapse = 3, TabAwards = 4;
+    static readonly string[] Tabs = { "pg_tab_stats", "pg_tab_scenario", "pg_tab_achievements", "pg_tab_timelapse", "pg_tab_awards" };
+    static readonly string[] TabIcons = { "stats", "medal", "trophy", "film", "trophy" };
     static readonly int[] Ranges = { 30, 365, 0 };
     static readonly string[] RangeKeys = { "pg_range_30", "pg_range_365", "pg_range_all" };
 
@@ -115,7 +115,7 @@ public partial class ProgressPanel : Modal
     {
         var s = _state();
         if (s == null) return;
-        var sig = $"{_tab}|{_range}|{Loc.Language}|{s.Stats.Count}:{(s.Stats.Count > 0 ? s.Stats[^1].Day : 0)}|{s.Achieved.Count}|{s.ScenarioMedal}{s.ScenarioEnded}|{(int)s.ScenarioDaysLeft}";
+        var sig = $"{_tab}|{_range}|{Loc.Language}|{s.Stats.Count}:{(s.Stats.Count > 0 ? s.Stats[^1].Day : 0)}|{s.Achieved.Count}|{s.ScenarioMedal}{s.ScenarioEnded}|{(int)s.ScenarioDaysLeft}|{s.Awards.Count}";
         if (_tab == TabTimelapse) sig = $"{_tab}|{Loc.Language}|{Timelapse.Frames(s.GameId).Count}";
         if (!force && sig == _sig) return;
         _sig = sig;
@@ -128,6 +128,7 @@ public partial class ProgressPanel : Modal
             case TabStats: StatsTab(s); break;
             case TabScenario: ScenarioTab(s); break;
             case TabAchievements: AchievementsTab(s); break;
+            case TabAwards: AwardsTab(s); break;
             default: TimelapseTab(s); break;
         }
         _scroll.SetDeferred("scroll_vertical", keep);
@@ -398,6 +399,81 @@ public partial class ProgressPanel : Modal
             grid.AddChild(card);
         }
         _content.AddChild(grid);
+    }
+
+    // ---------------- datacenter of the year ----------------
+    void AwardsTab(GameState s)
+    {
+        var day = (int)s.Day;
+        var year = s.Date.Year;
+        var from = GameState.DayOfYearStart(year);
+        var marks = s.AwardMarks(from, day);
+        var mine = s.AwardScore(from, day);
+        var card = Card(Brand.Amber, out var v);
+        var top = new HBoxContainer(); top.AddThemeConstantOverride("separation", 10);
+        top.AddChild(new TextureRect { Texture = GD.Load<Texture2D>("res://assets/icons/trophy.svg"), CustomMinimumSize = new Vector2(30, 30), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, Modulate = Brand.Amber });
+        var title = Plain(Loc.T("aw_title", year), 22, Brand.Ink, Ui.DisplayBold); title.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        top.AddChild(title);
+        var left = (int)Math.Ceiling(GameState.DayOfYearStart(year + 1) - s.Day);
+        top.AddChild(Plain(Loc.T("aw_days_left", left), 15, Brand.Amber, Ui.BodySemi));
+        v.AddChild(top);
+        v.AddChild(Wrapped(Loc.T("aw_help"), 14, Brand.Ink));
+        v.AddChild(new HSeparator());
+        if (marks == null) v.AddChild(Wrapped(Loc.T("aw_too_small", GameState.AwardMinRacks), 14, Brand.InkDim));
+        else
+        {
+            v.AddChild(Plain(Loc.T("aw_score_now", mine.ToString("0.0")), 18, Brand.Amber, Ui.DisplaySemi));
+            var grid = new GridContainer { Columns = 3, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+            grid.AddThemeConstantOverride("h_separation", 12); grid.AddThemeConstantOverride("v_separation", 4);
+            for (var i = 0; i < marks.Length; i++)
+            {
+                var (key, weight) = GameState.AwardCriteria[i];
+                var name = Plain(Loc.T(key) + $"  ({weight * 100:0}%)", 14, Brand.Ink); name.CustomMinimumSize = new Vector2(190, 0);
+                grid.AddChild(name);
+                var bar = new ProgressBar { MinValue = 0, MaxValue = 100, Value = marks[i], ShowPercentage = false, CustomMinimumSize = new Vector2(220, 10), SizeFlagsHorizontal = SizeFlags.ExpandFill, SizeFlagsVertical = SizeFlags.ShrinkCenter };
+                bar.AddThemeStyleboxOverride("fill", Ui.Box(Brand.Amber, 3, null, 0, 0));
+                grid.AddChild(bar);
+                grid.AddChild(Plain($"{marks[i]:0}", 14, Brand.InkDim));
+            }
+            v.AddChild(grid);
+        }
+        _content.AddChild(card);
+
+        // the field this year
+        _content.AddChild(Ui.Heading("aw_field"));
+        var field = s.Rivals.Select(c => (name: c.Name, score: GameState.RivalAwardScore(c, year), me: false)).ToList();
+        if (marks != null) field.Add((s.Options.Company, mine, true));
+        if (field.Count == 0) _content.AddChild(Wrapped(Loc.T("aw_no_rivals"), 13));
+        var rank = 1;
+        foreach (var f in field.OrderByDescending(f => f.score))
+        {
+            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 10);
+            row.AddChild(Plain($"{rank}.", 15, rank <= 3 ? MedalColor(4 - rank) : Brand.InkDim, Ui.BodySemi));
+            var n = Plain(f.name, 15, f.me ? Brand.Amber : Brand.Ink, f.me ? Ui.BodySemi : null); n.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            row.AddChild(n);
+            row.AddChild(Plain(f.score.ToString("0.0"), 15, Brand.InkDim));
+            _content.AddChild(row);
+            rank++;
+        }
+        _content.AddChild(Wrapped(Loc.T("aw_field_help"), 12));
+
+        // earlier years
+        _content.AddChild(Ui.Heading("aw_history"));
+        if (s.Awards.Count == 0) _content.AddChild(Wrapped(Loc.T("aw_none_yet"), 13));
+        foreach (var a in s.Awards.OrderByDescending(a => a.Year))
+        {
+            var medal = a.Place switch { 1 => 3, 2 => 2, 3 => 1, _ => 0 };
+            var c = Card(MedalColor(medal), out var cv);
+            var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 10);
+            row.AddChild(new TextureRect { Texture = GD.Load<Texture2D>("res://assets/icons/trophy.svg"), CustomMinimumSize = new Vector2(22, 22), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, Modulate = MedalColor(medal) });
+            var t = Plain(a.Year.ToString(), 16, Brand.Ink, Ui.DisplaySemi); t.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+            row.AddChild(t);
+            row.AddChild(Plain(a.Place switch { 1 => Loc.T("aw_won"), 2 or 3 => Loc.T("aw_place", a.Place), _ => Loc.T("aw_lost", a.Winner) }, 15, MedalColor(medal), Ui.BodySemi));
+            row.AddChild(Plain(Loc.T("aw_score", a.Score.ToString("0.0")), 14, Brand.InkDim));
+            cv.AddChild(row);
+            _content.AddChild(c);
+        }
+        if (s.Statuettes.Any()) _content.AddChild(Wrapped(s.TrophyDesk != null ? Loc.T("aw_on_desk") : Loc.T("aw_no_desk"), 13));
     }
 
     // ---------------- timelapse ----------------

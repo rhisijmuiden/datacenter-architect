@@ -49,7 +49,7 @@ public partial class PowerPanel : Modal
         var s = _state();
         if (s == null) return;
         var r = s.Infra;
-        var sig = $"{s.GridLevel}:{s.GridRequest}:{s.Supplier}:{s.Rooms.Count(x => x.Type == RoomType.DataHall)}:{Loc.Language}:{s.Rooms.Sum(x => (int)x.Containment + (x.Busbar ? 10 : 0) + x.Upgrade * 100)}";
+        var sig = $"{s.GridLevel}:{s.GridRequest}:{s.GridQueuePlace}:{s.Supplier}:{s.Rooms.Count(x => x.Type == RoomType.DataHall)}:{Loc.Language}:{s.Rooms.Sum(x => (int)x.Containment + (x.Busbar ? 10 : 0) + x.Upgrade * 100)}";
         if (sig != _sig) { _sig = sig; Build(s); }
         foreach (var u in _updaters) u(s, r);
     }
@@ -91,9 +91,11 @@ public partial class PowerPanel : Modal
         if (s.GridRequest >= 0)
         {
             var req = Catalog.GridLevels[s.GridRequest];
-            left.AddChild(Dyn((l, st, _) => l.Text = Loc.T("grid_request_running", N(req.Mva), Math.Ceiling(st.GridDaysLeft)), 14, Brand.InkDim));
+            if (s.InGridQueue)
+                left.AddChild(Dyn((l, st, _) => l.Text = Loc.T("grid_queue_running", N(req.Mva), st.GridQueuePlace, Math.Ceiling(st.GridQueueDays + st.GridDaysLeft)), 14, Brand.InkDim));
+            else left.AddChild(Dyn((l, st, _) => l.Text = Loc.T("grid_request_running", N(req.Mva), Math.Ceiling(st.GridDaysLeft)), 14, Brand.InkDim));
             var bar = new ProgressBar { MinValue = 0, MaxValue = 1, ShowPercentage = false, CustomMinimumSize = new Vector2(0, 6) };
-            _updaters.Add((st, _) => bar.Value = 1 - st.GridDaysLeft / Math.Max(1, req.LeadDays));
+            _updaters.Add((st, _) => bar.Value = st.InGridQueue ? 0 : 1 - st.GridDaysLeft / Math.Max(1, req.LeadDays));
             left.AddChild(bar);
         }
         else
@@ -101,7 +103,7 @@ public partial class PowerPanel : Modal
             foreach (var lv in Catalog.GridLevels.Where(x => x.Level > s.GridLevel))
             {
                 var level = lv.Level;
-                var b = Ui.Secondary(Loc.T("grid_request", N(lv.Mva), Ui.Money(lv.Cost), lv.LeadDays), () =>
+                var b = Ui.Secondary(Loc.T("grid_request", N(lv.Mva), Ui.Money(lv.Cost), (int)s.GridWaitDays(lv.Level)), () =>
                 {
                     var why = _state().RequestGrid(level);
                     if (why != null) _fail(why);
@@ -116,6 +118,7 @@ public partial class PowerPanel : Modal
             if (s.GridLevel >= Catalog.GridLevels.Length - 1) left.AddChild(Plain(Loc.T("grid_max"), 14, Brand.InkDim));
         }
         left.AddChild(Ui.Text("grid_help", 12, Brand.InkDim));
+        if (s.Options.GridQueue) left.AddChild(Ui.Text("grid_queue_help", 12, Brand.InkDim));
         left.AddChild(new HSeparator());
 
         // ---- supplier ----

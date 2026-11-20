@@ -891,7 +891,7 @@ public partial class WorldView : Node3D
             var g = _state.GridStation;
             _sites.AddChild(new Label3D
             {
-                Text = $"{Catalog.GridLevels[_state.GridRequest].Mva:0} MVA · {Loc.T("grid_days_left", Math.Ceiling(_state.GridDaysLeft))}",
+                Text = $"{Catalog.GridLevels[_state.GridRequest].Mva:0} MVA · {(_state.InGridQueue ? Loc.T("grid_queue_place", _state.GridQueuePlace) : Loc.T("grid_days_left", Math.Ceiling(_state.GridDaysLeft)))}",
                 Font = _font, FontSize = 56, PixelSize = 0.02f, OutlineSize = 12, OutlineModulate = new Color("#111D2B"),
                 Modulate = Brand.Power, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = true,
                 Position = new Vector3(g.x + g.w / 2f, 6f, g.z + g.d / 2f),
@@ -908,9 +908,21 @@ public partial class WorldView : Node3D
             Box(_sites, new Vector3(r.X + r.W / 2f, y + 0.04f, r.Z + 0.15f), new Vector3(r.W - 0.3f, 0.02f, 0.1f), tape);
             Box(_sites, new Vector3(r.X + r.W / 2f, y + 0.04f, r.Z + r.D - 0.15f), new Vector3(r.W - 0.3f, 0.02f, 0.1f), tape);
         }
-        foreach (var b in _state.Buildings.Where(b => b.Stage != Stage.Done)) SiteBuilding(_sites, b);
+        foreach (var b in _state.Buildings.Where(b => b.Stage != Stage.Done))
+        {
+            if (_state.IsPlanned(b)) PlanBuilding(_sites, b);
+            else SiteBuilding(_sites, b);
+        }
+        // planned rooms: on the floor in view (inside a planned building, or an open finished one)
+        foreach (var r in _state.Rooms.Where(r => _state.IsPlanned(r)))
+        {
+            var b = _state.BuildingOf(r);
+            if (b == null || r.Floor != _viewFloor && !(r.Floor == 0 && _state.IsPlanned(b))) continue;
+            if (b.Stage == Stage.Done && !Open(b)) continue;
+            PlanRoom(_sites, r);
+        }
         // rooms being built inside finished buildings
-        foreach (var r in _state.Rooms.Where(r => r.Stage != Stage.Done))
+        foreach (var r in _state.Rooms.Where(r => r.Stage != Stage.Done && !_state.IsPlanned(r)))
         {
             var b = _state.BuildingOf(r);
             if (b == null || b.Stage != Stage.Done || !Open(b) || r.Floor != _viewFloor) continue;
@@ -1044,7 +1056,7 @@ public partial class WorldView : Node3D
     {
         var b = _state.BuildingAt(o.X, o.Z);
         if (b == null) return true;
-        if (b.Stage != Stage.Done) return false;
+        if (b.Stage != Stage.Done) return _state.IsPlanned(b) && o.Floor == System.Math.Min(_viewFloor, b.Floors - 1);
         if (o.Floor == GameState.RoofFloor) return !Open(b);
         if (Catalog.IsShaft(o.Kind)) return Open(b);
         return Open(b) && o.Floor == _viewFloor;
@@ -1058,6 +1070,7 @@ public partial class WorldView : Node3D
         GridStationModel();
         HallDecor();
         var racks = new List<(PlacedObject, float)>();
+        var trophyDesk = _state.Statuettes.Any() ? _state.TrophyDesk?.Id ?? -1 : -1;
         foreach (var o in _state.Objects)
         {
             if (!ObjectVisible(o)) continue;
@@ -1085,11 +1098,26 @@ public partial class WorldView : Node3D
             n.Basis = basis;
             foreach (var f in n.GetChildren().OfType<Node3D>().Where(c => c.Name.ToString().StartsWith("Fan"))) _fans.Add(f);
             if (Catalog.IsVehicleStop(o.Kind)) _gates[o.Id] = (n, o.Kind, o.Def.W);
+            if (o.Id == trophyDesk) AddStatuettes(n);
+            if (_state.IsPlanned(o)) { Tint(n, PlanColor); _objects.AddChild(n); continue; }
             if (o.Def.Chain && o.Status <= ObjStatus.Delivered) Tint(n, Brand.Ink);
             else if (o.Def.Chain && o.Status != ObjStatus.Live) AddMarker(o, pos);
             _objects.AddChild(n);
         }
         _racks.Update(racks);
+    }
+
+    /// <summary>Step 11: the award statuettes in a row on the left of the CEO's desk (at most seven, the newest).</summary>
+    void AddStatuettes(Node3D desk)
+    {
+        var list = _state.Statuettes.TakeLast(7).ToList();
+        for (var i = 0; i < list.Count; i++)
+        {
+            var st = Models.Statuette(list[i].Place);
+            st.Position = new Vector3(-0.82f + i * 0.13f, Models.DeskTop, -0.24f);
+            st.RotationDegrees = new Vector3(0, 180, 0);
+            desk.AddChild(st);
+        }
     }
 
     void AddMarker(PlacedObject o, Vector3 pos)
