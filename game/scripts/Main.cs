@@ -137,6 +137,7 @@ public partial class Main : Node3D
             FloorDown = () => SetView(_world.ViewFloor - 1, _world.ViewFloor - 1 <= 0 && _world.Roofs),
             OpenInfo = OpenInfo, OpenOptions = OpenOptions, OpenMenu = OpenPause, ToggleLanguage = ToggleLanguage,
             OpenSection = ToggleSection,
+            Undo = DoUndo, Redo = DoRedo,
             OpenPower = OpenPower, OpenNetwork = OpenNetwork, OpenCompany = OpenCompany, OpenStaff = OpenStaff, OpenReputation = OpenReputation, OpenGrowth = OpenGrowth, ToggleOverlay = m => SetOverlay(_world.Overlay.Mode == (OverlayMode)m ? OverlayMode.None : (OverlayMode)m),
         };
         _ui.AddChild(_hud);
@@ -144,6 +145,7 @@ public partial class Main : Node3D
         _playing = true; _speed = 1; _autosaveTimer = 0; _item = BuildItem.Select; _bankruptShown = false;
         _inspectCell = null; SetOverlay(OverlayMode.None);
         _hud.UpdateStats(_state);
+        _history.Clear(); RefreshUndo();
         UpdateGoals();
         if (fresh)
         {
@@ -614,6 +616,8 @@ public partial class Main : Node3D
             if (k.Keycode == Key.Space) { var s = _speed == 0 ? 1 : 0; _speed = s; _hud.SetSpeed(s); }
             if (k.Keycode is Key.Key1 or Key.Key2 or Key.Key3) { _speed = (int)(k.Keycode - Key.Key0); _hud.SetSpeed(_speed); }
             if (k.Keycode == Key.S && k.CtrlPressed) { Autosave(); _hud.Notify(Loc.T("msg_autosaved"), Brand.Ok); }
+            if (k.CtrlPressed && (k.Keycode == Key.Y || (k.Keycode == Key.Z && k.ShiftPressed))) { DoRedo(); GetViewport().SetInputAsHandled(); return; }
+            if (k.CtrlPressed && k.Keycode == Key.Z) { DoUndo(); GetViewport().SetInputAsHandled(); return; }
             var sec = Sections.ForKey(k.Keycode);
             if (sec >= 0) { ToggleSection(sec); GetViewport().SetInputAsHandled(); return; }
             if (k.Keycode == Key.Pageup) SetView(_world.ViewFloor + 1, false);
@@ -758,6 +762,31 @@ public partial class Main : Node3D
         }
     }
 
+    // ---------------- undo / redo ----------------
+    readonly UndoHistory _history = new();
+
+    void Record(UndoHistory.Snapshot before, string label) { if (_history.Commit(_state, before, label)) RefreshUndo(); }
+    void RefreshUndo() => _hud?.SetUndo(_history.NextUndo, _history.NextRedo);
+
+    void DoUndo()
+    {
+        if (_state == null || !_playing) return;
+        var label = _history.Undo(_state);
+        if (label == null) { _hud.Notify(Loc.T("msg_nothing_to_undo"), Brand.InkDim); return; }
+        _hud.Notify(Loc.T("msg_undone", Loc.T(label)), Brand.Ok);
+        _hud.UpdateStats(_state); UpdateGhost(); RefreshUndo();
+    }
+
+    void DoRedo()
+    {
+        if (_state == null || !_playing) return;
+        var label = _history.Redo(_state);
+        if (label == null) { _hud.Notify(Loc.T("msg_nothing_to_redo"), Brand.InkDim); return; }
+        if (label == "msg_no_money") { Fail(label); return; }
+        _hud.Notify(Loc.T("msg_redone", Loc.T(label)), Brand.Ok);
+        _hud.UpdateStats(_state); UpdateGhost(); RefreshUndo();
+    }
+
     void Fail(string why) { if (why != null) _hud.Notify(Loc.T(why), Brand.Critical); }
 
     /// <summary>Curve points snap to half metres.</summary>
@@ -777,7 +806,9 @@ public partial class Main : Node3D
     {
         if (_curveA == null) { _curveA = p; return; }
         if (_curveB == null) { if ((p - _curveA.Value).Length() >= 1) _curveB = p; return; }
+        var before = UndoHistory.Take(_state);
         var why = _state.AddCurve(CurveAt(p));
+        Record(before, _item.NameKey);
         if (why is "msg_no_money") Fail(why);
         _curveA = _curveB = null;
         _hud.UpdateStats(_state);
@@ -785,6 +816,7 @@ public partial class Main : Node3D
 
     void ApplyDrag(Vector2I a, Vector2I b, Rect2I r)
     {
+        var before = UndoHistory.Take(_state);
         switch (_item.Mode)
         {
             case Mode.Erase:
@@ -824,6 +856,7 @@ public partial class Main : Node3D
                 else _hud.Notify(Loc.T("msg_racks_ordered", placed), Brand.Ok);
                 break;
         }
+        Record(before, _item.NameKey);
         _hud.UpdateStats(_state);
     }
 
@@ -834,7 +867,9 @@ public partial class Main : Node3D
         var o = new PlacedObject { Kind = k, X = c.X, Z = c.Y, Rot = _rot, Floor = floor };
         var why = _state.CanPlace(o);
         if (why != null) { Fail(why); return; }
+        var before = UndoHistory.Take(_state);
         _state.AddObject(k, c.X, c.Y, _rot, floor);
+        Record(before, _item.NameKey);
         _hud.UpdateStats(_state);
     }
 
@@ -842,7 +877,9 @@ public partial class Main : Node3D
     {
         var why = _state.CanDoor(d);
         if (why != null) { Fail(why); return; }
+        var before = UndoHistory.Take(_state);
         _state.AddDoor(d.Type, d.X, d.Z, d.Dir, d.Floor);
+        Record(before, Catalog.Doors[d.Type].NameKey);
         _hud.UpdateStats(_state);
     }
 

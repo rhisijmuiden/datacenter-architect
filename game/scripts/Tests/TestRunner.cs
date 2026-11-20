@@ -26,7 +26,7 @@ public static class TestRunner
         {
             ("semver", SemVerTests), ("updates", UpdateTests), ("translations", TranslationTests),
             ("saves", SaveTests), ("building", BuildTests), ("construction", ConstructionTests),
-            ("rack chain", RackChainTests), ("gates", GateTests), ("curves", CurveTests), ("navigation", NavTests), ("stairs and lifts", StairsTests), ("creative", CreativeTests), ("demo", DemoTests),
+            ("rack chain", RackChainTests), ("gates", GateTests), ("curves", CurveTests), ("navigation", NavTests), ("stairs and lifts", StairsTests), ("undo", UndoTests), ("creative", CreativeTests), ("demo", DemoTests),
             ("power chain", PowerTests), ("backup power", BackupTests), ("grid and suppliers", GridTests),
             ("cooling", CoolingTests), ("roof and underground", RoofTests), ("overlay rows", OverlayTests),
             ("options", OptionsTests), ("thumbnails", ThumbnailTests), ("network", NetworkTests), ("network money", NetworkMoneyTests), ("peering", PeeringTests),
@@ -387,6 +387,49 @@ public static class TestRunner
         Check(nav.Find(new Pt(5, 35, 0), 0, (x, z) => z == 25, NavMode.Walk) == null, "a closed fence blocks");
         s.AddObject(ObjKind.PedGate, 6, 30, 0, 0);
         Check(nav.Find(new Pt(5, 35, 0), 0, (x, z) => z == 25, NavMode.Walk) != null, "a gate lets people through");
+    }
+
+    static void UndoTests()
+    {
+        var s = GameState.New(new NewGameOptions());
+        var h = new UndoHistory();
+        var money = s.Money;
+        var snap = UndoHistory.Take(s);
+        Check(!h.Commit(s, snap, "tool_select"), "an action that changes nothing is not recorded");
+        snap = UndoHistory.Take(s);
+        s.PaintSurface(2, 2, 4, 3, Surface.Asphalt, out _);
+        Check(h.Commit(s, snap, "surface_asphalt") && s.SurfaceAt(3, 3) == Surface.Asphalt, "paving is recorded");
+        snap = UndoHistory.Take(s);
+        var m1 = s.Money;
+        var b = s.AddBuilding(BuildingKind.Office, 20, 20, 8, 8, 2);
+        h.Commit(s, snap, "building_office");
+        var paid = m1 - s.Money;
+        Check(paid > 0 && h.NextUndo == "building_office", "a building is recorded with its cost");
+        var hours = s.Hours;
+        s.Hours += 3;
+        Check(h.Undo(s) == "building_office" && !s.Buildings.Contains(b), "undo takes the building away");
+        Check(s.Money == m1 && s.Hours == hours + 3, "undo refunds the building and leaves the clock running");
+        Check(s.SurfaceAt(3, 3) == Surface.Asphalt, "undo leaves earlier actions alone");
+        Check(h.Redo(s) == "building_office" && s.Buildings.Contains(b) && h.CanUndo && !h.CanRedo, "redo puts the building back");
+        h.Undo(s); h.Undo(s);
+        Check(s.SurfaceAt(3, 3) == Surface.Grass && s.Buildings.Count == 0, "undo goes back step by step");
+        Check(h.Undo(s) == null, "nothing left to undo");
+        // erasing can be undone too, and the erase refund is taken back
+        h.Redo(s); h.Redo(s);
+        b.Stage = Stage.Done;
+        s.AddDoor(DoorType.Single, 22, 28, 1, 0);
+        var lift = s.AddObject(ObjKind.Stairs, 21, 21, 0, 0);
+        var before = s.Money;
+        snap = UndoHistory.Take(s);
+        s.Erase(21, 21, 2, 5, 0);
+        h.Commit(s, snap, "tool_erase");
+        Check(!s.Objects.Contains(lift) && s.Money > before, "erasing refunds half");
+        h.Undo(s);
+        Check(s.Objects.Contains(lift) && s.Money == before, "undoing an erase brings the stairs back and returns the refund");
+        snap = UndoHistory.Take(s);
+        s.PaintSurface(40, 40, 2, 2, Surface.Footpath, out _);
+        h.Commit(s, snap, "surface_footpath");
+        Check(!h.CanRedo, "a new action clears redo");
     }
 
     static void StairsTests()
