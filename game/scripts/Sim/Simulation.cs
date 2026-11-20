@@ -599,10 +599,13 @@ public partial class Simulation
         var entry = path.Count > 0 ? entries.OrderBy(e => Math.Abs(e.x - first.X) + Math.Abs(e.z - first.Z)).First() : entries.First(e => goal(e.x, e.z));
         var lane = S.PlotSize + 3.2;
         var t = new Agent { Id = _nextAgent++, Role = Role.Truck, Load = load, Carry = material, Items = items ?? new(), X = -20, Z = lane, Phase = 1 };
-        t.Way.Add((entry.x + 0.5, lane, 0));
-        t.Way.Add((entry.x + 0.5, S.PlotSize + 0.5, 0));
-        t.Way.Add((entry.x + 0.5, entry.z + 0.5, 0));
-        foreach (var p in path) t.Way.Add((p.X + 0.5, p.Z + 0.5, 0));
+        // drive in the middle of the road, not along the kerb or the fence; turn in from the road onto that line too
+        var lanePath = Nav.CenterLane(path);
+        var ex0 = lanePath.Count > 0 && Math.Abs(lanePath[0].x - (entry.x + 0.5)) <= 4 ? lanePath[0].x : entry.x + 0.5;
+        t.Way.Add((ex0, lane, 0));
+        t.Way.Add((ex0, S.PlotSize + 0.5, 0));
+        t.Way.Add((ex0, entry.z + 0.5, 0));
+        foreach (var (px, pz) in lanePath) t.Way.Add((px, pz, 0));
         // at a dock the truck stops short of the door instead of driving into the building
         if (load is TruckLoad.Equipment or TruckLoad.Customer && t.Way.Count > 0)
         {

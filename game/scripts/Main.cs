@@ -708,7 +708,14 @@ public partial class Main : Node3D
                 break;
             case Mode.Surface:
                 var sc = Catalog.Surfaces[(Surface)_item.Arg].Cost * r.Size.X * r.Size.Y;
-                _world.ShowGhostRect(r, Brand.Ok, 0, _dragStart == null ? null : $"{Dim(r)} · {Ui.Money(sc)}");
+                var bays = "";
+                if ((Surface)_item.Arg == Surface.Parking && _dragStart != null)
+                {
+                    var spots = ParkingLayout.Bays(ParkingLayout.Lines(_state.PlotSize, (x, z) => x >= r.Position.X && x < r.End.X && z >= r.Position.Y && z < r.End.Y));
+                    bays = " · " + Loc.T("parking_bays", spots);
+                }
+                _world.ShowGhostRect(r, Brand.Ok, 0, _dragStart == null ? null : $"{Dim(r)} · {Ui.Money(sc)}{bays}");
+                if ((Surface)_item.Arg == Surface.Parking) _world.ShowGhostParking(r);
                 break;
             case Mode.Fence:
                 var n = GameState.FenceCells(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y).Count();
@@ -725,7 +732,8 @@ public partial class Main : Node3D
                 var rt = (RoomType)_item.Arg;
                 var rwhy = _dragStart == null ? null : _state.CanRoom(rt, r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, _world.ViewFloor);
                 var rtext = _dragStart == null ? null : $"{Loc.T(Catalog.Rooms[rt].NameKey)} · {Dim(r)} · {Ui.Money(Catalog.RoomCost(r.Size.X, r.Size.Y))}" + (rwhy != null ? "\n" + Loc.T(rwhy) : "");
-                _world.ShowGhostRect(r, rwhy == null ? new Color(Catalog.Rooms[rt].Color) : Brand.Critical, y, rtext);
+                // rooms are drawn on the building's floor slab, not on the ground under it
+                _world.ShowGhostRect(r, rwhy == null ? new Color(Catalog.Rooms[rt].Color) : Brand.Critical, WorldView.Base(_world.ViewFloor), rtext, outline: true);
                 break;
             case Mode.Door:
                 var door = DoorAt(_hoverPoint);
@@ -1076,7 +1084,29 @@ public partial class Main : Node3D
         if (args.Contains("--nl")) Loc.SetLanguage("nl");
         var hi = Array.IndexOf(args, "--hours");
         var hours = hi >= 0 ? double.Parse(args[hi + 1], System.Globalization.CultureInfo.InvariantCulture) : 6;
-        if (args.Contains("--in-game") || args.Contains("--interior"))
+        if (args.Contains("--showcase"))
+        {
+            // playtest batch 1: a big building site with several cranes, an excavator, a parking lot with bays and the three trucks
+            var g = GameState.New(new NewGameOptions { Company = "Polder Datacenters", Creative = true, CreativeOptions = new CreativeOptions { UnlimitedMoney = true, AllUnlocks = true } });
+            g.AddBuilding(BuildingKind.Datacenter, 3, 3, 40, 30, 1);
+            g.PaintSurface(46, 10, 5, g.PlotSize - 10, Surface.Asphalt, out _);
+            g.PaintSurface(51, 14, 13, 12, Surface.Parking, out _);
+            g.PaintSurface(51, 28, 11, 6, Surface.Parking, out _);
+            SetState(g);
+            StartGame(g, false);
+            var loads = new[] { TruckLoad.Material, TruckLoad.Equipment, TruckLoad.Customer };
+            for (var i = 0; i < loads.Length; i++)
+            {
+                var t = Models.Truck(loads[i]);
+                t.Position = new Vector3(48.5f, 0, 40 + i * 8);
+                t.RotationDegrees = new Vector3(0, 180, 0);
+                _world.AddChild(t);
+            }
+            _cam.SetView(0.75f, 0.85f, 62, new Vector3(36, 0, 32));
+            if (args.Contains("--close")) _cam.SetView(1.1f, 0.5f, 16, new Vector3(48.5f, 0, 47));
+            _speed = 0;
+        }
+        else if (args.Contains("--in-game") || args.Contains("--interior"))
         {
             StartGame(Demo.Build(), false);
             for (var i = 0; i < hours * 20; i++) _sim.Tick(0.05);
