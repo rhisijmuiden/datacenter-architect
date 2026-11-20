@@ -78,6 +78,7 @@ public class AppSettings
         }
         s.Language = Get("general", "language", s.Language);
         s.UpdateChannel = Get("updates", "channel", GameVersion.BuildChannel == "test" ? "test" : "stable");
+        if (s.UpdateChannel is not ("stable" or "test")) s.UpdateChannel = GameVersion.BuildChannel == "test" ? "test" : "stable";
         s.CheckUpdatesOnStart = Get("updates", "check_on_start", s.CheckUpdatesOnStart);
         s.AutosaveMinutes = Mathf.Clamp(Get("saves", "autosave_minutes", s.AutosaveMinutes), 1, 60);
 

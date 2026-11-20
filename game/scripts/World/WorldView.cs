@@ -257,14 +257,6 @@ public partial class WorldView : Node3D
         }
     }
 
-    void Neighbour(Node3D root, Vector3 pos, Vector3 size, Color wall, Color roof)
-    {
-        Box(root, pos + new Vector3(0, size.Y / 2, 0), size, wall);
-        Box(root, pos + new Vector3(0, size.Y + 0.15f, 0), new Vector3(size.X + 0.3f, 0.3f, size.Z + 0.3f), roof);
-        for (var y = 1.5f; y < size.Y - 1; y += 2.5f)
-            Box(root, pos + new Vector3(0, y, size.Z / 2 + 0.01f), new Vector3(size.X * 0.85f, 0.7f, 0.02f), new Color("#3c5a75"), 0.2f).MaterialOverride = WindowMat;
-    }
-
     static MultiMeshInstance3D Multi(Node3D root, Mesh mesh, List<Transform3D> xf, Color c, bool shadow = true)
     {
         if (xf.Count == 0) return null;

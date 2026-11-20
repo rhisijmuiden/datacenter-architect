@@ -175,23 +175,6 @@ public static class Assets
     /// <summary>Height of the top of a model at the given scale.</summary>
     public static float Top(string path, float scale) => Mesh(path) is { } m ? m.GetAabb().End.Y * scale : 0;
 
-    /// <summary>Places a model scaled so its footprint fits <paramref name="w"/> x <paramref name="d"/> metres (keeping proportions).</summary>
-    public static MeshInstance3D Fit(Node3D parent, string path, Vector3 pos, float w, float d, float yawDeg = 0, Func<string, Material, Material> remap = null)
-    {
-        var mesh = Mesh(path, remap);
-        if (mesh == null) return null;
-        var box = mesh.GetAabb();
-        var swap = Mathf.Abs(Mathf.Sin(Mathf.DegToRad(yawDeg))) > 0.7f;
-        var sx = box.Size.X > 0 ? (swap ? d : w) / box.Size.X : 1;
-        var sz = box.Size.Z > 0 ? (swap ? w : d) / box.Size.Z : 1;
-        var s = Mathf.Min(sx, sz);
-        var c = box.GetCenter();
-        var mi = new MeshInstance3D { Mesh = mesh, Scale = Vector3.One * s, RotationDegrees = new Vector3(0, yawDeg, 0) };
-        mi.Position = pos - mi.Basis * new Vector3(c.X, box.Position.Y, c.Z);
-        parent.AddChild(mi);
-        return mi;
-    }
-
     /// <summary>One MultiMesh drawing many copies of a model; per-instance colours tint the foliage shader.</summary>
     public static MultiMeshInstance3D Many(Node3D parent, Mesh mesh, IReadOnlyList<Transform3D> xf, IReadOnlyList<Color> colors = null, bool shadow = true, float visibleTo = 0)
     {
@@ -271,12 +254,6 @@ void fragment() {
     public static readonly ShaderMaterial FlowerYellow = Make(new Color("#f2c53d"), 0.3f, 0.01f);
     public static readonly ShaderMaterial FlowerPurple = Make(new Color("#9a6ad6"), 0.3f, 0.01f);
     public static readonly ShaderMaterial FlowerWhite = Make(new Color("#f4f1e8"), 0.3f, 0.01f);
-
-    /// <summary>Wind strength for all plants (1 = a light breeze, 3 = storm).</summary>
-    public static void SetWind(float w)
-    {
-        foreach (var m in All) m.SetShaderParameter("wind", w);
-    }
 
     public static void SetColor(ShaderMaterial m, Color c) => m.SetShaderParameter("albedo", c);
 

@@ -5,20 +5,36 @@ on:
     branches: [test, main]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   GODOT_VERSION: 4.5.1
+  # from https://github.com/godotengine/godot/releases/download/4.5.1-stable/SHA512-SUMS.txt; update together with the version
+  GODOT_LINUX_SHA512: 3823b13bba75ab5be49acf995137fff4609baace1ffdfb9ed359e0f75ab6f6be31d587370930e98521d8754ac7b2728c31aae8e972cc6a88752657df72a8fe89
 
 jobs:
   test:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
         with:
           dotnet-version: 8.0.x
       - name: Download Godot (.NET)
         run: |
-          curl -sSLo godot.zip "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_mono_linux_x86_64.zip"
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          file="Godot_v${GODOT_VERSION}-stable_mono_linux_x86_64.zip"
+          curl -sSfLo godot.zip "$base/$file"
+          # the download must match the checksum Godot publishes and we pin here
+          echo "${GODOT_LINUX_SHA512}  godot.zip" | sha512sum -c -
           unzip -q godot.zip -d godot
           echo "GODOT=$(ls $PWD/godot/*/Godot_v*_mono_linux.x86_64)" >> "$GITHUB_ENV"
       - name: Import project

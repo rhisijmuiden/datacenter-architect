@@ -52,7 +52,7 @@ public partial class InfoDialog : Modal
         _checkBtn = Ui.Secondary("info_check", () => _ = Check());
         _updateBtn = Ui.Primary("info_update_now", () => _ = Install());
         _updateBtn.Visible = false;
-        _notesBtn = Ui.Secondary("info_release_notes", () => { if (_offer != null) OS.ShellOpen(_offer.PageUrl); });
+        _notesBtn = Ui.Secondary("info_release_notes", () => { if (UpdateService.IsTrustedUrl(_offer?.PageUrl)) OS.ShellOpen(_offer.PageUrl); });
         _notesBtn.Visible = false;
         _checkBtn.SizeFlagsHorizontal = _updateBtn.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         row.AddChild(_checkBtn); row.AddChild(_notesBtn); row.AddChild(_updateBtn);
@@ -109,7 +109,7 @@ public partial class InfoDialog : Modal
             case UpdateVerdict.ChannelSwitch:
                 _offer = r.Release;
                 _status.Text = Loc.T(r.Verdict == UpdateVerdict.NewerAvailable ? "info_available" : "info_switch", r.Release.Version.ToString());
-                _updateBtn.Visible = true; _notesBtn.Visible = true;
+                _updateBtn.Visible = true; _notesBtn.Visible = r.Release.PageUrl != null;
                 break;
         }
     }

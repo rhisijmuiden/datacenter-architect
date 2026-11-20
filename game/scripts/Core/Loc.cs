@@ -11,7 +11,6 @@ namespace DatacenterArchitect.Core;
 public static class Loc
 {
     public const string File = "res://locale/strings.tsv";
-    public static readonly string[] Languages = { "en", "nl" };
     static bool _loaded;
     public static readonly Dictionary<string, Dictionary<string, string>> Table = new();
 

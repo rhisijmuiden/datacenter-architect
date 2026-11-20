@@ -90,7 +90,6 @@ public class NetReport
     public readonly Dictionary<int, double> PeerFlows = new();
     /// <summary>Share of the traffic that gets through (1 = no congestion).</summary>
     public double Served = 1;
-    public double CoreLimitGbps = double.MaxValue;
     public double TransitRatio => TransitCapacity <= 0 ? (TransitGbps > 0 ? 9 : 0) : (TransitGbps + Overflow) / TransitCapacity;
     public NetLinkInfo Link(NetLink l) => Links.First(x => x.Link == l);
 }

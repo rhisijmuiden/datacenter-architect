@@ -56,7 +56,6 @@ msg_scenario_start	Scenario {0}: {1}	Scenario {0}: {1}
 msg_scenario_rescue	You took over a datacenter close to bankruptcy. Look at the books, fix the cooling and win back the customers.	Je hebt een datacenter overgenomen dat bijna failliet is. Kijk in de boeken, repareer de koeling en win de klanten terug.
 new_scenario	Scenario	Scenario
 new_free_play	Free play	Vrij spelen
-new_free_play_help	Build at your own pace, in career or creative mode.	Bouw in je eigen tempo, als carrière of in de creatieve modus.
 new_scenario_years	Time: {0} years.	Tijd: {0} jaar.
 sc_rush	Quick start	Snelle start
 sc_rush_desc	An empty plot, a bank balance and one year. How many racks can you get running?	Een leeg terrein, geld op de bank en één jaar. Hoeveel racks krijg je aan de praat?

@@ -42,7 +42,7 @@ public partial class Timelapse : Node
         AddChild(_vp);
     }
 
-    public static string DirOf(string gameId) => $"{Root}/{gameId}";
+    public static string DirOf(string gameId) => $"{Root}/{(GameState.IsSafeId(gameId) ? gameId : "unknown")}";
 
     /// <summary>The saved pictures of a game, oldest first: (game day, file path).</summary>
     public static List<(int day, string path)> Frames(string gameId)

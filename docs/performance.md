@@ -33,6 +33,12 @@ relative numbers and the CPU-side timings mean anything there.
   extended in place when an object is added, so placing a row of racks does not get slower as the hall grows.
 - **Placing a rack does not rebuild the layout.** Only gates, lifts and roof plant change walls, roofs or fences
   (`GameState.ShapesLayout`), so other objects touch the state without a layout rebuild.
+- **Walkers never search for places they cannot reach.** `Nav` labels the connected areas of each floor once per
+  layout change (`Nav.Connected`). A walk to one cell (`Simulation.GoTo`) first checks that label and then searches
+  with A* aimed at the cell; the search buffers are reused instead of allocated per search. Before this, staff that
+  picked a spot boxed in between racks flooded the whole site again and again: at 10 000 racks the simulation took
+  9.8 ms per frame on average with spikes of 350 ms; now 0.8 ms (headless, debug build).
+- **Daily staff check** works out the advised team size once per role instead of once per employee.
 - **The HUD checklist** only rebuilds its labels when a goal changes, and the ambient sound hands its samples to
   the engine in one buffer per frame instead of one call per sample.
 
