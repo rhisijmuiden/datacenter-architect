@@ -364,7 +364,7 @@ public partial class GameState
         list.Add(("wb_desks", DeskNeed <= Workplaces ? 2 : -10));
         if (people >= 12) list.Add(("wb_helpdesk", HasStaff(StaffRole.Helpdesk) ? 3 : -4));
         if (TrainingBudget > 0) list.Add(("wb_training", 4));
-        if (Objects.Count(o => o.Kind is ObjKind.Tree or ObjKind.Shrub or ObjKind.Plant or ObjKind.Bench) >= 10) list.Add(("wb_green", 2));
+        if (Objects.Count(o => o.Kind is ObjKind.Tree or ObjKind.Shrub or ObjKind.Plant or ObjKind.Bench or ObjKind.ParkBench or ObjKind.PicnicTable or ObjKind.TerraceSet) >= 10) list.Add(("wb_green", 2));
         return list;
     }
 

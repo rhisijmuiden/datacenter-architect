@@ -108,6 +108,7 @@ Elke locatie toont vooraf de **beschikbare netcapaciteit (MVA)** en de **glasvez
 - In de 3D-wereld zie je boven een rack dat wacht een markering in amber (stroom nog aansluiten) of oranje (bekabeling nog trekken).
 - **Servers in de racks:** een geplaatst rack is gevuld met apparatuur van verschillende hoogtes: 1U- en 2U-servers, 3U GPU-servers, 4U storage en 7U bladechassis, met bovenin één of twee switches. Elk rack heeft een eigen thema (compute, storage, blades of GPU) en altijd dezelfde inhoud. De lampjes zitten op de servers zelf (schijfbays, poorten, blades) en knipperen pas als het rack live is. In de opties kun je het knipperen uitzetten.
 - **Grote zalen blijven soepel:** racks en servers worden per blok van 16 × 16 vakken getekend en alleen het blok waarin iets verandert wordt opnieuw opgebouwd. Van ver weg zie je alleen de rackfronten; dichtbij (tot 6 m inzoomen) zie je de servers en hun lampjes. Meten kan met `--bench N` (zie `docs/performance.md`).
+- **Zitplaatsen buiten:** naast het bankje zijn er een parkbank, een picknicktafel en een terrastafel met parasol (die mag ook op het dak). Ze tellen net als bomen en planten mee voor het groene-omgeving-welzijn van het personeel.
 
 ## Netwerk en glasvezel
 

@@ -235,7 +235,119 @@ def tuft(name, seed, blades=14, h=0.45, spread=0.18, mat=GRASS, petals=None):
     save(name, objs)
 
 
-if __name__ == '__main__':
+def weeping_willow(name, seed):
+    """Treurwilg: a short leaning trunk, a broad dome and long curtains of leaves hanging almost to the ground."""
+    reset()
+    rnd = random.Random(seed)
+    t = branchy_trunk(5.0, 0.36, rnd, M(BARK), 5, 0.55, 2.4, 0.3)
+    shade_flat(t, lambda co, n: tuple([0.7 + 0.2 * min(1, co.z / 4)] * 3))
+    centre = Vector((0, 0, 6.0))
+    blobs = cloud_blobs(rnd, centre, 3.4, 3.2, 1.5, 16, 0.9, 1.3)
+    c = crown(blobs, 0.3, 0.22, 1.4, seed, 1400, M(LEAVES2))
+    shade_crown(c, 4.6, 7.6, centre, 3.4, 0.45)
+    strands = []
+    for k in range(18):                                                    # thin hanging curtains with gaps between
+        a = 2 * math.pi * k / 18 + rnd.uniform(-0.08, 0.08)
+        r = rnd.uniform(3.2, 3.7)
+        bottom = rnd.uniform(1.2, 2.6)
+        z = 5.6
+        while z > bottom:
+            strands.append((Vector((math.cos(a) * r, math.sin(a) * r, z)), rnd.uniform(0.26, 0.34)))
+            r += 0.07; z -= 0.4
+    cur = crown(strands, 0.16, 0.08, 2.5, seed + 1, 1400, M(LEAVES2))
+    shade_crown(cur, 1.2, 6.0, centre, 3.6, 0.55)
+    save(name, [t, c, cur])
+
+
+
+def pollard_willow(name, seed):
+    """Knotwilg: a thick, short trunk with a knobbly head and a bush of straight young shoots."""
+    reset()
+    rnd = random.Random(seed)
+    pts = [Vector((0, 0, 0)), Vector((0.05, 0, 0.8)), Vector((0.1, 0.05, 1.7)), Vector((0.08, 0.05, 2.2))]
+    t = tube(pts, [0.42, 0.34, 0.36, 0.48], 10, M(BARK), 'trunk')
+    bpy.ops.mesh.primitive_ico_sphere_add(subdivisions=2, radius=0.55, location=(0.08, 0.05, 2.3))
+    head = bpy.context.view_layer.objects.active; head.scale = (1, 1, 0.6)
+    head.data.materials.append(M(BARK))
+    parts = [t, head]
+    tips = []
+    for k in range(14):
+        a = rnd.uniform(0, 2 * math.pi); s = rnd.uniform(0.2, 0.9)
+        start = Vector((0.08 + math.cos(a) * 0.3, 0.05 + math.sin(a) * 0.3, 2.4))
+        end = start + Vector((math.cos(a) * s, math.sin(a) * s, rnd.uniform(1.6, 2.6)))
+        parts.append(tube([start, start.lerp(end, 0.5), end], [0.05, 0.035, 0.015], 5, M(BARK), 'shoot'))
+        tips.append(end)
+    trunk = join(parts, 'trunk')
+    shade_flat(trunk, lambda co, n: (0.62, 0.6, 0.56) if co.z < 2.0 else (0.85, 0.82, 0.78))
+    blobs = [(Vector((0.08, 0.05, 4.0)), 1.2)] + [(p - Vector((0, 0, 0.3)), rnd.uniform(0.55, 0.8)) for p in tips]
+    c = crown(blobs, 0.22, 0.2, 1.8, seed, 1100, M(LEAVES2))
+    shade_crown(c, 2.6, 5.2, Vector((0, 0, 3.9)), 1.6, 0.5)
+    save(name, [trunk, c])
+
+
+def scots_pine(name, seed, height=12):
+    """Grove den: a tall bare trunk, warm orange-brown at the top, with a flat, irregular crown of needle clumps."""
+    reset()
+    rnd = random.Random(seed)
+    lean = Vector((rnd.uniform(-0.6, 0.6), rnd.uniform(-0.6, 0.6), 0))
+    pts = [Vector((0, 0, 0)) + lean * (i / 6) ** 2 + Vector((0, 0, height * 0.82 * i / 6)) for i in range(7)]
+    parts = [tube(pts, [0.3 - 0.03 * i for i in range(7)], 8, M(BARK), 'trunk')]
+    top = pts[-1]
+    blobs = []
+    for k in range(6):                                                      # a few big flat clumps on branches
+        a = 2 * math.pi * k / 6 + rnd.uniform(-0.3, 0.3)
+        h = top.z - rnd.uniform(0.3, 2.6)
+        base = Vector((lean.x * (h / height) ** 2, lean.y * (h / height) ** 2, h))
+        tip = base + Vector((math.cos(a) * rnd.uniform(1.4, 2.6), math.sin(a) * rnd.uniform(1.4, 2.6), rnd.uniform(0.3, 0.9)))
+        parts.append(tube([base, base.lerp(tip, 0.5) + Vector((0, 0, 0.2)), tip], [0.12, 0.08, 0.04], 6, M(BARK), 'branch'))
+        for j in range(4):
+            blobs.append((tip + Vector((rnd.uniform(-0.6, 0.6), rnd.uniform(-0.6, 0.6), rnd.uniform(-0.1, 0.3))), rnd.uniform(0.7, 1.0)))
+    blobs.append((top + Vector((0, 0, 0.6)), 1.2))
+    trunk = join(parts, 'trunk')
+    z1 = height
+    shade_flat(trunk, lambda co, n: (0.95, 0.62, 0.45) if co.z > z1 * 0.45 else (0.7, 0.62, 0.55))
+    crn = []
+    for b in blobs:
+        crn.append(b)
+    c = crown(crn, 0.26, 0.28, 1.3, seed, 1800, M(NEEDLES))
+    shade_crown(c, top.z - 3.2, top.z + 1.6, top, 2.4, 0.4)
+    save(name, [trunk, c])
+
+
+def larch(name, seed, height=12, r_base=1.7):
+    """Lariks: a slender, open cone with thin tiers of soft light-green needles and a straight trunk."""
+    reset()
+    rnd = random.Random(seed)
+    t = tube([Vector((0, 0, 0)), Vector((0, 0, height * 0.5)), Vector((0, 0, height))], [0.22, 0.13, 0.03], 7, M(BARK), 'trunk')
+    shade_flat(t, lambda co, n: (0.75, 0.62, 0.55))
+    blobs = []
+    tiers = 9
+    for i in range(tiers):
+        f = i / (tiers - 1)
+        z = height * (0.18 + 0.78 * f)
+        r = r_base * (1 - f * 0.85)
+        for k in range(5 if f < 0.7 else 3):
+            a = 2 * math.pi * k / 5 + i * 0.7 + rnd.uniform(-0.2, 0.2)
+            blobs.append((Vector((math.cos(a) * r * 0.8, math.sin(a) * r * 0.8, z - r * 0.2)), max(0.28, r * 0.34)))
+        blobs.append((Vector((0, 0, z)), max(0.25, r * 0.36)))
+    c = crown(blobs, 0.22, 0.18, 1.6, seed, 1500, M(LEAVES2))
+    shade_crown(c, height * 0.15, height, Vector((0, 0, height * 0.55)), r_base, 0.45)
+    save(name, [t, c])
+
+
+def more_trees():
+    broadleaf('tree_beech', 21, 10, 2.2, 3.8, 6.0, 0.36, count=26, rmin=1.0, rmax=1.6)
+    broadleaf('tree_chestnut', 22, 11, 2.6, 3.3, 7.4, 0.38, count=24, rmin=1.1, rmax=1.7, voxel=0.36, branches=5)
+    broadleaf('tree_alder', 23, 10, 2.0, 1.9, 7.0, 0.22, count=18, rmin=0.75, rmax=1.15, branches=3, leaves=LEAVES)
+    broadleaf('tree_cherry', 24, 6.5, 1.8, 2.6, 3.8, 0.2, count=16, rmin=0.7, rmax=1.1, voxel=0.24, leaves=LEAVES2)
+    weeping_willow('tree_willow', 25)
+    pollard_willow('tree_pollard', 26)
+    scots_pine('tree_pine', 27)
+    larch('tree_larch', 28)
+
+
+
+def base_set():
     broadleaf('tree_oak', 1, 8.5, 2.4, 3.2, 5.2, 0.32, count=22)
     broadleaf('tree_lime', 2, 10, 2.8, 2.6, 6.8, 0.3, count=22, leaves=LEAVES2)
     broadleaf('tree_maple', 3, 8, 2.2, 3.0, 5.0, 0.28, count=20, rmin=1.0, rmax=1.6)
@@ -254,3 +366,10 @@ if __name__ == '__main__':
     tuft('flower_yellow', 16, blades=9, h=0.34, spread=0.12, petals=('petal_yellow', (0.98, 0.8, 0.2, 1), 5))
     tuft('flower_purple', 17, blades=9, h=0.36, spread=0.12, petals=('petal_purple', (0.6, 0.42, 0.85, 1), 4))
     tuft('flower_white', 18, blades=9, h=0.3, spread=0.12, petals=('petal_white', (0.97, 0.96, 0.92, 1), 6))
+
+
+if __name__ == '__main__':
+    only = set(os.environ.get('ONLY', '').split(',')) - {''}
+    for f in (base_set, more_trees):
+        if not only or f.__name__ in only:
+            f()
