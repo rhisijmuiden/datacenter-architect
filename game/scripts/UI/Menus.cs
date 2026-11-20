@@ -8,7 +8,7 @@ namespace DatacenterArchitect.UI;
 /// <summary>Title screen: a panel on the left over the slowly turning world.</summary>
 public partial class MainMenu : Control
 {
-    public Action Continue, NewGame, LoadGame, Info, ToggleLanguage, Quit;
+    public Action Continue, NewGame, LoadGame, Options, Info, ToggleLanguage, Quit;
     Button _continue, _lang;
 
     public override void _Ready()
@@ -35,6 +35,7 @@ public partial class MainMenu : Control
         v.AddChild(_continue);
         v.AddChild(Big("menu_new_game", () => NewGame?.Invoke()));
         v.AddChild(Big("menu_load", () => LoadGame?.Invoke()));
+        v.AddChild(Big("menu_options", () => Options?.Invoke()));
         v.AddChild(Big("menu_info", () => Info?.Invoke()));
         _lang = Big("", () => ToggleLanguage?.Invoke());
         _lang.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
@@ -72,7 +73,24 @@ public partial class NewGameDialog : Modal
         var name = new LineEdit { Text = Loc.T("new_company_default"), MaxLength = 40 };
         Body.AddChild(name);
 
-        Body.AddChild(Ui.Heading("new_mode"));
+        // step 11: free play or a scenario with medals
+        Body.AddChild(Ui.Heading("new_scenario"));
+        var scenario = new OptionButton();
+        scenario.AddItem(Loc.T("new_free_play"));
+        foreach (var sc in Scenarios.All)
+        {
+            var best = Profile.Instance.BestMedal(sc.Id);
+            scenario.AddItem(Loc.T("sc_" + sc.Id) + (best > 0 ? "  ·  " + Loc.T(Scenarios.MedalKey(best)) : ""));
+        }
+        Body.AddChild(scenario);
+        var scenarioHelp = Ui.Text("", 13, Brand.InkDim);
+        scenarioHelp.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
+        scenarioHelp.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        scenarioHelp.CustomMinimumSize = new Vector2(500, 0);
+        Body.AddChild(scenarioHelp);
+
+        var modeHead = Ui.Heading("new_mode");
+        Body.AddChild(modeHead);
         var modes = new HBoxContainer(); modes.AddThemeConstantOverride("separation", 8);
         var career = new Button { Text = "new_mode_career", ToggleMode = true, ButtonPressed = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 40) };
         var creative = new Button { Text = "new_mode_creative", ToggleMode = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 40) };
@@ -87,6 +105,9 @@ public partial class NewGameDialog : Modal
         diff.Selected = 1;
         careerBox.AddChild(diff);
         careerBox.AddChild(Ui.Text("new_career_help", 13, Brand.InkDim));
+        // step 11: the tutorial coach for a first site (ticked when there are no savegames yet)
+        var tutorial = new CheckButton { Text = "new_tutorial", ButtonPressed = SaveSystem.List().Count == 0, TooltipText = "new_tutorial_help" };
+        careerBox.AddChild(tutorial);
         Body.AddChild(careerBox);
 
         var creativeBox = new VBoxContainer { Visible = false }; creativeBox.AddThemeConstantOverride("separation", 2);
@@ -113,17 +134,63 @@ public partial class NewGameDialog : Modal
         }
         creativeBox.AddChild(grid);
         Body.AddChild(creativeBox);
-        career.Toggled += on => { careerBox.Visible = on; creativeBox.Visible = !on; };
+        career.Toggled += on => { careerBox.Visible = on && scenario.Selected == 0; creativeBox.Visible = !on && scenario.Selected == 0; };
+        void ScenarioChanged(long i)
+        {
+            var free = i <= 0;
+            modeHead.Visible = modes.Visible = free;
+            careerBox.Visible = free && career.ButtonPressed; creativeBox.Visible = free && creative.ButtonPressed;
+            scenarioHelp.Visible = !free;
+            if (free) return;
+            var d = Scenarios.All[i - 1];
+            scenarioHelp.Text = Loc.T("sc_" + d.Id + "_desc") + "\n" + Loc.T("sc_" + d.Id + "_goal") + "  " + Loc.T("new_scenario_years", d.Years);
+        }
+        scenario.ItemSelected += ScenarioChanged;
+        ScenarioChanged(0);
 
         var ai = new CheckButton { Text = "new_ai", ButtonPressed = true };
         Body.AddChild(ai);
         Body.AddChild(Ui.Text("new_ai_help", 13, Brand.InkDim));
+        var rivalRow = new HBoxContainer(); rivalRow.AddThemeConstantOverride("separation", 8);
+        var rivalsLabel = Ui.Text("new_rivals", 14, Brand.Ink); rivalsLabel.AutowrapMode = TextServer.AutowrapMode.Off; rivalsLabel.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+        rivalRow.AddChild(rivalsLabel);
+        var count = new SpinBox { MinValue = 1, MaxValue = 5, Value = 3, CustomMinimumSize = new Vector2(90, 0) };
+        rivalRow.AddChild(count);
+        var aggrLabel = Ui.Text("new_aggression", 14, Brand.Ink); aggrLabel.AutowrapMode = TextServer.AutowrapMode.Off; aggrLabel.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+        rivalRow.AddChild(aggrLabel);
+        var aggr = new OptionButton();
+        aggr.AddItem(Loc.T("new_aggr_0")); aggr.AddItem(Loc.T("new_aggr_1")); aggr.AddItem(Loc.T("new_aggr_2"));
+        aggr.Selected = 1;
+        rivalRow.AddChild(aggr);
+        Body.AddChild(rivalRow);
+        ai.Toggled += on => rivalRow.Visible = on;
+        var events = new CheckButton { Text = "new_events", ButtonPressed = true };
+        Body.AddChild(events);
+        Body.AddChild(Ui.Text("new_events_help", 13, Brand.InkDim));
+        // step 9: the world around you
+        var world = new GridContainer { Columns = 2 };
+        world.AddThemeConstantOverride("h_separation", 12);
+        var news = new CheckBox { Text = "new_news", ButtonPressed = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "new_news_help" };
+        var prices = new CheckBox { Text = "new_prices", ButtonPressed = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "new_prices_help" };
+        var disasters = new CheckBox { Text = "new_disasters", ButtonPressed = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "new_disasters_help" };
+        var supply = new CheckBox { Text = "new_supply", ButtonPressed = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "new_supply_help" };
+        var weather = new CheckBox { Text = "new_weather_effects", ButtonPressed = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "new_weather_effects_help" };
+        var gridQueue = new CheckBox { Text = "new_grid_queue", ButtonPressed = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "new_grid_queue_help" };
+        world.AddChild(news); world.AddChild(prices); world.AddChild(disasters); world.AddChild(supply); world.AddChild(weather); world.AddChild(gridQueue);
+        Body.AddChild(Ui.Heading("new_world"));
+        Body.AddChild(world);
+        Body.AddChild(Ui.Text("new_world_help", 13, Brand.InkDim));
         Body.AddChild(new HSeparator());
         Body.AddChild(Ui.Primary("new_start", () =>
         {
             o.Company = string.IsNullOrWhiteSpace(name.Text) ? Loc.T("new_company_default") : name.Text.Trim();
-            o.Difficulty = diff.Selected; o.AiCompetitors = ai.ButtonPressed;
+            o.Difficulty = diff.Selected; o.AiCompetitors = ai.ButtonPressed; o.Events = events.ButtonPressed;
+            o.Competitors = (int)count.Value; o.Aggression = aggr.Selected;
+            o.News = news.ButtonPressed; o.DynamicPrices = prices.ButtonPressed; o.Disasters = disasters.ButtonPressed; o.SupplyDelays = supply.ButtonPressed; o.WeatherEffects = weather.ButtonPressed; o.GridQueue = gridQueue.ButtonPressed;
+            o.Tutorial = tutorial.ButtonPressed && scenario.Selected == 0 && !creative.ButtonPressed;
             o.Creative = creative.ButtonPressed;
+            o.Scenario = scenario.Selected > 0 ? Scenarios.All[scenario.Selected - 1].Id : null;
+            if (o.Scenario != null) o.Creative = false;
             o.CreativeOptions = o.Creative ? c : new CreativeOptions();
             if (o.Creative && c.UnlimitedMoney) o.Difficulty = 0;
             Close(); start(o);
@@ -192,11 +259,12 @@ public partial class SaveLoadDialog : Modal
 /// <summary>Pause menu (Esc).</summary>
 public partial class PauseMenu : Modal
 {
-    public PauseMenu(Action save, Action load, Action info, Action toMenu, Action quit) : base("pause_title", 380)
+    public PauseMenu(Action save, Action load, Action options, Action info, Action toMenu, Action quit) : base("pause_title", 380)
     {
         Body.AddChild(Ui.Primary("pause_resume", Close));
         Body.AddChild(Ui.Secondary("pause_save", () => { Close(); save(); }));
         Body.AddChild(Ui.Secondary("menu_load", () => { Close(); load(); }));
+        Body.AddChild(Ui.Secondary("menu_options", () => { Close(); options(); }));
         Body.AddChild(Ui.Secondary("menu_info", () => { Close(); info(); }));
         Body.AddChild(Ui.Secondary("pause_main_menu", () => { Close(); toMenu(); }));
         Body.AddChild(Ui.Secondary("menu_quit", () => { Close(); quit(); }));

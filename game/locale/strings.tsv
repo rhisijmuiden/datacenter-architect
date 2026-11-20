@@ -58,7 +58,6 @@ res_backup	Backup	Noodstroom
 res_cooling	Cooling	Koeling
 res_racks	Racks	Racks
 res_money	Balance	Saldo
-hud_build	Build	Bouwen
 tool_select	Select	Selecteren
 tool_erase	Demolish	Slopen
 cat_land	Land	Grond
@@ -71,13 +70,12 @@ cat_security	Security	Beveiliging
 cat_staff	Staff	Personeel
 cat_customers	Customers	Klanten
 hud_coming_soon	Coming in a later update	Komt in een volgende update
-hint_select	Click a building, room or rack for details. Right-drag rotates, wheel zooms, WASD pans, Q and E turn. T shows roofs, Page Up and Down change floor.	Klik op een gebouw, ruimte of rack voor details. Rechts slepen draait, scrollwiel zoomt, WASD schuift, Q en E draaien. T toont daken, Page Up en Down wisselen van verdieping.
+hint_select	Click a building, room or rack for details. Right-drag rotates, wheel zooms, WASD pans, Q and E turn. T shows roofs, Page Up and Down change floor. P shows the power overlay, H the cooling overlay, N the network overlay. Ctrl+Z undoes, Ctrl+Y redoes.	Klik op een gebouw, ruimte of rack voor details. Rechts slepen draait, scrollwiel zoomt, WASD schuift, Q en E draaien. T toont daken, Page Up en Down wisselen van verdieping. P toont de stroomweergave, H de koelweergave, N de netwerkweergave. Ctrl+Z maakt ongedaan, Ctrl+Y doet opnieuw.
 hint_place	Click to place. R rotates. Red means it cannot go there.	Klik om te plaatsen. R draait. Rood betekent dat het daar niet kan.
 hint_erase	Drag over what you want to remove. Objects and doors go first, then rooms, then buildings and paving.	Sleep over wat je wilt weghalen. Eerst objecten en deuren, dan ruimtes, dan gebouwen en bestrating.
 hud_rotate_left	Rotate left (Q)	Links draaien (Q)
 hud_rotate_right	Rotate right (E)	Rechts draaien (E)
 hud_grid	Show or hide the grid	Grid tonen of verbergen
-hud_language	Switch language	Taal wisselen
 hud_info	Info and updates	Info en updates
 hud_menu	Menu (Esc)	Menu (Esc)
 hud_speed_0	Pause (Space)	Pauze (spatie)
@@ -102,7 +100,7 @@ hint_fence	Drag a line, or a rectangle to fence it all round. Put a sliding gate
 hint_building	Drag out the floor plan. Builders lay the foundation, put up the walls and the roof. Material comes by truck to your yard.	Sleep de plattegrond uit. Bouwvakkers storten de fundering en bouwen muren en dak. Materiaal komt per vrachtwagen naar je materialenplek.
 hint_room	Drag a room inside a finished building. Builders put up the inner walls. Lights are added automatically.	Sleep een ruimte binnen een afgebouwd gebouw. Bouwvakkers zetten de binnenmuren. Verlichting komt er vanzelf in.
 hint_door	Point at a wall and click. Racks only fit through double doors and roll-up doors.	Wijs een muur aan en klik. Racks passen alleen door dubbele deuren en roldeuren.
-hint_row	Drag a row of up to 24 racks. R turns the fronts. Leave an aisle between rows so engineers reach the back.	Sleep een rij van maximaal 24 racks. R draait de voorkanten. Laat een gang tussen de rijen zodat engineers bij de achterkant kunnen.
+hint_row	Drag a row of up to 24 racks; R turns the fronts. Drag wider to fill a block of rows in one go: pairs face each other across a cold aisle, with hot aisles between the pairs (R starts with the backs).	Sleep een rij van maximaal 24 racks; R draait de voorkanten. Sleep breder om in één keer een blok rijen te vullen: paren kijken elkaar aan over een koude gang, met warme gangen ertussen (R begint met de achterkanten).
 cat_rooms	Rooms	Ruimtes
 cat_interior	Interior	Inrichting
 hud_creative	Creative	Creatief
@@ -110,7 +108,7 @@ hud_unlimited	no limit	geen limiet
 hud_floors	Floors	Verdiepingen
 hud_floors_n	{0} floor(s)	{0} verdieping(en)
 hud_facade	Facade	Gevel
-hud_needs_research	Needs research (step 8), or creative mode with everything unlocked.	Vraagt research (stap 8), of de creatieve modus met alles ontgrendeld.
+hud_needs_research	Needs research first (Research tree), or creative mode with everything unlocked.	Vraagt eerst research (Research tree), of de creatieve modus met alles ontgrendeld.
 hud_roofs	Show or hide roofs (T)	Daken tonen of verbergen (T)
 hud_floor	Floor you are looking at	Verdieping die je bekijkt
 hud_floor_up	Floor up (Page Up)	Verdieping omhoog (Page Up)
@@ -124,7 +122,7 @@ goal_building	Datacenter building finished	Datacenterpand afgebouwd
 goal_hall	Data hall ready	Datahal klaar
 goal_dock	Loading dock with a roll-up door on asphalt	Laadperron met roldeur aan het asfalt
 goal_rack	First rack live	Eerste rack live
-goal_office	Director's office with a desk	Directiekamer met bureau
+goal_office	Director's office with a desk and a chair	Directiekamer met bureau en stoel
 projects_title	Building projects	Bouwprojecten
 projects_waiting	waits for building	wacht op gebouw
 projects_priority	Click to change the priority	Klik om de prioriteit te wijzigen
@@ -153,6 +151,8 @@ obj_crah	CRAH unit 120 kW	CRAH-unit 120 kW
 obj_generator	Generator 1 MW	Generator 1 MW
 obj_fiberpit	Fiber pit	Glasvezelput
 obj_lift	Freight lift	Goederenlift
+obj_passenger_lift	Passenger lift	Personenlift
+obj_stairs	Stairs	Trap
 obj_desk	Desk	Bureau
 obj_chair	Office chair	Bureaustoel
 obj_plant	Plant	Plant
@@ -169,10 +169,16 @@ obj_shrub	Shrub	Struik
 obj_lamp	Lamp post	Lantaarnpaal
 obj_bench	Bench	Bankje
 obj_bikerack	Bike rack	Fietsenrek
+obj_park_bench	Park bench	Parkbank
+obj_picnic_table	Picnic table	Picknicktafel
+obj_terrace_set	Terrace table with parasol	Terrastafel met parasol
+obj_bikeshed	Bike shed (e-bike charging)	Fietsenhok (e-bike laden)
+obj_evcharger	EV charging point	Laadpaal
 obj_guardbooth	Guard booth	Beveiligingshokje
 obj_intercom	Intercom	Intercom
 obj_barrier	Barrier	Slagboom
 obj_sliding_gate	Sliding gate	Schuifpoort
+obj_sliding_gate_large	Large sliding gate	Grote schuifpoort
 obj_ped_gate	Pedestrian gate	Voetgangerspoort
 surf_grass	Grass (remove paving)	Gras (bestrating weg)
 surf_asphalt	Asphalt	Asfalt
@@ -214,7 +220,7 @@ status_ordered	Ordered, waiting for the truck	Besteld, wacht op de vrachtwagen
 status_delivered	At the loading dock	Bij het laadperron
 status_placed	Placed, power not connected yet	Geplaatst, stroom nog niet aangesloten
 status_powered	Power connected, fiber not yet	Stroom aangesloten, glasvezel nog niet
-status_live	Live and ready to sell	Live en klaar voor verkoop
+status_live	Live	Live
 facade_concrete	Concrete	Beton
 facade_brick	Brick	Baksteen
 facade_glass	Glass	Glas
@@ -238,7 +244,7 @@ msg_door_upper_outer	Outer doors only on the ground floor.	Buitendeuren alleen o
 msg_needs_asphalt	This goes on asphalt.	Dit hoort op asfalt.
 msg_needs_fence	Place this on a fence.	Zet dit op een hek.
 msg_inside_building	This goes inside a building, on the ground floor.	Dit hoort in een gebouw, op de begane grond.
-msg_lift_floors	A lift only makes sense in a building with more than one floor.	Een lift heeft alleen zin in een gebouw met meer verdiepingen.
+msg_lift_floors	Stairs and lifts only make sense in a building with more than one floor.	Trappen en liften hebben alleen zin in een gebouw met meer verdiepingen.
 msg_needs_room	This goes in a room, not in a data hall.	Dit hoort in een ruimte, niet in een datahal.
 msg_needs_hall	This goes in a data hall.	Dit hoort in een datahal.
 msg_one_room	It has to fit within one room.	Het moet binnen één ruimte passen.
@@ -247,7 +253,7 @@ msg_need_yard	Mark a building materials yard so trucks can deliver material.	Wij
 msg_yard_no_road	Trucks cannot reach the materials yard. Connect it to the road with asphalt.	Vrachtwagens kunnen de materialenplek niet bereiken. Sluit hem met asfalt aan op de weg.
 msg_yard_unreachable	Builders cannot reach the materials yard.	Bouwvakkers kunnen de materialenplek niet bereiken.
 msg_site_unreachable	Builders cannot reach the {0}. Add a door.	Bouwvakkers kunnen de {0} niet bereiken. Plaats een deur.
-msg_site_needs_lift	Builders cannot reach the {0} upstairs. Add a freight lift and a door.	Bouwvakkers kunnen de {0} boven niet bereiken. Plaats een goederenlift en een deur.
+msg_site_needs_lift	Builders cannot reach the {0} upstairs. Add stairs or a lift and a door.	Bouwvakkers kunnen de {0} boven niet bereiken. Plaats een trap of lift en een deur.
 msg_building_done	{0} is finished.	{0} is klaar.
 msg_room_done	{0} is ready.	{0} is klaar.
 msg_need_dock	Racks are waiting: build a loading dock with a roll-up door onto asphalt.	Er wachten racks: bouw een laadperron met een roldeur aan het asfalt.
@@ -258,3 +264,1568 @@ msg_hall_needs_lift	Racks for an upper floor need a freight lift.	Racks voor een
 msg_rack_unreachable	An engineer cannot reach a rack. Leave an aisle next to it.	Een engineer kan een rack niet bereiken. Laat er een gang naast.
 msg_first_rack_live	Your first rack is live and ready to sell!	Je eerste rack is live en klaar voor verkoop!
 msg_racks_ordered	{0} ordered. A truck brings them to the loading dock.	{0} besteld. Een vrachtwagen brengt ze naar het laadperron.
+# ---- step 4: power and cooling ----
+res_pue	PUE	PUE
+hud_overlay_power	Power overlay (P)	Stroomweergave (P)
+hud_overlay_cooling	Cooling overlay (H)	Koelweergave (H)
+power_overview	Power and cooling overview	Overzicht stroom en koeling
+power_title	Power and cooling	Stroom en koeling
+power_grid	Grid connection	Netaansluiting
+power_supplier	Energy supplier	Energieleverancier
+power_backup	Backup power	Noodstroom
+power_chain	Power chain	Stroomketen
+grid_station	Grid connection	Netaansluiting
+grid_level_0	compact station with its own transformer, low voltage	compact station met eigen transformator, laagspanning
+grid_level_1	customer substation, 10 kV	klantstation, 10 kV
+grid_level_2	customer substation with two feeds, 20 kV	klantstation met twee voedingen, 20 kV
+grid_level_3	own substation with transformers and portal, 50 kV	eigen onderstation met transformatoren en portaal, 50 kV
+grid_request	Request {0} MVA · {1} · {2} days	{0} MVA aanvragen · {1} · {2} dagen
+grid_request_running	Grid operator is upgrading to {0} MVA: {1} days left	Netbeheerder verzwaart naar {0} MVA: nog {1} dagen
+grid_days_left	{0} days left	nog {0} dagen
+grid_max	This is the largest connection the grid operator offers.	Dit is de grootste aansluiting die de netbeheerder levert.
+grid_help	From 10 MVA the grid operator delivers medium voltage: build a transformer room with your own transformers. The connection carries the IT load times the PUE.	Vanaf 10 MVA levert de netbeheerder middenspanning: bouw een transformatorruimte met eigen transformatoren. De aansluiting draagt de IT-last maal de PUE.
+supplier_fixed	Fixed price, {0}-year contract	Vaste prijs, contract van {0} jaar
+supplier_variable	Variable price that follows the market	Variabele prijs die de markt volgt
+supplier_green	Green power, fixed price, {0}-year contract	Groene stroom, vaste prijs, contract van {0} jaar
+supplier_green_variable	Green power, variable price	Groene stroom, variabele prijs
+supplier_today	Your price today: € {0} per kWh	Jouw prijs vandaag: € {0} per kWh
+backup_generators	Generators: {0} × 1 MW ({1}) · {2} · backup {3}	Generatoren: {0} × 1 MW ({1}) · {2} · noodstroom {3}
+backup_ats_yes	ATS in the switchgear switches to the generators automatically.	De ATS in de schakelkast schakelt automatisch over op de generatoren.
+backup_ats_no	No switchgear: generators cannot take over without an ATS.	Geen schakelkast: zonder ATS kunnen de generatoren niet overnemen.
+backup_fuel	Diesel: {0} litres · {1} hours at full load	Diesel: {0} liter · {1} uur bij volle belasting
+backup_ups	UPS: {0} · batteries {1} kWh · {2} minutes autonomy	UPS: {0} · accu's {1} kWh · {2} minuten autonomie
+chain_link	Link	Schakel
+chain_capacity	Capacity	Capaciteit
+chain_load	Load	Belasting
+chain_redundancy	Setup	Opzet
+link_grid	Grid connection	Netaansluiting
+link_transformers	Transformers	Transformatoren
+link_switchgear	Switchgear and ATS	Schakelkast en ATS
+link_ups	UPS	UPS
+link_distribution	PDUs and busbars	PDU's en busbars
+chain_usable	The chain can power {0} of IT load: {1} of {2} live racks run.	De keten kan {0} IT-last voeden: {1} van {2} live racks draaien.
+chain_unlimited	Creative mode: power is no limit.	Creatieve modus: stroom is geen beperking.
+chain_help	Every rack needs the whole chain: grid, transformer, switchgear, UPS and a PDU or busbar in its hall. The weakest link (◀) decides how many racks can run. N+1 and 2N mean one unit may fail.	Elk rack heeft de hele keten nodig: net, transformator, schakelkast, UPS en een PDU of busbar in de hal. De zwakste schakel (◀) bepaalt hoeveel racks kunnen draaien. N+1 en 2N betekenen dat er een unit mag uitvallen.
+cool_title	Cooling	Koeling
+cool_summary	Heat {0} · CRAH units {1} · heat rejection outside {2}	Warmte {0} · CRAH-units {1} · warmteafvoer buiten {2}
+cool_pue	PUE {0}: every kW of IT costs this many kW from the grid.	PUE {0}: elke kW IT kost zoveel kW van het net.
+cool_help	CRAH units cool the hall; chillers and cooling towers outside or on the roof take the heat away. Hot/cold aisles and a cold corridor make the CRAH units more effective and lower the PUE.	CRAH-units koelen de hal; koelmachines en koeltorens buiten of op het dak voeren de warmte af. Warme en koude gangen en een cold corridor maken de CRAH-units effectiever en verlagen de PUE.
+halls_title	Data halls	Datazalen
+halls_none	No data halls yet.	Nog geen datazalen.
+hall_col_hall	Hall	Hal
+hall_col_racks	Racks running	Racks aan
+hall_col_power	IT / feeds	IT / voeding
+hall_col_ab	A/B	A/B
+hall_col_air	Air	Lucht
+hall_col_temp	Temp	Temp
+hall_ab_no	single	enkel
+hall_open	Open hall	Open zaal
+hall_hotcold	Hot and cold aisles	Warme en koude gangen
+hall_cold_corridor	Cold corridor	Cold corridor
+advice_title	Advice	Advies
+advice_ok	Power and cooling are in order.	Stroom en koeling zijn op orde.
+advice_switchgear	Build a switchgear room with main switchgear: it distributes the power and holds the ATS for the generators.	Bouw een schakelruimte met een hoofdschakelkast: die verdeelt de stroom en bevat de ATS voor de generatoren.
+advice_ups	Build a UPS room with UPS units: racks only run behind a UPS.	Bouw een UPS-ruimte met UPS'en: racks draaien alleen achter een UPS.
+advice_pdu	A data hall with racks has no PDU or busbar. Place PDUs in the hall or install a busbar.	Een datahal met racks heeft geen PDU of busbar. Zet PDU's in de hal of laat een busbar aanleggen.
+advice_power_short	Some racks are off because the power chain is too small. See which link has the arrow.	Een deel van de racks staat uit omdat de stroomketen te klein is. Kijk welke schakel de pijl heeft.
+advice_battery	The UPS has no batteries: add battery cabinets in the UPS or battery room.	De UPS heeft geen accu's: zet accukasten in de UPS- of accuruimte.
+advice_generators	Place at least two generators for N+1 backup power.	Plaats minstens twee generatoren voor N+1-noodstroom.
+advice_ats	Generators need switchgear with an ATS to take over.	Generatoren hebben een schakelkast met ATS nodig om over te nemen.
+advice_grid	The grid connection is almost full. Request a bigger connection in time; it takes months.	De netaansluiting is bijna vol. Vraag op tijd een zwaardere aansluiting aan; dat duurt maanden.
+advice_reject	There is nothing to take the heat away. Place a chiller or cooling tower outside or on a roof.	Er is niets dat de warmte afvoert. Zet een koelmachine of koeltoren buiten of op een dak.
+advice_crah	A data hall with racks has no CRAH unit.	Een datahal met racks heeft geen CRAH-unit.
+advice_hot	A hall overheated and racks were shut down. Add cooling or upgrade the hall.	Een hal is oververhit en racks zijn uitgeschakeld. Voeg koeling toe of upgrade de hal.
+advice_cooling_tight	Cooling is almost at its limit. Add cooling before you place more racks.	De koeling zit bijna aan de limiet. Voeg koeling toe voordat je meer racks plaatst.
+advice_containment	Upgrade halls to hot and cold aisles (click the hall) for more cooling and a lower PUE.	Upgrade hallen naar warme en koude gangen (klik op de hal) voor meer koeling en een lagere PUE.
+obj_transformer	Transformer 2.5 MVA	Transformator 2,5 MVA
+obj_switchgear	Main switchgear with ATS	Hoofdschakelkast met ATS
+obj_ups	UPS 500 kW	UPS 500 kW
+obj_battery	Battery cabinet 40 kWh	Accukast 40 kWh
+obj_pdu	Floor PDU 150 kW	Vloer-PDU 150 kW
+obj_diesel_tank	Diesel tank 20,000 L	Dieseltank 20.000 L
+obj_underground_tank	Underground tank 50,000 L	Ondergrondse tank 50.000 L
+obj_chiller	Chiller 600 kW	Koelmachine 600 kW
+obj_cooling_tower	Cooling tower 1 MW	Koeltoren 1 MW
+room_transformer	Transformer room	Transformatorruimte
+room_switchgear	Switchgear room	Schakelruimte
+room_battery	Battery room	Accuruimte
+goal_switchgear	Main switchgear placed	Hoofdschakelkast geplaatst
+goal_ups	UPS with batteries live	UPS met accu's live
+goal_pdu	PDU or busbar in a hall	PDU of busbar in een hal
+goal_cooling	Chiller or cooling tower	Koelmachine of koeltoren
+goal_generators	Two generators for N+1	Twee generatoren voor N+1
+inspect_running	Running	Draait
+inspect_down_power	Off: not enough power	Uit: te weinig stroom
+inspect_down_heat	Off: the hall is too hot	Uit: de hal is te warm
+inspect_reject	{0} kW heat rejection	{0} kW warmteafvoer
+inspect_capacity	Capacity {0} kW	Capaciteit {0} kW
+inspect_storage	{0} kWh storage	{0} kWh opslag
+inspect_generator	{0} kW backup power	{0} kW noodstroom
+inspect_fuel	{0} litres of diesel	{0} liter diesel
+inspect_on_roof	On the roof	Op het dak
+inspect_level	Level {0} of {1}	Niveau {0} van {1}
+inspect_hall_power	IT {0} · feeds {1} · {2}	IT {0} · voeding {1} · {2}
+inspect_hall_cooling	CRAH {0} · {1} °C	CRAH {0} · {1} °C
+inspect_hall_hot	{0} racks off: the hall overheated	{0} racks uit: de hal is oververhit
+inspect_hall_short	{0} racks off: not enough power	{0} racks uit: te weinig stroom
+inspect_upgrading	Upgrade in progress: {0} hours left	Upgrade bezig: nog {0} uur
+action_upgrade	Upgrade to level {0} · {1}	Upgraden naar niveau {0} · {1}
+action_containment	Upgrade to {0} · {1}	Upgraden naar {0} · {1}
+action_busbar	Install busbar A+B · {0}	Busbar A+B aanleggen · {0}
+msg_needs_transformer	This goes in a transformer room.	Dit hoort in een transformatorruimte.
+msg_needs_switchgear	This goes in a switchgear room.	Dit hoort in een schakelruimte.
+msg_needs_upsroom	This goes in a UPS room.	Dit hoort in een UPS-ruimte.
+msg_needs_battery	This goes in a battery room or the UPS room.	Dit hoort in een accuruimte of de UPS-ruimte.
+msg_roof_needs_building	Place this outside or on the roof of a finished building.	Zet dit buiten of op het dak van een afgebouwd pand.
+msg_one_roof	This has to fit on one roof.	Dit moet op één dak passen.
+msg_not_on_roof	This cannot go on a roof.	Dit kan niet op een dak.
+msg_grid_busy	The grid operator is already working on your connection.	De netbeheerder is al bezig met je aansluiting.
+msg_grid_ready	The grid operator finished the work: you now have {0} MVA.	De netbeheerder is klaar: je hebt nu {0} MVA.
+msg_max_level	Already at the highest level.	Al op het hoogste niveau.
+msg_hall_not_ready	The hall is not finished yet.	De hal is nog niet af.
+msg_upgrade_busy	An upgrade is already in progress here.	Hier loopt al een upgrade.
+msg_hall_upgrade_done	Hall upgrade finished: {0}.	Hal-upgrade klaar: {0}.
+msg_busbar_done	Busbar installed: racks can draw power from above.	Busbar aangelegd: racks halen hun stroom nu van boven.
+msg_hall_hot	A data hall overheated: racks were shut down to protect them.	Een datahal is oververhit: racks zijn uitgeschakeld om ze te beschermen.
+msg_hall_cool	Cooling is back in order: the racks are running again.	De koeling is weer op orde: de racks draaien weer.
+# ---- options menu ----
+menu_options	Options	Opties
+hud_options	Options	Opties
+opt_title	Options	Opties
+opt_tab_display	Display	Beeld
+opt_tab_graphics	Graphics	Graphics
+opt_tab_audio	Audio	Geluid
+opt_tab_game	Game	Spel
+opt_section_screen	Screen	Scherm
+opt_section_performance	Performance	Prestaties
+opt_window_mode	Window mode	Venstermodus
+opt_window_mode_help	Borderless fullscreen switches fastest between the game and other programs.	Randloos volledig scherm wisselt het snelst tussen de game en andere programma's.
+opt_mode_windowed	Windowed	Venster
+opt_mode_borderless	Borderless fullscreen	Randloos volledig scherm
+opt_mode_fullscreen	Fullscreen	Volledig scherm
+opt_monitor	Monitor	Beeldscherm
+opt_monitor_n	Monitor {0} ({1} × {2})	Beeldscherm {0} ({1} × {2})
+opt_resolution	Resolution	Resolutie
+opt_res_native	Native: {0} × {1}   ({2})	Eigen resolutie: {0} × {1}   ({2})
+opt_resolution_help_window	Size of the game window.	Grootte van het spelvenster.
+opt_resolution_help_full	In fullscreen the 3D world is drawn at this resolution while text stays sharp. Lower is faster.	In volledig scherm wordt de 3D-wereld op deze resolutie getekend terwijl tekst scherp blijft. Lager is sneller.
+opt_ui_scale	Interface size	Grootte interface
+opt_ui_scale_help	Makes menus and text larger or smaller, for example on a 4K screen.	Maakt menu's en tekst groter of kleiner, bijvoorbeeld op een 4K-scherm.
+opt_vsync	V-Sync	V-Sync
+opt_vsync_help	Prevents screen tearing; off can feel more responsive.	Voorkomt scheuren in het beeld; uit kan sneller aanvoelen.
+opt_max_fps	Frame rate limit	Maximale framerate
+opt_fps_unlimited	Unlimited	Onbeperkt
+opt_fps_n	{0} FPS	{0} FPS
+opt_fullscreen_hotkey	Tip: Alt+Enter or F11 switches between windowed and fullscreen at any time.	Tip: met Alt+Enter of F11 wissel je altijd tussen venster en volledig scherm.
+opt_confirm	Keep these display settings? Reverting in {0} s.	Deze beeldinstellingen houden? Terugzetten over {0} s.
+opt_keep	Keep	Houden
+opt_revert	Revert	Terugzetten
+opt_section_quality	Quality	Kwaliteit
+opt_preset_low	Performance	Prestaties
+opt_preset_medium	Balanced	Gebalanceerd
+opt_preset_high	Quality	Kwaliteit
+opt_preset_help	Sets shadows, ambient occlusion, fog and anti-aliasing in one go.	Zet schaduwen, ambient occlusion, nevel en anti-aliasing in één keer.
+opt_section_graphics	Graphics	Graphics
+opt_shadows	Shadows	Schaduwen
+opt_shadows_help	Shadows of buildings, trees and equipment.	Schaduwen van gebouwen, bomen en apparatuur.
+opt_ao	Ambient occlusion	Ambient occlusion
+opt_ao_help	Soft shading in corners and under objects.	Zachte schaduw in hoeken en onder objecten.
+opt_fog	Haze in the distance	Nevel in de verte
+opt_fog_help	Light haze that fades the far edge of the map.	Lichte nevel die de verre rand van de kaart laat vervagen.
+opt_msaa	Anti-aliasing	Anti-aliasing
+opt_msaa_help	Smooths jagged edges. Higher costs more graphics power.	Strijkt kartelranden glad. Hoger vraagt meer van de videokaart.
+opt_off	Off	Uit
+opt_lighting	Lighting quality	Lichtkwaliteit
+opt_lighting_help	High adds light that bounces off walls and ground; Ultra adds full global illumination. Ultra needs a strong graphics card.	Hoog voegt licht toe dat terugkaatst van muren en grond; Ultra voegt volledige globale belichting toe. Ultra vraagt een sterke videokaart.
+opt_light_standard	Standard	Standaard
+opt_light_high	High	Hoog
+opt_light_ultra	Ultra	Ultra
+opt_grass	Grass and flowers	Gras en bloemen
+opt_grass_help	Tufts of grass and wild flowers that sway in the wind. Turn off for more speed on big sites.	Plukjes gras en wilde bloemen die meewaaien in de wind. Zet uit voor meer snelheid op grote terreinen.
+opt_section_effects	Visual effects	Visuele effecten
+opt_blinking	Blinking status lights	Knipperende statuslampjes
+opt_blinking_help	The LEDs on the servers in live racks blink.	De lampjes op de servers in actieve racks knipperen.
+opt_moving	Moving parts	Bewegende onderdelen
+opt_moving_help	Turning fans, crane jibs and markers.	Draaiende ventilatoren, kraanarmen en markeringen.
+opt_smooth_camera	Smooth camera	Vloeiende camera
+opt_smooth_camera_help	The camera glides to its new position instead of jumping.	De camera glijdt naar de nieuwe positie in plaats van te springen.
+opt_section_volume	Volume	Volume
+opt_vol_master	Main volume	Hoofdvolume
+opt_vol_ambience	Server room	Serverruimte
+opt_vol_ambience_help	Fans and servers in the halls, wind, birds and crickets outside, voices in the offices and the noise of building sites.	Ventilatoren en servers in de zalen, wind, vogels en krekels buiten, stemmen in de kantoren en het lawaai van bouwplaatsen.
+opt_vol_interface	Interface	Interface
+opt_vol_interface_help	Button clicks and notification chimes.	Klikjes van knoppen en meldingsgeluiden.
+opt_section_sounds	Sound effects	Geluidseffecten
+opt_snd_ambience	Server room sound	Geluid van de serverruimte
+opt_snd_ambience_help	The hum you hear near live racks.	Het gezoem dat je hoort bij actieve racks.
+opt_snd_clicks	Button clicks	Klikjes van knoppen
+opt_snd_notifications	Notification chimes	Meldingsgeluid
+opt_snd_background	Mute in the background	Dempen op de achtergrond
+opt_snd_background_help	Silence the game while another window has focus.	Zet het geluid uit zolang een ander venster actief is.
+opt_section_language	Language	Taal
+opt_section_saves	Saving	Opslaan
+opt_autosave	Autosave every	Automatisch opslaan elke
+opt_autosave_help	The last three autosaves are kept.	De laatste drie automatische opslagen blijven bewaard.
+opt_minutes_n	{0} min	{0} min
+opt_reset	Reset to defaults	Standaardwaarden
+opt_done	Done	Klaar
+curve_asphalt	Curved road	Gebogen weg
+curve_footpath	Curved footpath	Gebogen voetpad
+curve_bikepath	Curved bike path	Gebogen fietspad
+hint_curve	Click the start, click the end, then move the mouse to bend it and click to build. [ and ] change the width, Esc cancels.	Klik het begin, klik het eind, beweeg de muis om te buigen en klik om te bouwen. [ en ] veranderen de breedte, Esc annuleert.
+curve_width	{0} m wide	{0} m breed
+obj_odf	ODF patch frame	ODF-patchframe
+obj_core_router	Core router	Core-router
+obj_spine	Spine switch	Spine-switch
+obj_noc_wall	NOC video wall	NOC-videowall
+room_noc	NOC	NOC
+res_network	Network	Netwerk
+hud_overlay_network	Network overlay (N)	Netwerkweergave (N)
+net_overview	Network overview	Overzicht netwerk
+net_title	Network	Netwerk
+net_routes	Fiber routes	Glasvezelroutes
+net_no_pits	No fiber pit yet. Place one on your plot near a carrier pit in the street; its duct runs to the nearest one.	Nog geen glasvezelput. Zet er een op je terrein bij een carrierput in de straat; de mantelbuis loopt naar de dichtstbijzijnde.
+net_pit_line	Pit {0} → street pit {1} · {2}/{3} subducts in use · {4} fibers	Put {0} → straatput {1} · {2}/{3} subducts in gebruik · {4} vezels
+net_routes_count	Separate routes in use: {0}	Gescheiden routes in gebruik: {0}
+net_routes_help	Every carrier, IX port and dark fiber needs a subduct in the duct of one of your pits. Upgrade a pit for more subducts. Pits on two different street pits give two separate routes.	Elke carrier, IX-poort en dark fiber heeft een subduct nodig in de mantelbuis van een van je putten. Upgrade een put voor meer subducts. Putten op twee verschillende straatputten geven twee gescheiden routes.
+net_carriers	Carriers and internet exchange	Carriers en internet exchange
+net_pit	street pit {0}	straatput {0}
+net_ix	internet exchange, free peering	internet exchange, gratis peering
+carrier_tier1	Large international transit network. Reliable, middle of the road on price.	Groot internationaal transitnetwerk. Betrouwbaar, gemiddeld in prijs.
+carrier_budget	The cheapest per Mbit, popular with hosting customers.	Het goedkoopst per Mbit, populair bij hostingklanten.
+carrier_regional	Regional carrier with a dense fiber network in the area.	Regionale carrier met een fijnmazig glasvezelnet in de buurt.
+carrier_premium	Premium low-latency routes to the rest of Europe. Expensive.	Premium routes met lage latency naar de rest van Europa. Duur.
+carrier_ix	The regional internet exchange. You only pay for the port; every network on the IX swaps traffic with you for free.	De regionale internet exchange. Je betaalt alleen de poort; elk netwerk op de IX wisselt gratis verkeer met je uit.
+net_order	{0} port · {1}	{0}-poort · {1}
+net_delivering	{0} port is being delivered: {1} days	{0}-poort wordt opgeleverd: nog {1} dagen
+net_no_route	No free subduct towards this street pit. Upgrade the pit or add one.	Geen vrije subduct naar deze straatput. Upgrade de put of leg er een bij.
+net_ix_line	Port {0} · now {1}	Poort {0} · nu {1}
+net_contract_line	Port {0} · commit {1} · now {2} · 95th percentile {3}	Poort {0} · commit {1} · nu {2} · 95e percentiel {3}
+net_upgrading	Upgrade to {0}: {1} days	Upgrade naar {0}: nog {1} dagen
+net_cost	{0} per month, burst so far {1}	{0} per maand, burst tot nu toe {1}
+net_cost_ix	{0} per month for the port	{0} per maand voor de poort
+net_commit_down	Commit −	Commit −
+net_commit_up	Commit +	Commit +
+net_port_up	Port {0} · {1}	Poort {0} · {1}
+net_cancel	Cancel	Opzeggen
+net_carriers_help	You pay the port plus the commit per Mbit every month. Traffic above the commit is burst: at the end of the month the 95th percentile above the commit is billed at a higher price. A bigger commit gets a lower price per Mbit.	Je betaalt elke maand de poort plus de commit per Mbit. Verkeer boven de commit is burst: aan het eind van de maand wordt het 95e percentiel boven de commit tegen een hogere prijs afgerekend. Een grotere commit geeft een lagere prijs per Mbit.
+net_chain	Network chain	Netwerkketen
+netlink_upstream	Carriers, IX and peering	Carriers, IX en peering
+netlink_ducts	Fiber ducts	Mantelbuizen
+netlink_mmr	MMR patch ports	Patchpoorten in de MMR
+netlink_core	Core routers	Core-routers
+netlink_spine	Spine switches	Spine-switches
+net_unit_subducts	{0} subducts	{0} subducts
+net_unit_ports	{0} ports	{0} poorten
+net_unlimited	Network is no limit (creative mode).	Netwerk is geen beperking (creatieve modus).
+net_online	{0} of {1} running racks online · {2}% of the traffic gets through	{0} van {1} draaiende racks online · {2}% van het verkeer komt door
+net_chain_help	A rack is online when it has a port on a spine switch in its hall, the spine has a port on a core router, and the core reaches a carrier, the IX or a peer through the ODFs in the meet-me room.	Een rack is online als het een poort heeft op een spine-switch in zijn hal, de spine een poort op een core-router, en de core via de ODF's in de meet-me room een carrier, de IX of een peer bereikt.
+net_traffic	Traffic	Verkeer
+net_traffic_now	Now {0}: {1} via the IX, {2} via peering, {3} via transit	Nu {0}: {1} via de IX, {2} via peering, {3} via transit
+net_dropped	{0} does not fit: customers notice congestion and pay less	{0} past niet: klanten merken vertraging en betalen minder
+net_hall_line	Hall {0}: {1} of {2} racks online · {3} spines · {4}	Hal {0}: {1} van {2} racks online · {3} spines · {4}
+net_peering	Peering with other datacenters	Peering met andere datacenters
+net_no_rivals	There are no rival datacenters in this game, so private peering is not available. The IX still works.	In dit spel zijn er geen concurrerende datacenters, dus private peering is niet beschikbaar. De IX werkt wel.
+net_peer_terms_rack	Dark fiber {0} · they rent a rack in your MMR: +{1}/month · carries about {2}% of your traffic	Dark fiber {0} · zij huren een rack in jouw MMR: +{1}/maand · neemt ongeveer {2}% van je verkeer
+net_peer_terms_pay	Dark fiber {0} · they are bigger and ask {1}/month · carries about {2}% of your traffic	Dark fiber {0} · zij zijn groter en vragen {1}/maand · neemt ongeveer {2}% van je verkeer
+net_peer_requested	Wants to peer	Wil peeren
+net_peer_accept	Accept	Accepteren
+net_peer_decline	Decline	Afwijzen
+net_peer_building	Dark fiber being laid: {0} days	Dark fiber wordt aangelegd: nog {0} dagen
+net_peer_active	Peering · {0}	Peering · {0}
+net_peer_end	End	Stoppen
+net_peer_propose	Propose peering	Peering voorstellen
+net_peering_help	Peering moves traffic off your paid transit. A rival only accepts your proposal once your network is big enough for them.	Peering haalt verkeer van je betaalde transit af. Een concurrent accepteert je voorstel pas als je netwerk groot genoeg is.
+net_noc	NOC and cross-connects	NOC en cross-connects
+net_noc_on	The NOC watches the network: more traffic over peering, cheaper burst and an early warning before transit fills up.	De NOC bewaakt het netwerk: meer verkeer via peering, goedkopere burst en een vroege waarschuwing voordat de transit volloopt.
+net_noc_off	No NOC yet. Build a NOC room with a video wall to watch and optimise the network.	Nog geen NOC. Bouw een NOC-ruimte met een videowall om het netwerk te bewaken en te optimaliseren.
+net_xc	Cross-connects: {0} live, {1} ordered · {2} per month · {3} free patch ports	Cross-connects: {0} actief, {1} besteld · {2} per maand · {3} vrije patchpoorten
+net_advice_ok	The network is in order.	Het netwerk is op orde.
+net_advice_pit	Place a fiber pit on your plot, near a carrier pit in the street.	Zet een glasvezelput op je terrein, bij een carrierput in de straat.
+net_advice_mmr	Build a meet-me room (MMR) with an ODF patch frame: this is where the carriers come in.	Bouw een meet-me room (MMR) met een ODF-patchframe: hier komen de carriers binnen.
+net_advice_core	Place a core router in the MMR.	Zet een core-router in de MMR.
+net_advice_carrier	Order a port at a carrier or at the internet exchange.	Bestel een poort bij een carrier of bij de internet exchange.
+net_advice_spine	A hall with racks has no spine switch: those racks are offline.	Een hal met racks heeft geen spine-switch: die racks zijn offline.
+net_advice_spine_ports	Some racks have no free spine port, or a spine has no free core port: add a spine switch or a core router.	Een deel van de racks heeft geen vrije spinepoort, of een spine heeft geen vrije corepoort: zet er een spine-switch of core-router bij.
+net_advice_congested	Traffic does not fit: upgrade a port, add a carrier or peer more.	Het verkeer past niet: upgrade een poort, neem een extra carrier of peer meer.
+net_advice_transit_tight	Transit is almost full at peak time.	De transit zit in de piek bijna vol.
+net_advice_ducts	All subducts are taken: upgrade a fiber pit or add one.	Alle subducts zijn bezet: upgrade een glasvezelput of leg er een bij.
+net_advice_odf	All patch ports are taken: add an ODF in the MMR.	Alle patchpoorten zijn bezet: zet er een ODF bij in de MMR.
+net_advice_noc	A NOC with a video wall makes the network cheaper and safer.	Een NOC met een videowall maakt het netwerk goedkoper en veiliger.
+net_advice_ix	A port on the internet exchange takes part of your traffic for free.	Een poort op de internet exchange neemt gratis een deel van je verkeer.
+spof_carrier	Single point of failure: only one transit carrier.	Enkel punt van falen: maar één transitcarrier.
+spof_route	Single point of failure: all fiber comes in over one route.	Enkel punt van falen: alle glasvezel komt via één route binnen.
+spof_mmr	Single point of failure: one meet-me room. A second MMR gives redundancy.	Enkel punt van falen: één meet-me room. Een tweede MMR geeft redundantie.
+spof_core	Single point of failure: one core router.	Enkel punt van falen: één core-router.
+spof_spine	Single point of failure: a hall with only one spine switch.	Enkel punt van falen: een hal met maar één spine-switch.
+msg_carrier_exists	You already have a port at this carrier.	Je hebt al een poort bij deze carrier.
+msg_needs_mmr	First build a meet-me room with an ODF patch frame.	Bouw eerst een meet-me room met een ODF-patchframe.
+msg_duct_full	No free subduct towards that street pit. Upgrade the fiber pit.	Geen vrije subduct naar die straatput. Upgrade de glasvezelput.
+msg_needs_pit	You need a fiber pit near that carrier's street pit.	Je hebt een glasvezelput nodig bij de straatput van die carrier.
+msg_odf_full	No free patch port in the MMR: add an ODF.	Geen vrije patchpoort in de MMR: zet er een ODF bij.
+msg_no_rivals	No rival datacenters in this game.	Geen concurrerende datacenters in dit spel.
+msg_peer_too_small	They are not interested yet: your network is too small for them.	Ze hebben nog geen interesse: je netwerk is te klein voor ze.
+msg_carrier_live	{0} is connected.	{0} is aangesloten.
+msg_port_upgraded	The port at {0} is upgraded.	De poort bij {0} is geüpgraded.
+msg_peer_live	Peering with {0} is live.	Peering met {0} is actief.
+msg_peer_request	{0} wants to peer with you. See the network overview.	{0} wil met je peeren. Kijk in het overzicht netwerk.
+msg_first_xc	First cross-connect patched in the MMR.	Eerste cross-connect gepatcht in de MMR.
+msg_net_offline	Some running racks are offline: they have no path to the internet.	Een deel van de draaiende racks is offline: ze hebben geen route naar internet.
+msg_net_congested	The network is full: part of the traffic does not get through.	Het netwerk zit vol: een deel van het verkeer komt niet door.
+msg_noc_warning	NOC: transit is over 85% at peak time. Upgrade in time.	NOC: de transit zit in de piek boven 85%. Upgrade op tijd.
+msg_burst_bill	Burst bill from {0} for traffic above the commit.	Burstfactuur van {0} voor verkeer boven de commit.
+msg_network_new	New in 0.4: racks need a network. Open the network category in the build bar.	Nieuw in 0.4: racks hebben een netwerk nodig. Open de categorie netwerk in de bouwbalk.
+goal_fiber	Fiber pit and a meet-me room	Glasvezelput en een meet-me room
+goal_carrier	Two carriers for redundancy	Twee carriers voor redundantie
+goal_network	First rack online	Eerste rack online
+inspect_offline	Offline: no network	Offline: geen netwerk
+inspect_online	Online	Online
+inspect_ports	{0} ports	{0} poorten
+inspect_pit	Duct to street pit {0}: {1}	Mantelbuis naar straatput {0}: {1}
+inspect_subducts	Subducts {0}/{1} in use	Subducts {0}/{1} in gebruik
+action_duct	Upgrade duct to {0} subducts · {1}	Mantelbuis upgraden naar {0} subducts · {1}
+inspect_hall_net	Network: {0} of {1} racks online · {2} spines	Netwerk: {0} van {1} racks online · {2} spines
+inspect_mmr	{0} patch ports, {1} in use · {2} core routers · {3} cross-connects	{0} patchpoorten, {1} in gebruik · {2} core-routers · {3} cross-connects
+inspect_noc_needs_wall	Place a video wall to start the NOC.	Zet een videowall neer om de NOC te starten.
+msg_needs_mmr_room	This goes in a meet-me room (MMR).	Dit hoort in een meet-me room (MMR).
+msg_needs_noc_room	The video wall goes in a NOC room.	De videowall hoort in een NOC-ruimte.
+msg_signed	Contract signed with {0}.	Contract getekend met {0}.
+msg_tender_won	You won the tender of {0}. Build what they need before the deadline.	Je hebt de aanbesteding van {0} gewonnen. Bouw wat ze nodig hebben voor de deadline.
+msg_tender_delivered	Delivered on time: {0} now uses its capacity and pays rent.	Op tijd opgeleverd: {0} gebruikt nu zijn capaciteit en betaalt huur.
+msg_tender_failed	Deadline missed for {0}: the contract is cancelled, you pay a fine and lose reputation.	Deadline gemist voor {0}: het contract vervalt, je betaalt een boete en verliest reputatie.
+msg_tender_lost	A rival won the tender of {0}.	Een concurrent heeft de aanbesteding van {0} gewonnen.
+msg_new_tender	New tender: {0} is looking for a datacenter.	Nieuwe aanbesteding: {0} zoekt een datacenter.
+msg_new_leads	Sales brought in {0} new customer request(s).	Sales heeft {0} nieuwe klantaanvraag/-aanvragen binnengehaald.
+msg_hired	Hired: {0}.	Aangenomen: {0}.
+msg_trained	Training finished: {0}.	Training afgerond: {0}.
+msg_renewed	{0} renewed its contract.	{0} heeft zijn contract verlengd.
+msg_contract_ended	{0} did not renew and has left.	{0} heeft niet verlengd en is vertrokken.
+msg_customer_left	{0} was so unhappy with the outages that it left early.	{0} was zo ontevreden over de storingen dat hij voortijdig is vertrokken.
+msg_in_red	Your bank balance is negative. Get back above zero within {0} days or the company goes bankrupt.	Je banksaldo staat in het rood. Kom binnen {0} dagen weer boven nul, anders gaat het bedrijf failliet.
+msg_bankrupt	The company is bankrupt.	Het bedrijf is failliet.
+msg_investor	An investor bought a share of the company.	Een investeerder heeft een deel van het bedrijf gekocht.
+msg_org_new	New: customers now sign contracts. Your current racks stay with your existing customers. Build a director's office and hire a CEO to grow.	Nieuw: klanten tekenen nu contracten. Je huidige racks blijven bij je bestaande klanten. Bouw een directiekamer en neem een CEO aan om te groeien.
+msg_needs_netmgr	Hire a network manager first: they arrange carrier and peering contracts.	Neem eerst een netwerkmanager aan: die regelt carrier- en peeringcontracten.
+msg_needs_exec	Hire the director or manager this role reports to first.	Neem eerst de directeur of manager aan waar deze functie onder valt.
+msg_needs_ceo_office	Build a director's office first: an executive room with a desk and a chair.	Bouw eerst een directiekamer: een directieruimte met een bureau en een stoel.
+msg_needs_office	Every director needs an own office: build another executive room with a desk and a chair.	Elke directeur heeft een eigen kantoor nodig: bouw nog een directieruimte met een bureau en een stoel.
+msg_exec_needed	Others report to this role. Let them go first.	Er vallen anderen onder deze functie. Laat die eerst gaan.
+msg_needs_workplace	No free workplace: put more desks in an office room.	Geen vrije werkplek: zet meer bureaus in een kantoorruimte.
+msg_needs_hr	Hire an HR manager to recruit more staff.	Neem een HR-manager aan om meer personeel te werven.
+msg_needs_ops	Technical staff needs an operations manager.	Technisch personeel heeft een operationeel manager nodig.
+msg_needs_facility	A bigger grid connection needs a facility manager.	Een zwaardere netaansluiting vraagt om een facility manager.
+msg_needs_hv_training	Your facility manager needs the next high-voltage training first.	Je facility manager moet eerst de volgende hoogspanningstraining volgen.
+msg_needs_legal	Bidding on tenders needs a legal counsel.	Voor aanbestedingen heb je een bedrijfsjurist nodig.
+msg_needs_cfo	Loans and investors need a CFO.	Voor leningen en investeerders heb je een CFO nodig.
+msg_credit_limit	The bank will not lend you that much.	Zoveel wil de bank je niet lenen.
+msg_investors_max	You keep the majority: investors can own at most 49%.	Je houdt de meerderheid: investeerders krijgen maximaal 49%.
+msg_reqs_missing	Not every requirement is met yet.	Nog niet aan alle eisen voldaan.
+goal_ceo	Hire a CEO	Neem een CEO aan
+goal_sales	Hire a sales director	Neem een salesdirecteur aan
+goal_contract	Sign your first customer	Teken je eerste klant
+inspect_rented	Rented to {0}	Verhuurd aan {0}
+inspect_peru	Shared rack, sold per U	Gedeeld rack, per U verkocht
+inspect_for_sale	For sale	Te koop
+inspect_zone	Zone: {0}	Zone: {0}
+action_zone	Sell as: {0}	Verkopen als: {0}
+inspect_office_ready	Furnished: a director can work here	Ingericht: hier kan een directeur werken
+inspect_office_needs	Needs a desk and a chair	Heeft een bureau en een stoel nodig
+inspect_workplaces	{0} workplace(s) for the sales team	{0} werkplek(ken) voor het salesteam
+hud_money_tip	Click for the finances	Klik voor de financiën
+supplier_fee	Leaving your fixed contract early costs {0}	Je vaste contract voortijdig opzeggen kost {0}
+supplier_term_free	Variable contract: switch any time	Variabel contract: altijd opzegbaar
+supplier_term_left	Fixed contract: {0} days to go	Vast contract: nog {0} dagen
+supplier_term_done	Fixed term finished: switch for free	Vaste looptijd voorbij: gratis overstappen
+supplier_discount	Procurement discount {0}%	Inkoopkorting {0}%
+co_title	Company	Bedrijf
+co_tab_org	Organisation	Organisatie
+co_tab_sales	Sales	Sales
+co_tab_contracts	Contracts	Contracten
+co_tab_tenders	Tenders	Aanbestedingen
+co_tab_finance	Finance	Financiën
+co_reputation	Reputation {0} / 100	Reputatie {0} / 100
+co_revenue	Revenue {0} / month	Omzet {0} / maand
+org_help	You are the owner. Directors and managers each need an own furnished office and unlock new parts of the game. They run their own teams: no micromanagement.	Jij bent de eigenaar. Directeuren en managers hebben elk een eigen ingericht kantoor nodig en ontgrendelen nieuwe onderdelen van het spel. Ze regelen hun eigen team: geen micromanagement.
+org_offices	Offices in use: {0} of {1} furnished director's offices	Kantoren in gebruik: {0} van {1} ingerichte directiekamers
+org_all_unlocked	Creative mode: everything is unlocked.	Creatieve modus: alles is ontgrendeld.
+org_status_legacy	Arranged in your existing company	Geregeld in je bestaande bedrijf
+org_status_creative	Unlocked (creative)	Ontgrendeld (creatief)
+org_status_hired	Hired · {0} / month	Aangenomen · {0} / maand
+org_status_needs	Needs: {0}	Vereist: {0}
+org_status_open	Available · {0} / month	Beschikbaar · {0} / maand
+org_hire	Hire ({0})	Aannemen ({0})
+org_train	Train: {0} · {1} · {2} days	Trainen: {0} · {1} · {2} dagen
+org_training_busy	In training: {0} · {1} days left	In training: {0} · nog {1} dagen
+org_trained_full	Fully trained	Volledig getraind
+org_dismiss	Let go	Laten gaan
+org_later	Later: marketing and compliance managers (step 8), a sustainability manager and the hosting company (step 9).	Later: marketing- en compliance-manager (stap 8), duurzaamheidsmanager en het hostingbedrijf (stap 9).
+exec_ceo	CEO	Algemeen directeur (CEO)
+exec_ceo_unlocks	Lets you hire the other directors. Later also the hosting company and an extra office location.	Hiermee neem je de andere directeuren aan. Later ook het hostingbedrijf en een extra kantoorlocatie.
+exec_ceo_train_1	Leadership course	Leiderschapscursus
+exec_ceo_train_2	Network of industry contacts	Netwerk in de branche
+exec_cfo	CFO	Financieel directeur (CFO)
+exec_cfo_unlocks	Loans and repayments, investors and financial reports. Training lowers the interest rate.	Leningen en aflossen, investeerders en financiële rapportages. Training verlaagt de rente.
+exec_cfo_train_1	Treasury course (-1% interest)	Treasurycursus (-1% rente)
+exec_cfo_train_2	Bank relations (-1% interest)	Bankrelaties (-1% rente)
+exec_procurement	Procurement manager	Inkoopmanager
+exec_procurement_unlocks	Cheaper energy and carrier contracts (5% and 10% off, more with training).	Goedkopere energie- en carriercontracten (5% en 10% korting, meer met training).
+exec_procurement_train_1	Negotiation course	Onderhandelingscursus
+exec_procurement_train_2	Framework contracts	Raamcontracten
+exec_hr	HR manager	HR-manager
+exec_hr_unlocks	Recruits staff: more builders, fitters and engineers than the starting crew.	Werft personeel: meer bouwvakkers, monteurs en engineers dan de startploeg.
+exec_hr_train_1	Recruitment course	Wervingscursus
+exec_hr_train_2	Employer branding	Employer branding
+exec_sales	Sales director	Salesdirecteur
+exec_sales_unlocks	Starts a sales team that brings in customer requests and tenders. Training brings more requests and better prices.	Start een salesteam dat klantaanvragen en aanbestedingen binnenhaalt. Training geeft meer aanvragen en betere prijzen.
+exec_sales_train_1	Key account course (+25% requests, +5% price)	Key-accountcursus (+25% aanvragen, +5% prijs)
+exec_sales_train_2	Enterprise sales (+25% requests, +5% price)	Enterprise sales (+25% aanvragen, +5% prijs)
+exec_legal	Legal counsel	Bedrijfsjurist
+exec_legal_unlocks	Needed to bid on large tenders. Training improves your chance to win.	Nodig om mee te bieden op grote aanbestedingen. Training vergroot je kans om te winnen.
+exec_legal_train_1	Tender law course	Cursus aanbestedingsrecht
+exec_legal_train_2	Contract specialist	Contractspecialist
+exec_cs	Customer success manager	Customer success manager
+exec_cs_unlocks	Keeps customers happy: satisfaction drops less after outages and more customers renew.	Houdt klanten tevreden: na storingen daalt de tevredenheid minder en verlengen meer klanten.
+exec_cs_train_1	Service management course	Cursus servicemanagement
+exec_cs_train_2	Account reviews	Accountreviews
+exec_ops	Operations manager	Operationeel manager
+exec_ops_unlocks	Runs all operations: technical staff, crews work 10% faster, and the facility, network and security managers report here.	Regelt alle operationele zaken: technisch personeel, ploegen werken 10% sneller, en de facility-, netwerk- en securitymanager vallen hieronder.
+exec_ops_train_1	Lean operations (+10% work speed)	Lean operations (+10% werktempo)
+exec_ops_train_2	Planning and scheduling (+10% work speed)	Planning en roosters (+10% werktempo)
+exec_facility	Facility manager	Facility manager
+exec_facility_unlocks	Maintenance planning and a 10 MVA grid connection. High-voltage training unlocks 20 and 50 MVA.	Onderhoudsplanning en een netaansluiting van 10 MVA. Hoogspanningstraining ontgrendelt 20 en 50 MVA.
+exec_facility_train_1	High-voltage course (20 MVA)	Hoogspanningscursus (20 MVA)
+exec_facility_train_2	High-voltage expert (50 MVA)	Hoogspanningsexpert (50 MVA)
+exec_network	Network manager	Netwerkmanager
+exec_network_unlocks	Network team: carrier ports, the internet exchange and peering contracts.	Netwerkteam: carrierpoorten, de internet exchange en peeringcontracten.
+exec_network_train_1	Routing course	Routeringscursus
+exec_network_train_2	Peering coordinator	Peeringcoördinator
+exec_security	Security manager	Security manager
+exec_security_unlocks	Guards, security policies and proposals for security kit. Municipalities, ministries and banks need a security manager and a minimum security level.	Beveiligers, beveiligingsbeleid en voorstellen voor beveiligingstechniek. Gemeentes, ministeries en banken vragen een security manager en een minimaal beveiligingsniveau.
+exec_security_train_1	Security officer course	Cursus beveiligingsmanagement
+exec_security_train_2	Risk management	Risicomanagement
+sales_team	Sales team	Salesteam
+sales_needs_director	Hire a sales director to start a sales team. Without sales no customers come in.	Neem een salesdirecteur aan om een salesteam te starten. Zonder sales komen er geen klanten.
+sales_reps	{0} sales rep(s) · {1} workplace(s) · {2} / month each	{0} verkoper(s) · {1} werkplek(ken) · {2} / maand per persoon
+sales_help	Each sales rep needs a desk in an office room. More reps bring more and bigger customer requests.	Elke verkoper heeft een bureau in een kantoorruimte nodig. Meer verkopers geven meer en grotere klantaanvragen.
+zones_title	Hall zones	Zones per hal
+zones_help	Choose what each data hall is sold as and which customers it hosts. Customers only get racks in halls with the matching zone that take their type.	Kies per datahal wat je verkoopt en welke klanten er komen. Klanten krijgen alleen racks in een hal met de passende zone die hun type toelaat.
+zones_none	No data halls yet.	Nog geen datahallen.
+zones_hall	Hall {0}: {1} racks · {2} rented · {3} for sale	Hal {0}: {1} racks · {2} verhuurd · {3} te koop
+zone_fullracks	Full racks	Volle racks
+zone_peru	Colocation per U	Colocatie per U
+zone_cage	Cages	Kooien
+zone_privatehall	Private hall	Eigen hal
+zone_owncloud	Own cloud (step 9)	Eigen cloud (stap 9)
+leads_title	Customer requests	Klantaanvragen
+leads_none	No open requests. Your sales team is working on it.	Geen open aanvragen. Je salesteam is ermee bezig.
+leads_no_sales	No sales team yet.	Nog geen salesteam.
+prod_peru	{0} U colocation	{0} U colocatie
+prod_racks	{0} full rack(s) · {1}	{0} volle rack(s) · {1}
+prod_cage	Cage with {0} racks · {1}	Kooi met {0} racks · {1}
+prod_hall	Private hall with {0} racks · {1}	Eigen hal met {0} racks · {1}
+deal_carriers	{0} carriers	{0} carriers
+deal_green	green energy	groene stroom
+deal_security	security clearance	beveiligingsscreening
+deal_price	{0} per month · {1} months · offer valid {2} days	{0} per maand · {1} maanden · aanbod nog {2} dagen geldig
+deal_sign	Sign	Tekenen
+deal_decline	Decline	Afwijzen
+req_units	Free units in per-U halls	Vrije units in per-U-hallen
+req_racks	Free racks in full-rack halls	Vrije racks in hallen met volle racks
+req_cage	Free racks in one cage hall	Vrije racks in één kooihal
+req_hall	Racks in an empty private hall	Racks in een lege eigen hal
+req_ab	A/B power in the hall	A/B-voeding in de hal
+req_amp32	32 A: A/B power and hot/cold aisles	32 A: A/B-voeding en warme/koude gangen
+req_2n	2N UPS	2N UPS
+req_backup	Generators N+1	Generatoren N+1
+req_bandwidth	Unsold transit bandwidth	Onverkochte transitcapaciteit
+req_carriers	Carriers	Carriers
+req_green	Green energy contract	Groen energiecontract
+req_security	Security manager and security level	Security manager en beveiligingsniveau
+contracts_title	Active contracts	Lopende contracten
+contracts_building	To deliver	Op te leveren
+contracts_deadline	Deadline in {0} days · {1} per month once delivered	Deadline over {0} dagen · {1} per maand na oplevering
+contracts_summary	{0} contract(s) · {1} per month · {2} racks · {3} U	{0} contract(en) · {1} per maand · {2} racks · {3} U
+contracts_none	No contracts yet.	Nog geen contracten.
+contracts_monthly	{0} / month	{0} / maand
+contracts_served	Service {0}%	Dienstverlening {0}%
+contracts_satisfaction	Satisfaction {0}	Tevredenheid {0}
+contracts_ends	Ends in {0} days	Loopt af over {0} dagen
+contracts_terminate	End early ({0})	Voortijdig beëindigen ({0})
+tenders_title	Tenders	Aanbestedingen
+tenders_help	Large customers put out tenders. Bid below the asking price to win more often; rivals bid too. Win, then deliver before the deadline.	Grote klanten schrijven aanbestedingen uit. Bied onder de vraagprijs om vaker te winnen; concurrenten bieden ook. Gewonnen? Lever dan op voor de deadline.
+tenders_needs_legal	Hire a legal counsel to bid.	Neem een bedrijfsjurist aan om te kunnen bieden.
+tenders_none	No tenders right now. They come in every month or so.	Op dit moment geen aanbestedingen. Ze komen ongeveer elke maand.
+tenders_lost	Lost or failed	Verloren of mislukt
+tender_terms	Asking {0} per month · {1} MW IT · {2} months · deliver within {3} days	Vraagprijs {0} per maand · {1} MW IT · {2} maanden · opleveren binnen {3} dagen
+tender_closes	Bids close in {0} days	Inschrijving sluit over {0} dagen
+tender_bid	Bid {0}% ({1})	Bied {0}% ({1})
+tender_bid_placed	Your bid: {0}% ({1} per month). Decision in {2} days.	Je bod: {0}% ({1} per maand). Besluit over {2} dagen.
+fin_books	Books	Boekhouding
+fin_unlimited	Creative mode: unlimited money.	Creatieve modus: onbeperkt geld.
+fin_in_red	In the red: {0} days left before bankruptcy.	In het rood: nog {0} dagen tot faillissement.
+fin_this_month	This month	Deze maand
+fin_last_month	Last month	Vorige maand
+fin_no_data	No figures yet.	Nog geen cijfers.
+fin_operating	Operating result	Bedrijfsresultaat
+fin_fixed	Fixed costs: salaries {0} and crew {1} per month.	Vaste kosten: salarissen {0} en ploegen {1} per maand.
+fin_loans	Loans	Leningen
+fin_needs_cfo	Hire a CFO to take out loans and talk to investors.	Neem een CFO aan om leningen af te sluiten en met investeerders te praten.
+fin_credit	The bank lends up to {0} at {1}% a year, paid back in {2} months.	De bank leent tot {0} tegen {1}% per jaar, terug te betalen in {2} maanden.
+fin_borrow	Borrow {0} ({1}/month)	Leen {0} ({1}/maand)
+fin_loan	Loan {0} of {1} · {2}% · {3} per month · {4} months left	Lening {0} van {1} · {2}% · {3} per maand · nog {4} maanden
+fin_repay	Repay now	Nu aflossen
+fin_investors	Investors	Investeerders
+fin_investors_help	Sell 10% of the company for cash. Investors then get their share of each month's profit. You keep at least 51%.	Verkoop 10% van het bedrijf voor geld. Investeerders krijgen daarna hun deel van de winst van elke maand. Je houdt minstens 51%.
+fin_share	Investors own {0}% · company value {1}	Investeerders bezitten {0}% · bedrijfswaarde {1}
+fin_invest	Sell 10% for {0}	Verkoop 10% voor {0}
+fin_energy	Energy contract	Energiecontract
+fin_energy_help	Change supplier in the power and cooling overview. Leaving a fixed contract early costs a fee.	Wissel van leverancier in het overzicht stroom en koeling. Een vast contract voortijdig opzeggen kost geld.
+book_inc_contracts	Customer contracts	Klantcontracten
+book_inc_network	Cross-connects and peering	Cross-connects en peering
+book_cost_energy	Energy	Energie
+book_cost_network	Carriers and IX	Carriers en IX
+book_cost_crew	Builders, fitters and engineers	Bouwvakkers, monteurs en engineers
+book_cost_salaries	Directors and sales team	Directie en salesteam
+book_cost_site	Site and support	Terrein en support
+book_cost_sla	SLA penalties	SLA-boetes
+book_cost_interest	Interest	Rente
+book_cost_build	Building and equipment	Bouw en apparatuur
+book_fin_loans	Loans received	Ontvangen leningen
+book_fin_investors	Investors	Investeerders
+book_fin_repay	Repayments	Aflossingen
+book_fin_dividend	Dividend to investors	Dividend aan investeerders
+cust_legacy	Existing customers	Bestaande klanten
+cust_name_municipality	Municipality of {0}	Gemeente {0}
+min_digital	Ministry of Digital Affairs	Ministerie van Digitale Zaken
+min_infrastructure	Ministry of Infrastructure	Ministerie van Infrastructuur
+min_finance	Ministry of Finance	Ministerie van Financiën
+min_health	Ministry of Health	Ministerie van Volksgezondheid
+cust_startup	Startup	Startup
+cust_smb	Small business	MKB
+cust_hosting	Hosting company	Hostingbedrijf
+cust_webhosting	Website hosting (also adult)	Websitehosting (ook adult)
+cust_streaming	Video streaming	Videostreaming
+cust_social	Social media	Social media
+cust_crypto	Crypto mining	Cryptomining
+cust_cloud	Cloud service	Clouddienst
+cust_municipality	Municipality	Gemeente
+cust_government	Ministry or government agency	Ministerie of overheidsdienst
+cust_bank	Bank	Bank
+cust_hyperscaler	Hyperscaler	Hyperscaler
+bankrupt_title	Bankrupt	Failliet
+bankrupt_text	Your company was in the red for 30 days and the bank has taken over. Load a savegame to try again, or start a new game from the main menu.	Je bedrijf stond 30 dagen in het rood en de bank heeft het overgenomen. Laad een savegame om het opnieuw te proberen, of begin een nieuw spel vanuit het hoofdmenu.
+bankrupt_menu	Main menu	Hoofdmenu
+fin_dividend	Dividend to investors	Dividend aan investeerders
+hud_staff_tip	Your staff. A warning sign shows faults or events: click to see them.	Je personeel. Een waarschuwing toont storingen of gebeurtenissen: klik om ze te zien.
+res_staff	Staff	Personeel
+new_events	Random events	Willekeurige gebeurtenissen
+new_events_help	City-wide power cuts, heatwaves, cable cuts, fire alarms and customers going bankrupt keep the game lively.	Stroomstoringen in de stad, hittegolven, kabelbreuken, brandalarmen en failliete klanten houden het spel levendig.
+exec_pm	Construction project manager	Projectmanager bouw
+exec_pm_unlocks	Builders and fitters work 15% faster and more projects run side by side.	Bouwvakkers en monteurs werken 15% sneller en er lopen meer projecten tegelijk.
+exec_pm_train_1	Prince2 for construction (+10% build speed)	Prince2 voor de bouw (+10% bouwtempo)
+exec_pm_train_2	Lean construction (+10% build speed)	Lean bouwen (+10% bouwtempo)
+book_inc_remote_hands	Remote hands	Remote hands
+book_cost_staff	Staff salaries and training	Salarissen en training personeel
+book_cost_maintenance	Maintenance and contractors	Onderhoud en externe monteurs
+book_cost_parts	Spare parts	Reserveonderdelen
+staff_support	Support engineer	Support engineer
+staff_support_desc	Handles customer tickets and repairs broken servers in the racks.	Pakt klanttickets op en repareert kapotte servers in de racks.
+staff_electrical	Electrical engineer	Elektrotechnisch engineer
+staff_electrical_desc	Maintains and repairs transformers, switchgear, UPS units, batteries and PDUs.	Onderhoudt en repareert transformatoren, switchgear, UPS'en, accu's en PDU's.
+staff_cooling	Cooling technician	Koeltechnicus
+staff_cooling_desc	Maintains and repairs CRAH units, chillers and cooling towers.	Onderhoudt en repareert CRAH-units, chillers en koeltorens.
+staff_network	Network engineer	Netwerkengineer
+staff_network_desc	Maintains routers, spines and ODFs, and repairs cable cuts.	Onderhoudt routers, spines en ODF's, en repareert kabelbreuken.
+staff_noc	NOC operator	NOC-operator
+staff_noc_desc	Watches power, cooling and network around the clock: faults are noticed at once instead of after two hours. Needs a NOC room.	Bewaakt 24/7 stroom, koeling en netwerk: storingen worden meteen gezien in plaats van na twee uur. Vraagt een NOC-ruimte.
+staff_guard	Guard	Beveiliger
+staff_guard_desc	Checks people in and patrols the site; adds a little reputation. Needs a security room or a guard booth.	Checkt mensen in en loopt patrouilles over het terrein; levert wat reputatie op. Vraagt een beveiligingsruimte of portiersloge.
+staff_logistics	Warehouse worker	Magazijnier
+staff_logistics_desc	Spare parts arrive a day sooner per warehouse worker (at least one day).	Reserveonderdelen komen per magazijnier een dag eerder binnen (minimaal één dag).
+staff_reception	Receptionist	Receptionist
+staff_reception_desc	Welcomes customers in the reception; check-in goes faster. Needs a reception.	Ontvangt klanten in de ontvangsthal; inchecken gaat sneller. Vraagt een receptie.
+staff_cleaner	Cleaner	Schoonmaker
+staff_cleaner_desc	Keeps the halls dust-free. Without enough cleaners (one per two halls) servers, PDUs and CRAH units wear 40% faster.	Houdt de zalen stofvrij. Zonder genoeg schoonmakers (één per twee zalen) slijten servers, PDU's en CRAH-units 40% sneller.
+staff_remote_hands	Remote hands	Remote hands
+staff_remote_hands_desc	Reboots servers and swaps disks for customers: earns € 22 per rented rack per month, up to 120 racks per person.	Herstart servers en wisselt schijven voor klanten: levert € 22 per verhuurd rack per maand op, tot 120 racks per persoon.
+staff_fire	Fire safety officer	Brandveiligheidsmedewerker
+staff_fire_desc	Maintains fire detection and the gas extinguishing system: a fire alarm turns out to be a false alarm instead of a hall going down.	Onderhoudt de branddetectie en het gasblussysteem: een brandalarm blijkt dan loos in plaats van dat een zaal plat gaat.
+staff_canteen	Canteen and facility worker	Kantine- en facilitair medewerker
+staff_canteen_desc	Keeps coffee, drinks and the canteen going; good for everyone's mood. Needs a canteen.	Houdt koffie, frisdrank en de kantine op peil; goed voor de tevredenheid. Vraagt een kantine.
+staff_generator	Generator technician	Monteur generatoren
+staff_generator_desc	Refuels and tests the generators every month and arranges extra diesel in a long power cut.	Tankt diesel, test de generatoren elke maand en regelt extra diesel bij een lange stroomstoring.
+staff_gardener	Gardener	Hovenier
+staff_gardener_desc	Looks after trees and shrubs; a green, tidy site adds reputation.	Onderhoudt bomen en struiken; een groen, verzorgd terrein levert reputatie op.
+staff_helpdesk	IT helpdesk	IT-helpdesk
+staff_helpdesk_desc	Helps your own office staff. From twelve people in the office they miss it when there is none.	Helpt je eigen kantoorpersoneel. Vanaf twaalf mensen op kantoor missen ze die als die er niet is.
+level_0	Junior	Junior
+level_1	Medior	Medior
+level_2	Senior	Senior
+trait_fast	Fast	Snel
+trait_precise	Precise	Nauwkeurig
+trait_nightowl	Night owl	Nachtmens
+trait_loyal	Loyal	Loyaal
+shift_day	Day (07-15)	Dag (07-15)
+shift_evening	Evening (15-23)	Avond (15-23)
+shift_night	Night (23-07)	Nacht (23-07)
+part_server	Server parts	Serveronderdelen
+part_cooling	Cooling parts	Koelonderdelen
+part_electrical	Electrical parts	Elektrische onderdelen
+part_battery	UPS batteries	UPS-accu's
+part_optics	Optics and fiber	Optics en glasvezel
+maint_0	Light	Licht
+maint_1	Normal	Normaal
+maint_2	Thorough	Grondig
+maint_0_desc	Cheaper, but equipment slowly wears out and breaks down more often.	Goedkoper, maar apparatuur slijt langzaam en gaat vaker stuk.
+maint_1_desc	Keeps equipment in good shape when the team is big enough.	Houdt apparatuur in goede staat als het team groot genoeg is.
+maint_2_desc	Costs more, but even worn equipment gets back in shape.	Kost meer, maar ook versleten apparatuur komt weer op orde.
+pay_0	Below market (-10%)	Onder de markt (-10%)
+pay_1	Market rate	Marktconform
+pay_2	Above market (+15%)	Boven de markt (+15%)
+dept_operations	Operations	Operations
+dept_facility	Facility	Facility
+dept_network	Network	Netwerk
+dept_security	Security	Beveiliging
+wb_pay	Pay	Salaris
+wb_canteen	Canteen	Kantine
+wb_coffee	Coffee and drinks	Koffie en frisdrank
+wb_parking	Parking spaces	Parkeerplekken
+wb_desks	Enough desks	Genoeg werkplekken
+wb_helpdesk	IT helpdesk	IT-helpdesk
+wb_training	Training budget	Opleidingsbudget
+wb_green	Green surroundings	Groene omgeving
+event_cityoutage	City-wide power cut	Stroomstoring in de stad
+event_cityoutage_desc	The grid is down. Generators behind the ATS keep everything running as long as there is diesel.	Het stroomnet ligt plat. Generatoren achter de ATS houden alles draaiende zolang er diesel is.
+event_heatwave	Heatwave	Hittegolf
+event_heatwave_desc	Heat rejection outside works 20% less well and cooling equipment wears faster.	Warmteafvoer buiten werkt 20% minder goed en koelapparatuur slijt sneller.
+event_firealarm	Fire alarm	Brandalarm
+event_firealarm_desc	The gas extinguishing system went off in a hall; its racks stay down until it is reset.	Het gasblussysteem is in een zaal afgegaan; de racks daar blijven uit tot het is gereset.
+event_cablecut	Cable cut	Kabelbreuk
+event_cablecut_desc	Roadworks cut a fiber duct.	Graafwerkzaamheden hebben een fiberduct geraakt.
+event_customerbankrupt	Customer bankrupt	Klant failliet
+event_customerbankrupt_desc	A customer went bankrupt.	Een klant is failliet gegaan.
+event_pressvisit	Press visit	Persbezoek
+event_pressvisit_desc	A trade magazine came to have a look.	Een vakblad kwam een kijkje nemen.
+inspect_wear	Wear: {0}%	Slijtage: {0}%
+inspect_aged	Past its service life: replace it to keep it reliable.	Over de levensduur heen: vervang hem om hem betrouwbaar te houden.
+inspect_broken	Broken: being dealt with (see faults).	Kapot: wordt opgepakt (zie storingen).
+inspect_broken_unnoticed	Broken, but nobody has noticed yet.	Kapot, maar nog niemand heeft het gemerkt.
+msg_staff_new	New: staff, maintenance and events. Equipment now wears and can break down; hire technicians to maintain it (Staff in the build bar).	Nieuw: personeel, onderhoud en gebeurtenissen. Apparatuur slijt nu en kan stukgaan; neem technici aan om het te onderhouden (Personeel in de bouwbalk).
+msg_staff_hired	Hired: {0}.	Aangenomen: {0}.
+msg_staff_quit	{0} has resigned.	{0} heeft ontslag genomen.
+msg_staff_trained	{0} finished a training and moves up a level.	{0} heeft een training afgerond en gaat een niveau omhoog.
+msg_fault	Fault: {0} is broken.	Storing: {0} is kapot.
+msg_repaired	Repaired: {0}.	Gerepareerd: {0}.
+msg_replaced	Replaced: {0}.	Vervangen: {0}.
+msg_parts_arrived	Spare parts delivered: {0}.	Reserveonderdelen geleverd: {0}.
+msg_needs_facility_mgr	This role needs a facility manager.	Deze functie vraagt om een facility manager.
+msg_needs_network_mgr	This role needs a network manager.	Deze functie vraagt om een netwerkmanager.
+msg_needs_security_mgr	This role needs a security manager.	Deze functie vraagt om een security manager.
+msg_needs_security_room	Build a security room or a guard booth first.	Bouw eerst een beveiligingsruimte of portiersloge.
+msg_needs_reception	Build a reception first.	Bouw eerst een receptie.
+msg_needs_canteen	Build a canteen first.	Bouw eerst een kantine.
+msg_ev_outage_gen	Power cut in the city! The generators have taken over.	Stroomstoring in de stad! De generatoren hebben het overgenomen.
+msg_ev_outage_dark	Power cut in the city, and the backup power cannot carry the site: racks are going down.	Stroomstoring in de stad, en de noodstroom kan het terrein niet dragen: racks gaan uit.
+msg_ev_outage_over	The city has power again.	De stad heeft weer stroom.
+msg_ev_heatwave	A heatwave: cooling outside works less well for a few days.	Een hittegolf: de koeling buiten werkt een paar dagen minder goed.
+msg_ev_heatwave_over	The heatwave is over.	De hittegolf is voorbij.
+msg_ev_cable_cut	Roadworks cut a fiber duct!	Graafwerkzaamheden hebben een fiberduct geraakt!
+msg_ev_bankrupt	{0} went bankrupt and ended its contract.	{0} is failliet en heeft het contract beëindigd.
+msg_ev_fire_false	Fire alarm in a hall: your fire safety officer found a false alarm.	Brandalarm in een zaal: je brandveiligheidsmedewerker constateerde loos alarm.
+msg_ev_fire_gas	Fire alarm: the gas extinguishing system went off in a hall. Its racks stay down for four hours, and refilling costs € 35,000.	Brandalarm: het gasblussysteem is in een zaal afgegaan. De racks daar blijven vier uur uit, en navullen kost € 35.000.
+msg_ev_fire_reset	The extinguishing system has been reset; the hall is running again.	Het blussysteem is gereset; de zaal draait weer.
+msg_ev_press_good	A trade magazine visited and was impressed. Reputation +2.	Een vakblad kwam langs en was onder de indruk. Reputatie +2.
+msg_ev_press_bad	A trade magazine visited and saw problems. Reputation -1.	Een vakblad kwam langs en zag problemen. Reputatie -1.
+ev_fault	{0} broke down	{0} ging kapot
+ev_repaired	{0} repaired	{0} gerepareerd
+ev_contractor	Contractor called for {0}	Externe monteur gebeld voor {0}
+ev_staff_quit	{0} resigned	{0} nam ontslag
+ev_outage	Power cut in the city	Stroomstoring in de stad
+ev_outage_over	City power back	Stroom in de stad terug
+ev_heatwave	Heatwave started	Hittegolf begonnen
+ev_heatwave_over	Heatwave over	Hittegolf voorbij
+ev_cable_cut	Fiber duct cut by roadworks	Fiberduct geraakt bij graafwerk
+ev_bankrupt	{0} went bankrupt	{0} failliet
+ev_fire_false	Fire alarm: false alarm	Brandalarm: loos alarm
+ev_fire_gas	Fire alarm: gas extinguishing went off	Brandalarm: gasblussing afgegaan
+ev_fire_reset	Extinguishing system reset	Blussysteem gereset
+ev_press_good	Positive press visit	Positief persbezoek
+ev_press_bad	Critical press visit	Kritisch persbezoek
+st_title	Staff	Personeel
+st_tab_team	Team	Team
+st_tab_maintenance	Maintenance	Onderhoud
+st_tab_incidents	Faults and events	Storingen en gebeurtenissen
+st_people	{0} people	{0} mensen
+st_shift_now	Now: {0}	Nu: {0}
+st_pay_month	Salaries {0} per month	Salarissen {0} per maand
+st_team_help	Your operational staff. The managers hire people and plan the shifts themselves; you set the policy. Staff do ask for a canteen, desks and parking.	Je operationele personeel. De managers nemen zelf mensen aan en plannen de diensten; jij bepaalt het beleid. Personeel vraagt wel om een kantine, werkplekken en parkeerplekken.
+st_needs_hr	Hire an HR manager (Organisation) to recruit staff.	Neem een HR-manager aan (Organisatie) om personeel te werven.
+st_mood	Satisfaction {0}%	Tevredenheid {0}%
+st_desks	Desks: {1} for {0} people	Werkplekken: {1} voor {0} mensen
+st_count	{0} of {1}	{0} van {1}
+st_maint_help	Equipment wears every day. Your technicians maintain it; worn equipment breaks down more often. Without your own people a contractor comes after 12 hours.	Apparatuur slijt elke dag. Je technici onderhouden het; versleten apparatuur gaat vaker stuk. Zonder eigen mensen komt er na 12 uur een externe monteur.
+st_no_breakdowns	Creative mode: no breakdowns.	Creatieve modus: geen storingen.
+st_maint_policy	Preventive maintenance	Preventief onderhoud
+st_items	{0} units	{0} stuks
+st_avg_wear	wear {0}%	slijtage {0}%
+st_coverage	maintained {0}%	onderhouden {0}%
+st_worn	Most worn	Meest versleten
+st_aged	Past their service life	Over de levensduur
+st_aged_help	UPS units and batteries last about five years; after that they wear and fail more until you replace them.	UPS'en en accu's gaan ongeveer vijf jaar mee; daarna slijten ze en vallen ze vaker uit tot je ze vervangt.
+st_years	{0} years	{0} jaar
+st_replace	Replace {0}	Vervangen {0}
+st_parts	Spare parts	Reserveonderdelen
+st_parts_help	A repair uses one part. Without one it takes three times as long. Delivery takes {0} days.	Een reparatie gebruikt één onderdeel. Zonder onderdeel duurt het drie keer zo lang. Levering duurt {0} dagen.
+st_auto_order	Reorder automatically at the minimum	Automatisch bijbestellen bij het minimum
+st_col_part	Part	Onderdeel
+st_col_stock	In stock	Voorraad
+st_col_min	Minimum	Minimum
+st_col_ordered	Ordered	Besteld
+st_not_needed	not needed	niet nodig
+st_order	Order {0} ({1})	Bestel {0} ({1})
+st_faults	Faults	Storingen
+st_no_faults	Everything works.	Alles werkt.
+st_since	since {0}	sinds {0}
+st_fault_unnoticed	Nobody has noticed it yet. A NOC operator sees faults at once.	Nog niemand heeft het gemerkt. Een NOC-operator ziet storingen meteen.
+st_fault_contractor_coming	A contractor is on the way: arrives in {0} h.	Een externe monteur is onderweg: is er over {0} u.
+st_fault_contractor	The contractor is working on it: {0} h left.	De externe monteur is ermee bezig: nog {0} u.
+st_fault_repairing	{0} is repairing it: about {1} h left.	{0} repareert het: nog ongeveer {1} u.
+st_fault_waiting	Waiting for a free {0} on duty.	Wacht op een vrije {0} in dienst.
+st_fault_no_part	No {0} in stock: the repair takes three times as long.	Geen {0} op voorraad: de reparatie duurt drie keer zo lang.
+st_call_contractor	Call a contractor ({0}, {1} h)	Externe monteur bellen ({0}, {1} u)
+st_events	Events	Gebeurtenissen
+st_events_off	Random events are switched off for this game.	Willekeurige gebeurtenissen staan uit in dit spel.
+st_no_events	No events right now.	Nu geen gebeurtenissen.
+st_event_left	{0} h left	nog {0} u
+st_outage_gen	Running on generators: diesel for {0} h.	Op de generatoren: diesel voor {0} u.
+st_outage_dark	The site is dark: the backup power cannot carry it.	Het terrein ligt plat: de noodstroom kan het niet dragen.
+st_log	Log	Logboek
+st_log_empty	Nothing has happened yet.	Er is nog niets gebeurd.
+st_training_budget	Training budget	Opleidingsbudget
+st_training_help	Spread over everyone below senior every day; when someone has had enough training they move up a level. Better trained people work faster and are happier.	Wordt elke dag verdeeld over iedereen onder senior; wie genoeg training heeft gehad, gaat een niveau omhoog. Beter getrainde mensen werken sneller en zijn tevredener.
+st_none	None	Geen
+st_per_month	per month	per maand
+st_pay_policy	Pay policy	Salarisbeleid
+st_pay_help	Staff salaries now: {0} per month.	Salarissen personeel nu: {0} per maand.
+st_wellbeing	Wellbeing	Welzijn
+st_wellbeing_help	What makes your staff happy or unhappy. Unhappy people (below 30%) may leave; a heavy workload or night shifts weigh on them too.	Wat je personeel tevreden of ontevreden maakt. Ontevreden mensen (onder 30%) kunnen vertrekken; veel werk of nachtdiensten wegen ook mee.
+ev_staff_hired	Managers hired {0} people	Managers namen {0} mensen aan
+ev_staff_left	{0}'s contract was not renewed	Contract van {0} niet verlengd
+ev_staff_trained	{0} moved up a level	{0} ging een niveau omhoog
+msg_staff_auto_hired	Your managers hired {0} new people.	Je managers hebben {0} nieuwe mensen aangenomen.
+msg_staff_needs_noc	Build a NOC room first.	Bouw eerst een NOC-ruimte.
+plan_support	24/7 customer support	24/7 klantensupport
+plan_support_desc	Customers can call day and night. The operations team keeps at least three support engineers so every shift is covered. Raises customer satisfaction and reputation.	Klanten kunnen dag en nacht bellen. Operations houdt minstens drie support engineers aan zodat elke dienst bezet is. Verhoogt de klanttevredenheid en reputatie.
+plan_noc	24/7 NOC monitoring	24/7 NOC-bewaking
+plan_noc_desc	Three NOC operators watch everything around the clock, so every fault is seen at once. Adds reputation. Needs a NOC room and a network manager.	Drie NOC-operators bewaken alles dag en nacht, zodat elke storing meteen wordt gezien. Levert reputatie op. Vraagt een NOC-ruimte en een netwerkmanager.
+plan_remote_hands	Remote hands service	Remote hands-dienst
+plan_remote_hands_desc	Your people reboot servers and swap disks for customers: € 22 per rented rack per month, up to 120 racks per person.	Je mensen herstarten servers en wisselen schijven voor klanten: € 22 per verhuurd rack per maand, tot 120 racks per persoon.
+st_and_more	and {0} more	en nog {0}
+st_coverage_line	day {0} · evening {1} · night {2}	dag {0} · avond {1} · nacht {2}
+st_levels	{0} junior · {1} medior · {2} senior	{0} junior · {1} medior · {2} senior
+st_needs_mgr	needs a {0}	vraagt om een {0}
+st_plan_fee	{0} per month	{0} per maand
+st_plans	Service plans	Serviceplannen
+st_policy_help	No micromanagement: your managers hire, plan shifts and arrange training by themselves. You set the course with these choices.	Geen micromanagement: je managers werven, plannen diensten en regelen training zelf. Jij bepaalt de koers met deze keuzes.
+st_staffing	Staffing per department	Bezetting per afdeling
+st_staffing_help	Lean saves salaries but gives more work per person; generous costs more but keeps every shift covered and people happy.	Krap scheelt salaris maar geeft meer werk per persoon; ruim kost meer maar houdt elke dienst bezet en mensen tevreden.
+st_tab_policy	Policy	Beleid
+staffing_0	Lean	Krap
+staffing_1	Normal	Normaal
+staffing_2	Generous	Ruim
+exec_marketing	Marketing manager	Marketingmanager
+exec_marketing_unlocks	20% more customer requests (+10% per training) and good reviews lift your reputation a quarter more. Sends proposals for sales tools.	20% meer klantaanvragen (+10% per training) en goede recensies tillen je reputatie een kwart meer op. Stuurt voorstellen voor salestools.
+exec_marketing_train_1	Content marketing course	Cursus contentmarketing
+exec_marketing_train_2	Brand strategy	Merkstrategie
+exec_compliance	Compliance manager	Compliance-manager
+exec_compliance_unlocks	Books audits for ISO 27001, Tier III, PCI DSS, the government seal and the green label, and renews them by himself.	Regelt audits voor ISO 27001, Tier III, PCI DSS, het overheidskeurmerk en het groene label, en verlengt ze zelf.
+exec_compliance_train_1	Lead auditor course (audits 25% faster)	Cursus lead auditor (audits 25% sneller)
+exec_compliance_train_2	Risk and governance	Risico en governance
+exec_research	R&D manager	R&D-manager
+exec_research_unlocks	Opens the research tree. Hires researchers for the lab benches in your R&D lab.	Opent de research tree. Neemt onderzoekers aan voor de labtafels in je R&D-lab.
+exec_research_train_1	Innovation management (+15% research)	Innovatiemanagement (+15% research)
+exec_research_train_2	Technology roadmapping (+15% research)	Technologie-roadmaps (+15% research)
+exec_office	Office manager	Officemanager
+exec_office_unlocks	Runs your offices. With the research Office rental, empty office rooms are let to other companies (more locations follow later).	Beheert je kantoren. Met de research Kantoorverhuur worden lege kantoorruimtes verhuurd aan andere bedrijven (meer locaties volgen later).
+exec_office_train_1	Facility services course (+10% rent)	Cursus facilitaire dienstverlening (+10% huur)
+exec_office_train_2	Real estate management (+10% rent)	Vastgoedbeheer (+10% huur)
+staff_researcher	Researcher	Onderzoeker
+staff_researcher_desc	Works at a lab bench in the R&D lab and earns research points. One per bench.	Werkt aan een labtafel in het R&D-lab en verdient onderzoekspunten. Eén per tafel.
+cust_ai	AI and GPU company	AI- en GPU-bedrijf
+room_lab	R&D lab	R&D-lab
+door_mantrap	Mantrap	Sluisdeur
+obj_camera_pole	Camera on a pole	Camera op paal
+obj_camera_dome	Dome camera	Dome-camera
+obj_security_wall	Security video wall	Videowall beveiliging
+obj_glass_lodge	Glass lodge	Glazen loge
+obj_bollard	Bollard	Anti-rampaal
+obj_lab_bench	Lab bench	Labtafel
+book_inc_heat	Waste heat sold	Restwarmte verkocht
+book_inc_office_rent	Office rent	Kantoorverhuur
+book_cost_compliance	Audits and certificates	Audits en certificaten
+book_cost_proposals	Proposals	Voorstellen
+book_cost_research	Research	Research
+hud_reputation_tip	Your reputation. Click for reviews, security, certificates and proposals.	Je reputatie. Klik voor recensies, beveiliging, certificaten en voorstellen.
+res_reputation	Reputation	Reputatie
+inspect_corridor_research	Cold corridor: needs research first	Cold corridor: eerst onderzoeken
+inspect_lab	{0} lab benches · {1} researchers	{0} labtafels · {1} onderzoekers
+msg_audit_busy	The auditors are already busy with this one.	De auditors zijn hier al mee bezig.
+msg_cert_valid	This certificate is still valid for a long time.	Dit certificaat is nog lang geldig.
+msg_cert_passed	Certificate passed: {0}.	Certificaat behaald: {0}.
+msg_cert_renewed	Certificate renewed: {0}.	Certificaat verlengd: {0}.
+msg_cert_failed	Audit failed: {0}. Check what the auditors miss.	Audit gezakt: {0}. Kijk wat de auditors missen.
+msg_cert_withdrawn	Certificate withdrawn: {0}.	Certificaat ingetrokken: {0}.
+msg_needs_compliance	You need a compliance manager for audits.	Voor audits heb je een compliance-manager nodig.
+msg_needs_lab	This role needs an R&D lab with lab benches.	Deze functie vraagt om een R&D-lab met labtafels.
+msg_needs_office_mgr	This needs an office manager.	Hiervoor heb je een officemanager nodig.
+msg_needs_research_mgr	Hire an R&D manager to start research.	Neem een R&D-manager aan om te kunnen onderzoeken.
+msg_proposal	New proposal from your {0}.	Nieuw voorstel van je {0}.
+msg_research_done	Research finished: {0}.	Research klaar: {0}.
+msg_research_needs	Research what comes before it first.	Onderzoek eerst wat ervoor komt.
+msg_research_new	New: security, research and reputation. Build an R&D lab, hire an R&D manager and pick research in the research tree (star and flask icons top right).	Nieuw: beveiliging, research en reputatie. Bouw een R&D-lab, neem een R&D-manager aan en kies onderzoek in de research tree (ster- en kolf-icoon rechtsboven).
+msg_research_queue_full	The research queue is full.	De researchwachtrij is vol.
+msg_research_year	This technology is not available yet in this year.	Deze techniek is dit jaar nog niet beschikbaar.
+msg_review_good	A customer wrote a 5-star review about {0}.	Een klant schreef een recensie van 5 sterren over {0}.
+msg_review_bad	A customer wrote a 1-star review about {0}.	Een klant schreef een recensie van 1 ster over {0}.
+ev_cert_passed	Certificate passed: {0}	Certificaat behaald: {0}
+ev_cert_failed	Audit failed: {0}	Audit gezakt: {0}
+ev_cert_checked	Yearly check passed: {0}	Jaarlijkse controle geslaagd: {0}
+ev_cert_withdrawn	Certificate withdrawn: {0}	Certificaat ingetrokken: {0}
+ev_proposal_accepted	Proposal accepted: {0}	Voorstel goedgekeurd: {0}
+ev_research_done	Research finished: {0}	Research klaar: {0}
+rp_title	Reputation and research	Reputatie en research
+rp_tab_reputation	Reputation	Reputatie
+rp_tab_security	Security	Beveiliging
+rp_tab_certs	Certificates	Certificaten
+rp_tab_research	Research	Research
+rp_tab_proposals	Proposals	Voorstellen
+rp_reputation_short	Reputation {0}	Reputatie {0}
+rp_security_short	Security level {0}	Beveiligingsniveau {0}
+rp_points_day	{0} research points/day	{0} onderzoekspunten/dag
+rp_reputation_help	Reputation (0 to 100) grows with good reviews, certificates, renewals and delivered tenders, and drops when customers leave or deadlines are missed. A better name brings more and bigger customers.	Reputatie (0 tot 100) groeit met goede recensies, certificaten, verlengingen en opgeleverde aanbestedingen, en daalt als klanten vertrekken of deadlines worden gemist. Een betere naam brengt meer en grotere klanten.
+rp_out_of	out of 100	van de 100
+rp_trend_up	Up {0} over the last months	{0} gestegen de afgelopen maanden
+rp_trend_down	Down {0} over the last months	{0} gedaald de afgelopen maanden
+rp_unlocks	Social media from 30, cloud services from 40 and ministries from 45; a higher reputation also wins tenders and lowers the bank's interest from 60.	Social media vanaf 30, clouddiensten vanaf 40 en ministeries vanaf 45; een hogere reputatie wint ook aanbestedingen en verlaagt vanaf 60 de rente bij de bank.
+rp_quality	What customers feel	Wat klanten merken
+rp_quality_power_help	Generators N+1, UPS N+1 or 2N, A/B power in every hall and no outages.	Generatoren N+1, UPS N+1 of 2N, A/B-voeding in elke hal en geen uitval.
+rp_quality_network_help	Several carriers, a NOC, peering, DDoS protection and no lost traffic.	Meerdere carriers, een NOC, peering, DDoS-bescherming en geen verloren verkeer.
+rp_quality_support_help	24/7 support, remote hands, a customer lounge, a receptionist, customer success and happy staff.	24/7 support, remote hands, een klantruimte, een receptionist, customer success en tevreden personeel.
+rp_quality_security_help	Follows your security level.	Volgt je beveiligingsniveau.
+rp_certs_list	Certificates: {0}	Certificaten: {0}
+rp_no_certs	No certificates yet. A compliance manager can have audits done.	Nog geen certificaten. Een compliance-manager kan audits laten doen.
+rp_marketing_on	Marketing manager: +{0}% customer requests, good reviews count more.	Marketingmanager: +{0}% klantaanvragen, goede recensies tellen zwaarder.
+rp_marketing_off	Tip: a marketing manager (under the sales director) brings more requests and makes good reviews count more.	Tip: een marketingmanager (onder de salesdirecteur) brengt meer aanvragen en laat goede recensies zwaarder tellen.
+rp_reviews	Reviews	Recensies
+rp_no_reviews	No reviews yet. Customers write them now and then once they have a contract.	Nog geen recensies. Klanten schrijven ze af en toe zodra ze een contract hebben.
+rev_who	{0}	{0}
+rev_topic_power	Power	Stroom
+rev_topic_network	Network	Netwerk
+rev_topic_support	Support	Support
+rev_topic_security	Security	Beveiliging
+rev_power_good	"Not one second without power, even when the city went dark. Rock solid."	"Geen seconde zonder stroom, zelfs toen de stad donker was. IJzersterk."
+rev_power_ok	"Power is fine, but we would like a bit more redundancy."	"De stroom is prima, maar we zouden graag wat meer redundantie zien."
+rev_power_bad	"Our racks went down. That cannot happen in a datacenter."	"Onze racks gingen uit. Dat mag in een datacenter niet gebeuren."
+rev_network_good	"Low latency, lots of carriers and the NOC is always on top of it."	"Lage latency, veel carriers en de NOC zit er altijd bovenop."
+rev_network_ok	"The network does the job. More carriers would be nice."	"Het netwerk doet wat het moet doen. Meer carriers zou fijn zijn."
+rev_network_bad	"Packet loss in the evening peak. Our users noticed."	"Pakketverlies in de avondpiek. Onze gebruikers merkten het."
+rev_support_good	"Remote hands swapped a disk at 3 at night within twenty minutes. Fantastic."	"Remote hands wisselde om 3 uur 's nachts binnen twintig minuten een schijf. Fantastisch."
+rev_support_ok	"Support answers, but not always quickly."	"Support reageert, maar niet altijd snel."
+rev_support_bad	"Nobody picked up the phone when we needed help."	"Niemand nam op toen we hulp nodig hadden."
+rev_security_good	"Badge, mantrap, a guard who walks along: our auditors were impressed."	"Pasje, sluisdeur, een beveiliger die meeloopt: onze auditors waren onder de indruk."
+rev_security_ok	"Security is decent, but it could be stricter."	"De beveiliging is redelijk, maar het kan strenger."
+rev_security_bad	"We walked into the hall without anyone checking us. Worrying."	"We liepen de hal in zonder dat iemand ons controleerde. Zorgwekkend."
+sec_help	The security level (0 to 100) adds up everything you build and run for security. Municipalities, banks and ministries need a minimum level and a security manager; certificates check it too.	Het beveiligingsniveau (0 tot 100) telt alles op wat je bouwt en regelt voor beveiliging. Gemeentes, banken en ministeries vragen een minimumniveau en een security manager; certificaten controleren het ook.
+sec_level_of	security level out of 100	beveiligingsniveau van de 100
+sec_needs_line	Municipalities need {0}, banks {1}, ministries {2}.	Gemeentes vragen {0}, banken {1}, ministeries {2}.
+sec_fence	Perimeter fence	Hekwerk rondom
+sec_fence_tip	Fence the plot: the more of the edge and the stronger the fence, the better. Electric fences need research.	Omhein het terrein: hoe meer van de rand en hoe sterker het hek, hoe beter. Een schrikdraadhek vraagt research.
+sec_gate	Entrance	Toegangspoort
+sec_gate_tip	Guard booth, a barrier (number plate recognition after research), an intercom and at least four bollards against vehicles.	Portiersloge, een slagboom (kentekenherkenning na research), een intercom en minstens vier anti-rampalen tegen voertuigen.
+sec_cameras	Cameras	Camera's
+sec_cameras_tip	Cameras on poles outside, and a dome camera in every hall and meet-me room. AI video analysis (research) adds more.	Camera's op palen buiten, en een dome-camera in elke hal en meet-me room. AI-videoanalyse (research) voegt meer toe.
+sec_access	Access control	Toegangscontrole
+sec_access_tip	Only badge doors (or fire doors) into halls and meet-me rooms, biometric readers (research) and a mantrap at the entrance (research).	Alleen badgedeuren (of branddeuren) naar hallen en meet-me rooms, biometrische lezers (research) en een sluisdeur bij de ingang (research).
+sec_room	Security room	Beveiligingsruimte
+sec_room_tip	A security video wall in the security room and a glass lodge where the guard sits.	Een videowall in de beveiligingsruimte en een glazen loge waar de beveiliger zit.
+sec_people	Guards and management	Beveiligers en leiding
+sec_people_tip	A security manager, and guards on every shift (three or more).	Een security manager, en beveiligers in elke dienst (drie of meer).
+sec_policies	Policies	Beleid
+sec_policies_tip	Each policy adds points; security kit from proposals too.	Elke policy telt mee; beveiligingstechniek uit voorstellen ook.
+sec_policies_title	Security policies	Beveiligingsbeleid
+sec_policies_help	Stricter policies raise the security level and count for certificates, but need more guards. The security manager hires them by himself.	Strengere policies verhogen het beveiligingsniveau en tellen mee voor certificaten, maar vragen meer beveiligers. De security manager neemt ze zelf aan.
+pol_id_check	Customers always show ID to a guard	Klant meldt zich altijd met ID bij een beveiliger
+pol_id_check_desc	Two more guards around the clock. Needed for ISO 27001.	Twee extra beveiligers rond de klok. Nodig voor ISO 27001.
+pol_escort	A guard walks along to open the rack	Beveiliger loopt mee om het rack te openen
+pol_escort_desc	You see a guard walk in with every visitor. One more guard, plus one per 150 rented racks. Needed for PCI DSS.	Je ziet bij elk bezoek een beveiliger meelopen. Eén beveiliger extra, plus één per 150 verhuurde racks. Nodig voor PCI DSS.
+pol_office_hours	No visits outside office hours	Geen bezoek buiten kantooruren
+pol_office_hours_desc	Customers only come between 07:00 and 19:00. Commercial customers like that a little less; needed for the government seal.	Klanten komen alleen tussen 07:00 en 19:00. Commerciële klanten vinden dat iets minder fijn; nodig voor het overheidskeurmerk.
+sec_guards	Guards: {0} of {1} wanted	Beveiligers: {0} van {1} gewenst
+cert_help	Certificates open doors to banks, ministries and big tenders, and add reputation. The compliance manager books the audit; the auditors check the site when they finish. Certificates last three years with a yearly check, and are renewed automatically.	Certificaten openen de deur naar banken, ministeries en grote aanbestedingen, en leveren reputatie op. De compliance-manager boekt de audit; de auditors controleren het terrein als ze klaar zijn. Certificaten gelden drie jaar met een jaarlijkse controle, en worden automatisch verlengd.
+cert_iso27001	ISO 27001	ISO 27001
+cert_iso27001_desc	Information security. Municipalities, clouds and hyperscalers like it; ministries need it.	Informatiebeveiliging. Gemeentes, clouds en hyperscalers waarderen het; ministeries eisen het.
+cert_tier3	Tier III	Tier III
+cert_tier3_desc	Concurrently maintainable: redundant power and cooling paths. Banks, clouds and AI customers want it.	Onderhoud zonder uitval: redundante stroom- en koelpaden. Banken, clouds en AI-klanten willen het.
+cert_pci	PCI DSS	PCI DSS
+cert_pci_desc	Card payment security. Banks will not sign without it.	Beveiliging voor betaalkaarten. Banken tekenen niet zonder.
+cert_gov	Government seal	Overheidskeurmerk
+cert_gov_desc	Strict security for ministries and government agencies. They will not sign without it.	Strenge beveiliging voor ministeries en overheidsdiensten. Zij tekenen niet zonder.
+cert_green	Green datacenter label	Groen datacenterlabel
+cert_green_desc	Green energy and a low PUE.	Groene stroom en een lage PUE.
+cert_none	Not certified	Niet gecertificeerd
+cert_auditing	Audit running: {0} days left	Audit loopt: nog {0} dagen
+cert_valid_until	Valid until {0}	Geldig tot {0}
+cert_audit	Request audit ({0}, {1} days)	Audit aanvragen ({0}, {1} dagen)
+cert_renew	Renew now ({0}, {1} days)	Nu verlengen ({0}, {1} dagen)
+cert_reward	+{0} reputation when passed	+{0} reputatie bij slagen
+cert_req_security	Security level	Beveiligingsniveau
+cert_req_security_mgr	Security manager	Security manager
+cert_req_id_check	Policy: ID check	Policy: ID-controle
+cert_req_ups	UPS redundancy	UPS-redundantie
+cert_req_gen	Generators	Generatoren
+cert_req_ab	Every hall with racks on A/B power	Elke hal met racks op A/B-voeding
+cert_req_carriers	Carriers	Carriers
+cert_req_iso	ISO 27001 certificate	ISO 27001-certificaat
+cert_req_escort	Policy: guard walks along	Policy: beveiliger loopt mee
+cert_req_mantrap	A mantrap	Een sluisdeur
+cert_req_office_hours	Policy: no visits outside office hours	Policy: geen bezoek buiten kantooruren
+cert_req_green_energy	Green energy contract	Groen energiecontract
+cert_req_pue	PUE	PUE
+req_cert_iso27001	Certificate: ISO 27001	Certificaat: ISO 27001
+req_cert_tier3	Certificate: Tier III	Certificaat: Tier III
+req_cert_pci	Certificate: PCI DSS	Certificaat: PCI DSS
+req_cert_gov	Certificate: government seal	Certificaat: overheidskeurmerk
+req_cert_green	Certificate: green label	Certificaat: groen label
+rs_help	Pick what your researchers work on. Each project costs money when you queue it and research points to finish. Points come from researchers at lab benches in an R&D lab, a little more with certificates and happy customers. Some technology only arrives in later years.	Kies waar je onderzoekers aan werken. Elk project kost geld bij het in de wachtrij zetten en onderzoekspunten om af te ronden. Punten komen van onderzoekers aan labtafels in een R&D-lab, iets meer met certificaten en tevreden klanten. Sommige techniek komt pas in latere jaren.
+rs_needs_lab	Build an R&D lab (Rooms) with lab benches (Interior); the R&D manager hires a researcher per bench.	Bouw een R&D-lab (Ruimtes) met labtafels (Inrichting); de R&D-manager neemt per tafel een onderzoeker aan.
+rs_status	{0} researchers at {1} lab benches · {2} points per day	{0} onderzoekers aan {1} labtafels · {2} punten per dag
+rs_queue	Queue	Wachtrij
+rs_days	{0} days	{0} dagen
+rs_cancel	Cancel	Annuleren
+rs_cost	{0} points · {1}	{0} punten · {1}
+rs_requires	Needs: {0}	Vereist: {0}
+rs_from_year	Available from {0}	Beschikbaar vanaf {0}
+rs_in_queue	In the queue (#{0})	In de wachtrij (#{0})
+rs_start	Research	Onderzoeken
+branch_power	Power	Stroom
+branch_cooling	Cooling	Koeling
+branch_network	Network	Netwerk
+branch_construction	Construction	Bouw
+branch_security	Security	Beveiliging
+branch_business	Business	Bedrijf
+rs_pwr_lithium	Lithium batteries	Lithium-accu's
+rs_pwr_lithium_desc	Battery cabinets hold 50% more energy: longer UPS autonomy.	Accukasten slaan 50% meer energie op: langere UPS-autonomie.
+rs_pwr_ups_eco	Eco-mode UPS	UPS met eco-modus
+rs_pwr_ups_eco_desc	Every UPS carries 20% more load.	Elke UPS draagt 20% meer last.
+rs_pwr_busbar	Heavy busbar	Zware busbar
+rs_pwr_busbar_desc	Busbar runs carry 600 kW instead of 400 kW.	Busbar-rails dragen 600 kW in plaats van 400 kW.
+rs_pwr_peak	Peak shaving	Peak shaving
+rs_pwr_peak_desc	Batteries cover price peaks: energy 6% cheaper.	Accu's vangen prijspieken op: energie 6% goedkoper.
+rs_cool_corridor	Cold corridor	Cold corridor
+rs_cool_corridor_desc	Unlocks the cold corridor hall upgrade: +35% CRAH capacity and PUE 1.30. Hot/cold aisles are available from the start.	Ontgrendelt de cold corridor als hal-upgrade: +35% CRAH-capaciteit en PUE 1,30. Warme/koude gangen zijn vanaf het begin beschikbaar.
+rs_cool_ecfans	EC fans	EC-ventilatoren
+rs_cool_ecfans_desc	CRAH units cool 10% more.	CRAH-units koelen 10% meer.
+rs_cool_free	Free cooling	Vrije koeling
+rs_cool_free_desc	Outside air cools when it is cold enough: PUE 0.08 lower in every hall.	Buitenlucht koelt als het koud genoeg is: PUE 0,08 lager in elke hal.
+rs_cool_heat	Sell waste heat	Restwarmte verkopen
+rs_cool_heat_desc	A heat exchanger to the district heating: € 4 per kW of IT load per month.	Een warmtewisselaar naar de stadsverwarming: € 4 per kW IT-last per maand.
+rs_cool_liquid	Liquid cooling	Vloeistofkoeling
+rs_cool_liquid_desc	Direct-to-chip cooling for dense racks: AI and GPU companies start asking for space.	Direct-to-chip-koeling voor dichte racks: AI- en GPU-bedrijven gaan om ruimte vragen.
+rs_net_optics	Coherent optics	Coherente optiek
+rs_net_optics_desc	Carrier ports and commits 10% cheaper.	Carrierpoorten en commits 10% goedkoper.
+rs_net_sdn	Route optimisation	Route-optimalisatie
+rs_net_sdn_desc	5% more traffic goes over the exchange instead of paid transit.	5% meer verkeer gaat via de exchange in plaats van betaalde transit.
+rs_net_ddos	DDoS protection	DDoS-bescherming
+rs_net_ddos_desc	Scrubbing in front of your network: customers rate the network higher.	Filtering voor je netwerk: klanten waarderen het netwerk hoger.
+rs_bld_prefab	Prefab modules	Prefab-modules
+rs_bld_prefab_desc	Builders and fitters work 20% faster.	Bouwvakkers en monteurs werken 20% sneller.
+rs_bld_rows	Long rows	Lange rijen
+rs_bld_rows_desc	Place rows of up to 48 racks in one go.	Plaats rijen tot 48 racks in één keer.
+rs_bld_logistics	Site logistics	Bouwlogistiek
+rs_bld_logistics_desc	All crews work 15% faster.	Alle ploegen werken 15% sneller.
+rs_sec_biometrics	Biometric readers	Biometrische lezers
+rs_sec_biometrics_desc	Fingerprint readers on the badge doors: +3 security.	Vingerafdruklezers op de badgedeuren: +3 beveiliging.
+rs_sec_anpr	Number plate recognition	Kentekenherkenning
+rs_sec_anpr_desc	Barriers recognise known vehicles: +3 security.	Slagbomen herkennen bekende voertuigen: +3 beveiliging.
+rs_sec_mantrap	Mantrap	Sluisdeur
+rs_sec_mantrap_desc	Unlocks the mantrap door: one person at a time. +7 security.	Ontgrendelt de sluisdeur: één persoon tegelijk. +7 beveiliging.
+rs_sec_electric	Electric fence	Schrikdraadhek
+rs_sec_electric_desc	Unlocks the electric fence, the strongest fence.	Ontgrendelt het schrikdraadhek, het sterkste hek.
+rs_sec_ai_video	AI video analysis	AI-videoanalyse
+rs_sec_ai_video_desc	Cameras spot unusual behaviour by themselves: +4 security.	Camera's zien zelf afwijkend gedrag: +4 beveiliging.
+rs_biz_crm	CRM system	CRM-systeem
+rs_biz_crm_desc	Sales follows up better: 15% more customer requests.	Sales volgt beter op: 15% meer klantaanvragen.
+rs_biz_sla	Premium SLA	Premium SLA
+rs_biz_sla_desc	New contracts are 5% more expensive for the same service.	Nieuwe contracten zijn 5% duurder voor dezelfde dienst.
+rs_biz_esg	Sustainability report	Duurzaamheidsverslag
+rs_biz_esg_desc	With a green energy contract your reputation slowly rises.	Met een groen energiecontract stijgt je reputatie langzaam.
+rs_biz_gov	Government framework	Raamcontract overheid
+rs_biz_gov_desc	Municipalities and ministries come more often and with 15 less reputation.	Gemeentes en ministeries komen vaker en al met 15 minder reputatie.
+rs_biz_office_rent	Office rental	Kantoorverhuur
+rs_biz_office_rent_desc	Needs an office manager. Office rooms without desks are let to other companies: € 22 per m² per month.	Vraagt een officemanager. Kantoorruimtes zonder bureaus worden verhuurd aan andere bedrijven: € 22 per m² per maand.
+prop_help	Now and then your managers propose new kit from (fictional) suppliers. Accepting costs money once and gives a lasting improvement. Proposals expire after 20 days.	Af en toe stellen je managers nieuwe apparatuur voor van (verzonnen) leveranciers. Goedkeuren kost eenmalig geld en geeft een blijvende verbetering. Voorstellen vervallen na 20 dagen.
+prop_none	No proposals right now. Network, facility, security and marketing managers send them.	Er liggen nu geen voorstellen. Netwerk-, facility-, security- en marketingmanagers sturen ze.
+prop_expires	{0} days left	nog {0} dagen
+prop_accept	Approve	Goedkeuren
+prop_decline	Decline	Afwijzen
+prop_accepted	Approved earlier	Eerder goedgekeurd
+prop_router	New core routers from {0}	Nieuwe core-routers van {0}
+prop_router_quote	"For {0} we get the newest routers from {1}. Latency drops and customers rate our network {2} points higher."	"Voor {0} krijgen we de nieuwste routers van {1}. De latency daalt en klanten waarderen ons netwerk {2} punten hoger."
+prop_ddos	DDoS scrubbing from {0}	DDoS-filtering van {0}
+prop_ddos_quote	"{1} offers DDoS scrubbing for {0}. Attacks no longer reach customers: network rating +{2}."	"{1} biedt DDoS-filtering voor {0}. Aanvallen bereiken klanten niet meer: netwerkwaardering +{2}."
+prop_crahfans	New CRAH fans from {0}	Nieuwe CRAH-ventilatoren van {0}
+prop_crahfans_quote	"If we fit the new fans from {1} for {0}, every CRAH cools {2}% more."	"Als we voor {0} de nieuwe ventilatoren van {1} plaatsen, koelt elke CRAH {2}% meer."
+prop_upsfirmware	UPS service contract with {0}	UPS-servicecontract met {0}
+prop_upsfirmware_quote	"{1} upgrades our UPS firmware and checks the batteries for {0}. Customers rate our power {2} points higher."	"{1} werkt voor {0} onze UPS-firmware bij en controleert de accu's. Klanten waarderen onze stroom {2} punten hoger."
+prop_securitytech	Security kit from {0}	Beveiligingstechniek van {0}
+prop_securitytech_quote	"With the new access system from {1} for {0} our security level rises by {2}."	"Met het nieuwe toegangssysteem van {1} voor {0} stijgt ons beveiligingsniveau met {2}."
+prop_crm	Sales campaign with {0}	Salescampagne met {0}
+prop_crm_quote	"A campaign with {1} for {0} brings {2}% more customer requests."	"Een campagne met {1} voor {0} brengt {2}% meer klantaanvragen."
+cat_growth	Growth	Groei
+hud_news	News	Nieuws
+hud_news_tip	Market news. Click for the market overview.	Marktnieuws. Klik voor het marktoverzicht.
+gr_title	Growth	Groei
+gr_tab_locations	Locations	Locaties
+gr_tab_offices	Offices	Kantoren
+gr_tab_hosting	Hosting	Hosting
+gr_tab_market	Market	Markt
+gr_tab_energy	Energy and ESG	Energie en ESG
+gr_tab_risks	Risks	Risico's
+gr_tab_people	Key people	Sleutelfiguren
+gr_share_short	Market share {0}	Marktaandeel {0}
+gr_esg_short	ESG score {0}	ESG-score {0}
+gr_sites_short	Locations: {0}	Locaties: {0}
+obj_solar	Solar panels	Zonnepanelen
+obj_wind	Wind turbine	Windmolen
+obj_battery_container	Battery container	Batterijcontainer
+obj_dry_cooler	Dry cooler	Dry cooler
+obj_pallet_rack	Pallet rack	Palletstelling
+obj_workbench	Workbench	Werkbank
+obj_pallet_jack	Pallet jack	Palletwagen
+obj_shredder	Disk shredder	Schijvenvernietiger
+obj_soc_desk	SOC desk	SOC-werkplek
+room_soc	SOC	SOC
+room_warehouse	Warehouse store	Magazijn
+exec_hosting	Hosting director	Directeur hosting
+exec_hosting_unlocks	Starts and runs your own hosting company: VPS, dedicated servers, GPU servers, storage and backup. Hires hosting engineers.	Start en leidt je eigen hostingbedrijf: VPS, dedicated servers, GPU-servers, opslag en back-up. Neemt hosting engineers aan.
+exec_hosting_train_1	Cloud product management (+10% sign-ups)	Productmanagement cloud (+10% aanmeldingen)
+exec_hosting_train_2	Hyperscale operations (+10% sign-ups)	Hyperscale operations (+10% aanmeldingen)
+exec_sustainability	Sustainability manager	Duurzaamheidsmanager
+exec_sustainability_unlocks	Raises your ESG score: reports, green purchasing and less water. Green customers and investors notice.	Verhoogt je ESG-score: rapportages, groene inkoop en minder water. Groene klanten en investeerders merken het.
+exec_sustainability_train_1	CSRD reporting (+2 ESG)	CSRD-rapportage (+2 ESG)
+exec_sustainability_train_2	Science-based targets (+2 ESG)	Science-based targets (+2 ESG)
+exec_international	International director	Internationaal directeur
+exec_international_unlocks	Opens country offices abroad and runs your other locations. Needed for more than one extra datacenter.	Opent landenkantoren in het buitenland en beheert je andere locaties. Nodig voor meer dan één extra datacenter.
+exec_international_train_1	Cross-border tax and permits	Internationale belasting en vergunningen
+exec_international_train_2	Global expansion programme	Programma wereldwijde expansie
+staff_soc	SOC analyst	SOC-analist
+staff_soc_desc	Watches the networks for attacks from a desk in the SOC. More analysts and 24/7 monitoring stop more attacks.	Bewaakt de netwerken op aanvallen vanaf een werkplek in het SOC. Meer analisten en 24/7 bewaking houden meer aanvallen tegen.
+staff_hosting	Hosting engineer	Hosting engineer
+staff_hosting_desc	Prepares servers from the warehouse, installs them in your own-cloud halls and answers hosting tickets.	Haalt servers uit het warehouse, installeert ze in je eigen cloudzalen en beantwoordt hostingtickets.
+msg_needs_soc	Build a SOC room first.	Bouw eerst een SOC-ruimte.
+msg_growth_new	New in this version: growth. Buy land, open other locations, start a hosting company and watch the market (globe button top right).	Nieuw in deze versie: groei. Koop grond, open andere locaties, start een hostingbedrijf en volg de markt (wereldbol rechtsboven).
+msg_tender_lost_to	Tender lost: {0} chose {1}.	Aanbesteding verloren: {0} koos voor {1}.
+msg_land_bought	Land bought: your campus is now {0} × {0} m.	Grond gekocht: je campus is nu {0} × {0} m.
+msg_needs_international	Hire an international director first.	Neem eerst een internationaal directeur aan.
+msg_needs_country	Open a country office there first.	Open daar eerst een landenkantoor.
+msg_country_open	Country office opened: {0}.	Landenkantoor geopend: {0}.
+msg_site_started	Construction of the new location in {0} has started.	De bouw van de nieuwe locatie in {0} is begonnen.
+msg_site_ready	The datacenter in {0} is open. The local team starts selling racks.	Het datacenter in {0} is open. Het lokale team begint racks te verkopen.
+msg_site_expanded	The location in {0} has been expanded.	De locatie in {0} is uitgebreid.
+msg_site_sold	Location {0} sold.	Locatie {0} verkocht.
+msg_site_disaster	Disaster at the location in {0}: it is offline for a few days.	Ramp bij de locatie in {0}: die is een paar dagen offline.
+msg_office_bought	Office building bought in {0}. The office manager looks for tenants.	Kantoorpand gekocht in {0}. De officemanager zoekt huurders.
+msg_office_let_customer	Your customer {0} rents an office on your campus.	Je klant {0} huurt een kantoor op je campus.
+msg_office_let_other	{0} rents an office on your campus.	{0} huurt een kantoor op je campus.
+msg_rival_for_sale	{0} is in trouble and up for sale.	{0} zit in de problemen en staat te koop.
+msg_offer_new	A datacenter is for sale: {0}. See Growth, Locations.	Er staat een datacenter te koop: {0}. Zie Groei, Locaties.
+msg_acquired	Acquired: {0} is now one of your locations.	Overgenomen: {0} is nu een van je locaties.
+msg_ipo_done	Listed on the stock exchange! € {0} raised.	Naar de beurs! € {0} opgehaald.
+msg_ipo_needs_cfo	A trained CFO is needed for a stock market listing.	Voor een beursgang is een getrainde CFO nodig.
+msg_ipo_revenue	Not enough revenue yet for a stock market listing.	Nog niet genoeg omzet voor een beursgang.
+msg_ipo_value	The company is not worth enough yet.	Het bedrijf is nog niet genoeg waard.
+msg_ipo_shares	Investors already own too much of the company.	Investeerders bezitten al te veel van het bedrijf.
+msg_energy_spike	Energy prices shoot up. Variable contracts pay more; batteries earn more.	De energieprijzen schieten omhoog. Variabele contracten betalen meer; batterijen verdienen meer.
+msg_energy_cheap	Energy is cheap for a while thanks to lots of wind and sun.	Energie is een tijdje goedkoop dankzij veel wind en zon.
+msg_cyber_blocked	Attack blocked: {0}.	Aanval tegengehouden: {0}.
+msg_cyber_hit	Cyberattack: {0}. It cost money and reputation.	Cyberaanval: {0}. Dat kostte geld en reputatie.
+msg_insurance_paid	The insurer pays € {0}.	De verzekeraar betaalt € {0}.
+msg_disaster_storm	A heavy storm damaged equipment outside.	Een zware storm heeft apparatuur buiten beschadigd.
+msg_disaster_lightning	Lightning strike! Power equipment is damaged.	Blikseminslag! Stroomapparatuur is beschadigd.
+msg_disaster_flood	Flooding: a ground floor hall is shut down until it is dry.	Wateroverlast: een zaal op de begane grond ligt stil tot hij droog is.
+msg_disaster_substation	Fire at the grid substation: a long power cut.	Brand in het onderstation: een lange stroomstoring.
+msg_disaster_fire	Fire in an office or warehouse building.	Brand in een kantoor- of warehousegebouw.
+msg_supply_0	Chip shortage: racks and network gear take {0} days longer.	Chiptekort: racks en netwerkapparatuur duren {0} dagen langer.
+msg_supply_1	Transformer shortage: power equipment takes {0} days longer.	Tekort aan transformatoren: stroomapparatuur duurt {0} dagen langer.
+msg_supply_2	Port strike: all deliveries take {0} days longer.	Havenstaking: alle leveringen duren {0} dagen langer.
+msg_hosting_started	{0} is open for business.	{0} is open voor klanten.
+msg_hosting_full	Your own cloud is full. Add racks to an own-cloud hall.	Je eigen cloud zit vol. Zet meer racks in een eigen-cloudzaal.
+msg_hosting_no_racks	The hosting company has no racks. Mark a hall as own cloud and fill it with racks.	Het hostingbedrijf heeft geen racks. Markeer een zaal als eigen cloud en zet er racks in.
+msg_needs_hosting	Start the hosting company first.	Start eerst het hostingbedrijf.
+msg_needs_hosting_dir	Hire a hosting director first.	Neem eerst een directeur hosting aan.
+msg_campaign_busy	A campaign is already running.	Er loopt al een campagne.
+msg_host_deal_new	A big hosting customer wants {0} servers. See Growth, Hosting.	Een grote hostingklant wil {0} servers. Zie Groei, Hosting.
+msg_host_deal_signed	Big contract signed: {0}.	Groot contract getekend: {0}.
+msg_host_deal_done	All servers delivered for {0}.	Alle servers geleverd voor {0}.
+msg_host_deal_late	Late with the servers for {0}: a penalty.	Te laat met de servers voor {0}: een boete.
+msg_host_deal_end	The big contract with {0} has ended.	Het grote contract met {0} is afgelopen.
+msg_key_candidate	The headhunter found {0}, a possible {1}.	De headhunter heeft {0} gevonden, een mogelijke {1}.
+msg_key_have	You already have someone in this role.	Je hebt al iemand in deze rol.
+msg_key_hired	{0} has joined the company.	{0} is in dienst gekomen.
+msg_key_left	{0} has left the company.	{0} heeft het bedrijf verlaten.
+msg_key_stays	{0} stays with the company.	{0} blijft bij het bedrijf.
+msg_key_poach	{1} tries to poach {0}! See Growth, Key people.	{1} probeert {0} weg te kapen! Zie Groei, Sleutelfiguren.
+event_flood	Flooding	Wateroverlast
+event_flood_desc	A hall on the ground floor is shut down until the water is gone.	Een zaal op de begane grond ligt stil tot het water weg is.
+book_inc_sites	Other locations	Andere locaties
+book_inc_office_property	Office buildings	Kantoorpanden
+book_cost_sites	Locations and countries	Locaties en landen
+book_inc_hosting	Hosting company	Hostingbedrijf
+book_cost_hosting	Hosting servers and licences	Hostingservers en licenties
+book_inc_battery	Battery trading	Batterijhandel
+book_cost_water	Water	Water
+book_cost_insurance	Insurance	Verzekering
+book_inc_insurance	Insurance payouts	Uitkeringen verzekering
+book_cost_security_ops	SOC monitoring	SOC-bewaking
+book_cost_cyber	Cyberattacks	Cyberaanvallen
+book_cost_disaster	Disaster damage	Schade door rampen
+book_cost_land	Land	Grond
+book_cost_acquisition	Acquisitions	Overnames
+book_fin_ipo	Stock market listing	Beursgang
+book_fin_sale	Locations sold	Verkochte locaties
+new_rivals	Rivals	Concurrenten
+new_aggression	Aggression	Agressiviteit
+new_aggr_0	Calm	Rustig
+new_aggr_1	Normal	Normaal
+new_aggr_2	Aggressive	Agressief
+new_world	The world around you	De wereld om je heen
+new_news	News ticker	Nieuwsticker
+new_news_help	Market news scrolls along the top of the screen.	Marktnieuws loopt bovenin het scherm voorbij.
+new_prices	Dynamic energy prices	Dynamische energieprijzen
+new_prices_help	Prices change by the hour and the season, with shocks now and then.	Prijzen veranderen per uur en per seizoen, met af en toe een schok.
+new_disasters	Disasters	Rampen
+new_disasters_help	Storms, lightning, floods and fires. Insurance helps.	Stormen, blikseminslag, wateroverlast en brand. Een verzekering helpt.
+new_supply	Supply delays	Leveringsvertragingen
+new_supply_help	Shortages now and then make deliveries slower.	Af en toe maken tekorten leveringen trager.
+new_world_help	Each switch can be turned off for a calmer game.	Elke schakelaar kun je uitzetten voor een rustiger spel.
+country_nl	Netherlands	Nederland
+country_be	Belgium	België
+country_de	Germany	Duitsland
+country_fr	France	Frankrijk
+country_ie	Ireland	Ierland
+country_dk	Denmark	Denemarken
+country_se	Sweden	Zweden
+country_es	Spain	Spanje
+size_edge	Edge (48 racks)	Edge (48 racks)
+size_medium	Medium (192 racks)	Middelgroot (192 racks)
+size_large	Large (768 racks)	Groot (768 racks)
+size_hyperscale	Hyperscale (1,920 racks)	Hyperscale (1.920 racks)
+loc_help	Grow beyond your first plot: buy the land around your campus, open datacenters in other cities and countries, or buy one that is for sale. Each location has its own team that builds, sells and runs it.	Groei verder dan je eerste kavel: koop de grond rond je campus, open datacenters in andere steden en landen, of koop er een die te koop staat. Elke locatie heeft een eigen team dat bouwt, verkoopt en beheert.
+loc_campus	Campus {0}	Campus {0}
+loc_plot	{0} × {0} m	{0} × {0} m
+loc_land_help	Buy the land to the north and west. Everything you built stays in its place along the road.	Koop de grond aan de noord- en westkant. Alles wat je hebt gebouwd blijft op zijn plek langs de weg.
+loc_buy_land	Buy land up to {0} × {0} m for {1}	Koop grond tot {0} × {0} m voor {1}
+loc_land_max	Your campus has its largest size.	Je campus heeft zijn grootste formaat.
+loc_country_open	Open for you	Open voor jou
+loc_country_closed	No country office yet	Nog geen landenkantoor
+loc_country_stats	Energy {0} · building {1} · demand {2} · green grid {3} · grid connection {4} days	Energie {0} · bouwen {1} · vraag {2} · groen net {3} · netaansluiting {4} dagen
+loc_water_stress	Water is scarce here: cooling towers hurt your ESG score more.	Water is hier schaars: koeltorens drukken je ESG-score extra.
+loc_open_country	Open a country office ({0})	Open een landenkantoor ({0})
+loc_build_site	Build a datacenter here	Bouw hier een datacenter
+loc_size_line	{0} racks · {1} MW IT	{0} racks · {1} MW IT
+loc_size_days	Ready in about {0} days	Klaar in ongeveer {0} dagen
+loc_buy_office	Buy an office building to let	Koop een kantoorpand om te verhuren
+loc_office_size	{0} m² · {1}	{0} m² · {1}
+loc_yours	Your locations	Jouw locaties
+loc_none	Only your campus so far.	Nog alleen je campus.
+loc_office_name	Office building {0}	Kantoorpand {0}
+loc_office_line	{0} m² · {1} let · {2} per month	{0} m² · {1} verhuurd · {2} per maand
+loc_building	Under construction ({0}) · about {1} days left	In aanbouw ({0}) · nog ongeveer {1} dagen
+loc_racks	{0} / {1} racks sold	{0} / {1} racks verkocht
+loc_net_month	{0} per month	{0} per maand
+loc_acquired	acquired	overgenomen
+loc_linked	own fiber to the campus	eigen glasvezel naar de campus
+loc_expanding	expanding, {0} days left	wordt uitgebreid, nog {0} dagen
+loc_offline	offline after a disaster	offline na een ramp
+loc_expand	Expand to {0} ({1})	Uitbreiden naar {0} ({1})
+loc_link	Lay own fiber ({0})	Eigen glasvezel leggen ({0})
+loc_sell	Sell	Verkopen
+loc_for_sale	For sale	Te koop
+loc_for_sale_help	Datacenters come up for sale now and then: independent ones the CFO hears about, and rivals in trouble. Buying one brings its customers along.	Af en toe komen datacenters te koop: zelfstandige waar de CFO over hoort en concurrenten in de problemen. Een overname neemt de klanten mee.
+loc_no_offers	Nothing for sale at the moment.	Op dit moment staat er niets te koop.
+loc_offer_ends	{0} days left	Nog {0} dagen
+loc_offer_rival	Rival in {0}, {1}: {2} racks, {3} rented out.	Concurrent in {0}, {1}: {2} racks, {3} verhuurd.
+loc_offer_indie	Independent datacenter in {0}, {1}: {2} racks, {3} rented out.	Zelfstandig datacenter in {0}, {1}: {2} racks, {3} verhuurd.
+loc_offer_buy	Buy for {0}	Kopen voor {0}
+off_help	Office rooms without desks can be let. Your datacenter customers like an office close to their racks and pay a little more; with the research Office rental other companies rent them too. A whole office building with one tenant earns 10% extra.	Kantoorruimtes zonder bureaus kun je verhuren. Je datacenterklanten willen graag een kantoor dicht bij hun racks en betalen iets meer; met de research Kantoorverhuur huren ook andere bedrijven ze. Een heel kantoorpand met één huurder levert 10% extra op.
+off_only_customers	Without the research Office rental only your customers rent offices.	Zonder de research Kantoorverhuur huren alleen je klanten kantoren.
+off_policy	Who may rent	Wie mag huren
+off_policy_0	Customers first	Klanten eerst
+off_policy_1	Only customers	Alleen klanten
+off_policy_2	Anyone	Iedereen
+off_rooms	Rentable offices	Verhuurbare kantoren
+off_let	Let	Verhuurd
+off_to_customers	To customers	Aan klanten
+off_rent	Rent per month	Huur per maand
+off_no_rooms	Build office rooms (without desks) in an office building to let them.	Bouw kantoorruimtes (zonder bureaus) in een kantoorpand om ze te verhuren.
+off_room	{0} · {1} m²	{0} · {1} m²
+off_free	Free, the office manager looks for a tenant	Vrij, de officemanager zoekt een huurder
+off_customer	customer	klant
+off_whole	whole building	heel pand
+off_month	{0} / month	{0} / maand
+off_end	End lease	Huur opzeggen
+host_help	Your own hosting company sells VPS, dedicated and GPU servers, storage and backup. It runs on racks in halls you mark as own cloud. Dedicated servers come from the warehouse: the team prepares them at the workbenches and a hosting engineer installs them. You choose prices, stock and campaigns; the team does the rest.	Je eigen hostingbedrijf verkoopt VPS'en, dedicated en GPU-servers, opslag en back-up. Het draait op racks in zalen die je als eigen cloud markeert. Dedicated servers komen uit het warehouse: het team maakt ze klaar aan de werkbanken en een hosting engineer installeert ze. Jij kiest prijzen, voorraad en campagnes; het team doet de rest.
+host_start	Start the hosting company ({0})	Start het hostingbedrijf ({0})
+host_customers	Customers	Klanten
+host_revenue	Revenue / month	Omzet / maand
+host_servers	Servers / room	Servers / ruimte
+host_stock	In stock	Op voorraad
+host_uptime	Uptime	Uptime
+host_satisfaction	Satisfaction	Tevredenheid
+host_tickets	Tickets / day	Tickets / dag
+host_churn	Customers lost	Klanten vertrokken
+host_revenue_chart	Revenue per month	Omzet per maand
+host_no_racks	No racks yet: mark a hall as own cloud (hall zones) and place racks in it.	Nog geen racks: markeer een zaal als eigen cloud (zalen) en zet er racks in.
+host_racks_line	Own cloud: {0} of {1} racks working · {2} servers per rack	Eigen cloud: {0} van {1} racks werken · {2} servers per rack
+host_warehouse_line	Warehouse: {0} workbenches, {1} pallet racks, {2} warehouse workers → {3} servers prepared per day · {4} hosting engineers	Warehouse: {0} werkbanken, {1} palletstellingen, {2} magazijnmedewerkers → {3} servers per dag klaargemaakt · {4} hosting engineers
+host_products	Products	Producten
+host_product_line	{0} customers · {1} servers · {2} / month	{0} klanten · {1} servers · {2} / maand
+host_needs_research	Needs research: {0}	Vereist research: {0}
+host_price_0	Budget	Budget
+host_price_1	Normal	Normaal
+host_price_2	Premium	Premium
+host_waiting	{0} customers wait for a server	{0} klanten wachten op een server
+host_vps	VPS	VPS
+host_vps_desc	Virtual servers: 40 customers per server. Many small customers.	Virtuele servers: 40 klanten per server. Veel kleine klanten.
+host_dedicated	Dedicated servers	Dedicated servers
+host_dedicated_desc	One prepared server per customer, from the warehouse stock.	Eén klaargemaakte server per klant, uit de warehousevoorraad.
+host_gpu	GPU servers	GPU-servers
+host_gpu_desc	Dedicated GPU servers for AI work. Few customers, high prices.	Dedicated GPU-servers voor AI. Weinig klanten, hoge prijzen.
+host_storage	Cloud storage	Cloudopslag
+host_storage_desc	Storage servers: 25 customers per server.	Opslagservers: 25 klanten per server.
+host_backup	Backup as a service	Back-up as a service
+host_backup_desc	Backup servers: 60 customers per server.	Back-upservers: 60 klanten per server.
+host_stock_title	Server stock	Servervoorraad
+host_stock_help	Servers are bought from fictional brands and delivered to the warehouse. The team reorders by itself below the minimum stock. Pallet racks hold 24 servers each.	Servers worden ingekocht bij verzonnen merken en geleverd in het warehouse. Het team bestelt zelf bij onder de minimumvoorraad. Een palletstelling houdt 24 servers.
+host_min_stock	Minimum stock: {0}	Minimumvoorraad: {0}
+host_order	Order {0} now ({1})	Bestel nu {0} ({1})
+host_order_line	{0} servers from {1}, arrive in {2} days	{0} servers van {1}, over {2} dagen binnen
+host_unpacked	{0} servers waiting to be prepared	{0} servers wachten om klaargemaakt te worden
+host_campaigns	Campaigns	Campagnes
+camp_black_friday	Black Friday · {0} · {1} days	Black Friday · {0} · {1} dagen
+camp_black_friday_name	Black Friday	Black Friday
+camp_students	Student discount · {0} · {1} days	Studentenkorting · {0} · {1} dagen
+camp_students_name	Student discount	Studentenkorting
+camp_trial	Free trial · {0} · {1} days	Gratis proefperiode · {0} · {1} dagen
+camp_trial_name	Free trial	Gratis proefperiode
+host_campaign_on	{0} runs for {1} more days.	{0} loopt nog {1} dagen.
+host_big	Big contracts	Grote contracten
+host_big_none	No big customers at the moment. They come once you have some customers.	Op dit moment geen grote klanten. Die komen als je wat klanten hebt.
+host_big_quote	{0}: "We want {1} servers within two months." {2} per month for {3} months.	{0}: "Wij willen {1} servers binnen twee maanden." {2} per maand voor {3} maanden.
+host_big_0	Streaming service {0}	Streamingdienst {0}
+host_big_1	Game studio {0}	Gamestudio {0}
+host_big_2	Webshop {0}	Webshop {0}
+host_big_3	AI start-up {0}	AI-start-up {0}
+host_big_sign	Sign	Tekenen
+host_big_decline	Decline	Afwijzen
+host_big_expires	{0} days to decide	Nog {0} dagen om te beslissen
+host_big_delivered	{0} / {1} servers delivered	{0} / {1} servers geleverd
+host_big_deadline	{0} days to the deadline	Nog {0} dagen tot de deadline
+mk_help	Rival datacenters build, set prices and bid on the same tenders. Your market share counts what you sell against them. A strong company can go public, or buy a rival that is in trouble.	Concurrerende datacenters bouwen, bepalen prijzen en schrijven in op dezelfde aanbestedingen. Je marktaandeel zet wat jij verkoopt af tegen hen. Een sterk bedrijf kan naar de beurs, of een concurrent in de problemen kopen.
+mk_share	Market share	Marktaandeel
+mk_sold	You sell	Jij verkoopt
+mk_demand	Market demand	Marktvraag
+mk_value	Company value	Bedrijfswaarde
+mk_no_rivals	No rival datacenters in this game.	Geen concurrerende datacenters in dit spel.
+mk_gone	Gone (acquired or bankrupt)	Verdwenen (overgenomen of failliet)
+mk_rival_share	{0} of the market	{0} van de markt
+mk_rival_line	{0} MW built · {1} sold · {2} · quality {3} · {4} locations	{0} MW gebouwd · {1} verkocht · {2} · kwaliteit {3} · {4} locaties
+mk_price_low	low prices	lage prijzen
+mk_price_mid	market prices	marktprijzen
+mk_price_high	high prices	hoge prijzen
+mk_stock	Stock exchange	Beurs
+mk_ipo_help	Go public with a trained CFO, a legal counsel and at least {0} revenue a year. The money comes in at once; shareholders then get 40% of their share of the profit as a dividend each month.	Ga naar de beurs met een getrainde CFO, een bedrijfsjurist en minstens {0} omzet per jaar. Het geld komt meteen binnen; aandeelhouders krijgen daarna elke maand 40% van hun deel van de winst als dividend.
+mk_revenue_year	Revenue in the last twelve months: {0}	Omzet in de afgelopen twaalf maanden: {0}
+mk_ipo	Sell {0}% ({1})	Verkoop {0}% ({1})
+mk_share_price	Share price	Koers
+mk_public	In public hands	In handen van de beurs
+mk_listed_help	The share price follows your company value: revenue, profit, reputation, ESG and market share. Results come out every quarter.	De koers volgt je bedrijfswaarde: omzet, winst, reputatie, ESG en marktaandeel. Elk kwartaal komen de resultaten.
+mk_news	News	Nieuws
+mk_news_off	The news ticker is off in this game.	De nieuwsticker staat uit in dit spel.
+mk_news_none	No news yet.	Nog geen nieuws.
+en_help	Energy prices change by the hour: cheap at night and at midday, dear in the evening, higher in winter, with shocks now and then. Fixed contracts are not affected; variable ones are. Solar and wind lower your bill, and a battery container trades: it charges when cheap and sells back when dear.	Energieprijzen veranderen per uur: goedkoop 's nachts en rond het middaguur, duur in de avond, hoger in de winter, met af en toe een schok. Vaste contracten merken er niets van; variabele wel. Zon en wind verlagen je rekening, en een batterijcontainer handelt: laden als het goedkoop is en terugleveren als het duur is.
+en_help_static	Dynamic energy prices are off in this game: prices move gently over the weeks. Solar, wind and battery containers still help.	Dynamische energieprijzen staan uit in dit spel: prijzen bewegen rustig over de weken. Zon, wind en batterijcontainers helpen nog steeds.
+en_now	Price now / kWh	Prijs nu / kWh
+en_index	Market level	Marktniveau
+en_solar	Solar today	Zon vandaag
+en_wind	Wind today	Wind vandaag
+en_battery	Battery trading / month	Batterijhandel / maand
+en_renewable	Green share	Groen aandeel
+en_today	Market price today, per hour	Marktprijs vandaag, per uur
+en_history	Market price, last 60 days	Marktprijs, afgelopen 60 dagen
+en_trading	Battery containers trade on the energy market	Batterijcontainers handelen op de energiemarkt
+en_trading_help	{0} kWh of storage buys the four cheapest hours and sells the four dearest. Peak shaving research and an energy trader earn more.	{0} kWh opslag koopt de vier goedkoopste uren in en verkoopt de vier duurste. De research peak shaving en een energiehandelaar leveren meer op.
+en_objects	{0} solar fields · {1} wind turbines · {2} battery containers	{0} zonnevelden · {1} windmolens · {2} batterijcontainers
+esg_title	ESG score	ESG-score
+esg_help	Environment, social and governance in one score. Green customers, investors and the share price look at it.	Milieu, mens en bestuur in één score. Groene klanten, investeerders en de koers kijken ernaar.
+esg_water_line	Water: {0} m³ per day · WUE {1} l/kWh · {2} per month	Water: {0} m³ per dag · WUE {1} l/kWh · {2} per maand
+esg_renewable	Green energy	Groene energie
+esg_renewable_tip	A green supplier, or your own solar and wind.	Een groene leverancier, of je eigen zon en wind.
+esg_pue	Energy efficiency (PUE)	Energie-efficiëntie (PUE)
+esg_pue_tip	Containment, free cooling and EC fans lower the PUE.	Containment, free cooling en EC-fans verlagen de PUE.
+esg_water	Water use	Waterverbruik
+esg_water_tip	Cooling towers evaporate water; chillers and dry coolers use none.	Koeltorens verdampen water; chillers en dry coolers gebruiken niets.
+esg_heat	Waste heat reused	Restwarmte hergebruikt
+esg_heat_tip	Sell waste heat to the district heating (research).	Verkoop restwarmte aan de stadsverwarming (research).
+esg_waste	Data-safe recycling	Dataveilig recyclen
+esg_waste_tip	A disk shredder in the warehouse destroys old disks with a certificate.	Een schijvenvernietiger in het warehouse vernietigt oude schijven met certificaat.
+esg_team	Sustainability team	Duurzaamheidsteam
+esg_team_tip	A sustainability manager (and the ESG research) report and improve.	Een duurzaamheidsmanager (en de research ESG) rapporteren en verbeteren.
+esg_lead	Sustainability lead	Duurzaamheidsleider
+esg_lead_tip	A key person for sustainability.	Een sleutelfiguur voor duurzaamheid.
+risk_help	Attacks, disasters and shortages happen. You cannot stop all of them, but a SOC, insurance and spare stock soften the blow.	Aanvallen, rampen en tekorten gebeuren. Je kunt ze niet allemaal voorkomen, maar een SOC, een verzekering en voorraad verzachten de klap.
+risk_soc	Security operations centre (SOC)	Security operations centre (SOC)
+risk_soc_level	Protection {0}	Bescherming {0}
+risk_soc_help	Build a SOC room with SOC desks; the security manager hires analysts. 24/7 monitoring, DDoS protection research, ISO 27001 and a SOC lead help too.	Bouw een SOC-ruimte met SOC-werkplekken; de securitymanager neemt analisten aan. 24/7 bewaking, de research DDoS-bescherming, ISO 27001 en een SOC-leider helpen ook.
+risk_soc_line	{0} SOC desks · {1} analysts · {2} attacks blocked · {3} got through	{0} SOC-werkplekken · {1} analisten · {2} aanvallen tegengehouden · {3} kwamen erdoor
+risk_soc247	24/7 SOC monitoring ({0} / month)	24/7 SOC-bewaking ({0} / maand)
+risk_events_off	Random events are off in this game: no cyberattacks.	Willekeurige gebeurtenissen staan uit in dit spel: geen cyberaanvallen.
+risk_insurance	Insurance	Verzekering
+risk_insurance_help	Basic pays 60% of damage after a high deductible. Full pays all damage and lost income after a small deductible.	Basis betaalt 60% van de schade na een hoog eigen risico. Volledig betaalt alle schade en gemiste inkomsten na een klein eigen risico.
+risk_ins_0	None	Geen
+risk_ins_1	Basic	Basis
+risk_ins_2	Full	Volledig
+risk_ins_line	Premium {0} per month · insured value {1} · deductible {2}	Premie {0} per maand · verzekerde waarde {1} · eigen risico {2}
+risk_ins_year	This year: damage {0} · paid out {1}	Dit jaar: schade {0} · uitgekeerd {1}
+risk_disasters_off	Disasters are off in this game.	Rampen staan uit in dit spel.
+risk_supply	Supply chain	Leveringsketen
+risk_supply_off	Supply delays are off in this game.	Leveringsvertragingen staan uit in dit spel.
+risk_supply_ok	Deliveries are on time.	Leveringen zijn op tijd.
+risk_supply_on	{0}: deliveries take {1} days longer, for about {2} more days.	{0}: leveringen duren {1} dagen langer, nog ongeveer {2} dagen.
+risk_supply_help	In a shortage racks, power equipment, spare parts and servers take longer. Keep more spare parts and server stock.	Bij een tekort duren racks, stroomapparatuur, reserveonderdelen en servers langer. Houd meer reserveonderdelen en servervoorraad aan.
+risk_log	Recent	Recent
+supply_0	Chip shortage	Chiptekort
+supply_1	Transformer shortage	Tekort aan transformatoren
+supply_2	Port strike	Havenstaking
+cyber_ddos	DDoS attack	DDoS-aanval
+cyber_ransomware	ransomware	ransomware
+cyber_phishing	phishing on staff	phishing op personeel
+cyber_intrusion	break-in attempt on the network	inbraakpoging op het netwerk
+ev_cyber_blocked	Attack blocked: {0}	Aanval tegengehouden: {0}
+ev_cyber_hit	Cyberattack: {0}	Cyberaanval: {0}
+ev_disaster_storm	Storm damage	Stormschade
+ev_disaster_lightning	Lightning strike	Blikseminslag
+ev_disaster_flood	Flooding	Wateroverlast
+ev_disaster_substation	Substation fire	Brand in het onderstation
+ev_disaster_fire	Fire in a building	Brand in een gebouw
+ev_supply_0	Chip shortage	Chiptekort
+ev_supply_1	Transformer shortage	Tekort aan transformatoren
+ev_supply_2	Port strike	Havenstaking
+key_help	Key people are named experts with a lasting bonus. The headhunter brings a candidate now and then (HR needed). Rivals try to poach them when they feel underpaid: match the offer or let them go.	Sleutelfiguren zijn experts met een naam en een blijvende bonus. De headhunter brengt af en toe een kandidaat (HR nodig). Concurrenten proberen ze weg te kapen als ze zich onderbetaald voelen: bied hetzelfde of laat ze gaan.
+key_none	No key people yet. The headhunter will come with someone.	Nog geen sleutelfiguren. De headhunter komt met iemand.
+key_candidate_line	Salary {0} per month · headhunter fee {1} · decides in {2} days	Salaris {0} per maand · fee headhunter {1} · beslist over {2} dagen
+key_hire	Hire	Aannemen
+key_line	Salary {0} per month	Salaris {0} per maand
+key_loyalty	Loyalty	Loyaliteit
+key_poach	{0} offers a job. A decision in {1} days.	{0} biedt een baan aan. Een beslissing over {1} dagen.
+key_match	Match the offer ({0} / month)	Bied hetzelfde ({0} / maand)
+key_let_go	Let go	Laten gaan
+key_dismiss	Dismiss	Ontslaan
+key_architect	Lead network architect	Lead netwerkarchitect
+key_architect_desc	Designs the network: better network quality and faster builds.	Ontwerpt het netwerk: betere netwerkkwaliteit en sneller bouwen.
+key_starsales	Star salesperson	Topverkoper
+key_starsales_desc	Wins more tenders against the rivals.	Wint meer aanbestedingen van de concurrenten.
+key_energytrader	Energy trader	Energiehandelaar
+key_energytrader_desc	Battery trading earns 25% more.	Batterijhandel levert 25% meer op.
+key_soclead	SOC lead	SOC-leider
+key_soclead_desc	Raises your protection against cyberattacks.	Verhoogt je bescherming tegen cyberaanvallen.
+key_sustainability	Sustainability lead	Duurzaamheidsleider
+key_sustainability_desc	Adds to the ESG score.	Telt mee in de ESG-score.
+key_countrymanager	Country manager	Landenmanager
+key_countrymanager_desc	New locations are built 30% faster and fill up faster.	Nieuwe locaties worden 30% sneller gebouwd en lopen sneller vol.
+key_hostinglead	Head of hosting	Hoofd hosting
+key_hostinglead_desc	The hosting company gets 15% more sign-ups.	Het hostingbedrijf krijgt 15% meer aanmeldingen.
+news_tech_0	New 800G optics promise cheaper backbones.	Nieuwe 800G-optics beloven goedkopere backbones.
+news_tech_1	AI demand drives racks above 50 kW.	Vraag naar AI drijft racks boven de 50 kW.
+news_tech_2	Liquid cooling wins ground in new halls.	Vloeistofkoeling wint terrein in nieuwe zalen.
+news_tech_3	Hyperscalers announce new regions in Europe.	Hyperscalers kondigen nieuwe regio's in Europa aan.
+news_tech_4	Study: datacenters can heat whole neighbourhoods.	Onderzoek: datacenters kunnen hele wijken verwarmen.
+news_tech_5	Solid-state batteries move closer to datacenters.	Solid-state accu's komen dichter bij datacenters.
+news_tech_6	Regulator wants every datacenter to report its PUE.	Toezichthouder wil dat elk datacenter zijn PUE rapporteert.
+news_tech_7	Edge computing brings small sites to the cities.	Edge computing brengt kleine sites naar de steden.
+news_market_0	Demand for colocation keeps rising this quarter.	De vraag naar colocatie blijft dit kwartaal stijgen.
+news_market_1	Grid operator warns of congestion around the cities.	Netbeheerder waarschuwt voor netcongestie rond de steden.
+news_market_2	Interest rates steady: building stays affordable.	Rente stabiel: bouwen blijft betaalbaar.
+news_market_3	Streaming platforms look for capacity close to users.	Streamingplatforms zoeken capaciteit dicht bij gebruikers.
+news_market_4	Banks move more systems to certified datacenters.	Banken verhuizen meer systemen naar gecertificeerde datacenters.
+news_market_5	Municipalities ask datacenters for their waste heat.	Gemeenten vragen datacenters om hun restwarmte.
+news_energy_spike	Energy market: prices up {0}% after a cold snap and low wind.	Energiemarkt: prijzen {0}% hoger na een koudegolf en weinig wind.
+news_energy_cheap	Energy market: lots of sun and wind, prices {0}% lower.	Energiemarkt: veel zon en wind, prijzen {0}% lager.
+news_supply_0	Chip shortage hits server and switch makers.	Chiptekort raakt server- en switchfabrikanten.
+news_supply_1	Waiting lists for transformers grow longer.	Wachtlijsten voor transformatoren worden langer.
+news_supply_2	Port strike: containers stuck at the quay.	Havenstaking: containers staan vast aan de kade.
+news_rival_expands	{0} builds {1} MW of new capacity.	{0} bouwt {1} MW nieuwe capaciteit.
+news_rival_price_cut	{0} cuts its prices to win customers.	{0} verlaagt zijn prijzen om klanten te winnen.
+news_rival_for_sale	{0} is looking for a buyer.	{0} zoekt een koper.
+news_rival_bankrupt	{0} is bankrupt.	{0} is failliet.
+news_tender_won_by	{0} wins the tender of {1}.	{0} wint de aanbesteding van {1}.
+news_you_acquire	{0} has been taken over.	{0} is overgenomen.
+news_you_ipo	{0} goes public.	{0} gaat naar de beurs.
+news_you_results_good	{0} beats expectations; the share rises.	{0} doet het beter dan verwacht; het aandeel stijgt.
+news_you_results_bad	{0} disappoints; the share falls.	{0} valt tegen; het aandeel daalt.
+news_you_land	{0} buys extra land for its campus.	{0} koopt extra grond voor zijn campus.
+news_you_country	New country office in {0}.	Nieuw landenkantoor in {0}.
+news_you_site	A new datacenter is being built in {0}.	In {0} wordt een nieuw datacenter gebouwd.
+news_you_site_open	New datacenter opens in {0}.	Nieuw datacenter opent in {0}.
+news_you_hosting	{0} starts selling cloud and dedicated servers.	{0} begint met de verkoop van cloud en dedicated servers.
+news_key_hired	{0} joins {1}.	{0} komt bij {1} werken.
+news_key_left	{0} leaves {1}.	{0} vertrekt bij {1}.
+news_key_poached	{0} moves to {1}.	{0} stapt over naar {1}.
+news_cyber_ddos	DDoS attack on {0}: customers notice it.	DDoS-aanval op {0}: klanten merken het.
+news_cyber_ransomware	Ransomware hits {0}.	Ransomware treft {0}.
+news_cyber_phishing	Phishing at {0}: data of staff leaked.	Phishing bij {0}: gegevens van personeel gelekt.
+news_cyber_intrusion	Hackers broke into the network of {0}.	Hackers zijn binnengedrongen in het netwerk van {0}.
+news_disaster_storm	Storm damage at {0}.	Stormschade bij {0}.
+news_disaster_lightning	Lightning strikes at {0}.	Bliksem slaat in bij {0}.
+news_disaster_flood	Flooding at {0}.	Wateroverlast bij {0}.
+news_disaster_substation	Substation fire cuts power at {0}.	Brand in onderstation legt stroom plat bij {0}.
+news_disaster_fire	Fire in a building of {0}.	Brand in een gebouw van {0}.
+news_disaster_site	Disaster at the datacenter in {0}.	Ramp bij het datacenter in {0}.
+hud_walk	Walk around in first person (F)	Rondlopen in first-person (F)
+hud_weather	Weather, temperature and season. Only for looks: the weather never changes how your datacenter works.	Weer, temperatuur en seizoen. Alleen voor de sfeer: het weer verandert niets aan je datacenter.
+walk_hint	WASD walk · Shift run · mouse look · Page Up/Down stairs or lift · Esc or F back	WASD lopen · Shift rennen · muis kijken · Page Up/Down trap of lift · Esc of F terug
+wx_clear	Sunny	Zonnig
+wx_clear_night	Clear	Helder
+wx_cloudy	Cloudy	Bewolkt
+wx_rain	Rain	Regen
+wx_storm	Thunderstorm	Onweer
+wx_snow	Snow	Sneeuw
+wx_fog	Fog	Mist
+season_winter	Winter	Winter
+season_spring	Spring	Lente
+season_summer	Summer	Zomer
+season_autumn	Autumn	Herfst
+opt_section_world	Day, night and weather	Dag, nacht en weer
+opt_day_night	Day and night	Dag en nacht
+opt_day_night_help	The sun follows the clock and the time of year; at night windows, lamp posts and truck lights glow. Off: always a sunny afternoon.	De zon volgt de klok en de tijd van het jaar; 's nachts gloeien ramen, lantaarnpalen en koplampen. Uit: altijd een zonnige middag.
+opt_weather	Weather	Weer
+opt_weather_help	Rain, snow, fog and thunderstorms come and go. Only for looks and sound.	Regen, sneeuw, mist en onweer komen en gaan. Alleen voor beeld en geluid.
+opt_seasons	Seasons	Seizoenen
+opt_seasons_help	Blossom in spring, autumn leaves and snow on the ground and roofs in winter.	Bloesem in de lente, herfstbladeren en sneeuw op de grond en daken in de winter.
+opt_section_walk	First-person walking	Rondlopen in first-person
+opt_mouse_sensitivity	Mouse sensitivity	Muisgevoeligheid
+opt_mouse_sensitivity_help	How fast you look around while walking.	Hoe snel je rondkijkt tijdens het lopen.
+opt_invert_mouse	Invert vertical look	Verticaal kijken omkeren
+opt_invert_mouse_help	Move the mouse up to look down.	Beweeg de muis omhoog om omlaag te kijken.
+msg_moving_in	{0} is moving in: {1} moving trucks full of servers are on their way to the loading dock.	{0} verhuist naar je datacenter: {1} verhuiswagens vol servers komen naar het laadperron.
+msg_moving_out	{0} is moving out; a moving truck comes to collect their servers.	{0} vertrekt; een verhuiswagen komt hun servers ophalen.
+new_weather_effects	Weather plays along	Weer speelt mee
+new_weather_effects_help	Cold days give free cooling, hot days cost more cooling, storms cause power cuts more often, snow and fog slow down trucks and clouds dim your solar panels.	Koude dagen geven vrije koeling, warme dagen kosten meer koeling, storm geeft vaker stroomuitval, sneeuw en mist vertragen vrachtwagens en wolken dimmen je zonnepanelen.
+hud_forecast	Weather report	Weerbericht
+wx_effect_cold	Cold: free cooling, cooling energy −35%.	Koud: vrije koeling, koelenergie −35%.
+wx_effect_mild	Mild: partly free cooling, cooling energy −15%.	Mild: deels vrije koeling, koelenergie −15%.
+wx_effect_warm	Warm: the chillers work normally.	Warm: de koelmachines draaien normaal.
+wx_effect_hot	Hot: cooling energy +15%.	Heet: koelenergie +15%.
+wx_effect_storm	Storm: a city-wide power cut is four times as likely.	Storm: stroomuitval in de stad is vier keer zo waarschijnlijk.
+wx_effect_slow	Trucks and visitors are slower in snow and fog.	Vrachtwagens en bezoekers zijn trager in sneeuw en mist.
+wx_effect_off	In this game the weather is only for looks (switch it on in a new game).	In dit spel is het weer alleen voor de sfeer (aan te zetten bij een nieuw spel).
+nav_overview	Overview	Overzicht
+nav_overview_short	Overview	Overzicht
+nav_company	Company	Bedrijf
+nav_company_short	Company	Bedrijf
+nav_customers	Customers	Klanten
+nav_customers_short	Customers	Klanten
+nav_infra	Infrastructure	Infrastructuur
+nav_infra_short	Infra	Infra
+nav_staff	Staff	Personeel
+nav_staff_short	Staff	Personeel
+nav_reputation	Reputation and research	Reputatie en onderzoek
+nav_reputation_short	Reputation	Reputatie
+nav_growth	Growth	Groei
+nav_growth_short	Growth	Groei
+nav_tab_power	Power and cooling	Stroom en koeling
+nav_tab_network	Network	Netwerk
+drawer_keys	F1–F8 switch section · Esc closes	F1–F8 wisselt onderdeel · Esc sluit
+crew_title	Construction crew	Bouwploeg
+hud_goals_tip	Click to show or hide the checklist	Klik om de checklist te tonen of te verbergen
+ov_tab_dashboard	Dashboard	Dashboard
+ov_tab_goals	Goals	Doelen
+ov_tab_messages	Messages	Meldingen
+ov_revenue	Revenue {0} / month	Omzet {0} / maand
+ov_contracts	{0} contracts · {1} new leads	{0} contracten · {1} nieuwe aanvragen
+ov_proposals	{0} open proposals	{0} open voorstellen
+ov_faults	{0} open faults	{0} open storingen
+ov_of	of {0} · {1}	van {0} · {1}
+ov_online	{0} racks online	{0} racks online
+ov_pue_hint	Lower is cheaper	Lager is goedkoper
+ov_advice	Advice	Adviezen
+ov_advice_none	Everything is running fine. Time to build!	Alles draait goed. Tijd om te bouwen!
+ov_go	Open	Openen
+ov_adv_grid	The grid is down: check fuel and generators.	Het stroomnet ligt eruit: controleer brandstof en generatoren.
+ov_adv_faults	{0} faults are waiting for a repair.	{0} storingen wachten op een reparatie.
+ov_adv_power	Power is over 85%: expand the grid connection or the UPS.	Stroom zit boven 85%: breid de netaansluiting of de UPS uit.
+ov_adv_cooling	Cooling is over 85%: add CRAH units or chillers.	Koeling zit boven 85%: plaats extra CRAH-units of koelmachines.
+ov_adv_network	{0} racks are offline: check spines, core and carriers.	{0} racks zijn offline: controleer spines, core en carriers.
+ov_adv_leads	{0} new customer requests are waiting.	{0} nieuwe klantaanvragen wachten.
+ov_adv_proposals	{0} proposals from your team are waiting for an answer.	{0} voorstellen van je team wachten op antwoord.
+ov_adv_goal	Next goal: {0}	Volgende doel: {0}
+ov_goals_count	{0} of {1} done	{0} van {1} klaar
+ov_messages_none	No messages yet.	Nog geen meldingen.
+parking_bays	{0} bays	{0} vakken
+hud_undo	Undo (Ctrl+Z)	Ongedaan maken (Ctrl+Z)
+hud_redo	Redo (Ctrl+Y)	Opnieuw (Ctrl+Y)
+hud_undo_what	Undo: {0} (Ctrl+Z)	Ongedaan maken: {0} (Ctrl+Z)
+hud_redo_what	Redo: {0} (Ctrl+Y)	Opnieuw: {0} (Ctrl+Y)
+msg_undone	Undone: {0}	Ongedaan gemaakt: {0}
+msg_redone	Done again: {0}	Opnieuw gedaan: {0}
+msg_nothing_to_undo	Nothing to undo.	Niets om ongedaan te maken.
+msg_nothing_to_redo	Nothing to redo.	Niets om opnieuw te doen.
+row_rows	{0} rows with aisles	{0} rijen met gangen
+erase_objects	{0} objects	{0} objecten
+msg_rack_front	The front of a rack needs a free aisle so engineers can reach it.	De voorkant van een rack heeft een vrij pad nodig zodat engineers erbij kunnen.
+msg_rack_back	The back of a rack needs a free aisle too: engineers work on both sides.	Ook de achterkant van een rack heeft een vrij pad nodig: engineers werken aan beide kanten.
+msg_blocks_rack	That would block the front or back of a rack.	Dat blokkeert de voor- of achterkant van een rack.
+rs_budget	R&D budget	R&D-budget
+rs_budget_help	Extra money for test equipment, prototypes and outside experts makes every project go faster. It is only spent on days the lab is working on something.	Extra geld voor testapparatuur, prototypes en externe experts maakt elk project sneller. Het wordt alleen uitgegeven op dagen dat het lab ergens aan werkt.
+rs_budget_0	Basic	Basis
+rs_budget_1	Modest	Bescheiden
+rs_budget_2	Normal	Normaal
+rs_budget_3	Ambitious	Ambitieus
+rs_budget_4	Maximum	Maximaal
+rs_per_day	day	dag
+rs_budget_now	Research speed {0} · at most {1} per month	Onderzoekssnelheid {0} · hooguit {1} per maand
+inspect_style	Interior: {0}	Inrichting: {0}
+style_auto	automatic	automatisch
+style_standard	Standard	Standaard
+style_tech	Support (tech)	Support (tech)
+style_formal	Formal	Formeel
+action_style	Style: {0}	Stijl: {0}
+action_furnish	Furnish this room	Richt deze ruimte in
+office_needs	What the offices need:	Wat de kantoren nodig hebben:
+need_workplaces	Workplaces (desks)	Werkplekken (bureaus)
+need_director_offices	Director's offices	Directiekamers
+office_auto_note	New office rooms are furnished automatically when they are finished.	Nieuwe kantoorruimtes worden na de bouw automatisch ingericht.
+ev_interior_done	The interior designer furnished the {0}.	De interieurontwerper heeft de {0} ingericht.
+hud_basement	Basement	Kelder
+hud_basement_tip	Add a basement under the building: a good place for transformers, switchgear, UPS and batteries. Reach it with stairs or a freight lift.	Voeg een kelder onder het gebouw toe: een goede plek voor transformatoren, schakelinstallaties, UPS en accu's. Bereikbaar met een trap of goederenlift.
+hud_floor_basement	Basement	Kelder
+msg_no_basement	Only datacenters and offices can have a basement.	Alleen datacenters en kantoren kunnen een kelder hebben.
+msg_not_in_basement	This room needs daylight and a street door; it cannot go in the basement.	Deze ruimte heeft daglicht en een straatdeur nodig; die kan niet in de kelder.
+hall_clients_all	All customers	Alle klanten
+hall_clients_tip	Which customers this hall hosts. Pick one or more types to keep the hall for them, for example banks and government in a secure hall or AI companies in a 32 A hall.	Welke klanten deze hal host. Kies een of meer types om de hal voor hen te houden, bijvoorbeeld banken en overheid in een beveiligde hal of AI-bedrijven in een 32 A-hal.
+inspect_hall_clients	Customers: {0}	Klanten: {0}
+action_hall_clients	Choose customers	Klanten kiezen
+req_hall_clients	A hall that hosts this customer type	Een hal die dit klanttype host
+msg_building_not_ready	The building is not finished yet.	Het gebouw is nog niet af.
+msg_max_floors	This building already has the maximum of 4 floors.	Dit gebouw heeft al het maximum van 4 verdiepingen.
+msg_level_done	The extra floor on the {0} is finished.	De extra verdieping op het {0} is klaar.
+inspect_raising	Extra floor being built: {0}%	Extra verdieping in aanbouw: {0}%
+action_add_level	Add floor ({0})	Verdieping toevoegen ({0})
+action_add_level_max	Maximum floors reached	Maximaal aantal verdiepingen bereikt
+site_raising	Extra floor	Extra verdieping
+hud_day_night	Day and night	Dag en nacht
+hud_day_night_on	Day and night: on. Click for always daylight.	Dag en nacht: aan. Klik voor altijd daglicht.
+hud_day_night_off	Always daylight. Click to let the sun follow the clock again.	Altijd daglicht. Klik om de zon weer de klok te laten volgen.
+hud_weather	Weather	Weer
+hud_weather_on	Weather: on (rain, fog, snow, storms). Click to always have clear skies.	Weer: aan (regen, mist, sneeuw, onweer). Klik voor altijd helder weer.
+hud_weather_off	Weather: off, always clear. Click to turn rain, fog and snow back on.	Weer: uit, altijd helder. Klik om regen, mist en sneeuw weer aan te zetten.

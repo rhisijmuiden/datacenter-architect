@@ -15,6 +15,8 @@ public partial class CameraRig : Node3D
     bool _rotating, _panning;
     public Rect2 Bounds = new(-20, -20, 104, 104);
     public bool InputEnabled = true;
+    /// <summary>Ease towards the target (Options: smooth camera); off = follow instantly.</summary>
+    public bool Smooth = true;
 
     public override void _Ready()
     {
@@ -23,6 +25,9 @@ public partial class CameraRig : Node3D
         _yawT = Yaw; _pitchT = Pitch; _distT = Distance; _targetT = Position;
         Apply();
     }
+
+    /// <summary>Closest zoom: near enough to see the servers and their LEDs in a rack.</summary>
+    public const float MinDistance = 6f;
 
     public void SetView(float yaw, float pitch, float dist, Vector3 target)
     {
@@ -40,8 +45,8 @@ public partial class CameraRig : Node3D
         {
             if (mb.ButtonIndex == MouseButton.Right) _rotating = mb.Pressed;
             if (mb.ButtonIndex == MouseButton.Middle) _panning = mb.Pressed;
-            if (mb.Pressed && mb.ButtonIndex == MouseButton.WheelUp) _distT = Mathf.Clamp(_distT * 0.9f, 12, 160);
-            if (mb.Pressed && mb.ButtonIndex == MouseButton.WheelDown) _distT = Mathf.Clamp(_distT * 1.1f, 12, 160);
+            if (mb.Pressed && mb.ButtonIndex == MouseButton.WheelUp) _distT = Mathf.Clamp(_distT * 0.9f, MinDistance, 160);
+            if (mb.Pressed && mb.ButtonIndex == MouseButton.WheelDown) _distT = Mathf.Clamp(_distT * 1.1f, MinDistance, 160);
         }
         else if (e is InputEventMouseMotion mm)
         {
@@ -75,10 +80,11 @@ public partial class CameraRig : Node3D
                 (Input.IsKeyPressed(Key.S) ? 1 : 0) - (Input.IsKeyPressed(Key.W) ? 1 : 0));
             if (k != Vector2.Zero) Pan(k.X, k.Y, Distance * dt * 0.9f);
         }
-        Yaw = Mathf.Lerp(Yaw, _yawT, Mathf.Min(1, dt * 7));
-        Pitch = Mathf.Lerp(Pitch, _pitchT, Mathf.Min(1, dt * 7));
-        Distance = Mathf.Lerp(Distance, _distT, Mathf.Min(1, dt * 6));
-        Position = Position.Lerp(_targetT, Mathf.Min(1, dt * 7));
+        float E(float rate) => Smooth ? Mathf.Min(1, dt * rate) : 1;
+        Yaw = Mathf.Lerp(Yaw, _yawT, E(7));
+        Pitch = Mathf.Lerp(Pitch, _pitchT, E(7));
+        Distance = Mathf.Lerp(Distance, _distT, E(6));
+        Position = Position.Lerp(_targetT, E(7));
         Apply();
     }
 

@@ -4,9 +4,9 @@ using System.Linq;
 
 namespace DatacenterArchitect.Sim;
 
-public enum Role { Builder, Fitter, Engineer, Truck }
+public enum Role { Builder, Fitter, Engineer, Truck, Visitor, Staff }
 
-public enum TruckLoad { Material, Equipment }
+public enum TruckLoad { Material, Equipment, Customer }
 
 /// <summary>A worker or a truck walking or driving over the site. Agents are not saved; they restart from the game state.</summary>
 public class Agent
@@ -30,8 +30,27 @@ public class Agent
     public TruckLoad Load;
     public List<int> Items = new();
     public bool Gone;
+    /// <summary>From this waypoint on the agent drives backwards (a truck backing up to a dock); -1 for never.</summary>
+    public int ReverseFrom = -1;
+    /// <summary>Truck route on the plot (cells, starting at the entry), so the way back can keep to the right lane too.</summary>
+    public List<Pt> Route;
+    /// <summary>Engineer patching a cross-connect at the ODF in Target.</summary>
+    public bool Xc;
+    /// <summary>Guard walking along with the visitor in Target (security policy "escort").</summary>
+    public bool Escort;
+    /// <summary>Staff on site: the employee (negative for a contractor) and the trade.</summary>
+    public int EmpId;
+    public StaffRole Staff;
+    /// <summary>A customer migration moving out: the truck arrives empty and the movers bring servers back from the racks.</summary>
+    public bool Out;
+    /// <summary>The cable an engineer is pulling, for the reel they carry: power (amber) or fiber (orange).</summary>
+    public CableKind Cable;
+    /// <summary>On a bicycle (staff riding in or home).</summary>
+    public bool Ride;
     public bool Moving => WayI < Way.Count;
 }
+
+public enum CableKind { None, Power, Fiber }
 
 /// <summary>A construction job: a building stage or a room's inner walls.</summary>
 public sealed class Site
@@ -58,7 +77,7 @@ public sealed class Site
 /// trucks bring material to the yard, builders carry it to sites and build stage by stage;
 /// trucks bring racks to the loading dock, fitters place them, an engineer connects power and then fiber.
 /// </summary>
-public class Simulation
+public partial class Simulation
 {
     public const double WalkSpeed = 16, CarrySpeed = 12, TruckSpeed = 60; // cells per game hour
     public const int CarryUnits = 10, TruckMaterial = 40, TruckItems = 12;
@@ -93,8 +112,8 @@ public class Simulation
     public IEnumerable<Site> Sites()
     {
         var list = new List<Site>();
-        foreach (var b in S.Buildings.Where(b => b.Stage != Stage.Done)) list.Add(new Site { B = b });
-        foreach (var r in S.Rooms.Where(r => r.Stage != Stage.Done))
+        foreach (var b in S.Buildings.Where(b => b.Stage != Stage.Done && !S.IsPlanned(b))) list.Add(new Site { B = b });
+        foreach (var r in S.Rooms.Where(r => r.Stage != Stage.Done && !S.IsPlanned(r)))
             if (S.BuildingOf(r)?.Stage == Stage.Done) list.Add(new Site { R = r });
         return list.OrderByDescending(s => s.Priority).ThenBy(s => s.Id);
     }
@@ -121,7 +140,9 @@ public class Simulation
         return Enumerable.Range(0, S.PlotSize).Where(x => Nav.TruckCell(x, z)).Select(x => (x, z)).ToList();
     }
 
-    /// <summary>Loading docks: the apron cell outside each roll-up door, and the dock cell inside it.</summary>
+    /// <summary>Loading bays: one per roll-up door in the outer wall of a loading dock (the middle of the door),
+    /// with the apron cell outside where a truck backs up and the dock cell inside. More doors, more bays,
+    /// and as many equipment trucks can unload at the same time.</summary>
     public List<(Room dock, (int x, int z) apron, (int x, int z) inside)> Docks()
     {
         var list = new List<(Room, (int, int), (int, int))>();
@@ -130,7 +151,7 @@ public class Simulation
             if (S.BuildingOf(r)?.Stage != Stage.Done) continue;
             var edges = GameState.Perimeter(r.X, r.Z, r.W, r.D).ToHashSet();
             foreach (var d in S.Doors.Where(d => d.Floor == 0 && d.Type == DoorType.RollUp))
-                foreach (var e in d.Edges())
+                foreach (var e in d.Edges().Skip((Catalog.Doors[d.Type].Width - 1) / 2).Take(1))
                 {
                     if (!edges.Contains(e) || !S.IsOuterEdge(e)) continue;
                     // the two cells on either side of the edge
@@ -142,6 +163,16 @@ public class Simulation
                 }
         }
         return list;
+    }
+
+    /// <summary>At most this many equipment trucks at the docks at once, however many bays there are.</summary>
+    public const int MaxDockTrucks = 6;
+
+    /// <summary>Bay aprons no truck is heading for or standing at.</summary>
+    HashSet<(int x, int z)> FreeBays(List<(Room dock, (int x, int z) apron, (int x, int z) inside)> docks)
+    {
+        var taken = Agents.Where(a => a.Role == Role.Truck && a.Route is { Count: > 0 }).Select(a => (a.Route[^1].X, a.Route[^1].Z)).ToHashSet();
+        return docks.Select(d => d.apron).Where(c => !taken.Contains(c)).ToHashSet();
     }
 
     public Room HallOf(PlacedObject o) => S.RoomAt(o.X, o.Z, o.Floor);
@@ -179,6 +210,7 @@ public class Simulation
         if (S.Creative.InstantBuild) FinishEverything();
         SyncCrew();
         DispatchTrucks();
+        UpdateGates(dt);
         foreach (var a in Agents.ToList())
         {
             switch (a.Role)
@@ -187,8 +219,12 @@ public class Simulation
                 case Role.Fitter: Fitter(a, dt); break;
                 case Role.Engineer: Engineer(a, dt); break;
                 case Role.Truck: Truck(a, dt); break;
+                case Role.Visitor: Visitor(a, dt); break;
+                case Role.Staff: if (a.Escort) EscortWalk(a, dt); else StaffWalk(a, dt); break;
             }
         }
+        PlanVisits(dt);
+        SyncStaff(dt);
         Agents.RemoveAll(a => a.Gone);
         if (!_firstLive && S.LiveRacks > 0) { _firstLive = true; Say("msg_first_rack_live"); }
     }
@@ -196,10 +232,10 @@ public class Simulation
     public void FinishEverything()
     {
         var changed = false;
-        foreach (var b in S.Buildings.Where(b => b.Stage != Stage.Done)) { b.Stage = Stage.Done; b.Material = 0; b.Work = 0; changed = true; }
-        foreach (var r in S.Rooms.Where(r => r.Stage != Stage.Done)) { r.Stage = Stage.Done; r.Material = 0; r.Work = 0; changed = true; }
-        foreach (var o in S.Objects.Where(o => o.Status != ObjStatus.Live)) { o.Status = ObjStatus.Live; changed = true; }
-        foreach (var a in Agents.Where(a => a.Role != Role.Builder || a.Phase != 0)) Reset(a);
+        foreach (var b in S.Buildings.Where(b => b.Stage != Stage.Done && !S.IsPlanned(b))) { b.Stage = Stage.Done; b.Material = 0; b.Work = 0; changed = true; }
+        foreach (var r in S.Rooms.Where(r => r.Stage != Stage.Done && !S.IsPlanned(r)).ToList()) { r.Stage = Stage.Done; r.Material = 0; r.Work = 0; changed = true; S.RoomFinished(r); }
+        foreach (var o in S.Objects.Where(o => o.Status != ObjStatus.Live && !S.IsPlanned(o))) { o.Status = ObjStatus.Live; changed = true; }
+        foreach (var a in Agents.Where(a => a.Role is not (Role.Visitor or Role.Staff) && (a.Role != Role.Builder || a.Phase != 0))) Reset(a);
         Agents.RemoveAll(a => a.Role == Role.Truck);
         if (changed) S.Touch();
     }
@@ -230,17 +266,20 @@ public class Simulation
     void Reset(Agent a)
     {
         if (a.Role == Role.Builder && a.Carry > 0) S.MaterialStock += a.Carry;
-        a.Carry = 0; a.Loaded = false; a.CarryObj = 0; a.Target = 0; a.Phase = 0; a.Working = false;
+        a.Carry = 0; a.Loaded = false; a.CarryObj = 0; a.Target = 0; a.Phase = 0; a.Working = false; a.Xc = false; a.Cable = CableKind.None;
         a.Way.Clear(); a.WayI = 0; a.Goal = (-1, -1);
     }
 
     // ---------------- movement ----------------
     (int x, int z) Cell(Agent a) => ((int)Math.Floor(a.X), (int)Math.Floor(a.Z));
 
-    bool Go(Agent a, int floor, Func<int, int, bool> goal, NavMode mode)
+    /// <summary>Walk to one cell: the same as <see cref="Go"/> with a single-cell goal, but the search is aimed at it.</summary>
+    bool GoTo(Agent a, int floor, int tx, int tz, NavMode mode) => Go(a, floor, (x, z) => x == tx && z == tz, mode, (tx, tz));
+
+    bool Go(Agent a, int floor, Func<int, int, bool> goal, NavMode mode, (int x, int z)? target = null)
     {
         var (cx, cz) = Cell(a);
-        var path = Nav.Find(new Pt(cx, cz, a.Floor), floor, goal, mode);
+        var path = Nav.Find(new Pt(cx, cz, a.Floor), floor, goal, mode, target);
         a.Way.Clear(); a.WayI = 0;
         if (path == null) return false;
         foreach (var p in path) a.Way.Add((p.X + 0.5, p.Z + 0.5, p.F));
@@ -264,7 +303,7 @@ public class Simulation
             }
             var dx = tx - a.X; var dz = tz - a.Z;
             var dist = Math.Sqrt(dx * dx + dz * dz);
-            if (dist > 1e-6) a.Heading = Math.Atan2(dx, dz);
+            if (dist > 1e-6) a.Heading = Math.Atan2(dx, dz) + (a.ReverseFrom >= 0 && a.WayI >= a.ReverseFrom ? Math.PI : 0);
             if (dist <= budget) { a.X = tx; a.Z = tz; budget -= dist; a.WayI++; }
             else { a.X += dx / dist * budget; a.Z += dz / dist * budget; budget = 0; }
         }
@@ -273,6 +312,125 @@ public class Simulation
 
     bool Cooling(int id) => _cooldown.TryGetValue(id, out var t) && t > _now;
     void Cool(int id, double hours) => _cooldown[id] = _now + hours;
+
+    // ---------------- customer visits ----------------
+    /// <summary>
+    /// Customers come by around the clock, as in a real datacenter: most during office hours, fewer in the evening and only a few at night.
+    /// How many are on site at once grows with the racks you rent out (about 2%), at least 3 and at most 40 to keep the game light.
+    /// </summary>
+    public int MaxVisitors => Math.Clamp((int)Math.Round(RentedRacks() * 0.02), 3, 40);
+    /// <summary>Days between visits of one customer, per product.</summary>
+    public static double VisitDays(Product p) => p switch { Product.PerU => 60, Product.Rack => 40, Product.Cage => 25, _ => 18 };
+    readonly Random _rng = new(1234);
+    double _visitClock;
+
+    int RentedRacks() => S.Deals.Where(d => d.State == DealState.Active).Sum(d => d.Legacy ? d.RackIds.Count : d.Racks + d.Units / Org.UnitsPerRack);
+
+    /// <summary>Visits of one customer per day: per contract, plus one per 30 rented racks for the big ones (they have people on site all the time).</summary>
+    static double DealVisits(Deal d) => (d.Legacy ? Math.Max(1, d.RackIds.Count / 6.0) : 1) / VisitDays(d.Product) + (d.Legacy ? 0 : d.Racks / 30.0 / 7);
+
+    /// <summary>Expected customer visits per day for the contracts that run now.</summary>
+    public double VisitsPerDay() => S.Deals.Where(d => d.State == DealState.Active).Sum(DealVisits);
+
+    /// <summary>Share of the day's visits that falls in this hour: office hours busy, evenings quieter, nights quiet.</summary>
+    public static double HourWeight(double hour) => hour >= 8 && hour < 18 ? 1.6 : hour >= 6 && hour < 23 ? 0.6 : 0.25;
+
+    /// <summary>Once per game hour a customer may come by to work on its equipment, or a new customer moves equipment in through the loading dock.</summary>
+    void PlanVisits(double dt)
+    {
+        _visitClock += dt;
+        if (_visitClock < 1) return;
+        _visitClock -= 1;
+        var hour = S.Hours % 24;
+        PlanMove(hour);
+        if (Agents.Count(a => a.Role == Role.Visitor) >= MaxVisitors) return;
+        // policy: no visits outside office hours
+        if (S.PolicyOfficeHours && (hour < 7 || hour >= 19)) return;
+        var perHour = VisitsPerDay() / 24 * HourWeight(hour);
+        if (_rng.NextDouble() >= Math.Min(0.95, perHour)) return;
+        var deals = S.Deals.Where(d => d.State == DealState.Active).ToList();
+        var weights = deals.Select(DealVisits).ToList();
+        var x = _rng.NextDouble() * weights.Sum();
+        Deal pick = null;
+        for (var i = 0; i < deals.Count && pick == null; i++) { x -= weights[i]; if (x <= 0) pick = deals[i]; }
+        pick ??= deals.LastOrDefault();
+        var rack = RackOf(pick);
+        if (rack == null) return;
+        StartVisit(rack);
+    }
+
+    PlacedObject RackOf(Deal d)
+    {
+        if (d == null) return null;
+        var ids = d.RackIds.Count > 0 ? d.RackIds : S.Objects.Where(o => o.Kind == ObjKind.Rack && S.HallOf(o)?.Zone == HallZone.PerU).Select(o => o.Id).ToList();
+        if (ids.Count == 0) return null;
+        // pick the id once: drawing inside the lambda would roll a new number for every object and mostly miss
+        var id = ids[_rng.Next(ids.Count)];
+        return S.Objects.FirstOrDefault(o => o.Id == id);
+    }
+
+    /// <summary>
+    /// Customers that just signed move their equipment in: a truck backs up to the loading dock and two of their people
+    /// carry it to the racks. Runs by itself, now and then, during the first weeks of a contract.
+    /// </summary>
+    void PlanMove(double hour)
+    {
+        TrackMigrations();
+        if (DispatchMigration(hour)) return;
+        if (hour < 7 || hour >= 20 || Agents.Any(a => a.Role == Role.Truck && a.Load == TruckLoad.Customer) || Cooling(-3)) return;
+        var fresh = S.Deals.Where(d => d.State == DealState.Active && !d.Legacy && d.Product != Product.PerU && S.Day - d.StartDay < 30 && d.RackIds.Count > 0).ToList();
+        if (fresh.Count == 0 || _rng.NextDouble() >= 0.04 * fresh.Count) return;
+        var deal = fresh[_rng.Next(fresh.Count)];
+        var docks = Docks();
+        if (docks.Count == 0) return;
+        var aprons = FreeBays(docks);
+        if (aprons.Count == 0) return;
+        if (!SendTruck(TruckLoad.Customer, (x, z) => aprons.Contains((x, z)), 1, new List<int> { deal.Id })) Cool(-3, 6);
+        else Agents[^1].Target = deal.Id;
+    }
+
+    /// <summary>A customer parks (or comes in from the road), walks to the rack, works there for a while and leaves.</summary>
+    public Agent StartVisit(PlacedObject rack)
+    {
+        var park = Enumerable.Range(0, S.PlotSize * S.PlotSize).Select(i => (x: i % S.PlotSize, z: i / S.PlotSize))
+            .Where(c => S.SurfaceAt(c.x, c.z) == Surface.Parking && Nav.Walkable(c.x, c.z, 0)).ToList();
+        var start = park.Count > 0 ? park[_rng.Next(park.Count)] : SpawnCell();
+        var a = new Agent { Id = _nextAgent++, Role = Role.Visitor, X = start.x + 0.5, Z = start.z + 0.5, Target = rack.Id, Goal = start, Phase = 1 };
+        var home = start;
+        if (!Go(a, rack.Floor, (x, z) => Math.Abs(x - rack.X) + Math.Abs(z - rack.Z) == 1, NavMode.Walk)) return null;
+        a.CarryObj = home.x * 1000 + home.z; // where the visitor parked, to walk back to
+        Agents.Add(a);
+        if (S.PolicyEscort && S.Working(StaffRole.Guard).Any()) StartEscort(a, rack);
+        return a;
+    }
+
+    void Visitor(Agent a, double dt)
+    {
+        a.Working = false;
+        switch (a.Phase)
+        {
+            case 1: // walking in (slower through snow and fog)
+                if (!Move(a, dt, WalkSpeed * 0.8 * (a.Floor == 0 ? S.TravelFactor : 1))) return;
+                a.Phase = 2; a.Timer = 0.5 + _rng.NextDouble() * 2;
+                return;
+            case 2: // at the rack
+                a.Working = true;
+                a.Timer -= dt;
+                if (a.Timer > 0 && S.Objects.Any(o => o.Id == a.Target)) return;
+                a.Phase = 0;
+                return;
+            case 3: // walking out
+                if (Move(a, dt, WalkSpeed * 0.8)) a.Gone = true;
+                return;
+            default: // leave
+                if (a.Out) a.Loaded = true; // movers carry the customer's servers back to the truck
+                else if (a.Carry > 0) a.Loaded = false;
+                int hx = a.CarryObj / 1000, hz = a.CarryObj % 1000;
+                if (!GoTo(a, 0, hx, hz, NavMode.Walk)) { a.Gone = true; return; }
+                a.Phase = 3;
+                return;
+        }
+    }
 
     // ---------------- builders ----------------
     void Builder(Agent a, double dt)
@@ -311,7 +469,7 @@ public class Simulation
                 var add = Math.Min(dt, s4.WorkAvailable);
                 if (add <= 1e-9) { Reset(a); a.Timer = 0.05; return; }
                 a.Working = true;
-                s4.Work += add;
+                s4.Work += add * S.WorkSpeed;
                 if (s4.Work >= s4.WorkNeed - 1e-9) Complete(s4);
                 return;
         }
@@ -362,7 +520,7 @@ public class Simulation
     void Unreachable(Agent a, Site s)
     {
         var name = s.NameKey;
-        Say(s.R != null && s.R.Floor > 0 ? "msg_site_needs_lift" : "msg_site_unreachable", name);
+        Say(s.R != null && s.R.Floor != 0 ? "msg_site_needs_lift" : "msg_site_unreachable", name);
         Cool(s.Id, 2);
         Reset(a);
     }
@@ -385,6 +543,7 @@ public class Simulation
             var r = s.R;
             r.Material = 0; r.Work = 0; r.Stage = Stage.Done;
             EvictFrom(r.X, r.Z, r.W, r.D, r.Floor, false);
+            S.RoomFinished(r);
             Say("msg_room_done", Catalog.Rooms[r.Type].NameKey, 0);
         }
         S.Touch();
@@ -437,14 +596,15 @@ public class Simulation
             else if (!SendTruck(TruckLoad.Material, (x, z) => yard.Contains((x, z)), Math.Min(TruckMaterial, (outstanding + 9) / 10 * 10), null))
             { Say("msg_yard_no_road", null, 24); Cool(-1, 1); }
         }
-        // racks and cooling units to the loading dock
+        // racks and cooling units (and customers moving in) to the loading dock
         var onTruck = trucks.SelectMany(t => t.Items).ToHashSet();
-        var waiting = S.Objects.Where(o => o.Status == ObjStatus.Ordered && !onTruck.Contains(o.Id) && HallReady(o)).OrderBy(o => o.Id).ToList();
-        if (waiting.Count > 0 && trucks.Count(t => t.Load == TruckLoad.Equipment) < 2 && !Cooling(-2))
+        var waiting = S.Objects.Where(o => o.Status == ObjStatus.Ordered && !S.IsPlanned(o) && !onTruck.Contains(o.Id) && HallReady(o) && !S.SupplyHeld(o)).OrderBy(o => o.Id).ToList();
+        if (waiting.Count > 0 && !Cooling(-2))
         {
             var docks = Docks();
-            var aprons = docks.Select(d => d.apron).ToHashSet();
+            var aprons = FreeBays(docks);
             if (docks.Count == 0) { Say("msg_need_dock", null, 24); Cool(-2, 1); }
+            else if (aprons.Count == 0 || trucks.Count(t => t.Load == TruckLoad.Equipment) >= Math.Min(MaxDockTrucks, docks.Count)) { }
             else if (!SendTruck(TruckLoad.Equipment, (x, z) => aprons.Contains((x, z)), 0, waiting.Take(TruckItems).Select(o => o.Id).ToList()))
             { Say("msg_dock_no_road", null, 24); Cool(-2, 1); }
         }
@@ -461,10 +621,38 @@ public class Simulation
         var entry = path.Count > 0 ? entries.OrderBy(e => Math.Abs(e.x - first.X) + Math.Abs(e.z - first.Z)).First() : entries.First(e => goal(e.x, e.z));
         var lane = S.PlotSize + 3.2;
         var t = new Agent { Id = _nextAgent++, Role = Role.Truck, Load = load, Carry = material, Items = items ?? new(), X = -20, Z = lane, Phase = 1 };
-        t.Way.Add((entry.x + 0.5, lane, 0));
-        t.Way.Add((entry.x + 0.5, S.PlotSize + 0.5, 0));
-        t.Way.Add((entry.x + 0.5, entry.z + 0.5, 0));
-        foreach (var p in path) t.Way.Add((p.X + 0.5, p.Z + 0.5, 0));
+        // drive in the middle of the road, not along the kerb or the fence; turn in from the road onto that line too
+        var lanePath = Nav.CenterLane(path);
+        t.Route = new List<Pt> { new(entry.x, entry.z, 0) };
+        t.Route.AddRange(path);
+        var ex0 = lanePath.Count > 0 && Math.Abs(lanePath[0].x - (entry.x + 0.5)) <= 4 ? lanePath[0].x : entry.x + 0.5;
+        t.Way.Add((ex0, lane, 0));
+        t.Way.Add((ex0, S.PlotSize + 0.5, 0));
+        t.Way.Add((ex0, entry.z + 0.5, 0));
+        foreach (var (px, pz) in lanePath) t.Way.Add((px, pz, 0));
+        // at a dock the truck stops short of the door instead of driving into the building
+        if (load is TruckLoad.Equipment or TruckLoad.Customer && t.Way.Count > 0)
+        {
+            var (lx, lz, _) = t.Way[^1];
+            if (ParkSpot(((int)Math.Floor(lx), (int)Math.Floor(lz))) is { } spot)
+            {
+                // drop the last cells that lie between the parking spot and the door
+                double ox = Math.Sin(spot.heading), oz = Math.Cos(spot.heading);
+                double ex = spot.x - ox * (TruckRear + 0.1), ez = spot.z - oz * (TruckRear + 0.1);
+                t.Way.RemoveAt(t.Way.Count - 1);
+                while (t.Way.Count > 3)
+                {
+                    var (wx, wz, _) = t.Way[^1];
+                    var along = (wx - ex) * ox + (wz - ez) * oz;
+                    var side = Math.Abs((wx - ex) * oz - (wz - ez) * ox);
+                    if (along < TruckRear + 0.1 && side < 1.5) t.Way.RemoveAt(t.Way.Count - 1); else break;
+                }
+                // turn round a few metres out and back up to the door
+                t.Way.Add((spot.x + ox * 3, spot.z + oz * 3, 0));
+                t.ReverseFrom = t.Way.Count;
+                t.Way.Add((spot.x, spot.z, 0));
+            }
+        }
         Agents.Add(t);
         return true;
     }
@@ -474,12 +662,17 @@ public class Simulation
         switch (a.Phase)
         {
             case 1:
-                if (Move(a, dt, TruckSpeed)) { a.Phase = 2; a.Timer = UnloadHours; }
+                if (Drive(a, dt))
+                {
+                    a.Phase = 2; a.Timer = a.Load == TruckLoad.Customer ? MoveHours : UnloadHours; Park(a);
+                    if (a.Load == TruckLoad.Customer) Movers(a);
+                }
                 return;
             case 2:
                 a.Timer -= dt;
                 if (a.Timer > 0) return;
                 if (a.Load == TruckLoad.Material) S.MaterialStock += a.Carry;
+                else if (a.Load == TruckLoad.Customer) { }
                 else
                 {
                     var (cx, cz) = Cell(a);
@@ -490,18 +683,139 @@ public class Simulation
                     }
                     S.Touch(false);
                 }
-                a.Carry = 0; a.Items.Clear();
+                a.Carry = a.Load == TruckLoad.Customer && a.Out ? 1 : 0; a.Items.Clear();
                 // drive back the same way and off along the road
-                var back = a.Way.Take(a.Way.Count - 1).Reverse().ToList();
-                a.Way.Clear(); a.WayI = 0;
+                var back = a.Route is { Count: > 0 } ? WayBack(a) : a.Way.Take(a.Way.Count - 1).Reverse().ToList();
+                a.Way.Clear(); a.WayI = 0; a.ReverseFrom = -1;
                 a.Way.AddRange(back);
                 a.Way.Add((S.PlotSize + 40, S.PlotSize + 3.2, 0));
                 a.Phase = 3;
                 return;
             case 3:
-                if (Move(a, dt, TruckSpeed)) a.Gone = true;
+                if (Drive(a, dt)) a.Gone = true;
                 return;
         }
+    }
+
+    /// <summary>
+    /// The way off the plot for a truck: its route in reverse, in the lane on its right-hand side, then out onto the
+    /// street. A truck backed up to a dock first pulls away forwards, so points behind its cab are skipped.
+    /// </summary>
+    List<(double x, double z, int f)> WayBack(Agent a)
+    {
+        var rev = Enumerable.Reverse(a.Route).ToList();
+        var lane = Nav.CenterLane(rev);
+        if (a.ReverseFrom >= 0)
+        {
+            double fx = Math.Sin(a.Heading), fz = Math.Cos(a.Heading);
+            while (lane.Count > 1)
+            {
+                var (px, pz) = lane[0];
+                var along = (px - a.X) * fx + (pz - a.Z) * fz;
+                if (along < 1.0 && Math.Abs(px - a.X) + Math.Abs(pz - a.Z) < TruckRear + 2) lane.RemoveAt(0); else break;
+            }
+        }
+        var res = lane.Select(p => (p.x, p.z, 0)).ToList();
+        var exit = lane.Count > 0 ? lane[^1].x : a.Route[0].X + 0.5;
+        res.Add((exit, S.PlotSize + 0.5, 0));
+        res.Add((exit, S.PlotSize + 3.2, 0));
+        return res;
+    }
+
+    /// <summary>Two people of a moving customer walk from the loading dock to their racks with boxes, and back.</summary>
+    void Movers(Agent truck)
+    {
+        var deal = S.DealById(truck.Target != 0 ? truck.Target : truck.Items.FirstOrDefault());
+        var (cx, cz) = Cell(truck);
+        var dock = Docks().OrderBy(d => Math.Abs(d.apron.x - cx) + Math.Abs(d.apron.z - cz)).FirstOrDefault();
+        if (dock.dock == null) return;
+        var racks = truck.Out ? truck.Items.Select(id => S.Objects.FirstOrDefault(o => o.Id == id)).Where(o => o != null).ToList() : null;
+        if (!truck.Out && deal == null) return;
+        for (var i = 0; i < MoversPerTruck; i++)
+        {
+            var rack = truck.Out ? (racks.Count == 0 ? null : racks[_rng.Next(racks.Count)]) : RackOf(deal);
+            if (rack == null) return;
+            // moving in, they push a trolley of servers to the rack; moving out, they walk in empty and come back loaded
+            var a = new Agent { Id = _nextAgent++, Role = Role.Visitor, X = dock.inside.x + 0.5, Z = dock.inside.z + 0.5, Target = rack.Id, Phase = 1, Loaded = !truck.Out, Carry = 1, Out = truck.Out, Timer = i * 0.1 };
+            if (!Go(a, rack.Floor, (x, z) => Math.Abs(x - rack.X) + Math.Abs(z - rack.Z) == 1, NavMode.Walk)) continue;
+            a.CarryObj = dock.inside.x * 1000 + dock.inside.z;
+            Agents.Add(a);
+        }
+    }
+
+    // ---------------- gates and barriers ----------------
+    /// <summary>How far each sliding gate or barrier is open, 0 (closed) to 1 (open), by object id.</summary>
+    public readonly Dictionary<int, double> GateOpen = new();
+    public const double GateHours = 0.06, GateReach = 9, TruckNose = 3.6;
+    /// <summary>From the truck's position (the kingpin) back to the rear of its semi-trailer, in metres.</summary>
+    public const double TruckRear = 8.6;
+
+    void UpdateGates(double dt)
+    {
+        var trucks = Agents.Where(a => a.Role == Role.Truck).ToList();
+        foreach (var o in S.Objects.Where(o => Catalog.IsVehicleStop(o.Kind)))
+        {
+            var (w, d) = GameState.Footprint(o);
+            var cx = o.X + w / 2.0; var cz = o.Z + d / 2.0;
+            var want = trucks.Any(t => Math.Abs(t.X - cx) + Math.Abs(t.Z - cz) < GateReach + w / 2.0);
+            GateOpen.TryGetValue(o.Id, out var v);
+            v = Math.Clamp(v + (want ? 1 : -1) * dt / GateHours, 0, 1);
+            GateOpen[o.Id] = v;
+        }
+    }
+
+    /// <summary>A gate or barrier on this cell that is not fully open.</summary>
+    bool Closed(double x, double z)
+    {
+        var o = S.ObjectAt((int)Math.Floor(x), (int)Math.Floor(z));
+        return o != null && Catalog.IsVehicleStop(o.Kind) && (!GateOpen.TryGetValue(o.Id, out var v) || v < 0.98);
+    }
+
+    /// <summary>Drives a truck along its way, stopping with its nose before a gate or barrier until it is open.</summary>
+    bool Drive(Agent a, double dt)
+    {
+        var speed = TruckSpeed * S.TravelFactor;
+        var budget = dt * speed;
+        var look = budget + TruckNose;
+        // walk the remaining way and find the first closed gate within reach of the nose
+        double px = a.X, pz = a.Z, travelled = 0, stop = double.MaxValue;
+        for (var i = a.WayI; i < a.Way.Count && travelled < look && stop == double.MaxValue; i++)
+        {
+            var (tx, tz, _) = a.Way[i];
+            var seg = Math.Sqrt((tx - px) * (tx - px) + (tz - pz) * (tz - pz));
+            for (var d = 0.25; d <= seg && travelled + d < look; d += 0.25)
+                if (Closed(px + (tx - px) * d / seg, pz + (tz - pz) * d / seg)) { stop = travelled + d; break; }
+            travelled += seg; px = tx; pz = tz;
+        }
+        if (stop == double.MaxValue) return Move(a, dt, speed);
+        var allowed = Math.Max(0, stop - TruckNose);
+        if (allowed <= 1e-6) return false;
+        return Move(a, dt, Math.Min(speed, allowed / dt));
+    }
+
+    /// <summary>A truck at a loading dock turns round and backs up to the roll-up door, so it never pokes into the building.</summary>
+    void Park(Agent a)
+    {
+        if (a.Load != TruckLoad.Equipment) return;
+        foreach (var d in Docks())
+            if (ParkSpot(d.apron) is { } spot && Math.Abs(spot.x - a.X) + Math.Abs(spot.z - a.Z) < 0.2)
+            {
+                a.Heading = spot.heading;
+                return;
+            }
+    }
+
+    /// <summary>Where a truck stands at a dock: its rear at the door, nose pointing away from the building.</summary>
+    (double x, double z, double heading)? ParkSpot((int x, int z) cell)
+    {
+        foreach (var (_, apron, inside) in Docks())
+        {
+            if (apron != cell) continue;
+            double ox = apron.x - inside.x, oz = apron.z - inside.z;
+            var ex = (apron.x + inside.x) / 2.0 + 0.5; var ez = (apron.z + inside.z) / 2.0 + 0.5;
+            return (ex + ox * (TruckRear + 0.1), ez + oz * (TruckRear + 0.1), Math.Atan2(ox, oz));
+        }
+        return null;
     }
 
     // ---------------- fitters ----------------
@@ -532,7 +846,7 @@ public class Simulation
                 var cells = GameState.Cells(o1).ToHashSet();
                 if (!Go(a, o1.Floor, (x, z) => cells.Contains((x, z)), NavMode.Carry))
                 {
-                    Say(o1.Floor > 0 ? "msg_hall_needs_lift" : "msg_hall_needs_wide_door", null, 12);
+                    Say(o1.Floor != 0 ? "msg_hall_needs_lift" : "msg_hall_needs_wide_door", null, 12);
                     Cool(o1.Id, 3); Reset(a); return;
                 }
                 a.CarryObj = o1.Id;
@@ -577,17 +891,36 @@ public class Simulation
                 var taken = Reserved(Role.Engineer);
                 var item = S.Objects.Where(o => o.Status is ObjStatus.Placed or ObjStatus.Powered && !taken.Contains(o.Id) && !Cooling(o.Id))
                     .OrderByDescending(o => o.Status).ThenBy(o => o.Id).FirstOrDefault();
-                if (item == null) return;
+                if (item == null)
+                {
+                    // nothing to connect: patch an ordered cross-connect at an ODF in the meet-me room
+                    if (S.XcPending <= Agents.Count(x => x.Xc) || S.FreeOdfPorts() <= 0) return;
+                    item = S.Objects.Where(o => o.Kind == ObjKind.Odf && o.Status == ObjStatus.Live && !taken.Contains(o.Id) && !Cooling(o.Id)
+                        && S.RoomAt(o.X, o.Z, o.Floor)?.Type == RoomType.MeetMe).OrderBy(o => o.Id).FirstOrDefault();
+                    if (item == null) return;
+                    a.Xc = true;
+                }
                 var cells = GameState.Cells(item).ToHashSet();
                 bool Next(int x, int z) => Nav.Walkable(x, z, item.Floor) && !cells.Contains((x, z)) &&
                     (cells.Contains((x + 1, z)) || cells.Contains((x - 1, z)) || cells.Contains((x, z + 1)) || cells.Contains((x, z - 1)));
                 a.Target = item.Id;
+                a.Cable = !a.Xc && item.Status == ObjStatus.Placed ? CableKind.Power : CableKind.Fiber;
                 if (!Go(a, item.Floor, Next, NavMode.Walk)) { Say("msg_rack_unreachable", null, 12); Cool(item.Id, 3); Reset(a); return; }
                 a.Phase = 1;
                 return;
             case 1:
                 if (!Move(a, dt, WalkSpeed)) return;
-                a.Phase = 2; a.Timer = ConnectHours;
+                a.Phase = 2; a.Timer = a.Xc ? Catalog.XcHours : ConnectHours;
+                return;
+            case 2 when a.Xc:
+                var odf = S.Objects.FirstOrDefault(x => x.Id == a.Target);
+                if (odf == null || S.XcPending <= 0) { Reset(a); return; }
+                a.Working = true;
+                a.Heading = Math.Atan2(odf.X + 0.5 - a.X, odf.Z + 0.5 - a.Z);
+                a.Timer -= dt;
+                if (a.Timer > 0) return;
+                S.CompleteCrossConnect();
+                Reset(a);
                 return;
             case 2:
                 var o = S.Objects.FirstOrDefault(x => x.Id == a.Target);
@@ -599,7 +932,7 @@ public class Simulation
                 if (a.Timer > 0) return;
                 o.Status = o.Status == ObjStatus.Placed && o.Def.NeedsFiber ? ObjStatus.Powered : ObjStatus.Live;
                 S.Touch(false);
-                if (o.Status == ObjStatus.Live) Reset(a); else a.Timer = ConnectHours;
+                if (o.Status == ObjStatus.Live) Reset(a); else { a.Timer = ConnectHours; a.Cable = CableKind.Fiber; }
                 return;
         }
     }

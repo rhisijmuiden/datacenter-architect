@@ -30,16 +30,47 @@ public static class SaveSystem
         DirAccess.MakeDirRecursiveAbsolute(Dir);
         state.GameVersion = GameVersion.Text;
         var envelope = new SaveEnvelope { Slot = Sanitize(slot), SavedAt = DateTime.Now, State = state };
-        using var f = FileAccess.Open(PathOf(slot), FileAccess.ModeFlags.Write);
-        f.StoreString(JsonSerializer.Serialize(envelope, Json));
+        // write next to the save first and swap it in, so a crash or full disk never leaves half a savegame behind
+        var path = PathOf(slot); var tmp = path + ".tmp";
+        using (var f = FileAccess.Open(tmp, FileAccess.ModeFlags.Write))
+        {
+            if (f == null) { GD.PushError($"Cannot write save {path}: {FileAccess.GetOpenError()}"); return; }
+            f.StoreString(JsonSerializer.Serialize(envelope, Json));
+        }
+        if (FileAccess.FileExists(path)) DirAccess.RemoveAbsolute(path);
+        DirAccess.RenameAbsolute(tmp, path);
     }
+
+    /// <summary>Savegames bigger than this are not read (a normal one is a few MB).</summary>
+    public const long MaxSaveBytes = 512L << 20;
+
+    /// <summary>Reads a save envelope; broken, oversized or impossible files give null instead of an exception.</summary>
+    static SaveEnvelope Read(string path)
+    {
+        using var f = FileAccess.Open(path, FileAccess.ModeFlags.Read);
+        if (f == null || f.GetLength() > (ulong)MaxSaveBytes) return null;
+        try
+        {
+            var env = JsonSerializer.Deserialize<SaveEnvelope>(f.GetAsText(), Json);
+            return env?.State != null && Plausible(env.State) ? env : null;
+        }
+        catch (Exception e) when (e is JsonException or NotSupportedException or ArgumentException or InvalidOperationException)
+        {
+            GD.PushWarning($"Skipping broken save {path}: {e.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>Guards against edited or damaged saves that would make the game allocate huge grids.</summary>
+    public static bool Plausible(GameState s) => s.PlotSize is >= 16 and <= 1024 && s.Options != null;
 
     public static GameState Load(string slot)
     {
-        using var f = FileAccess.Open(PathOf(slot), FileAccess.ModeFlags.Read);
-        if (f == null) return null;
-        var env = JsonSerializer.Deserialize<SaveEnvelope>(f.GetAsText(), Json);
-        return env?.State;
+        var env = Read(PathOf(slot));
+        if (env == null) return null;
+        try { env.State.Migrate(); }
+        catch (Exception e) { GD.PushWarning($"Cannot upgrade save {slot}: {e.Message}"); return null; }
+        return env.State;
     }
 
     public static bool Delete(string slot) => DirAccess.RemoveAbsolute(PathOf(slot)) == Error.Ok;
@@ -52,15 +83,10 @@ public static class SaveSystem
         foreach (var file in d.GetFiles())
         {
             if (!file.EndsWith(".json")) continue;
-            try
-            {
-                using var f = FileAccess.Open($"{Dir}/{file}", FileAccess.ModeFlags.Read);
-                var env = JsonSerializer.Deserialize<SaveEnvelope>(f.GetAsText(), Json);
-                if (env?.State == null) continue;
-                var slot = file[..^5];
-                list.Add(new SaveInfo(slot, env.State.Options.Company, env.SavedAt, env.State.Date, slot.StartsWith("autosave")));
-            }
-            catch (Exception e) { GD.PushWarning($"Skipping broken save {file}: {e.Message}"); }
+            var env = Read($"{Dir}/{file}");
+            if (env == null) continue;
+            var slot = file[..^5];
+            list.Add(new SaveInfo(slot, env.State.Options.Company, env.SavedAt, env.State.Date, slot.StartsWith("autosave")));
         }
         return list.OrderByDescending(s => s.SavedAt).ToList();
     }

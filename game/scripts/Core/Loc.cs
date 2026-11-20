@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Collections.Generic;
 using Godot;
 
@@ -10,34 +11,39 @@ namespace DatacenterArchitect.Core;
 public static class Loc
 {
     public const string File = "res://locale/strings.tsv";
-    public static readonly string[] Languages = { "en", "nl" };
     static bool _loaded;
     public static readonly Dictionary<string, Dictionary<string, string>> Table = new();
+
+    /// <summary>Extra string tables next to strings.tsv (same columns), so a step can keep its own texts.</summary>
+    public static readonly string[] ExtraFiles = { "res://locale/progress.tsv" };
 
     public static void Load()
     {
         if (_loaded) return;
         _loaded = true;
-        using var f = FileAccess.Open(File, FileAccess.ModeFlags.Read);
-        if (f == null) { GD.PushError($"Missing {File}"); return; }
-        var header = f.GetLine().Split('\t');
         var translations = new Dictionary<string, Translation>();
-        for (var c = 1; c < header.Length; c++)
+        foreach (var path in new[] { File }.Concat(ExtraFiles))
         {
-            var t = new Translation { Locale = header[c] };
-            translations[header[c]] = t;
-            Table[header[c]] = new Dictionary<string, string>();
-        }
-        while (!f.EofReached())
-        {
-            var line = f.GetLine();
-            if (string.IsNullOrWhiteSpace(line) || line.StartsWith('#')) continue;
-            var cols = line.Split('\t');
-            for (var c = 1; c < header.Length && c < cols.Length; c++)
+            using var f = FileAccess.Open(path, FileAccess.ModeFlags.Read);
+            if (f == null) { GD.PushError($"Missing {path}"); continue; }
+            var header = f.GetLine().Split('\t');
+            for (var c = 1; c < header.Length; c++)
             {
-                var text = cols[c].Replace("\\n", "\n");
-                translations[header[c]].AddMessage(cols[0], text);
-                Table[header[c]][cols[0]] = text;
+                if (translations.ContainsKey(header[c])) continue;
+                translations[header[c]] = new Translation { Locale = header[c] };
+                Table[header[c]] = new Dictionary<string, string>();
+            }
+            while (!f.EofReached())
+            {
+                var line = f.GetLine();
+                if (string.IsNullOrWhiteSpace(line) || line.StartsWith('#')) continue;
+                var cols = line.Split('\t');
+                for (var c = 1; c < header.Length && c < cols.Length; c++)
+                {
+                    var text = cols[c].Replace("\\n", "\n");
+                    translations[header[c]].AddMessage(cols[0], text);
+                    Table[header[c]][cols[0]] = text;
+                }
             }
         }
         foreach (var t in translations.Values) TranslationServer.AddTranslation(t);
