@@ -375,7 +375,6 @@ public partial class GameState
     }
 
     // ---------------- halls and racks for sale ----------------
-    public HallZone ZoneOf(Room r) => r.Zone;
 
     public void SetZone(Room r, HallZone z)
     {

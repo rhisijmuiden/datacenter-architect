@@ -207,7 +207,6 @@ public partial class StaffPanel : Modal
 
     static string Level(int l) => Loc.T("level_" + l);
     static string TraitText(Trait t) => t == Trait.None ? "" : Loc.T("trait_" + t.ToString().ToLowerInvariant());
-    static string ShiftText(Shift s) => Loc.T("shift_" + s.ToString().ToLowerInvariant());
     static Color Mood(double v) => v >= 65 ? Brand.Ok : v >= 40 ? Brand.Warning : Brand.Critical;
     static string When(double hours) => GameState.Epoch.AddHours(hours).ToString("d MMM HH:mm", Culture);
 

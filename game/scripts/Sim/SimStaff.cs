@@ -127,7 +127,7 @@ public partial class Simulation
                     var area = Area(a.Staff);
                     if (area.Count == 0) { a.Phase = 8; return; }
                     var c = area[_rng.Next(area.Count)];
-                    if (!Go(a, c.f, (x, z) => x == c.x && z == c.z, NavMode.Walk)) { a.Timer = 1; return; }
+                    if (!GoTo(a, c.f, c.x, c.z, NavMode.Walk)) { a.Timer = 1; return; }
                 }
                 a.Phase = 1;
                 return;
@@ -151,7 +151,7 @@ public partial class Simulation
             case 8: // leave the site: walk back to the car or the bike
                 a.Ride = false;
                 var (hx, hz) = a.EmpId < 0 ? SpawnCell() : ArrivalCell(a.EmpId);
-                if (!Go(a, 0, (x, z) => x == hx && z == hz, NavMode.Walk)) { a.Gone = true; return; }
+                if (!GoTo(a, 0, hx, hz, NavMode.Walk)) { a.Gone = true; return; }
                 a.Phase = a.EmpId > 0 && ModeOf(a.EmpId) == CommuteMode.Bike ? 22 : 9;
                 return;
             case 20: // riding in from the road
@@ -161,7 +161,7 @@ public partial class Simulation
             case 22: // at the bike: get on and ride home
                 if (!Move(a, dt, WalkSpeed)) return;
                 var (ex, ez) = RoadEdge();
-                if (!Go(a, 0, (x, z) => x == ex && z == ez, NavMode.Walk)) { a.Gone = true; return; }
+                if (!GoTo(a, 0, ex, ez, NavMode.Walk)) { a.Gone = true; return; }
                 a.Ride = true; a.Phase = 9;
                 return;
             default:
@@ -198,7 +198,7 @@ public partial class Simulation
                 return;
             case 8:
                 var (hx, hz) = StaffEntry();
-                if (!Go(a, 0, (x, z) => x == hx && z == hz, NavMode.Walk)) { a.Gone = true; return; }
+                if (!GoTo(a, 0, hx, hz, NavMode.Walk)) { a.Gone = true; return; }
                 a.Phase = 9;
                 return;
             default:

@@ -68,7 +68,6 @@ public static class Staffing
     public static readonly double[] LevelSpeed = { 0.8, 1.0, 1.25 };
     public static readonly double[] LevelPay = { 0.8, 1.0, 1.3 };
     public static readonly long[] TrainCost = { 3500, 7000 };
-    public static readonly int[] TrainDays = { 10, 15 };
 
     public static readonly Dictionary<StaffRole, StaffDef> Roles = new()
     {
@@ -365,7 +364,7 @@ public partial class GameState
         list.Add(("wb_desks", DeskNeed <= Workplaces ? 2 : -10));
         if (people >= 12) list.Add(("wb_helpdesk", HasStaff(StaffRole.Helpdesk) ? 3 : -4));
         if (TrainingBudget > 0) list.Add(("wb_training", 4));
-        if (Objects.Count(o => o.Kind is ObjKind.Tree or ObjKind.Shrub or ObjKind.Plant or ObjKind.Bench) >= 10) list.Add(("wb_green", 2));
+        if (Objects.Count(o => o.Kind is ObjKind.Tree or ObjKind.Shrub or ObjKind.Plant or ObjKind.Bench or ObjKind.ParkBench or ObjKind.PicnicTable or ObjKind.TerraceSet) >= 10) list.Add(("wb_green", 2));
         return list;
     }
 
@@ -402,10 +401,14 @@ public partial class GameState
         }
         // satisfaction moves towards what the workplace offers; unhappy people leave
         var wb = Wellbeing().Sum(x => x.points);
+        // the advised team size per role only changes when someone leaves, so it is worked out once per role, not per person
+        var advised = new Dictionary<StaffRole, int>();
         foreach (var e in Staff.ToList())
         {
             var target = 62.0 + wb;
-            var load = Workload(e.Role);
+            if (!advised.TryGetValue(e.Role, out var rec)) advised[e.Role] = rec = Recommended(e.Role);
+            var have = CountOf(e.Role);
+            var load = have == 0 ? 0 : rec / (double)have; // the same as Workload(e.Role)
             if (load > 1.3) target -= Math.Min(20, (load - 1) * 15);
             if (e.Shift == Shift.Night && e.Trait != Trait.NightOwl) target -= 5;
             if (e.Trait == Trait.Loyal) target += 8;
@@ -414,6 +417,7 @@ public partial class GameState
             if (e.Satisfaction < 30 && rng.NextDouble() < (30 - e.Satisfaction) / 400)
             {
                 Staff.Remove(e);
+                advised.Clear();
                 foreach (var o in Objects.Where(o => o.RepairBy == e.Id)) o.RepairBy = 0;
                 TrainingPoints.Remove(e.Id);
                 Notes.Add(("msg_staff_quit", "@" + e.Def.Key + "|" + e.Name));

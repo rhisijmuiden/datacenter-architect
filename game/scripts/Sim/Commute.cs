@@ -127,7 +127,7 @@ public partial class Simulation
         var (rx, rz) = RoadEdge();
         a.X = rx + 0.5; a.Z = rz + 0.5; a.Floor = 0;
         a.Goal = bike;
-        if (!Go(a, 0, (x, z) => x == bike.x && z == bike.z, NavMode.Walk)) { a.X = bike.x + 0.5; a.Z = bike.z + 0.5; return false; }
+        if (!GoTo(a, 0, bike.x, bike.z, NavMode.Walk)) { a.X = bike.x + 0.5; a.Z = bike.z + 0.5; return false; }
         a.Ride = true; a.Phase = 20;
         return true;
     }

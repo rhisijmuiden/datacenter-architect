@@ -609,8 +609,6 @@ public partial class GameState
         return door;
     }
 
-    public Door DoorOn((int x, int z, int dir) e, int floor) => Doors.FirstOrDefault(d => d.Floor == floor && d.Edges().Contains(e));
-
     // ---------------- objects ----------------
     public string CanPlace(PlacedObject o)
     {
@@ -845,7 +843,6 @@ public partial class GameState
     // ---------------- derived resources ----------------
     IEnumerable<PlacedObject> LiveObjects => Objects.Where(o => o.Status == ObjStatus.Live);
     [JsonIgnore] public double PowerDemandKw => LiveObjects.Sum(o => o.Def.PowerKw);
-    [JsonIgnore] public double CoolingDemandKw => LiveObjects.Where(o => o.Kind == ObjKind.Rack).Sum(o => o.Def.PowerKw);
     /// <summary>Generator capacity with N+1: the largest generator is kept in reserve.</summary>
     [JsonIgnore]
     public double BackupCapacityKw
@@ -859,7 +856,6 @@ public partial class GameState
     [JsonIgnore] public double GridCapacityKw => Catalog.GridLevels[Math.Clamp(GridLevel, 0, Catalog.GridLevels.Length - 1)].Mva * 1000;
     [JsonIgnore] public int Racks => Objects.Count(o => o.Kind == ObjKind.Rack);
     [JsonIgnore] public int LiveRacks => Objects.Count(o => o.Kind == ObjKind.Rack && o.Status == ObjStatus.Live);
-    [JsonIgnore] public int FiberPits => Objects.Count(o => o.Kind == ObjKind.FiberPit);
     [JsonIgnore] public long WagesPerDay => Builders * Catalog.WagePerDay[Role.Builder] + Fitters * Catalog.WagePerDay[Role.Fitter] + Engineers * Catalog.WagePerDay[Role.Engineer];
 
     InfraReport _infra;

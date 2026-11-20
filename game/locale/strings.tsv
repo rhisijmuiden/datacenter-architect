@@ -58,7 +58,6 @@ res_backup	Backup	Noodstroom
 res_cooling	Cooling	Koeling
 res_racks	Racks	Racks
 res_money	Balance	Saldo
-hud_build	Build	Bouwen
 tool_select	Select	Selecteren
 tool_erase	Demolish	Slopen
 cat_land	Land	Grond
@@ -77,7 +76,6 @@ hint_erase	Drag over what you want to remove. Objects and doors go first, then r
 hud_rotate_left	Rotate left (Q)	Links draaien (Q)
 hud_rotate_right	Rotate right (E)	Rechts draaien (E)
 hud_grid	Show or hide the grid	Grid tonen of verbergen
-hud_language	Switch language	Taal wisselen
 hud_info	Info and updates	Info en updates
 hud_menu	Menu (Esc)	Menu (Esc)
 hud_speed_0	Pause (Space)	Pauze (spatie)
@@ -171,6 +169,9 @@ obj_shrub	Shrub	Struik
 obj_lamp	Lamp post	Lantaarnpaal
 obj_bench	Bench	Bankje
 obj_bikerack	Bike rack	Fietsenrek
+obj_park_bench	Park bench	Parkbank
+obj_picnic_table	Picnic table	Picknicktafel
+obj_terrace_set	Terrace table with parasol	Terrastafel met parasol
 obj_bikeshed	Bike shed (e-bike charging)	Fietsenhok (e-bike laden)
 obj_evcharger	EV charging point	Laadpaal
 obj_guardbooth	Guard booth	Beveiligingshokje
@@ -631,13 +632,11 @@ inspect_office_ready	Furnished: a director can work here	Ingericht: hier kan een
 inspect_office_needs	Needs a desk and a chair	Heeft een bureau en een stoel nodig
 inspect_workplaces	{0} workplace(s) for the sales team	{0} werkplek(ken) voor het salesteam
 hud_money_tip	Click for the finances	Klik voor de financiën
-hud_company	Company	Bedrijf
 supplier_fee	Leaving your fixed contract early costs {0}	Je vaste contract voortijdig opzeggen kost {0}
 supplier_term_free	Variable contract: switch any time	Variabel contract: altijd opzegbaar
 supplier_term_left	Fixed contract: {0} days to go	Vast contract: nog {0} dagen
 supplier_term_done	Fixed term finished: switch for free	Vaste looptijd voorbij: gratis overstappen
 supplier_discount	Procurement discount {0}%	Inkoopkorting {0}%
-customers_tray	{0} open request(s) · {1} contract(s) · {2} per month	{0} open aanvraag/aanvragen · {1} contract(en) · {2} per maand
 co_title	Company	Bedrijf
 co_tab_org	Organisation	Organisatie
 co_tab_sales	Sales	Sales
@@ -817,7 +816,6 @@ bankrupt_title	Bankrupt	Failliet
 bankrupt_text	Your company was in the red for 30 days and the bank has taken over. Load a savegame to try again, or start a new game from the main menu.	Je bedrijf stond 30 dagen in het rood en de bank heeft het overgenomen. Laad een savegame om het opnieuw te proberen, of begin een nieuw spel vanuit het hoofdmenu.
 bankrupt_menu	Main menu	Hoofdmenu
 fin_dividend	Dividend to investors	Dividend aan investeerders
-hud_staff	Staff, maintenance and events	Personeel, onderhoud en gebeurtenissen
 hud_staff_tip	Your staff. A warning sign shows faults or events: click to see them.	Je personeel. Een waarschuwing toont storingen of gebeurtenissen: klik om ze te zien.
 res_staff	Staff	Personeel
 new_events	Random events	Willekeurige gebeurtenissen
@@ -1067,9 +1065,7 @@ book_inc_office_rent	Office rent	Kantoorverhuur
 book_cost_compliance	Audits and certificates	Audits en certificaten
 book_cost_proposals	Proposals	Voorstellen
 book_cost_research	Research	Research
-hud_reputation	Reputation, security and certificates	Reputatie, beveiliging en certificaten
 hud_reputation_tip	Your reputation. Click for reviews, security, certificates and proposals.	Je reputatie. Klik voor recensies, beveiliging, certificaten en voorstellen.
-hud_research	Research tree	Research tree
 res_reputation	Reputation	Reputatie
 inspect_corridor_research	Cold corridor: needs research first	Cold corridor: eerst onderzoeken
 inspect_lab	{0} lab benches · {1} researchers	{0} labtafels · {1} onderzoekers
@@ -1286,7 +1282,6 @@ prop_securitytech_quote	"With the new access system from {1} for {0} our securit
 prop_crm	Sales campaign with {0}	Salescampagne met {0}
 prop_crm_quote	"A campaign with {1} for {0} brings {2}% more customer requests."	"Een campagne met {1} voor {0} brengt {2}% meer klantaanvragen."
 cat_growth	Growth	Groei
-hud_growth	Growth: locations, hosting, market, energy and risks	Groei: locaties, hosting, markt, energie en risico's
 hud_news	News	Nieuws
 hud_news_tip	Market news. Click for the market overview.	Marktnieuws. Klik voor het marktoverzicht.
 gr_title	Growth	Groei

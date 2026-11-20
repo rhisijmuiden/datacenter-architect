@@ -92,7 +92,7 @@ public partial class Hud : Control
             new BuildItem(Mode.Surface, (int)Surface.Footpath), new BuildItem(Mode.Surface, (int)Surface.BikePath),
             new BuildItem(Mode.Curve, (int)Surface.Asphalt), new BuildItem(Mode.Curve, (int)Surface.Footpath), new BuildItem(Mode.Curve, (int)Surface.BikePath),
             new BuildItem(Mode.Surface, (int)Surface.Yard), new BuildItem(Mode.Surface, (int)Surface.Grass),
-            O(ObjKind.Tree), O(ObjKind.Shrub), O(ObjKind.LampPost), O(ObjKind.Bench), O(ObjKind.BikeRack), O(ObjKind.BikeShed), O(ObjKind.EvCharger),
+            O(ObjKind.Tree), O(ObjKind.Shrub), O(ObjKind.LampPost), O(ObjKind.Bench), O(ObjKind.ParkBench), O(ObjKind.PicnicTable), O(ObjKind.TerraceSet), O(ObjKind.BikeRack), O(ObjKind.BikeShed), O(ObjKind.EvCharger),
         }),
         ("cat_security", new[]
         {
@@ -208,8 +208,6 @@ public partial class Hud : Control
             }
         }
     }
-
-    public int ActiveSection => _activeSection;
 
     /// <summary>Red counters on the rail: new leads, open faults, infrastructure problems and open proposals.</summary>
     void UpdateBadges(GameState s)
@@ -339,9 +337,6 @@ public partial class Hud : Control
         _trayScroll.ScrollHorizontal += (int)(dir * TrayScrollStep * (factor > 0 ? factor : 1f));
         return true;
     }
-
-    /// <summary>For tests: the horizontal position of the build tray.</summary>
-    public int TrayScrollPosition => _trayScroll?.ScrollHorizontal ?? 0;
 
     public override void _Process(double delta)
     {

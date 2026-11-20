@@ -23,11 +23,17 @@ public partial class WorldView
         new("made/tree_maple.glb", Foliage.ByName, 1f),
         new("made/tree_birch.glb", Foliage.ByName, 1f),
         new("made/tree_poplar.glb", Foliage.ByName, 0.95f),
+        new("made/tree_beech.glb", Foliage.ByName, 1f),
+        new("made/tree_chestnut.glb", Foliage.ByName, 1f),
+        new("made/tree_alder.glb", Foliage.ByName, 1f),
+        new("made/tree_cherry.glb", Foliage.ByName, 1f),
     };
     public static readonly TreeKind[] Conifer =
     {
         new("made/tree_spruce.glb", Foliage.ByName, 1f),
         new("made/tree_fir.glb", Foliage.ByName, 1f),
+        new("made/tree_pine.glb", Foliage.ByName, 1f),
+        new("made/tree_larch.glb", Foliage.ByName, 1f),
     };
     static readonly (string file, Func<string, Material, Material> mats)[] Tufts =
     {
@@ -69,6 +75,28 @@ public partial class WorldView
         }
         foreach (var (key, g) in groups)
             Assets.Many(root, Assets.Mesh(kinds[key.k].File, kinds[key.k].Mats), g.xf, g.col);
+    }
+
+    /// <summary>
+    /// A Dutch ditch between the road-side buildings and the fields: a row of pollard willows (knotwilgen) with now and
+    /// then a weeping willow, so the open land south of the road gets its own kind of trees.
+    /// </summary>
+    static void Willows(Node3D root, int s)
+    {
+        var rng = new Random(4242);
+        var pollard = new List<Transform3D>(); var pc = new List<Color>();
+        var weeping = new List<Transform3D>(); var wc = new List<Color>();
+        for (var x = -140f; x < s + 150; x += 6.5f + (float)rng.NextDouble() * 2.5f)
+        {
+            if (x > -16 && x < -2) continue;                                      // the side road
+            var z = s + 66 + (float)rng.NextDouble() * 1.2f;
+            var sc = 0.85f + (float)rng.NextDouble() * 0.3f;
+            var xf = new Transform3D(new Basis(Vector3.Up, (float)rng.NextDouble() * Mathf.Tau).Scaled(Vector3.One * sc), new Vector3(x, 0, z));
+            if (rng.NextDouble() < 0.12) { var w = xf; w.Origin = new Vector3(x, 0, z + 3); weeping.Add(w); wc.Add(Shade(rng)); }
+            else { pollard.Add(xf); pc.Add(Shade(rng)); }
+        }
+        Assets.Many(root, Assets.Mesh("made/tree_pollard.glb", Foliage.ByName), pollard, pc);
+        Assets.Many(root, Assets.Mesh("made/tree_willow.glb", Foliage.ByName), weeping, wc);
     }
 
     /// <summary>Grass tufts and the odd flower on open land, only drawn within <paramref name="range"/> metres of the camera.</summary>

@@ -66,20 +66,30 @@ public static partial class TestRunner
         Check(!SemVer.TryParse("banana", out _), "reject garbage");
     }
 
-    const string Releases = """
+    const string Gh = "https://github.com/rhisijmuiden/datacenter-architect/releases";
+    const string Sha = "sha256:3a6eb0790f39ac87c94f3856b2dd2c5d110e6811602261a9a923d3bb23adc8b7";
+
+    const string Releases = $$"""
     [
-      {"tag_name":"v0.3.0-test.2","prerelease":true,"draft":false,"html_url":"u1","body":"",
-       "assets":[{"name":"DatacenterArchitect-0.3.0-test.2-Setup.exe","browser_download_url":"d1","size":10}]},
-      {"tag_name":"v0.2.0","prerelease":false,"draft":false,"html_url":"u2","body":"",
-       "assets":[{"name":"DatacenterArchitect-0.2.0-Setup.exe","browser_download_url":"d2","size":10}]},
-      {"tag_name":"v0.4.0","prerelease":false,"draft":true,"html_url":"u3","body":"","assets":[]}
+      {"tag_name":"v0.3.0-test.2","prerelease":true,"draft":false,"html_url":"{{Gh}}/tag/v0.3.0-test.2","body":"",
+       "assets":[{"name":"DatacenterArchitect-0.3.0-test.2-Setup.exe","browser_download_url":"{{Gh}}/download/v0.3.0-test.2/DatacenterArchitect-0.3.0-test.2-Setup.exe","size":10,"digest":"{{Sha}}"}]},
+      {"tag_name":"v0.2.0","prerelease":false,"draft":false,"html_url":"{{Gh}}/tag/v0.2.0","body":"",
+       "assets":[{"name":"DatacenterArchitect-0.2.0-Setup.exe","browser_download_url":"{{Gh}}/download/v0.2.0/DatacenterArchitect-0.2.0-Setup.exe","size":10},
+                 {"name":"DatacenterArchitect-0.2.0-Setup.exe.sha256","browser_download_url":"{{Gh}}/download/v0.2.0/DatacenterArchitect-0.2.0-Setup.exe.sha256","size":100}]},
+      {"tag_name":"v0.4.0","prerelease":false,"draft":true,"html_url":"u3","body":"","assets":[]},
+      {"tag_name":"v9.0.0","prerelease":false,"draft":false,"html_url":"http://evil.example/x","body":"",
+       "assets":[{"name":"DatacenterArchitect-9.0.0-Setup.exe","browser_download_url":"http://evil.example/DatacenterArchitect-9.0.0-Setup.exe","size":10}]},
+      {"tag_name":"v9.1.0","prerelease":false,"draft":false,"html_url":"{{Gh}}/tag/v9.1.0","body":"",
+       "assets":[{"name":"..\\..\\evil-Setup.exe","browser_download_url":"{{Gh}}/download/v9.1.0/evil-Setup.exe","size":10}]},
+      {"tag_name":"v9.2.0","prerelease":false,"draft":false,"html_url":"https://github.com/someone/else/releases/tag/v9.2.0","body":"",
+       "assets":[{"name":"DatacenterArchitect-9.2.0-Setup.exe","browser_download_url":"https://github.com/someone/else/releases/download/v9.2.0/DatacenterArchitect-9.2.0-Setup.exe","size":10}]}
     ]
     """;
 
     static void UpdateTests()
     {
         var list = UpdateService.ParseReleases(Releases);
-        Check(list.Count == 2, "drafts skipped");
+        Check(list.Count == 5, "drafts skipped");
         var stable = UpdateService.Decide(list, "stable", V("0.1.0"), "stable");
         Check(stable.Verdict == UpdateVerdict.NewerAvailable && stable.Release.Tag == "v0.2.0", "stable picks newest release");
         var test = UpdateService.Decide(list, "test", V("0.2.0"), "stable");
@@ -88,6 +98,23 @@ public static partial class TestRunner
         Check(same.Verdict == UpdateVerdict.UpToDate, "up to date");
         var back = UpdateService.Decide(list, "stable", V("0.3.0-test.2"), "test");
         Check(back.Verdict == UpdateVerdict.ChannelSwitch && back.Release.Tag == "v0.2.0", "switch from test back to stable");
+
+        // security: only HTTPS links into our own releases, our own installer names, and a checksum
+        Check(list.Where(r => r.Version.Major == 9).All(r => r.InstallerUrl == null), "untrusted installers ignored (http, other repo, odd name)");
+        Check(list.First(r => r.Tag == "v9.0.0").PageUrl == null, "untrusted release page not opened");
+        Check(test.Release.Sha256 == Sha[7..], "GitHub asset digest read");
+        Check(stable.Release.Sha256 == null && stable.Release.ChecksumUrl.EndsWith(".sha256"), "checksum file found when there is no digest");
+        Check(!UpdateService.IsTrustedUrl("https://github.com.evil.example/rhisijmuiden/datacenter-architect/releases/download/x"), "look-alike host refused");
+        Check(!UpdateService.IsTrustedUrl("https://user@github.com/rhisijmuiden/datacenter-architect/releases/download/x"), "user info refused");
+        Check(!UpdateService.IsTrustedUrl("https://github.com:8443/rhisijmuiden/datacenter-architect/releases/download/x"), "other port refused");
+        Check(!UpdateService.IsInstallerName("../DatacenterArchitect-1.0.0-Setup.exe") && !UpdateService.IsInstallerName("DatacenterArchitect-1.0.0-Setup.exe.bat"), "installer name checked");
+        var hex = Sha[7..];
+        Check(UpdateService.ParseChecksum($"{hex}  DatacenterArchitect-0.2.0-Setup.exe\n", "DatacenterArchitect-0.2.0-Setup.exe") == hex, "checksum file parsed");
+        Check(UpdateService.ParseChecksum($"{hex}  other.exe", "DatacenterArchitect-0.2.0-Setup.exe") == null, "checksum for another file refused");
+        var refused = false;
+        try { UpdateService.DownloadAsync(list.First(r => r.Tag == "v9.0.0"), null).GetAwaiter().GetResult(); }
+        catch (InvalidOperationException) { refused = true; }
+        Check(refused, "download of an untrusted release refused");
     }
 
     static void TranslationTests()
@@ -266,6 +293,17 @@ public static partial class TestRunner
         Check(SaveSystem.List().Count(x => x.IsAutosave) == SaveSystem.AutosaveSlots, "autosave keeps three");
         foreach (var x in SaveSystem.List().Where(x => x.IsAutosave || x.Slot == "unit-test")) SaveSystem.Delete(x.Slot);
         Check(SaveSystem.Sanitize("../evil") == "___evil", "slot names sanitised");
+        Check(SaveSystem.Sanitize("..\\evil:x") == "___evil_x", "windows separators sanitised");
+        DirAccess.MakeDirRecursiveAbsolute(SaveSystem.Dir);
+        using (var bad = FileAccess.Open(SaveSystem.Dir + "/unit-test-broken.json", FileAccess.ModeFlags.Write)) bad.StoreString("{ not json");
+        using (var huge = FileAccess.Open(SaveSystem.Dir + "/unit-test-huge.json", FileAccess.ModeFlags.Write))
+            huge.StoreString("{\"Slot\":\"x\",\"State\":{\"PlotSize\":2000000,\"Options\":{}}}");
+        Check(SaveSystem.Load("unit-test-broken") == null && SaveSystem.Load("unit-test-huge") == null, "broken or impossible saves refused without a crash");
+        Check(SaveSystem.List().All(x => !x.Slot.StartsWith("unit-test-broken") && !x.Slot.StartsWith("unit-test-huge")), "refused saves not listed");
+        SaveSystem.Delete("unit-test-broken"); SaveSystem.Delete("unit-test-huge");
+        Check(!FileAccess.FileExists(SaveSystem.Dir + "/unit-test.json.tmp"), "no temporary save file left behind");
+        var evil = new GameState { GameId = "../../Windows" };
+        Check(GameState.IsSafeId(evil.GameId) && !World.Timelapse.DirOf("..\\x").Contains(".."), "timelapse folder cannot leave user://timelapse");
     }
 
     static void BuildTests()
@@ -391,6 +429,14 @@ public static partial class TestRunner
         Check(nav.Find(new Pt(5, 35, 0), 0, (x, z) => z == 25, NavMode.Walk) == null, "a closed fence blocks");
         s.AddObject(ObjKind.PedGate, 6, 30, 0, 0);
         Check(nav.Find(new Pt(5, 35, 0), 0, (x, z) => z == 25, NavMode.Walk) != null, "a gate lets people through");
+        // connected areas: a closed room is its own area until it gets a door, and the aimed search agrees
+        var s2 = GameState.New(new NewGameOptions());
+        s2.AddBuilding(BuildingKind.Office, 10, 10, 8, 8, 1).Stage = Stage.Done;
+        var nav2 = new Nav(s2);
+        Check(!nav2.Connected(5, 5, 12, 12, 0, NavMode.Walk) && nav2.Find(new Pt(5, 5, 0), 0, (x, z) => x == 12 && z == 12, NavMode.Walk, (12, 12)) == null, "a closed room is not connected");
+        s2.AddDoor(DoorType.Single, 12, 18, 1, 0);
+        Check(nav2.Connected(5, 5, 12, 12, 0, NavMode.Walk) && nav2.Find(new Pt(5, 5, 0), 0, (x, z) => x == 12 && z == 12, NavMode.Walk, (12, 12)) != null, "a door joins the areas");
+        Check(!nav2.Connected(5, 5, 12, 12, 0, NavMode.Carry), "a single door does not join them for carried racks");
     }
 
     static void UndoTests()
@@ -526,6 +572,10 @@ public static partial class TestRunner
         var nav = new Nav(s);
         var path = nav.FindOnFloor(new List<(int, int)> { (40, 63) }, 0, (x, z) => x == 20 && z == 40, NavMode.Truck);
         Check(path != null, "trucks can drive along a curved road");
+        // the aimed search (A*) finds a route as short as the full search, and gives up at once on unreachable cells
+        var full = nav.FindOnFloor(new[] { (5, 60) }, 0, (x, z) => x == 50 && z == 10, NavMode.Walk);
+        var aimed = nav.FindOnFloor(new[] { (5, 60) }, 0, (x, z) => x == 50 && z == 10, NavMode.Walk, (50, 10));
+        Check(full != null && aimed != null && aimed.Count == full.Count && aimed[^1] == full[^1], "aimed search is as short as the full search");
         // erasing part keeps the rest, painting it all over removes the curve
         s.Erase(30, 35, 20, 4, 0);
         Check(s.Curves.Count == 1 && c.Cells.All(i => s.Surfaces[i] == (byte)Surface.Asphalt), "erasing part of a curve keeps the rest");

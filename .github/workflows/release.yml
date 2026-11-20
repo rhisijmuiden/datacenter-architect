@@ -14,25 +14,50 @@ on:
         required: true
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 env:
   GODOT_VERSION: 4.5.1
+  # from https://github.com/godotengine/godot/releases/download/4.5.1-stable/SHA512-SUMS.txt; update together with the version
+  GODOT_WIN_SHA512: 168fb2502fe979f7a2258d036cae9e5d6a32c96263fe9193a3e34e2be60d5024732a28f713b1ce3f962a74b731a72b1501df891e80bc97ddc1638191199b8a13
+  GODOT_TEMPLATES_SHA512: 5f4379634ca1cfc176a30da1ca5cee4407cdce0da18e1f60de12a3e7bf497f91b7e525479d90a8c13feaa4bee6a592b4ea332c81ac31501bf76f01804afe76ba
 
 jobs:
   windows:
     runs-on: windows-latest
+    timeout-minutes: 60
+    # only this job may create the release
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
         with:
           dotnet-version: 8.0.x
 
       - name: Stamp version and channel
         shell: pwsh
+        env:
+          # passed as data, never pasted into the script, so a version text cannot run commands
+          EVENT: ${{ github.event_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          REF_NAME: ${{ github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
         run: |
-          $ver = if ("${{ github.event_name }}" -eq "workflow_dispatch") { "${{ inputs.version }}".TrimStart('v') } else { "${{ github.ref_name }}".TrimStart('v') }
+          $ver = if ($env:EVENT -eq "workflow_dispatch") { $env:INPUT_VERSION.Trim().TrimStart('v') } else { $env:REF_NAME.TrimStart('v') }
+          if ($ver -notmatch '^\d+\.\d+\.\d+(-test\.\d+)?$') { throw "version '$ver' must look like 1.2.3 or 1.2.3-test.4" }
           $channel = if ($ver -match '-') { 'test' } else { 'stable' }
+          # a stable release comes from main, a test release from test (or a tag on them)
+          if ($env:EVENT -eq "workflow_dispatch") {
+            $want = if ($channel -eq 'stable') { 'main' } else { 'test' }
+            if ($env:REF_TYPE -ne 'branch' -or $env:REF_NAME -ne $want) { throw "a $channel release must be run from the $want branch, not $env:REF_NAME" }
+          }
           "VERSION=$ver" | Out-File -Append $env:GITHUB_ENV
           "CHANNEL=$channel" | Out-File -Append $env:GITHUB_ENV
           (Get-Content game/project.godot) `
@@ -45,8 +70,11 @@ jobs:
         run: |
           $base = "https://github.com/godotengine/godot/releases/download/$env:GODOT_VERSION-stable"
           Invoke-WebRequest "$base/Godot_v$env:GODOT_VERSION-stable_mono_win64.zip" -OutFile godot.zip
-          Expand-Archive godot.zip -DestinationPath godot
           Invoke-WebRequest "$base/Godot_v$env:GODOT_VERSION-stable_mono_export_templates.tpz" -OutFile templates.zip
+          # both downloads must match the checksums Godot publishes and we pin here
+          if ((Get-FileHash godot.zip -Algorithm SHA512).Hash -ne $env:GODOT_WIN_SHA512) { throw "Godot download checksum mismatch" }
+          if ((Get-FileHash templates.zip -Algorithm SHA512).Hash -ne $env:GODOT_TEMPLATES_SHA512) { throw "export templates checksum mismatch" }
+          Expand-Archive godot.zip -DestinationPath godot
           Expand-Archive templates.zip -DestinationPath tpl
           $dest = "$env:APPDATA\Godot\export_templates\$env:GODOT_VERSION.stable.mono"
           New-Item -ItemType Directory -Force -Path $dest | Out-Null
@@ -89,6 +117,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $ghArgs = @("v$env:VERSION", "dist/DatacenterArchitect-$env:VERSION-Setup.exe", "--title", "Datacenter Architect $env:VERSION", "--generate-notes", "--target", "${{ github.sha }}")
+          # the in-game updater checks the download against this SHA-256 (and GitHub's own asset digest)
+          $setup = "dist/DatacenterArchitect-$env:VERSION-Setup.exe"
+          $hash = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  DatacenterArchitect-$env:VERSION-Setup.exe" | Out-File -Encoding ascii -NoNewline "$setup.sha256"
+          "SHA-256: $hash"
+          $ghArgs = @("v$env:VERSION", $setup, "$setup.sha256", "--title", "Datacenter Architect $env:VERSION", "--generate-notes", "--target", "${{ github.sha }}")
           if ($env:CHANNEL -eq 'test') { $ghArgs += "--prerelease" }
           gh release create @ghArgs

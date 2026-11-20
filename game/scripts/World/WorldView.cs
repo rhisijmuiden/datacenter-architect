@@ -210,6 +210,7 @@ public partial class WorldView : Node3D
             Tree(x, z);
         }
         Forest(root, spots, rng, 0.35f);
+        Willows(root, s);
         // undergrowth and grass along the forest edges and the verges outside the plot
         var verge = new List<Vector2>();
         for (var i = 0; i < 9000; i++)
@@ -255,14 +256,6 @@ public partial class WorldView : Node3D
             var m = Ball(root, new Vector3(-200 + i * 70, -18, -170 - (i % 3) * 25), 45 + (i % 4) * 10, hill, 0.6f);
             m.CastShadow = GeometryInstance3D.ShadowCastingSetting.Off;
         }
-    }
-
-    void Neighbour(Node3D root, Vector3 pos, Vector3 size, Color wall, Color roof)
-    {
-        Box(root, pos + new Vector3(0, size.Y / 2, 0), size, wall);
-        Box(root, pos + new Vector3(0, size.Y + 0.15f, 0), new Vector3(size.X + 0.3f, 0.3f, size.Z + 0.3f), roof);
-        for (var y = 1.5f; y < size.Y - 1; y += 2.5f)
-            Box(root, pos + new Vector3(0, y, size.Z / 2 + 0.01f), new Vector3(size.X * 0.85f, 0.7f, 0.02f), new Color("#3c5a75"), 0.2f).MaterialOverride = WindowMat;
     }
 
     static MultiMeshInstance3D Multi(Node3D root, Mesh mesh, List<Transform3D> xf, Color c, bool shadow = true)

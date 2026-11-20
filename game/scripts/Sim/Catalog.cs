@@ -37,6 +37,8 @@ public enum ObjKind
     SolarPanel, WindTurbine, BatteryContainer, DryCooler, PalletRack, Workbench, PalletJack, Shredder, SocDesk,
     // playtest: people move between floors by stairs or a passenger lift
     PassengerLift, Stairs,
+    // outdoor seating (3D models round)
+    ParkBench, PicnicTable, TerraceSet,
     // playtest: commuting by bike or electric car
     BikeShed, EvCharger,
 }
@@ -122,6 +124,9 @@ public static class Catalog
         [ObjKind.LampPost] = new(ObjKind.LampPost, "obj_lamp", 1, 1, 900, Where.Outside, false),
         [ObjKind.Bench] = new(ObjKind.Bench, "obj_bench", 2, 1, 450, Where.Outside, true),
         [ObjKind.BikeRack] = new(ObjKind.BikeRack, "obj_bikerack", 2, 1, 600, Where.Outside, true),
+        [ObjKind.ParkBench] = new(ObjKind.ParkBench, "obj_park_bench", 2, 1, 650, Where.Outside, true),
+        [ObjKind.PicnicTable] = new(ObjKind.PicnicTable, "obj_picnic_table", 2, 2, 900, Where.Outside, true),
+        [ObjKind.TerraceSet] = new(ObjKind.TerraceSet, "obj_terrace_set", 2, 2, 1800, Where.OutsideOrRoof, true),
         [ObjKind.BikeShed] = new(ObjKind.BikeShed, "obj_bikeshed", 4, 2, 9500, Where.Outside, true, PowerKw: 4),
         [ObjKind.EvCharger] = new(ObjKind.EvCharger, "obj_evcharger", 1, 1, 4800, Where.Outside, true, PowerKw: 22),
         [ObjKind.GuardBooth] = new(ObjKind.GuardBooth, "obj_guardbooth", 2, 2, 28000, Where.Outside, true),

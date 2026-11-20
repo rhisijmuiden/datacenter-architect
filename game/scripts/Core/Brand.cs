@@ -24,7 +24,6 @@ public static class Brand
     public static readonly Color Asphalt = new("#4A4F57");
     public static readonly Color Concrete = new("#A9ADB1");
     public static readonly Color Wall = new("#C9D0D6");
-    public static readonly Color HallFloor = new("#9AA5AE");
     public static readonly Color Rack = new("#23282F");
     public static readonly Color Sky = new("#A8D6F2");
 }
