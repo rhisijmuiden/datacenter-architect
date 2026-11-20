@@ -200,6 +200,18 @@ def roof_unit():
         o += fan_shroud(0.42, g(x, 1.12, 0), 0.14)
         o.append(fan(0.38, g(x, 1.1, 0), 'FanBlade'))
     o.append(box(gs(0.5, 0.25, 0.5), g(-0.9, 0.12, -0.9), 'galvanised', 0.02))              # duct down into the roof
+    # details: refrigerant lines (insulated + copper), isolator box with conduit, lifting lugs, panel handles, nameplate
+    for dz, m, r in ((0.25, 'rubber', 0.035), (0.4, 'copper', 0.018)):
+        o.append(tube_path([g(-1.25, 0.35, dz), g(-1.45, 0.35, dz), g(-1.5, 0.25, dz), g(-1.5, 0.02, dz)], r, m, 8))
+    o.append(box(gs(0.04, 0.3, 0.22), g(-1.27, 0.65, -0.35), 'paint_grey', 0.008))
+    o.append(box(gs(0.03, 0.08, 0.04), g(-1.3, 0.68, -0.35), 'red_paint', 0.004))
+    o.append(tube_path([g(-1.27, 0.5, -0.35), g(-1.32, 0.3, -0.35), g(-1.35, 0.03, -0.35)], 0.015, 'galvanised', 6))
+    for x in (-1.2, 1.2):
+        for z in (-0.75, 0.75):
+            o.append(torus(0.04, 0.01, g(x, 1.08, z), 'dark_steel', (math.radians(90), 0, 0), 10, 5))
+    for x in (0.15, 0.55, 0.95):
+        o.append(box(gs(0.1, 0.025, 0.03), g(x, 0.88, 0.815), 'steel', 0.004))
+    o.append(box(gs(0.2, 0.1, 0.012), g(-0.15, 0.85, 0.81), 'steel', 0.003))
     save(P('roof_unit'), o, keep_separate=())
 
 

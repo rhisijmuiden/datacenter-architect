@@ -281,7 +281,7 @@ public static class Models
         "glow_alert" => Mat(Brand.Critical, 0.4f, 0, true),
         "lamp" => LampMat,
         "window_glass" => World.WorldView.WindowMat,
-        _ => Foliage.ByName(name, m),
+        _ => Weathering.Apply(name, Foliage.ByName(name, m)),
     };
 
     static bool Made(ObjKind k, Node3D n)
