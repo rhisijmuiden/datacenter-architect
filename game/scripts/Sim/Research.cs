@@ -61,6 +61,10 @@ public static class ResearchTree
     /// <summary>Lab benches a researcher works at; each bench brings one researcher.</summary>
     public const double PointsPerResearcher = 1.0;
     public const int MaxQueue = 5;
+
+    /// <summary>R&D budget steps the player can choose: euros per day on top of salaries, and how much faster research goes.</summary>
+    public static readonly long[] BudgetPerDay = { 0, 500, 1500, 3500, 7500 };
+    public static readonly double[] BudgetSpeed = { 1.0, 1.2, 1.45, 1.75, 2.1 };
 }
 
 /// <summary>Research: R&D lab, researchers, the queue and what finished research changes (step 8).</summary>
@@ -72,6 +76,16 @@ public partial class GameState
     public List<string> ResearchQueue { get; set; } = new();
     /// <summary>Points gathered for the project at the front of the queue.</summary>
     public double ResearchProgress { get; set; }
+
+    /// <summary>The R&D budget step (index into <see cref="ResearchTree.BudgetPerDay"/>): a policy, no micromanagement.
+    /// Paid only on days the lab actually works on something.</summary>
+    public int ResearchBudget { get; set; }
+
+    public void SetResearchBudget(int level) { ResearchBudget = Math.Clamp(level, 0, ResearchTree.BudgetPerDay.Length - 1); Touch(false); }
+
+    /// <summary>Speed factor of the chosen budget.</summary>
+    [JsonIgnore] public double ResearchBudgetSpeed => ResearchTree.BudgetSpeed[Math.Clamp(ResearchBudget, 0, ResearchTree.BudgetSpeed.Length - 1)];
+    [JsonIgnore] public long ResearchBudgetCost => ResearchTree.BudgetPerDay[Math.Clamp(ResearchBudget, 0, ResearchTree.BudgetPerDay.Length - 1)];
 
     public bool Done(string id) => Creative.AllUnlocks || Researched.Contains(id);
 
@@ -91,7 +105,7 @@ public partial class GameState
             pts += 0.25 * Certs.Count(c => c.Valid);
             var active = Deals.Where(d => d.State == DealState.Active).ToList();
             if (active.Count > 0 && active.Average(d => d.Satisfaction) >= 75) pts += 0.5;
-            return pts;
+            return pts * ResearchBudgetSpeed;
         }
     }
 
@@ -158,7 +172,16 @@ public partial class GameState
     void ResearchDay()
     {
         if (ResearchQueue.Count == 0) return;
-        ResearchProgress += ResearchPerDay;
+        var pts = ResearchPerDay;
+        if (pts <= 0) return;
+        // the budget is spent on test kit, prototypes and outside experts; without the money the lab works at the base pace
+        var cost = ResearchBudgetCost;
+        if (cost > 0 && !Creative.UnlimitedMoney)
+        {
+            if (CanAfford(cost)) { Money -= cost; Book("cost_research", -cost); }
+            else pts /= ResearchBudgetSpeed;
+        }
+        ResearchProgress += pts;
         while (ResearchQueue.Count > 0 && ResearchProgress >= ResearchTree.ById[ResearchQueue[0]].Points)
         {
             var carry = ResearchProgress - ResearchTree.ById[ResearchQueue[0]].Points;

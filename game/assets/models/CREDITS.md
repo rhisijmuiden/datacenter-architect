@@ -4,7 +4,7 @@ All third-party models in this folder are public domain (CC0 1.0). Credit is not
 
 | Folder | Models | Author | Licence | Source |
 |---|---|---|---|---|
-| `made/` | Trees (oak, lime, maple, birch, poplar, beech, horse chestnut, alder, ornamental cherry, weeping and pollard willow, spruce, fir, Scots pine, larch), shrubs, grass tufts, flowers, all datacenter equipment (generator, transformer, switchgear, UPS, batteries, PDU, tanks, chiller, dry cooler, cooling tower, CRAH, core router, spine, ODF, battery container), street furniture, fences, the articulated lorry with its trailers and loads, excavator, mobile crane, pallets, gatehouse, barrier, gates, intercom, solar panels, wind turbine, rooftop units, outdoor seating (park bench, picnic table, terrace set), facade windows and warehouse fittings (pallet racks, workbench, pallet jack, shredder) | Made for this game with `tools/models/blender/` | CC0 1.0 (same as the game's own art) | this repository |
+| `made/` | Trees (oak, lime, maple, birch, poplar, beech, horse chestnut, alder, ornamental cherry, weeping and pollard willow, spruce, fir, Scots pine, larch), shrubs, grass tufts, flowers, all datacenter equipment (generator, transformer, switchgear, UPS, batteries, PDU, tanks, chiller, dry cooler, cooling tower, CRAH, core router, spine, ODF, battery container), street furniture, fences, the articulated lorry with its trailers and loads, excavator, mobile crane, pallets, gatehouse, barrier, gates, intercom, solar panels, wind turbine, rooftop units, outdoor seating (park bench, picnic table, terrace set), facade windows, warehouse fittings (pallet racks, workbench, pallet jack, shredder), city bikes and an e-bike, a bike shed with e-bike charging and an EV charging post | Made for this game with `tools/models/blender/` | CC0 1.0 (same as the game's own art) | this repository |
 | `furniture/` | Furniture Kit: desks, chairs, tables, sofa, bookcase, kitchen units, screens | [Kenney](https://kenney.nl) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | opengameart.org/content/furniture-kit |
 | `vehicles/` | Car Kit 3.1: sedans, SUVs, hatchback, van | [Kenney](https://kenney.nl) | CC0 1.0 | opengameart.org/content/car-kit |
 | `city/` | City Kit (Commercial) 2.1: office blocks and towers | [Kenney](https://kenney.nl) | CC0 1.0 | opengameart.org/content/city-kit-commercial |
@@ -34,6 +34,7 @@ python3 tools/models/blender/infra.py game/assets/models/made    # equipment, st
 python3 tools/models/blender/vehicles.py game/assets/models/made # lorry, trailers, loads, excavator, crane, pallet
 python3 tools/models/blender/site.py game/assets/models/made     # gatehouse, barrier, gates, solar, wind, rooftop unit
 python3 tools/models/blender/buildings.py game/assets/models/made # facade windows, warehouse fittings
+python3 tools/models/blender/commute.py game/assets/models/made  # bikes, e-bike, bike shed, EV charger
 python3 tools/models/blender/preview.py out.png a.glb b.glb      # contact sheet (Cycles, CPU)
 ```
 

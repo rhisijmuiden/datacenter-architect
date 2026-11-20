@@ -39,6 +39,8 @@ public enum ObjKind
     PassengerLift, Stairs,
     // outdoor seating (3D models round)
     ParkBench, PicnicTable, TerraceSet,
+    // playtest: commuting by bike or electric car
+    BikeShed, EvCharger,
 }
 
 /// <summary>Delivery chain for hall equipment: truck to the dock, fitter places it, engineer connects power and then fiber.</summary>
@@ -125,6 +127,8 @@ public static class Catalog
         [ObjKind.ParkBench] = new(ObjKind.ParkBench, "obj_park_bench", 2, 1, 650, Where.Outside, true),
         [ObjKind.PicnicTable] = new(ObjKind.PicnicTable, "obj_picnic_table", 2, 2, 900, Where.Outside, true),
         [ObjKind.TerraceSet] = new(ObjKind.TerraceSet, "obj_terrace_set", 2, 2, 1800, Where.OutsideOrRoof, true),
+        [ObjKind.BikeShed] = new(ObjKind.BikeShed, "obj_bikeshed", 4, 2, 9500, Where.Outside, true, PowerKw: 4),
+        [ObjKind.EvCharger] = new(ObjKind.EvCharger, "obj_evcharger", 1, 1, 4800, Where.Outside, true, PowerKw: 22),
         [ObjKind.GuardBooth] = new(ObjKind.GuardBooth, "obj_guardbooth", 2, 2, 28000, Where.Outside, true),
         [ObjKind.Intercom] = new(ObjKind.Intercom, "obj_intercom", 1, 1, 3500, Where.Outside, false),
         [ObjKind.Barrier] = new(ObjKind.Barrier, "obj_barrier", 3, 1, 6500, Where.Paved, false),

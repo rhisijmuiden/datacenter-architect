@@ -92,9 +92,14 @@ public class Nav
 
     float[] _truckCost;
 
+    /// <summary>Roads at least this wide (in metres) get a centre line, and traffic keeps to the right lane.</summary>
+    public const int TwoLaneWidth = 6;
+
     /// <summary>
-    /// Moves the waypoints of a truck route to the middle of the paved strip it drives on, so it no longer scrapes
-    /// along a fence or kerb. Measures across the direction of travel on the same surface, up to 8 m each way.
+    /// Moves the waypoints of a truck route into its lane: on a road of <see cref="TwoLaneWidth"/> m or more the
+    /// middle of the right-hand half (traffic keeps right, as in the Netherlands), on a narrower strip the middle of
+    /// it, so it no longer scrapes along a fence or kerb. Measures across the direction of travel on the same
+    /// surface, up to 8 m each way.
     /// </summary>
     public List<(double x, double z)> CenterLane(IReadOnlyList<Pt> path)
     {
@@ -109,14 +114,17 @@ public class Nav
             // straight on (not at a corner): measure the width across
             if ((dx == 0) != (dz == 0))
             {
-                int px = dz, pz = dx; // perpendicular
+                // the driver's right-hand side in world space (y up): (-dz, dx)
+                int rx = -dz, rz = dx;
                 var surf = _s.SurfaceAt(p.X, p.Z);
                 bool Same(int x, int z) => _s.InPlot(x, z) && _truck[z * _n + x] && _s.SurfaceAt(x, z) == surf;
                 int left = 0, right = 0;
-                while (left < 8 && Same(p.X - px * (left + 1), p.Z - pz * (left + 1))) left++;
-                while (right < 8 && Same(p.X + px * (right + 1), p.Z + pz * (right + 1))) right++;
+                while (left < 8 && Same(p.X - rx * (left + 1), p.Z - rz * (left + 1))) left++;
+                while (right < 8 && Same(p.X + rx * (right + 1), p.Z + rz * (right + 1))) right++;
+                var width = left + right + 1;
                 var shift = (right - left) / 2.0;
-                ox = px * shift; oz = pz * shift;
+                if (width >= TwoLaneWidth) shift += width / 4.0;
+                ox = rx * shift; oz = rz * shift;
             }
             res.Add((p.X + 0.5 + ox, p.Z + 0.5 + oz));
         }

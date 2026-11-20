@@ -26,7 +26,7 @@ public static partial class TestRunner
         {
             ("semver", SemVerTests), ("updates", UpdateTests), ("translations", TranslationTests),
             ("saves", SaveTests), ("building", BuildTests), ("construction", ConstructionTests),
-            ("rack chain", RackChainTests), ("gates", GateTests), ("curves", CurveTests), ("navigation", NavTests), ("stairs and lifts", StairsTests), ("undo", UndoTests), ("smart drag", SmartDragTests), ("creative", CreativeTests), ("demo", DemoTests),
+            ("rack chain", RackChainTests), ("gates", GateTests), ("curves", CurveTests), ("navigation", NavTests), ("stairs and lifts", StairsTests), ("undo", UndoTests), ("smart drag", SmartDragTests), ("rack access", RackAccessTests), ("creative", CreativeTests), ("demo", DemoTests),
             ("power chain", PowerTests), ("backup power", BackupTests), ("grid and suppliers", GridTests),
             ("cooling", CoolingTests), ("roof and underground", RoofTests), ("overlay rows", OverlayTests),
             ("options", OptionsTests), ("thumbnails", ThumbnailTests), ("network", NetworkTests), ("network money", NetworkMoneyTests), ("peering", PeeringTests),
@@ -41,6 +41,7 @@ public static partial class TestRunner
             ("progress (step 11)", ProgressTests),
             ("round 2 (step 11)", Round2Tests),
             ("round 3 (step 11)", Round3Tests),
+            ("playtest round 3", Playtest3Tests),
         };
         foreach (var (name, t) in tests)
         {
@@ -394,7 +395,7 @@ public static partial class TestRunner
         s.AddDoor(DoorType.RollUp, 30, 36, 1, 0);
         s.AddDoor(DoorType.Single, 30, 30, 0, 0);
         var racks = Enumerable.Range(0, 4).Select(i => s.AddObject(ObjKind.Rack, 24 + i, 28, 0, 0)).ToList();
-        Check(sim.Docks().Count == 3, "roll-up door makes a dock");
+        Check(sim.Docks().Count == 1, "a roll-up door makes one loading bay");
         Run(sim, 60, () => racks.All(r => r.Status == ObjStatus.Delivered));
         Check(racks.All(r => r.Status == ObjStatus.Delivered), "truck delivers racks to the dock");
         Run(sim, 20);
@@ -479,6 +480,23 @@ public static partial class TestRunner
         s.PaintSurface(40, 40, 2, 2, Surface.Footpath, out _);
         h.Commit(s, snap, "surface_footpath");
         Check(!h.CanRedo, "a new action clears redo");
+    }
+
+    static void RackAccessTests()
+    {
+        var (s, hall, _) = NetSite();
+        // hall 4..23 x 4..23
+        Check(s.AddObject(ObjKind.Rack, 8, 4, 0, 0) == null && s.CanPlace(new PlacedObject { Kind = ObjKind.Rack, X = 8, Z = 4, Rot = 0 }) == "msg_rack_back", "a rack with its back against the wall is refused");
+        Check(s.CanPlace(new PlacedObject { Kind = ObjKind.Rack, X = 8, Z = 23, Rot = 0 }) == "msg_rack_front", "a rack facing the wall is refused");
+        var a = s.AddObject(ObjKind.Rack, 8, 8, 0, 0);
+        Check(a != null, "a rack with free aisles on both sides is fine");
+        Check(s.AddObject(ObjKind.Rack, 8, 9, 2, 0) == null, "racks face to face without an aisle are refused");
+        Check(s.AddObject(ObjKind.Rack, 8, 7, 0, 0) == null, "a rack right behind another is refused");
+        Check(s.CanPlace(new PlacedObject { Kind = ObjKind.Crah, X = 8, Z = 9, Rot = 0 }) == "msg_blocks_rack", "a CRAH in front of a rack is refused");
+        Check(s.AddObject(ObjKind.Rack, 9, 8, 0, 0) != null, "racks side by side in a row are fine");
+        Check(s.AddObject(ObjKind.Rack, 8, 10, 2, 0) != null, "a facing row across a 1 m cold aisle is fine");
+        var block = GameState.RowBlock(5, 13, 20, 20, ObjKind.Rack, 0);
+        Check(block.All(c => s.CanPlace(new PlacedObject { Kind = ObjKind.Rack, X = c.x, Z = c.z, Rot = c.rot }) == null), "a smart-drag block keeps every rack reachable");
     }
 
     static void SmartDragTests()
@@ -644,6 +662,15 @@ public static partial class TestRunner
         Check(lane.Count >= 2 && lane.All(p => Math.Abs(p.x - (mid + 0.5)) < 0.01), "a truck route along the kerb moves to the middle of the road");
         var found = nav.FindOnFloor(new[] { (mid, g.PlotSize - 1) }, 0, (x, z) => z == 12, NavMode.Truck);
         Check(found != null && found.All(p => p.X == mid), "trucks prefer the middle lane");
+        // on a 6 m road traffic keeps right: driving north (-z) the right-hand side is +x... and back on the other side
+        var r6 = GameState.New(new NewGameOptions());
+        r6.PaintSurface(20, 10, 6, r6.PlotSize - 10, Surface.Asphalt, out _);
+        var nav6 = new Nav(r6);
+        var north = Enumerable.Range(10, r6.PlotSize - 10).Reverse().Select(z => new Pt(22, z, 0)).ToList();
+        var inLane = nav6.CenterLane(north);
+        var outLane = nav6.CenterLane(Enumerable.Reverse(north).ToList());
+        Check(inLane.All(p => Math.Abs(p.x - 24.5) < 0.01), "driving in on a 6 m road keeps to the right lane");
+        Check(outLane.All(p => Math.Abs(p.x - 21.5) < 0.01), "driving out keeps to the other lane");
 
         // a large site gets several cranes with normal jibs, all on the plot
         var big = new Building { X = 0, Z = 0, W = 90, D = 50, Floors = 1 };
@@ -1095,6 +1122,14 @@ public static partial class TestRunner
         return (s, hall, swr, upsr);
     }
 
+    /// <summary>A live object packed in without the placement rules (power and cooling sums only).</summary>
+    static PlacedObject LiveRaw(GameState s, ObjKind k, int x, int z)
+    {
+        var o = new PlacedObject { Id = s.NextId++, Kind = k, X = x, Z = z, Status = ObjStatus.Live };
+        s.Objects.Add(o); s.Touch(false);
+        return o;
+    }
+
     static PlacedObject Live(GameState s, ObjKind k, int x, int z, int floor = 0)
     {
         var o = s.AddObject(k, x, z, 0, floor);
@@ -1262,7 +1297,7 @@ public static partial class TestRunner
         Live(ps, ObjKind.Switchgear, 24, 4); Live(ps, ObjKind.Ups, 29, 4); Live(ps, ObjKind.Ups, 31, 4); Live(ps, ObjKind.Ups, 29, 6); Live(ps, ObjKind.Ups, 31, 6);
         ps.Rooms[0].Busbar = true;
         foreach (var x in new[] { 18, 20, 22 }) { Live(ps, ObjKind.Pdu, x, 20); Live(ps, ObjKind.Pdu, x, 18); }
-        for (var i = 0; i < 220; i++) Live(ps, ObjKind.Rack, 5 + i % 18, 5 + i / 18);
+        for (var i = 0; i < 220; i++) LiveRaw(ps, ObjKind.Rack, 5 + i % 18, 5 + i / 18);
         var r = Infra.Analyze(ps);
         Check(r.Bottleneck.Link is PowerLink.Grid or PowerLink.Transformers && r.RunningRacks == (int)(2000 / 1.65 / 6), $"2 MVA at PUE 1.65 runs {r.RunningRacks} racks");
     }
@@ -1279,7 +1314,7 @@ public static partial class TestRunner
         r = Infra.Analyze(s);
         Check(r.CoolingKw == 240 && r.CoolRatio <= 1, "two CRAH units and a chiller cool 240 kW");
         Check(r.Pue == 1.65, "open hall: PUE 1.65");
-        for (var i = 0; i < 20; i++) Live(s, ObjKind.Rack, 6 + i % 10, 18 + i / 10);
+        for (var i = 0; i < 20; i++) LiveRaw(s, ObjKind.Rack, 6 + i % 10, 18 + i / 10);
         r = Infra.Analyze(s);
         Check(r.CoolRatio > 1, "more racks than cooling");
         for (var i = 0; i < 40; i++) s.Advance(0.25);

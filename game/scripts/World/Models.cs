@@ -264,7 +264,7 @@ public static class Models
         [ObjKind.UndergroundTank] = "underground_tank", [ObjKind.Chiller] = "chiller", [ObjKind.DryCooler] = "dry_cooler",
         [ObjKind.CoolingTower] = "cooling_tower", [ObjKind.Crah] = "crah", [ObjKind.CoreRouter] = "core_router",
         [ObjKind.Spine] = "spine", [ObjKind.Odf] = "odf", [ObjKind.BatteryContainer] = "battery_container",
-        [ObjKind.LampPost] = "lamp_post", [ObjKind.Bench] = "bench", [ObjKind.ParkBench] = "park_bench", [ObjKind.PicnicTable] = "picnic_table", [ObjKind.TerraceSet] = "terrace_set", [ObjKind.BikeRack] = "bike_rack",
+        [ObjKind.LampPost] = "lamp_post", [ObjKind.Bench] = "bench", [ObjKind.ParkBench] = "park_bench", [ObjKind.PicnicTable] = "picnic_table", [ObjKind.TerraceSet] = "terrace_set", [ObjKind.BikeRack] = "bike_rack", [ObjKind.BikeShed] = "bike_shed", [ObjKind.EvCharger] = "ev_charger",
         [ObjKind.Bollard] = "bollard", [ObjKind.CameraPole] = "camera_pole",
         [ObjKind.Tree] = "tree_young", [ObjKind.Shrub] = "bush_round",
         [ObjKind.GuardBooth] = "guard_booth", [ObjKind.Intercom] = "intercom", [ObjKind.PedGate] = "ped_gate", [ObjKind.SolarPanel] = "solar_panel",

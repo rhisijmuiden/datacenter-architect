@@ -8,7 +8,7 @@ using static DatacenterArchitect.World.Models;
 namespace DatacenterArchitect.World;
 
 /// <summary>What a figure is doing; picks the animation and how the arms are held.</summary>
-public enum PersonPose { Idle, Walk, Work, Carry, Push, Reel }
+public enum PersonPose { Idle, Walk, Work, Carry, Push, Reel, Ride }
 
 /// <summary>
 /// A person made from a rigged, animated CC0 model (Quaternius "Ultimate Modular Men/Women", see
@@ -22,7 +22,7 @@ public partial class PersonFigure : Node3D
     public Skeleton3D Skel;
     /// <summary>The toolbox in the right hand (fixed to the wrist bone), or null.</summary>
     public Node3D Tool;
-    int _uaL = -1, _uaR = -1, _laL = -1, _laR = -1;
+    int _uaL = -1, _uaR = -1, _laL = -1, _laR = -1, _ulL = -1, _ulR = -1, _llL = -1, _llR = -1, _hips = -1;
     string _current = "";
     float _phase;
 
@@ -34,6 +34,8 @@ public partial class PersonFigure : Node3D
         if (Skel == null) return;
         _uaL = Skel.FindBone("UpperArm.L"); _uaR = Skel.FindBone("UpperArm.R");
         _laL = Skel.FindBone("LowerArm.L"); _laR = Skel.FindBone("LowerArm.R");
+        _ulL = Skel.FindBone("UpperLeg.L"); _ulR = Skel.FindBone("UpperLeg.R");
+        _llL = Skel.FindBone("LowerLeg.L"); _llR = Skel.FindBone("LowerLeg.R");
     }
 
     /// <summary>Advance the animation and hold the arms for the pose. <paramref name="seed"/> offsets the cycle per person.</summary>
@@ -44,6 +46,7 @@ public partial class PersonFigure : Node3D
         {
             PersonPose.Idle => "Idle_Neutral",
             PersonPose.Work => "Interact",
+            PersonPose.Ride => "Idle_Neutral",
             _ => "Walk",
         };
         if (name != _current)
@@ -67,6 +70,17 @@ public partial class PersonFigure : Node3D
                 // both hands on the trolley handle
                 Aim(_uaL, new Vector3(0.1f, -0.75f, 0.65f)); Aim(_uaR, new Vector3(-0.1f, -0.75f, 0.65f));
                 Aim(_laL, new Vector3(-0.1f, -0.35f, 0.95f)); Aim(_laR, new Vector3(0.1f, -0.35f, 0.95f));
+                break;
+            case PersonPose.Ride:
+                // on a city bike: sitting upright, hands on the bars, legs turning the pedals
+                if (_ulL < 0 || _llL < 0) break;
+                var c = _phase * 7f;
+                Aim(_ulL, new Vector3(0.08f, -0.55f + 0.25f * Mathf.Sin(c), 0.85f));
+                Aim(_ulR, new Vector3(-0.08f, -0.55f - 0.25f * Mathf.Sin(c), 0.85f));
+                Aim(_llL, new Vector3(0, -1f, -0.15f + 0.3f * Mathf.Cos(c)));
+                Aim(_llR, new Vector3(0, -1f, -0.15f - 0.3f * Mathf.Cos(c)));
+                Aim(_uaL, new Vector3(0.25f, -0.6f, 0.75f)); Aim(_uaR, new Vector3(-0.25f, -0.6f, 0.75f));
+                Aim(_laL, new Vector3(0.05f, -0.15f, 1f)); Aim(_laR, new Vector3(-0.05f, -0.15f, 1f));
                 break;
             case PersonPose.Reel:
                 // a cable reel held low in both hands

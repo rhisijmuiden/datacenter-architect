@@ -99,6 +99,7 @@ public partial class GameState
             foreach (var r in Rooms.Where(r => set.Contains(r.Id))) r.Stage = Stage.Done;
         }
         Planned.Clear();
+        if (Creative.InstantBuild) foreach (var r in Rooms.Where(r => set.Contains(r.Id)).ToList()) RoomFinished(r);
         Touch();
         return null;
     }

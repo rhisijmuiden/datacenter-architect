@@ -967,3 +967,14 @@ Elk ding heeft één vaste plek: **bouwen onderaan, beheren links, kijken rechts
   - **Geluid:** hoofdvolume plus aparte schuiven voor de serverruimte en de interface; geluidseffecten los aan en uit (serverruimte, klikjes, meldingsgeluid) en dempen als de game op de achtergrond staat.
   - **Spel:** taal (Engels of Nederlands) en hoe vaak automatisch wordt opgeslagen.
 - **Standaardwaarden** zet beeld, graphics en geluid terug; taal en updatekanaal blijven staan.
+
+## Speeltest ronde 3
+
+- **Wegen**: asfalt van 6 m of breder krijgt een onderbroken middenstreep; auto's en vrachtwagens rijden rechts (Nederland), ook op de terugweg.
+- **Racks**: een rack heeft een vrije cel voor (koude gang) en achter (warme gang) in dezelfde zaal nodig; niets mag die cellen blokkeren. Bij plaatsen toont een pijl de voorkant.
+- **Fiber goten**: goten worden alleen aangelegd boven racks die geplaatst zijn, met een "waterval" naar elk live rack.
+- **Laad- en losplekken**: elke roldeur in de buitenwand van een loading dock is één genummerde plek; zoveel vrachtwagens als er plekken zijn (max 6) lossen tegelijk.
+- **R&D-budget**: beleidskeuze in vijf stappen (Basis tot Maximaal, €0 tot €7.500 per dag), sneller onderzoek (×1 tot ×2,1). Alleen betaald op dagen dat het lab werkt.
+- **Woon-werkverkeer**: ongeveer de helft van het personeel fietst, een deel van de automobilisten rijdt elektrisch. Fietsers hebben fietsenrekken (5) of een fietsenhok met e-bike laders (10) nodig, anders komen ze met de auto. Laadpalen maken de vakken ernaast EV-vakken (groen, "EV"). Puur visueel.
+- **Kantoorinrichting**: een afgebouwde kantoorruimte wordt automatisch ingericht (bureaus, stoelen, planten, kasten, tafels, banken, koffie) en krijgt schilderwerk, vloer en kunst in een stijl: standaard, support (tech: schermen, dashboards) of formeel (directie). De speler kan de stijl wisselen. De inspector toont welke kantoorruimtes het bedrijf nodig heeft.
+- **Gepland**: kelder onder het datacenter voor stroomapparatuur (ontwerpkeuze).

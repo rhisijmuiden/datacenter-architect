@@ -37,6 +37,8 @@ public class Room
     public int D { get; set; }
     /// <summary>Walls while the inner walls are being built, Done when finished.</summary>
     public Stage Stage { get; set; } = Stage.Walls;
+    /// <summary>Office rooms: interior style (automatic unless the player picks one).</summary>
+    public InteriorStyle Style { get; set; }
     public int Priority { get; set; } = 2;
     public int Material { get; set; }
     public double Work { get; set; }
@@ -600,6 +602,10 @@ public partial class GameState
         Spend(Catalog.Doors[t].Cost);
         Doors.Add(door);
         Touch();
+        // with instant building the room is finished before it has a door: furnish it once the door is in
+        if (Creative.InstantBuild)
+            foreach (var r in Rooms.Where(r => r.Floor == floor && r.Stage == Stage.Done && Furnishable(r.Type) && DoorsOf(r).Contains(door)).ToList())
+                RoomFinished(r);
         return door;
     }
 
@@ -663,8 +669,41 @@ public partial class GameState
                 else if (room0 != room) return "msg_one_room";
             }
         }
+        if (o.Kind == ObjKind.Rack && RackAccess(o) is { } access) return access;
+        if (def.Blocks && o.Floor >= 0 && BlocksRack(o)) return "msg_blocks_rack";
         if (!CanAfford(def.Cost)) return "msg_no_money";
         return null;
+    }
+
+    /// <summary>Direction a rotation's front faces: rot 0 = +z, 1 = -x, 2 = -z, 3 = +x.</summary>
+    public static (int dx, int dz) FrontDir(int rot) => (((rot % 4) + 4) % 4) switch { 0 => (0, 1), 1 => (-1, 0), 2 => (0, -1), _ => (1, 0) };
+
+    /// <summary>Engineers work on a rack from both sides: the cells in front and behind must be free floor of the same hall.</summary>
+    string RackAccess(PlacedObject o)
+    {
+        var (dx, dz) = FrontDir(o.Rot);
+        var room = RoomAt(o.X, o.Z, o.Floor);
+        foreach (var side in new[] { 1, -1 })
+        {
+            int x = o.X + dx * side, z = o.Z + dz * side;
+            if (room == null || RoomAt(x, z, o.Floor) != room) return side > 0 ? "msg_rack_front" : "msg_rack_back";
+            var other = ObjectAt(x, z, o.Floor);
+            if (other != null && other != o && other.Def.Blocks) return side > 0 ? "msg_rack_front" : "msg_rack_back";
+        }
+        return null;
+    }
+
+    /// <summary>Whether a blocking object would stand right in front of or behind a rack.</summary>
+    bool BlocksRack(PlacedObject o)
+    {
+        foreach (var (x, z) in Cells(o))
+            foreach (var (nx, nz) in new[] { (x + 1, z), (x - 1, z), (x, z + 1), (x, z - 1) })
+            {
+                if (ObjectAt(nx, nz, o.Floor) is not { Kind: ObjKind.Rack } rack || rack == o) continue;
+                var (dx, dz) = FrontDir(rack.Rot);
+                if ((rack.X + dx == x && rack.Z + dz == z) || (rack.X - dx == x && rack.Z - dz == z)) return true;
+            }
+        return false;
     }
 
     /// <summary>"msg_needs_transformer", "msg_needs_switchgear", "msg_needs_upsroom" or "msg_needs_battery".</summary>
