@@ -66,7 +66,87 @@ public static class Models
     static readonly Color White = new("#eef1f3"), Steel = new("#8f989f"), Dark = new("#2b3036"), Wood = new("#9a7550"), Leaf = new("#5f9a45"), Leaf2 = new("#77b356");
 
     /// <summary>Model of a placed object, centred on its footprint, facing +z when Rot = 0.</summary>
-    public static Node3D Object(ObjKind k)
+    public static Node3D Object(ObjKind k) => Catalog.IsShaft(k) ? Shaft(k, false) : Thing(k);
+
+    /// <summary>Stairs and lifts, drawn on the floor in view. On the top floor stairs end in a guarded opening.</summary>
+    public static Node3D Shaft(ObjKind k, bool top)
+    {
+        var n = new Node3D();
+        if (k == ObjKind.Stairs) { Stairs(n, top); return n; }
+        if (k == ObjKind.PassengerLift) { PassengerLift(n); return n; }
+        Box(n, new Vector3(0, 0.02f, 0), new Vector3(1.9f, 0.04f, 1.9f), new Color("#5d6670"));
+        foreach (var (x, z) in new[] { (-0.92f, -0.92f), (0.92f, -0.92f), (-0.92f, 0.92f), (0.92f, 0.92f) })
+            Box(n, new Vector3(x, 1.6f, z), new Vector3(0.08f, 3.2f, 0.08f), Brand.Power);
+        Box(n, new Vector3(0, 0.25f, 0.95f), new Vector3(1.9f, 0.08f, 0.04f), Brand.Power);
+        return n;
+    }
+
+    /// <summary>Straight flight of 18 steps over a 2 x 5 m footprint, bottom at the front (+z), with steel handrails.</summary>
+    static void Stairs(Node3D n, bool top)
+    {
+        const int steps = 18;
+        const float width = 1.3f, rise = 3.6f / steps, run = 4.4f / steps, z0 = 2.5f;
+        var stone = new Color("#c9ccc8"); var nosing = new Color("#3d4247"); var rail = new Color("#9aa3aa"); var glass = new Color(0.72f, 0.85f, 0.92f, 0.3f);
+        if (top)
+        {
+            // the opening the flight comes up through, guarded by glass on three sides
+            Box(n, new Vector3(0, 0.01f, 0.3f), new Vector3(width + 0.1f, 0.02f, 4.4f), new Color("#20262c"));
+            Box(n, new Vector3(0, 0.012f, -2.2f), new Vector3(width + 0.1f, 0.02f, 0.6f), stone);
+            foreach (var x in new[] { -0.75f, 0.75f })
+            {
+                Box(n, new Vector3(x, 0.5f, 0.3f), new Vector3(0.02f, 1.0f, 4.4f), glass, 0.1f);
+                Box(n, new Vector3(x, 1.02f, 0.3f), new Vector3(0.06f, 0.05f, 4.4f), rail, 0.3f, 0.7f);
+            }
+            Box(n, new Vector3(0, 0.5f, 2.5f), new Vector3(1.5f, 1.0f, 0.02f), glass, 0.1f);
+            Box(n, new Vector3(0, 1.02f, 2.5f), new Vector3(1.5f, 0.05f, 0.06f), rail, 0.3f, 0.7f);
+            return;
+        }
+        for (var i = 0; i < steps; i++)
+        {
+            var h = (i + 1) * rise; var z = z0 - (i + 0.5f) * run;
+            Box(n, new Vector3(0, h / 2, z), new Vector3(width, h, run), stone, 0.85f);
+            Box(n, new Vector3(0, h - 0.008f, z + run / 2 - 0.02f), new Vector3(width, 0.018f, 0.04f), nosing);
+        }
+        // top landing that meets the floor above
+        Box(n, new Vector3(0, 1.8f, -2.2f), new Vector3(width, 3.6f, 0.6f), stone, 0.85f);
+        // stringers and handrails following the pitch, with posts every few steps
+        var len = Mathf.Sqrt(4.4f * 4.4f + 3.6f * 3.6f);
+        var pitch = Mathf.Atan2(3.6f, 4.4f);
+        foreach (var x in new[] { -width / 2 - 0.04f, width / 2 + 0.04f })
+        {
+            var stringer = Box(n, new Vector3(x, 1.8f - 0.12f, z0 - 2.2f), new Vector3(0.06f, 0.3f, len), new Color("#4b535b"), 0.6f, 0.4f);
+            stringer.Rotation = new Vector3(pitch, 0, 0);
+            var hand = Box(n, new Vector3(x, 1.8f + 0.9f, z0 - 2.2f), new Vector3(0.05f, 0.05f, len), rail, 0.3f, 0.7f);
+            hand.Rotation = new Vector3(pitch, 0, 0);
+            for (var i = 1; i < steps; i += 4)
+                Box(n, new Vector3(x, i * rise + 0.45f + rise, z0 - (i + 0.5f) * run), new Vector3(0.035f, 0.9f, 0.035f), rail, 0.3f, 0.7f);
+        }
+    }
+
+    /// <summary>Enclosed passenger lift: panelled shaft, brushed steel doors, call buttons and a floor indicator.</summary>
+    static void PassengerLift(Node3D n)
+    {
+        var panel = new Color("#dfe3e6"); var steel = new Color("#b9c1c7"); var frame = new Color("#59626b");
+        Box(n, new Vector3(0, 1.6f, -0.92f), new Vector3(1.9f, 3.2f, 0.1f), panel, 0.6f);
+        foreach (var x in new[] { -0.92f, 0.92f }) Box(n, new Vector3(x, 1.6f, 0), new Vector3(0.1f, 3.2f, 1.9f), panel, 0.6f);
+        // front wall with the door opening
+        foreach (var x in new[] { -0.75f, 0.75f }) Box(n, new Vector3(x, 1.6f, 0.92f), new Vector3(0.4f, 3.2f, 0.1f), panel, 0.6f);
+        Box(n, new Vector3(0, 2.65f, 0.92f), new Vector3(1.1f, 1.1f, 0.1f), panel, 0.6f);
+        // steel frame and two sliding door leaves
+        Box(n, new Vector3(0, 2.13f, 0.975f), new Vector3(1.16f, 0.07f, 0.03f), frame, 0.4f, 0.6f);
+        foreach (var x in new[] { -0.565f, 0.565f }) Box(n, new Vector3(x, 1.05f, 0.975f), new Vector3(0.07f, 2.1f, 0.03f), frame, 0.4f, 0.6f);
+        foreach (var x in new[] { -0.265f, 0.265f }) Box(n, new Vector3(x, 1.05f, 0.95f), new Vector3(0.52f, 2.08f, 0.03f), steel, 0.25f, 0.85f);
+        Box(n, new Vector3(0, 1.05f, 0.968f), new Vector3(0.012f, 2.08f, 0.01f), frame);
+        // call buttons and the floor indicator above the door
+        Box(n, new Vector3(0.75f, 1.15f, 0.98f), new Vector3(0.1f, 0.22f, 0.02f), frame, 0.4f, 0.6f);
+        foreach (var y in new[] { 1.2f, 1.1f }) Box(n, new Vector3(0.75f, y, 0.992f), new Vector3(0.04f, 0.04f, 0.01f), Brand.Cooling, glow: true);
+        Box(n, new Vector3(0, 2.3f, 0.975f), new Vector3(0.3f, 0.12f, 0.02f), new Color("#14181c"));
+        Box(n, new Vector3(0, 2.3f, 0.988f), new Vector3(0.12f, 0.07f, 0.01f), Brand.Power, glow: true);
+        // a floor tile in front so the landing reads at a glance
+        Box(n, new Vector3(0, 0.01f, 0), new Vector3(1.7f, 0.02f, 1.7f), new Color("#8e979e"), 0.5f);
+    }
+
+    static Node3D Thing(ObjKind k)
     {
         var n = new Node3D();
         switch (k)
@@ -93,12 +173,6 @@ public static class Models
                 Box(n, new Vector3(0, 0.07f, 0), new Vector3(0.75f, 0.04f, 0.75f), Brand.Fiber);
                 Box(n, new Vector3(0.38f, 0.45f, 0.38f), new Vector3(0.08f, 0.9f, 0.08f), Brand.Fiber);
                 Box(n, new Vector3(0.38f, 0.85f, 0.38f), new Vector3(0.1f, 0.12f, 0.1f), White);
-                break;
-            case ObjKind.Lift:
-                Box(n, new Vector3(0, 0.02f, 0), new Vector3(1.9f, 0.04f, 1.9f), new Color("#5d6670"));
-                foreach (var (x, z) in new[] { (-0.92f, -0.92f), (0.92f, -0.92f), (-0.92f, 0.92f), (0.92f, 0.92f) })
-                    Box(n, new Vector3(x, 1.6f, z), new Vector3(0.08f, 3.2f, 0.08f), Brand.Power);
-                Box(n, new Vector3(0, 0.25f, 0.95f), new Vector3(1.9f, 0.08f, 0.04f), Brand.Power);
                 break;
             case ObjKind.Desk:
                 Box(n, new Vector3(0, 0.74f, 0), new Vector3(1.9f, 0.06f, 0.8f), new Color("#d9c7a8"));

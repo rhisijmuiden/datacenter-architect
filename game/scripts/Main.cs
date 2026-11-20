@@ -1189,6 +1189,9 @@ public partial class Main : Node3D
             var v = args[cami + 1].Split(',').Select(x => float.Parse(x, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
             _cam.SetView(v[0], v[1], v[2], new Vector3(v[3], 0, v[4]));
         }
+        // --floor N: look at floor N with the roofs off (stairs and lifts screenshots)
+        var fli = Array.IndexOf(args, "--floor");
+        if (fli >= 0 && fli + 1 < args.Length) SetView(int.Parse(args[fli + 1]), false);
         // step 10: --time 2027-12-20T21:00 --weather snow|rain|storm|fog|cloudy|clear --snow 0..1 --walk x,z,floor,yaw,pitch --migration
         var tmi = Array.IndexOf(args, "--time");
         if (tmi >= 0 && tmi + 1 < args.Length) _state.Hours = (DateTime.Parse(args[tmi + 1], System.Globalization.CultureInfo.InvariantCulture) - GameState.Epoch).TotalHours;

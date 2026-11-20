@@ -100,7 +100,7 @@ public partial class Hud : Control
         ("cat_buildings", new[]
         {
             new BuildItem(Mode.Building, (int)BuildingKind.Datacenter), new BuildItem(Mode.Building, (int)BuildingKind.Office),
-            new BuildItem(Mode.Building, (int)BuildingKind.Warehouse), O(ObjKind.Lift),
+            new BuildItem(Mode.Building, (int)BuildingKind.Warehouse), O(ObjKind.Stairs), O(ObjKind.PassengerLift), O(ObjKind.Lift),
             new BuildItem(Mode.Door, (int)DoorType.Single), new BuildItem(Mode.Door, (int)DoorType.Double),
             new BuildItem(Mode.Door, (int)DoorType.Fire), new BuildItem(Mode.Door, (int)DoorType.Badge),
             new BuildItem(Mode.Door, (int)DoorType.RollUp),
