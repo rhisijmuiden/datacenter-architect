@@ -896,6 +896,10 @@ Goedgekeurd door Reinder op 19 november 2026; ze komen in de genoemde stap.
 - *Stap 11*: **timelapse** van je hele campus vanaf de eerste schop in de grond.
 - *Later*: **edge-datacenters** (kleine containerlocaties in steden, gekoppeld aan de hoofdcampus), **kleurenblindmodus** en zelf toetsen instellen.
 
+**Ideeënronde 3** (goedgekeurd door Reinder op 20 november 2026)
+- *Speelronde, met voorrang*: **ongedaan maken / opnieuw** (Ctrl+Z) en **slim slepen** (doorgeschoven uit stap 7).
+- *Stap 11*: **planmodus**: je tekent je hele ontwerp eerst uit als doorzichtige blauwdruk met de kosten erbij, en laat het daarna met één klik bouwen. **Eigen bedrijfsnaam en logo** op gevels, vrachtwagens, bedrijfsauto's, werkkleding en racks. **De stad groeit mee**: verkeer op de openbare wegen, en buren die door de jaren heen nieuwe kantoren en woningen bouwen. **Netcongestie**: een wachtrij bij de netbeheerder voor extra vermogen; uit te zetten bij een nieuw spel. **Rondleidingen**: schoolklassen en geïnteresseerden lopen door het experience center, als achtergrondleven. **Ontruimingsoefening**: bij brand of een oefening loopt iedereen via de trappen naar een verzamelpunt. **Klanten met eigen racks**: in hun kooi zie je hun logo, kleur en eigen apparatuur. **Muziek en geluid**: rustige achtergrondmuziek die meebeweegt met dag en nacht, en een geluidslandschap per gebied (buiten, hal, kantoor). **Prijs "Datacenter van het jaar"**: elk jaar een uitreiking op basis van PUE, uptime en reputatie, met een beeldje voor in het CEO-kantoor. **Bioscoopcamera**: een automatische camera die langzaam over je campus vliegt, ook als screensaver.
+
 **Overige ideeën**
 - *Stap 7*: **hardware-levenscyclus**: servers en UPS-accu's verouderen en moeten worden vervangen. **Klantbezoeken en audits**: klanten komen kijken, en een nette site levert betere contracten op.
 - *Stap 8*: **waterkoeling en immersion cooling** voor AI- en GPU-klanten met racks van 50 kW of meer, en **restwarmte verkopen** aan een stadsverwarming of kas (via research).
