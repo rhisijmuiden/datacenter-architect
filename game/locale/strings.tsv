@@ -1823,3 +1823,9 @@ inspect_raising	Extra floor being built: {0}%	Extra verdieping in aanbouw: {0}%
 action_add_level	Add floor ({0})	Verdieping toevoegen ({0})
 action_add_level_max	Maximum floors reached	Maximaal aantal verdiepingen bereikt
 site_raising	Extra floor	Extra verdieping
+hud_day_night	Day and night	Dag en nacht
+hud_day_night_on	Day and night: on. Click for always daylight.	Dag en nacht: aan. Klik voor altijd daglicht.
+hud_day_night_off	Always daylight. Click to let the sun follow the clock again.	Altijd daglicht. Klik om de zon weer de klok te laten volgen.
+hud_weather	Weather	Weer
+hud_weather_on	Weather: on (rain, fog, snow, storms). Click to always have clear skies.	Weer: aan (regen, mist, sneeuw, onweer). Klik voor altijd helder weer.
+hud_weather_off	Weather: off, always clear. Click to turn rain, fog and snow back on.	Weer: uit, altijd helder. Klik om regen, mist en sneeuw weer aan te zetten.

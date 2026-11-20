@@ -34,6 +34,8 @@ public partial class Hud : Control
     public Action<int> SpeedChanged, FloorsChanged;
     public Action<Facade> FacadeChanged;
     public Action<bool> BasementChanged;
+    public Action ToggleDayNight, ToggleWeather;
+    Button _dayBtn, _weatherBtn;
     public Action<int> CyclePriority;
     public Action Walk;
     public Action Photo;
@@ -826,6 +828,12 @@ public partial class Hud : Control
         _netBtn = Ui.IconButton("cat_network", "hud_overlay_network", () => ToggleOverlay?.Invoke(3));
         h.AddChild(new VSeparator());
         h.AddChild(_powerBtn); h.AddChild(_coolBtn); h.AddChild(_netBtn);
+        // quick switches for the look of the world (also in Options › Graphics)
+        _dayBtn = Ui.IconButton("sun", "hud_day_night", () => ToggleDayNight?.Invoke());
+        _weatherBtn = Ui.IconButton("cloud", "hud_weather", () => ToggleWeather?.Invoke());
+        h.AddChild(new VSeparator());
+        h.AddChild(_dayBtn); h.AddChild(_weatherBtn);
+        SetWorldSwitches(AppSettings.Instance.DayNight, AppSettings.Instance.Weather);
 
         // messages sit right under the view controls, newest at the bottom, at most three
         _notes = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore, SizeFlagsHorizontal = SizeFlags.ShrinkEnd };
@@ -857,6 +865,15 @@ public partial class Hud : Control
         col.AddChild(_inspectPanel);
         RefreshLanguage();
         SetView(0, true);
+    }
+
+    /// <summary>Show whether day/night and weather are on (lit) or off.</summary>
+    public void SetWorldSwitches(bool dayNight, bool weather)
+    {
+        if (_dayBtn == null) return;
+        Active(_dayBtn, dayNight); Active(_weatherBtn, weather);
+        _dayBtn.TooltipText = Loc.T(dayNight ? "hud_day_night_on" : "hud_day_night_off");
+        _weatherBtn.TooltipText = Loc.T(weather ? "hud_weather_on" : "hud_weather_off");
     }
 
     public void SetView(int floor, bool roofs)
