@@ -157,6 +157,9 @@ public static class People
         return d;
     }
 
+    /// <summary>Step 11: your own staff wear the company colour (shirts under the vests, ties); null = their usual clothes.</summary>
+    public static Color? CompanyColor;
+
     /// <summary>Pick the outfit and colours for a role. Deterministic per id, so a person keeps their look.</summary>
     static (string file, Dictionary<string, Color> colors, bool swapHead) Dress(Role role, int id, StaffRole staff)
     {
@@ -198,16 +201,16 @@ public static class People
             case Role.Staff:
                 switch (staff)
                 {
-                    case StaffRole.Electrical or StaffRole.GeneratorTech or StaffRole.RemoteHands: Worker(Brand.Power, new Color("#f4f4f0"), new Color("#dfe3e8")); break;
-                    case StaffRole.Cooling: Worker(Brand.Cooling, new Color("#f4f4f0"), new Color("#dfe3e8")); break;
-                    case StaffRole.NetworkEng: Worker(Brand.Fiber, new Color("#f4f4f0"), new Color("#dfe3e8")); break;
+                    case StaffRole.Electrical or StaffRole.GeneratorTech or StaffRole.RemoteHands: Worker(Brand.Power, new Color("#f4f4f0"), CompanyColor ?? new Color("#dfe3e8")); break;
+                    case StaffRole.Cooling: Worker(Brand.Cooling, new Color("#f4f4f0"), CompanyColor ?? new Color("#dfe3e8")); break;
+                    case StaffRole.NetworkEng: Worker(Brand.Fiber, new Color("#f4f4f0"), CompanyColor ?? new Color("#dfe3e8")); break;
                     case StaffRole.FireSafety: Worker(new Color("#d23c32"), new Color("#d23c32"), new Color("#2b2f36")); break;
                     case StaffRole.Logistics: Worker(new Color("#ff7a1a"), new Color("#3b4f66"), new Color("#3b4f66")); break;
                     case StaffRole.Guard: Office(new Color("#1a2a44")); if (!female) c["Tie"] = new Color("#1a2a44"); break;
                     case StaffRole.Gardener: file = "Male_Farmer"; c["LightBlue"] = new Color("#4f7d3a"); break;
-                    case StaffRole.Cleaner: Casual(new Color("#7ab8e0")); break;
+                    case StaffRole.Cleaner: Casual(CompanyColor ?? new Color("#7ab8e0")); break;
                     case StaffRole.Canteen: Casual(new Color("#f4f1ea")); break;
-                    default: Office(Suits[v % Suits.Length]); break;
+                    default: Office(Suits[v % Suits.Length]); if (CompanyColor is { } cc && !female) c["Tie"] = cc; break;
                 }
                 break;
         }

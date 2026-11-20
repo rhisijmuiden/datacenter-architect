@@ -269,10 +269,12 @@ public partial class OptionsDialog : Modal
         Section("opt_section_volume");
         Row("opt_vol_master", Slider(0, 100, 1, S.MasterVolume, Pct, v => { S.MasterVolume = (int)v; AudioMixer.Apply(S); }, _ => Save()));
         Row("opt_vol_ambience", Slider(0, 100, 1, S.AmbienceVolume, Pct, v => { S.AmbienceVolume = (int)v; AudioMixer.Apply(S); }, _ => Save()), "opt_vol_ambience_help");
+        Row("opt_vol_music", Slider(0, 100, 1, S.MusicVolume, Pct, v => { S.MusicVolume = (int)v; AudioMixer.Apply(S); }, _ => Save()), "opt_vol_music_help");
         Row("opt_vol_interface", Slider(0, 100, 1, S.InterfaceVolume, Pct, v => { S.InterfaceVolume = (int)v; AudioMixer.Apply(S); }, _ => Save()), "opt_vol_interface_help");
 
         Section("opt_section_sounds");
         Row("opt_snd_ambience", Toggle(S.AmbienceSound, on => { S.AmbienceSound = on; SaveOther(); }), "opt_snd_ambience_help");
+        Row("opt_snd_music", Toggle(S.MusicOn, on => { S.MusicOn = on; AudioMixer.Apply(S); SaveOther(); }), "opt_snd_music_help");
         Row("opt_snd_clicks", Toggle(S.ClickSounds, on => { S.ClickSounds = on; SaveOther(); }));
         Row("opt_snd_notifications", Toggle(S.NotificationSounds, on => { S.NotificationSounds = on; SaveOther(); World.UiSounds.Instance?.Chime(); }));
         Row("opt_snd_background", Toggle(S.MuteInBackground, on => { S.MuteInBackground = on; SaveOther(); }), "opt_snd_background_help");

@@ -267,3 +267,30 @@ msg_plan_built	Plan built: {0} items for {1}. The crews are on their way.	Plan g
 msg_plan_discarded	Blueprint discarded ({0} items).	Blauwdruk weggegooid ({0} onderdelen).
 msg_plan_empty	The blueprint is empty.	De blauwdruk is leeg.
 msg_racks_planned	{0} planned.	{0} gepland.
+co_tab_brand	Brand	Huisstijl
+br_help	Your company name and logo. The logo appears on your buildings, your delivery trucks, the clothes of your own staff and the rack doors.	Je bedrijfsnaam en logo. Het logo komt op je gebouwen, je bezorgwagens, de kleding van je eigen personeel en de rackdeuren.
+br_name	Company name	Bedrijfsnaam
+br_rename	Rename	Hernoemen
+br_initials	Letters on the logo	Letters op het logo
+br_initials_help	Up to 3; empty uses the initials of the name.	Maximaal 3; leeg gebruikt de beginletters van de naam.
+br_shape	Shape	Vorm
+br_shape_0	Circle	Cirkel
+br_shape_1	Rounded square	Afgeronde rechthoek
+br_shape_2	Hexagon	Zeshoek
+br_shape_3	Shield	Schild
+br_shape_4	Diamond	Ruit
+br_shape_5	Ring	Ring
+br_primary	Main colour	Hoofdkleur
+br_secondary	Letters and border	Letters en rand
+br_where	Show the logo on	Toon het logo op
+br_on_buildings	Building facades	Gevels van gebouwen
+br_on_vehicles	Delivery trucks	Bezorgwagens
+br_on_workwear	Staff clothes	Kleding van personeel
+br_on_racks	Rack doors	Rackdeuren
+br_where_help	Your own technicians wear the main colour under their vest; managers wear it as a tie. Contractors keep their own colours.	Je eigen technici dragen de hoofdkleur onder hun hesje; managers als stropdas. Aannemers houden hun eigen kleuren.
+br_random	Surprise me	Verras me
+msg_name_short	The name needs at least 2 characters.	De naam moet minstens 2 tekens hebben.
+opt_vol_music	Music	Muziek
+opt_vol_music_help	Calm music that follows where you look: the campus, a data hall, the offices, a building site or the night.	Rustige muziek die meegaat met waar je kijkt: de campus, een datahal, de kantoren, een bouwplaats of de nacht.
+opt_snd_music	Music	Muziek
+opt_snd_music_help	Play background music.	Speel achtergrondmuziek.

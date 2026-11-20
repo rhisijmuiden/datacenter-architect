@@ -345,6 +345,7 @@ public partial class WorldView : Node3D
     public void Sync(double delta)
     {
         if (_state == null) return;
+        SyncLogo();
         if (_layoutRev != _state.LayoutRevision) { _layoutRev = _state.LayoutRevision; RebuildLayout(); _siteTimer = 0; _lampEnergy = -1; }
         if (_objRev != _state.Revision) { _objRev = _state.Revision; RebuildObjects(); _lampEnergy = -1; }
         _siteTimer -= delta;
@@ -776,6 +777,7 @@ public partial class WorldView : Node3D
             Box(root, new Vector3(b.X + b.W / 2f, roofY + 0.12f, b.Z + b.D / 2f), new Vector3(b.W + 0.3f, 0.24f, b.D + 0.3f), new Color("#6f7a83")).MaterialOverride = RoofMat;
             Box(root, new Vector3(b.X + b.W / 2f, roofY + 0.27f, b.Z + b.D / 2f), new Vector3(b.W - 0.6f, 0.08f, b.D - 0.6f), new Color("#8a949c")).MaterialOverride = RoofTopMat;
             if (b.Kind == BuildingKind.Datacenter) Box(root, new Vector3(b.X + b.W / 2f, roofY - 0.25f, b.Z + b.D + 0.16f), new Vector3(b.W, 0.25f, 0.06f), Brand.Power);
+            if (_state.Logo.OnBuildings) BuildingSign(root, b, roofY);
             // a few rooftop units so the roof is not empty, unless the player put plant there
             var roofPlant = _state.Objects.Any(o => o.Floor == GameState.RoofFloor && b.Contains(o.X, o.Z));
             for (var i = 0; i < (roofPlant ? 0 : Math.Min(4, b.W / 6)); i++)
@@ -1162,7 +1164,7 @@ public partial class WorldView : Node3D
             alive.Add(a.Id);
             if (!_agentNodes.TryGetValue(a.Id, out var n))
             {
-                n = a.Role == Role.Truck ? Models.Truck(a.Load) : Person(a.Role, a.Role == Role.Staff ? a.EmpId : a.Id, a.Staff);
+                n = a.Role == Role.Truck ? Livery(Models.Truck(a.Load), a.Load) : Person(a.Role, a.Role == Role.Staff ? a.EmpId : a.Id, a.Staff);
                 _agentsRoot.AddChild(n);
                 _agentNodes[a.Id] = n;
                 n.Position = new Vector3((float)a.X, 0, (float)a.Z);

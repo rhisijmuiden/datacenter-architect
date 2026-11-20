@@ -449,7 +449,7 @@ opt_smooth_camera_help	The camera glides to its new position instead of jumping.
 opt_section_volume	Volume	Volume
 opt_vol_master	Main volume	Hoofdvolume
 opt_vol_ambience	Server room	Serverruimte
-opt_vol_ambience_help	Fans, cooling and the whine of servers when you zoom in on a hall.	Ventilatoren, koeling en het zoemen van servers als je inzoomt op een zaal.
+opt_vol_ambience_help	Fans and servers in the halls, wind, birds and crickets outside, voices in the offices and the noise of building sites.	Ventilatoren en servers in de zalen, wind, vogels en krekels buiten, stemmen in de kantoren en het lawaai van bouwplaatsen.
 opt_vol_interface	Interface	Interface
 opt_vol_interface_help	Button clicks and notification chimes.	Klikjes van knoppen en meldingsgeluiden.
 opt_section_sounds	Sound effects	Geluidseffecten

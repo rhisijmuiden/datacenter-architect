@@ -40,6 +40,7 @@ public static partial class TestRunner
             ("management rail", RailTests), ("playtest batch 1", PlaytestTests),
             ("progress (step 11)", ProgressTests),
             ("round 2 (step 11)", Round2Tests),
+            ("round 3 (step 11)", Round3Tests),
         };
         foreach (var (name, t) in tests)
         {

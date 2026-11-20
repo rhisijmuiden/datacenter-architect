@@ -38,6 +38,9 @@ public partial class RackRenderer : Node3D
     static readonly QuadMesh DoorMesh = new() { Size = new Vector2(0.94f, 2.02f) };
     static readonly BoxMesh HandleMesh = new() { Size = new Vector3(0.035f, 0.2f, 0.03f) };
     static readonly BoxMesh CapMesh = new() { Size = new Vector3(0.99f, 0.03f, 0.955f) };
+    /// <summary>Step 11: the company logo high on each front door (0 = off). Part of the chunk signature.</summary>
+    public static int LogoKey;
+    static readonly QuadMesh LogoMesh = new() { Size = new Vector2(0.17f, 0.17f) };
 
     public void Clear()
     {
@@ -80,6 +83,7 @@ public partial class RackRenderer : Node3D
     {
         var h = new HashCode();
         h.Add(list.Count);
+        h.Add(LogoKey);
         foreach (var (o, y) in list) { h.Add(o.Id); h.Add(o.X); h.Add(o.Z); h.Add(o.Rot); h.Add((int)o.Status); h.Add(y); }
         return h.ToHashCode();
     }
@@ -88,6 +92,7 @@ public partial class RackRenderer : Node3D
     {
         var node = new Node3D();
         var bodies = new List<Transform3D>(); var fronts = new List<Transform3D>(); var ghosts = new List<Transform3D>();
+        var logos = new List<Transform3D>();
         var doors = new List<Transform3D>(); var handles = new List<Transform3D>(); var caps = new List<Transform3D>();
         var plates = new List<float>();
         var plateCount = 0;
@@ -104,6 +109,7 @@ public partial class RackRenderer : Node3D
             handles.Add(new Transform3D(basis, pos + basis * new Vector3(0.39f, 1.05f, 0.51f)));
             handles.Add(new Transform3D(back, pos + basis * new Vector3(-0.39f, 1.05f, -0.493f)));
             caps.Add(new Transform3D(basis, pos + new Vector3(0, 2.115f, 0)));
+            if (LogoKey != 0) logos.Add(new Transform3D(basis, pos + basis * new Vector3(0, 1.9f, 0.505f)));
             // servers go in once a fitter has installed the rack; their LEDs light up when it is live
             if (o.Status < ObjStatus.Placed) continue;
             var live = o.Status == ObjStatus.Live;
@@ -123,6 +129,7 @@ public partial class RackRenderer : Node3D
         Add(node, DoorMesh, doors, HallLook.Door, false);
         Add(node, HandleMesh, handles, Models.Mat(new Color("#14171a"), 0.4f, 0.6f), false);
         Add(node, CapMesh, caps, Models.Mat(new Color("#15181c"), 0.6f, 0.3f), false);
+        if (logos.Count > 0 && LogoArt.Instance?.Material is { } lm) Add(node, LogoMesh, logos, lm, false);
         if (plateCount > 0)
         {
             var mm = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = true, UseCustomData = true, Mesh = ServerFill.PlateMesh };
