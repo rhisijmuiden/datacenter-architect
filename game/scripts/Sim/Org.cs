@@ -655,6 +655,7 @@ public partial class GameState
     public void Book(string key, long amount)
     {
         if (amount == 0) return;
+        LedgerDay(key, amount);
         var m = MonthIndex;
         var b = Books.LastOrDefault();
         if (b == null || b.Month != m) { b = new MonthBook { Month = m }; Books.Add(b); while (Books.Count > 13) Books.RemoveAt(0); }

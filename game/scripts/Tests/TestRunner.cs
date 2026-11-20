@@ -10,7 +10,7 @@ using FileAccess = Godot.FileAccess;
 namespace DatacenterArchitect.Tests;
 
 /// <summary>Headless checks: godot --headless --path game -- --run-tests (exit code 0 = all passed).</summary>
-public static class TestRunner
+public static partial class TestRunner
 {
     static int _fail, _pass;
 
@@ -38,6 +38,7 @@ public static class TestRunner
             ("hosting company", HostingTests), ("energy and ESG", EnergyTests), ("risks", RiskTests), ("key people", KeyPeopleTests), ("old saves get growth", GrowthMigrationTests),
             ("seasons, weather and the sun", ClimateTests), ("customer migrations", MigrationTests), ("first-person walking", WalkTests),
             ("management rail", RailTests), ("playtest batch 1", PlaytestTests),
+            ("progress (step 11)", ProgressTests),
         };
         foreach (var (name, t) in tests)
         {
@@ -519,8 +520,8 @@ public static class TestRunner
     static void RailTests()
     {
         // every screen tab is reachable from exactly the section the rail promises
-        Check(Sections.All.Length == 7, "seven sections on the rail");
-        Check(Sections.All.Select(x => x.Hotkey).Distinct().Count() == 7 && Sections.ForKey(Key.F1) == 0 && Sections.ForKey(Key.F7) == 6, "F1 to F7 open the sections");
+        Check(Sections.All.Length == 8, "eight sections on the rail (F8 progress since step 11)");
+        Check(Sections.All.Select(x => x.Hotkey).Distinct().Count() == 8 && Sections.ForKey(Key.F1) == 0 && Sections.ForKey(Key.F7) == 6 && Sections.ForKey(Key.F8) == 7, "F1 to F8 open the sections");
         var keys = Sections.All.SelectMany(x => x.Tabs.Select(t => t.Key).Append(x.Key).Append(x.ShortKey)).ToList();
         Check(keys.All(k => Loc.T(k) != k), "every section and tab has a text: " + string.Join(", ", keys.Where(k => Loc.T(k) == k)));
         var icons = Sections.All.SelectMany(x => x.Tabs.Select(t => t.Icon).Append(x.Icon)).Distinct().ToList();
