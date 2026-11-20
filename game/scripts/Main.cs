@@ -148,6 +148,7 @@ public partial class Main : Node3D
             FloorDown = () => SetView(_world.ViewFloor - 1, _world.ViewFloor - 1 <= 0 && _world.Roofs),
             OpenInfo = OpenInfo, OpenOptions = OpenOptions, OpenMenu = OpenPause, ToggleLanguage = ToggleLanguage,
             OpenSection = ToggleSection,
+            Undo = DoUndo, Redo = DoRedo,
             OpenPower = OpenPower, OpenNetwork = OpenNetwork, OpenCompany = OpenCompany, OpenStaff = OpenStaff, OpenReputation = OpenReputation, OpenGrowth = OpenGrowth, ToggleOverlay = m => SetOverlay(_world.Overlay.Mode == (OverlayMode)m ? OverlayMode.None : (OverlayMode)m),
         };
         _ui.AddChild(_hud);
@@ -155,6 +156,7 @@ public partial class Main : Node3D
         _playing = true; _speed = 1; _autosaveTimer = 0; _item = BuildItem.Select; _bankruptShown = false;
         _inspectCell = null; SetOverlay(OverlayMode.None);
         _hud.UpdateStats(_state);
+        _history.Clear(); RefreshUndo();
         UpdateGoals();
         if (fresh)
         {
@@ -668,6 +670,8 @@ public partial class Main : Node3D
             if (k.Keycode == Key.Space) { var s = _speed == 0 ? 1 : 0; _speed = s; _hud.SetSpeed(s); }
             if (k.Keycode is Key.Key1 or Key.Key2 or Key.Key3) { _speed = (int)(k.Keycode - Key.Key0); _hud.SetSpeed(_speed); }
             if (k.Keycode == Key.S && k.CtrlPressed) { Autosave(); _hud.Notify(Loc.T("msg_autosaved"), Brand.Ok); }
+            if (k.CtrlPressed && (k.Keycode == Key.Y || (k.Keycode == Key.Z && k.ShiftPressed))) { DoRedo(); GetViewport().SetInputAsHandled(); return; }
+            if (k.CtrlPressed && k.Keycode == Key.Z) { DoUndo(); GetViewport().SetInputAsHandled(); return; }
             var sec = Sections.ForKey(k.Keycode);
             if (sec >= 0) { ToggleSection(sec); GetViewport().SetInputAsHandled(); return; }
             if (k.Keycode == Key.Pageup) SetView(_world.ViewFloor + 1, false);
@@ -750,7 +754,10 @@ public partial class Main : Node3D
         switch (_item.Mode)
         {
             case Mode.Select: _world.ClearGhost(); break;
-            case Mode.Erase: _world.ShowGhostRect(r, Brand.Critical, y); break;
+            case Mode.Erase:
+                var gone = _dragStart == null ? 0 : _state.Objects.Count(o => o.Floor == _world.ViewFloor && GameState.Cells(o).Any(c => r.HasPoint(new Vector2I(c.x, c.z))));
+                _world.ShowGhostRect(r, Brand.Critical, y, _dragStart == null ? null : Dim(r) + (gone > 0 ? " · " + Loc.T("erase_objects", gone) : ""));
+                break;
             case Mode.Curve:
                 var mouse = Snap(_hoverPoint);
                 if (_curveA == null)
@@ -804,12 +811,41 @@ public partial class Main : Node3D
             case Mode.Row:
                 var start = _dragStart ?? _hoverCell;
                 var kindR = (ObjKind)_item.Arg;
-                var cells = GameState.RowCells(start.X, start.Y, _hoverCell.X, _hoverCell.Y, kindR, _rot, _state.MaxRowLength);
-                var objs = cells.Select(c => new PlacedObject { Kind = kindR, X = c.x, Z = c.z, Rot = _rot, Floor = _world.ViewFloor }).Select(x => (x, _state.CanPlace(x) == null)).ToList();
+                var cells = GameState.RowBlock(start.X, start.Y, _hoverCell.X, _hoverCell.Y, kindR, _rot, _state.MaxRowLength);
+                var objs = cells.Select(c => new PlacedObject { Kind = kindR, X = c.x, Z = c.z, Rot = c.rot, Floor = _world.ViewFloor }).Select(x => (x, _state.CanPlace(x) == null)).ToList();
                 var ok = objs.Count(x => x.Item2);
-                _world.ShowGhostObjects(objs, _dragStart == null ? null : $"{ok} × {Loc.T(Catalog.Objects[kindR].NameKey)} · {Ui.Money(ok * Catalog.Objects[kindR].Cost)}");
+                var rows = cells.Select(c => Math.Abs(_hoverCell.X - start.X) >= Math.Abs(_hoverCell.Y - start.Y) ? c.z : c.x).Distinct().Count();
+                var rowText = rows > 1 ? " · " + Loc.T("row_rows", rows) : "";
+                var kw = ok * Catalog.Objects[kindR].PowerKw;
+                var powerText = kw > 0 ? $" · {kw:0} kW" : "";
+                _world.ShowGhostObjects(objs, _dragStart == null ? null : $"{ok} × {Loc.T(Catalog.Objects[kindR].NameKey)}{rowText} · {Dim(RectOf(start, _hoverCell))}{powerText} · {Ui.Money(ok * Catalog.Objects[kindR].Cost)}");
                 break;
         }
+    }
+
+    // ---------------- undo / redo ----------------
+    readonly UndoHistory _history = new();
+
+    void Record(UndoHistory.Snapshot before, string label) { if (_history.Commit(_state, before, label)) RefreshUndo(); }
+    void RefreshUndo() => _hud?.SetUndo(_history.NextUndo, _history.NextRedo);
+
+    void DoUndo()
+    {
+        if (_state == null || !_playing) return;
+        var label = _history.Undo(_state);
+        if (label == null) { _hud.Notify(Loc.T("msg_nothing_to_undo"), Brand.InkDim); return; }
+        _hud.Notify(Loc.T("msg_undone", Loc.T(label)), Brand.Ok);
+        _hud.UpdateStats(_state); UpdateGhost(); RefreshUndo();
+    }
+
+    void DoRedo()
+    {
+        if (_state == null || !_playing) return;
+        var label = _history.Redo(_state);
+        if (label == null) { _hud.Notify(Loc.T("msg_nothing_to_redo"), Brand.InkDim); return; }
+        if (label == "msg_no_money") { Fail(label); return; }
+        _hud.Notify(Loc.T("msg_redone", Loc.T(label)), Brand.Ok);
+        _hud.UpdateStats(_state); UpdateGhost(); RefreshUndo();
     }
 
     void Fail(string why) { if (why != null) _hud.Notify(Loc.T(why), Brand.Critical); }
@@ -831,7 +867,9 @@ public partial class Main : Node3D
     {
         if (_curveA == null) { _curveA = p; return; }
         if (_curveB == null) { if ((p - _curveA.Value).Length() >= 1) _curveB = p; return; }
+        var before = UndoHistory.Take(_state);
         var why = _state.AddCurve(CurveAt(p));
+        Record(before, _item.NameKey);
         if (why is "msg_no_money") Fail(why);
         _curveA = _curveB = null;
         _hud.UpdateStats(_state);
@@ -839,6 +877,7 @@ public partial class Main : Node3D
 
     void ApplyDrag(Vector2I a, Vector2I b, Rect2I r)
     {
+        var before = UndoHistory.Take(_state);
         switch (_item.Mode)
         {
             case Mode.Erase:
@@ -868,16 +907,17 @@ public partial class Main : Node3D
             case Mode.Row:
                 var k = (ObjKind)_item.Arg;
                 var placed = 0; string last = null;
-                foreach (var (x, z) in GameState.RowCells(a.X, a.Y, b.X, b.Y, k, _rot, _state.MaxRowLength))
+                foreach (var (x, z, rr) in GameState.RowBlock(a.X, a.Y, b.X, b.Y, k, _rot, _state.MaxRowLength))
                 {
-                    var o = new PlacedObject { Kind = k, X = x, Z = z, Rot = _rot, Floor = _world.ViewFloor };
+                    var o = new PlacedObject { Kind = k, X = x, Z = z, Rot = rr, Floor = _world.ViewFloor };
                     last = _state.CanPlace(o);
-                    if (last == null && _state.AddObject(k, x, z, _rot, _world.ViewFloor) != null) placed++;
+                    if (last == null && _state.AddObject(k, x, z, rr, _world.ViewFloor) != null) placed++;
                 }
                 if (placed == 0) Fail(last);
                 else _hud.Notify(Loc.T("msg_racks_ordered", placed), Brand.Ok);
                 break;
         }
+        Record(before, _item.NameKey);
         _hud.UpdateStats(_state);
     }
 
@@ -888,7 +928,9 @@ public partial class Main : Node3D
         var o = new PlacedObject { Kind = k, X = c.X, Z = c.Y, Rot = _rot, Floor = floor };
         var why = _state.CanPlace(o);
         if (why != null) { Fail(why); return; }
+        var before = UndoHistory.Take(_state);
         _state.AddObject(k, c.X, c.Y, _rot, floor);
+        Record(before, _item.NameKey);
         _hud.UpdateStats(_state);
     }
 
@@ -896,7 +938,9 @@ public partial class Main : Node3D
     {
         var why = _state.CanDoor(d);
         if (why != null) { Fail(why); return; }
+        var before = UndoHistory.Take(_state);
         _state.AddDoor(d.Type, d.X, d.Z, d.Dir, d.Floor);
+        Record(before, Catalog.Doors[d.Type].NameKey);
         _hud.UpdateStats(_state);
     }
 
@@ -1236,6 +1280,23 @@ public partial class Main : Node3D
             UpdateGoals(); UpdateProjects();
             _speed = 0;
         }
+        // --gallery a.glb,b.glb: models from assets/models in a row on an empty plot, to judge them in the game's light
+        var gal = Array.IndexOf(args, "--gallery");
+        if (gal >= 0 && gal + 1 < args.Length)
+        {
+            if (_state == null || !_playing) StartGame(GameState.New(new NewGameOptions { Company = "Polder Datacenters", Creative = true }), false);
+            var x = 6f;
+            foreach (var f in args[gal + 1].Split(','))
+            {
+                var mesh = Assets.Mesh(f, Foliage.ByName);
+                if (mesh == null) continue;
+                var w = Math.Max(mesh.GetAabb().Size.X, 1f);
+                x += w / 2;
+                _world.AddChild(new MeshInstance3D { Mesh = mesh, Position = new Vector3(x, 0, 20) });
+                x += w / 2 + 1.5f;
+            }
+            _cam.SetView(0.25f, 0.4f, Math.Max(7, (x - 6) * 0.62f), new Vector3((6 + x) / 2, 1.2f, 20));
+        }
         var cami = Array.IndexOf(args, "--cam");
         if (cami >= 0 && cami + 1 < args.Length)
         {
@@ -1243,6 +1304,17 @@ public partial class Main : Node3D
             var v = args[cami + 1].Split(',').Select(x => float.Parse(x, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
             _cam.SetView(v[0], v[1], v[2], new Vector3(v[3], 0, v[4]));
         }
+        // --drag-demo: an empty demo hall with a smart-drag rack block in progress
+        if (args.Contains("--drag-demo"))
+        {
+            _state.Objects.RemoveAll(o => o.Kind == ObjKind.Rack); _state.Touch();
+            _hud.Pick(new BuildItem(Mode.Row, (int)ObjKind.Rack));
+            _dragStart = new Vector2I(12, 16); _hoverCell = new Vector2I(24, 30);
+            UpdateGhost();
+        }
+        // --floor N: look at floor N with the roofs off (stairs and lifts screenshots)
+        var fli = Array.IndexOf(args, "--floor");
+        if (fli >= 0 && fli + 1 < args.Length) SetView(int.Parse(args[fli + 1]), false);
         // step 10: --time 2027-12-20T21:00 --weather snow|rain|storm|fog|cloudy|clear --snow 0..1 --walk x,z,floor,yaw,pitch --migration
         var tmi = Array.IndexOf(args, "--time");
         if (tmi >= 0 && tmi + 1 < args.Length) _state.Hours = (DateTime.Parse(args[tmi + 1], System.Globalization.CultureInfo.InvariantCulture) - GameState.Epoch).TotalHours;

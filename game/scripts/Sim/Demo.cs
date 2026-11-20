@@ -73,7 +73,7 @@ public static class Demo
 
         s.AddObject(ObjKind.CrashCart, 24, 17, 0, 0);
 
-        // office in brick with two floors, a lift, reception, a customer lounge and the director's office
+        // office in brick with two floors, stairs and a passenger lift, reception, a customer lounge and the director's office
         var office = s.AddBuilding(BuildingKind.Office, 38, 12, 16, 14, 2, Facade.Brick);
         s.AddRoom(RoomType.Reception, 38, 20, 8, 6, 0);
         s.AddRoom(RoomType.Office, 38, 12, 8, 8, 0);
@@ -93,6 +93,9 @@ public static class Demo
         s.AddObject(ObjKind.Terminal, 47, 13, 0, 0);
         for (var i = 0; i < 3; i++) { s.AddObject(ObjKind.Desk, 39 + i * 2 % 6, 13 + i * 2, 0, 0); s.AddObject(ObjKind.Chair, 39 + i * 2 % 6, 14 + i * 2, 2, 0); }
         s.AddObject(ObjKind.MeetingTable, 39, 22, 0, 0);
+        // a passenger lift in the reception and stairs in the director's office take people upstairs
+        s.AddObject(ObjKind.Stairs, 50, 21, 0, 0);
+        s.AddObject(ObjKind.PassengerLift, 42, 20, 0, 0);
         // network operations centre upstairs, with a video wall
         s.AddRoom(RoomType.Noc, 38, 12, 8, 6, 1);
         s.AddDoor(DoorType.Badge, 41, 18, 1, 1);

@@ -90,16 +90,16 @@ public partial class FirstPerson : Node3D
         }
     }
 
-    /// <summary>Ride a freight lift one floor up or down when standing in one.</summary>
+    /// <summary>Take a lift or the stairs one floor up or down when standing in or next to one.</summary>
     public bool Lift(int dir)
     {
         int x = (int)Math.Floor(Position.X), z = (int)Math.Floor(Position.Z);
         var o = _state.ObjectAt(x, z, Floor) ?? _state.ObjectAt(x, z);
-        var near = o?.Kind == ObjKind.Lift;
+        var near = o != null && Catalog.IsShaft(o.Kind);
         // the lift itself blocks walking, so also accept standing right next to one
         if (!near)
             foreach (var (dx, dz) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
-                if (_state.ObjectAt(x + dx, z + dz)?.Kind == ObjKind.Lift) { near = true; break; }
+                if (_state.ObjectAt(x + dx, z + dz) is { } n && Catalog.IsShaft(n.Kind)) { near = true; break; }
         var b = _state.BuildingAt(x, z);
         var to = Floor + dir;
         if (!near || b == null || to < 0 || to >= b.Floors || !_nav.Walkable(x, z, to)) return false;

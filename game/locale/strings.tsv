@@ -71,7 +71,7 @@ cat_security	Security	Beveiliging
 cat_staff	Staff	Personeel
 cat_customers	Customers	Klanten
 hud_coming_soon	Coming in a later update	Komt in een volgende update
-hint_select	Click a building, room or rack for details. Right-drag rotates, wheel zooms, WASD pans, Q and E turn. T shows roofs, Page Up and Down change floor. P shows the power overlay, H the cooling overlay, N the network overlay.	Klik op een gebouw, ruimte of rack voor details. Rechts slepen draait, scrollwiel zoomt, WASD schuift, Q en E draaien. T toont daken, Page Up en Down wisselen van verdieping. P toont de stroomweergave, H de koelweergave, N de netwerkweergave.
+hint_select	Click a building, room or rack for details. Right-drag rotates, wheel zooms, WASD pans, Q and E turn. T shows roofs, Page Up and Down change floor. P shows the power overlay, H the cooling overlay, N the network overlay. Ctrl+Z undoes, Ctrl+Y redoes.	Klik op een gebouw, ruimte of rack voor details. Rechts slepen draait, scrollwiel zoomt, WASD schuift, Q en E draaien. T toont daken, Page Up en Down wisselen van verdieping. P toont de stroomweergave, H de koelweergave, N de netwerkweergave. Ctrl+Z maakt ongedaan, Ctrl+Y doet opnieuw.
 hint_place	Click to place. R rotates. Red means it cannot go there.	Klik om te plaatsen. R draait. Rood betekent dat het daar niet kan.
 hint_erase	Drag over what you want to remove. Objects and doors go first, then rooms, then buildings and paving.	Sleep over wat je wilt weghalen. Eerst objecten en deuren, dan ruimtes, dan gebouwen en bestrating.
 hud_rotate_left	Rotate left (Q)	Links draaien (Q)
@@ -102,7 +102,7 @@ hint_fence	Drag a line, or a rectangle to fence it all round. Put a sliding gate
 hint_building	Drag out the floor plan. Builders lay the foundation, put up the walls and the roof. Material comes by truck to your yard.	Sleep de plattegrond uit. Bouwvakkers storten de fundering en bouwen muren en dak. Materiaal komt per vrachtwagen naar je materialenplek.
 hint_room	Drag a room inside a finished building. Builders put up the inner walls. Lights are added automatically.	Sleep een ruimte binnen een afgebouwd gebouw. Bouwvakkers zetten de binnenmuren. Verlichting komt er vanzelf in.
 hint_door	Point at a wall and click. Racks only fit through double doors and roll-up doors.	Wijs een muur aan en klik. Racks passen alleen door dubbele deuren en roldeuren.
-hint_row	Drag a row of up to 24 racks. R turns the fronts. Leave an aisle between rows so engineers reach the back.	Sleep een rij van maximaal 24 racks. R draait de voorkanten. Laat een gang tussen de rijen zodat engineers bij de achterkant kunnen.
+hint_row	Drag a row of up to 24 racks; R turns the fronts. Drag wider to fill a block of rows in one go: pairs face each other across a cold aisle, with hot aisles between the pairs (R starts with the backs).	Sleep een rij van maximaal 24 racks; R draait de voorkanten. Sleep breder om in één keer een blok rijen te vullen: paren kijken elkaar aan over een koude gang, met warme gangen ertussen (R begint met de achterkanten).
 cat_rooms	Rooms	Ruimtes
 cat_interior	Interior	Inrichting
 hud_creative	Creative	Creatief
@@ -153,6 +153,8 @@ obj_crah	CRAH unit 120 kW	CRAH-unit 120 kW
 obj_generator	Generator 1 MW	Generator 1 MW
 obj_fiberpit	Fiber pit	Glasvezelput
 obj_lift	Freight lift	Goederenlift
+obj_passenger_lift	Passenger lift	Personenlift
+obj_stairs	Stairs	Trap
 obj_desk	Desk	Bureau
 obj_chair	Office chair	Bureaustoel
 obj_plant	Plant	Plant
@@ -239,7 +241,7 @@ msg_door_upper_outer	Outer doors only on the ground floor.	Buitendeuren alleen o
 msg_needs_asphalt	This goes on asphalt.	Dit hoort op asfalt.
 msg_needs_fence	Place this on a fence.	Zet dit op een hek.
 msg_inside_building	This goes inside a building, on the ground floor.	Dit hoort in een gebouw, op de begane grond.
-msg_lift_floors	A lift only makes sense in a building with more than one floor.	Een lift heeft alleen zin in een gebouw met meer verdiepingen.
+msg_lift_floors	Stairs and lifts only make sense in a building with more than one floor.	Trappen en liften hebben alleen zin in een gebouw met meer verdiepingen.
 msg_needs_room	This goes in a room, not in a data hall.	Dit hoort in een ruimte, niet in een datahal.
 msg_needs_hall	This goes in a data hall.	Dit hoort in een datahal.
 msg_one_room	It has to fit within one room.	Het moet binnen één ruimte passen.
@@ -248,7 +250,7 @@ msg_need_yard	Mark a building materials yard so trucks can deliver material.	Wij
 msg_yard_no_road	Trucks cannot reach the materials yard. Connect it to the road with asphalt.	Vrachtwagens kunnen de materialenplek niet bereiken. Sluit hem met asfalt aan op de weg.
 msg_yard_unreachable	Builders cannot reach the materials yard.	Bouwvakkers kunnen de materialenplek niet bereiken.
 msg_site_unreachable	Builders cannot reach the {0}. Add a door.	Bouwvakkers kunnen de {0} niet bereiken. Plaats een deur.
-msg_site_needs_lift	Builders cannot reach the {0} upstairs. Add a freight lift and a door.	Bouwvakkers kunnen de {0} boven niet bereiken. Plaats een goederenlift en een deur.
+msg_site_needs_lift	Builders cannot reach the {0} upstairs. Add stairs or a lift and a door.	Bouwvakkers kunnen de {0} boven niet bereiken. Plaats een trap of lift en een deur.
 msg_building_done	{0} is finished.	{0} is klaar.
 msg_room_done	{0} is ready.	{0} is klaar.
 msg_need_dock	Racks are waiting: build a loading dock with a roll-up door onto asphalt.	Er wachten racks: bouw een laadperron met een roldeur aan het asfalt.
@@ -430,6 +432,13 @@ opt_fog_help	Light haze that fades the far edge of the map.	Lichte nevel die de 
 opt_msaa	Anti-aliasing	Anti-aliasing
 opt_msaa_help	Smooths jagged edges. Higher costs more graphics power.	Strijkt kartelranden glad. Hoger vraagt meer van de videokaart.
 opt_off	Off	Uit
+opt_lighting	Lighting quality	Lichtkwaliteit
+opt_lighting_help	High adds light that bounces off walls and ground; Ultra adds full global illumination. Ultra needs a strong graphics card.	Hoog voegt licht toe dat terugkaatst van muren en grond; Ultra voegt volledige globale belichting toe. Ultra vraagt een sterke videokaart.
+opt_light_standard	Standard	Standaard
+opt_light_high	High	Hoog
+opt_light_ultra	Ultra	Ultra
+opt_grass	Grass and flowers	Gras en bloemen
+opt_grass_help	Tufts of grass and wild flowers that sway in the wind. Turn off for more speed on big sites.	Plukjes gras en wilde bloemen die meewaaien in de wind. Zet uit voor meer snelheid op grote terreinen.
 opt_section_effects	Visual effects	Visuele effecten
 opt_blinking	Blinking status lights	Knipperende statuslampjes
 opt_blinking_help	The LEDs on the servers in live racks blink.	De lampjes op de servers in actieve racks knipperen.
@@ -1687,7 +1696,7 @@ news_disaster_fire	Fire in a building of {0}.	Brand in een gebouw van {0}.
 news_disaster_site	Disaster at the datacenter in {0}.	Ramp bij het datacenter in {0}.
 hud_walk	Walk around in first person (F)	Rondlopen in first-person (F)
 hud_weather	Weather, temperature and season. Only for looks: the weather never changes how your datacenter works.	Weer, temperatuur en seizoen. Alleen voor de sfeer: het weer verandert niets aan je datacenter.
-walk_hint	WASD walk · Shift run · mouse look · Page Up/Down lift · Esc or F back	WASD lopen · Shift rennen · muis kijken · Page Up/Down lift · Esc of F terug
+walk_hint	WASD walk · Shift run · mouse look · Page Up/Down stairs or lift · Esc or F back	WASD lopen · Shift rennen · muis kijken · Page Up/Down trap of lift · Esc of F terug
 wx_clear	Sunny	Zonnig
 wx_clear_night	Clear	Helder
 wx_cloudy	Cloudy	Bewolkt
@@ -1766,3 +1775,13 @@ ov_adv_goal	Next goal: {0}	Volgende doel: {0}
 ov_goals_count	{0} of {1} done	{0} van {1} klaar
 ov_messages_none	No messages yet.	Nog geen meldingen.
 parking_bays	{0} bays	{0} vakken
+hud_undo	Undo (Ctrl+Z)	Ongedaan maken (Ctrl+Z)
+hud_redo	Redo (Ctrl+Y)	Opnieuw (Ctrl+Y)
+hud_undo_what	Undo: {0} (Ctrl+Z)	Ongedaan maken: {0} (Ctrl+Z)
+hud_redo_what	Redo: {0} (Ctrl+Y)	Opnieuw: {0} (Ctrl+Y)
+msg_undone	Undone: {0}	Ongedaan gemaakt: {0}
+msg_redone	Done again: {0}	Opnieuw gedaan: {0}
+msg_nothing_to_undo	Nothing to undo.	Niets om ongedaan te maken.
+msg_nothing_to_redo	Nothing to redo.	Niets om opnieuw te doen.
+row_rows	{0} rows with aisles	{0} rijen met gangen
+erase_objects	{0} objects	{0} objecten

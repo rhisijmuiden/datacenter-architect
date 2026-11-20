@@ -33,6 +33,15 @@ public partial class WorldView : Node3D
     FontFile _font;
     public DirectionalLight3D Sun { get; private set; }
     WorldEnvironment _env;
+    /// <summary>The sky dome; its colours follow the time of day and the weather (UpdateSky).</summary>
+    readonly ProceduralSkyMaterial _skyMat = new()
+    {
+        SkyTopColor = new Color("#4f8fd6"), SkyHorizonColor = new Color("#bfdcf2"), SkyCurve = 0.12f,
+        GroundHorizonColor = new Color("#bfdcf2"), GroundBottomColor = new Color("#4d6b3c"), GroundCurve = 0.05f,
+        SunAngleMax = 18, SunCurve = 0.12f,
+    };
+    public const string MeadowGroup = "meadow";
+    public static bool GrassOn = true;
     /// <summary>Options: blinking rack LEDs and moving parts (crane jibs, fans, markers).</summary>
     public bool BlinkingLights = true, MovingParts = true;
 
@@ -44,7 +53,12 @@ public partial class WorldView : Node3D
         {
             _env.Environment.SsaoEnabled = s.AmbientOcclusion;
             _env.Environment.FogEnabled = s.Fog;
+            // lighting quality: bounce light from walls and ground (SSIL), and full global illumination (SDFGI) on Ultra
+            _env.Environment.SsilEnabled = s.Lighting >= 1;
+            _env.Environment.SdfgiEnabled = s.Lighting >= 2;
         }
+        GrassOn = s.Grass;
+        if (IsInsideTree()) foreach (var n in GetTree().GetNodesInGroup(MeadowGroup)) if (n is Node3D m) m.Visible = GrassOn;
         BlinkingLights = s.BlinkingLights;
         ServerFill.SetBlinking(BlinkingLights);
         MovingParts = s.MovingParts;
@@ -68,8 +82,19 @@ public partial class WorldView : Node3D
         {
             Environment = new Godot.Environment
             {
-                BackgroundMode = Godot.Environment.BGMode.Color,
+                BackgroundMode = Godot.Environment.BGMode.Sky,
                 BackgroundColor = Brand.Sky,
+                Sky = new Sky { SkyMaterial = _skyMat, RadianceSize = Sky.RadianceSizeEnum.Size256 },
+                ReflectedLightSource = Godot.Environment.ReflectionSource.Sky,
+                SsilEnabled = true,
+                SsilIntensity = 0.9f,
+                SsilRadius = 4f,
+                SdfgiUseOcclusion = true,
+                SdfgiCascades = 4,
+                SdfgiMinCellSize = 0.4f,
+                SdfgiEnergy = 0.8f,
+                FogSunScatter = 0.12f,
+                FogAerialPerspective = 0.25f,
                 AmbientLightSource = Godot.Environment.AmbientSource.Color,
                 AmbientLightColor = new Color("#dfeefa"),
                 AmbientLightEnergy = 0.34f,
@@ -95,6 +120,8 @@ public partial class WorldView : Node3D
         AddChild(_env);
         Sun = new DirectionalLight3D { ShadowEnabled = true, LightEnergy = 0.95f, LightColor = new Color("#fff0d8"), RotationDegrees = new Vector3(-52, -38, 0) };
         Sun.DirectionalShadowMaxDistance = 160;
+        Sun.DirectionalShadowBlendSplits = true;
+        Sun.ShadowBlur = 1.2f;
         AddChild(Sun);
         _font = GD.Load<FontFile>("res://assets/fonts/BarlowCondensed-SemiBold.ttf");
         Overlay = new Overlay { Name = "Overlay", Visible = false };
@@ -127,6 +154,7 @@ public partial class WorldView : Node3D
         _racks.Clear();
         _static = new Node3D { Name = "Static" };
         AddChild(_static);
+        RoofTextures();
         Surroundings(_static, state.PlotSize);
         BuildGrid(_static, state.PlotSize);
         Invalidate(); _stock = -1;
@@ -137,16 +165,16 @@ public partial class WorldView : Node3D
     void Surroundings(Node3D root, int s)
     {
         var rng = new Random(42);
-        var grass = Grained(new StandardMaterial3D { AlbedoColor = Brand.Grass, Roughness = 1f }, 40);
-        var plotGrass = Grained(new StandardMaterial3D { AlbedoColor = Brand.PlotGrass, Roughness = 1f }, 24);
+        var grass = GrassMat(Brand.Grass, 40);
+        var plotGrass = GrassMat(Brand.PlotGrass, 24);
         Plane(root, new Vector3(s / 2f, -0.03f, s / 2f), new Vector2(900, 900), Brand.Grass).MaterialOverride = grass;
         Plane(root, new Vector3(s / 2f, -0.02f, s / 2f), new Vector2(s, s), Brand.PlotGrass).MaterialOverride = plotGrass;
         // public road with markings and pavement
-        Plane(root, new Vector3(s / 2f, -0.015f, s + 4), new Vector2(900, 6), Brand.Asphalt).MaterialOverride = GrainMat(Brand.Asphalt, 14);
+        Plane(root, new Vector3(s / 2f, -0.015f, s + 4), new Vector2(900, 6), Brand.Asphalt).MaterialOverride = SurfaceMat(Brand.Asphalt);
         for (var x = -420; x < 480; x += 6) Plane(root, new Vector3(s / 2f + x, -0.01f, s + 4), new Vector2(3, 0.18f), new Color("#ece6cc"));
-        Plane(root, new Vector3(s / 2f, -0.012f, s + 7.8f), new Vector2(900, 1.6f), new Color("#c9c1b2"));
+        Plane(root, new Vector3(s / 2f, -0.012f, s + 7.8f), new Vector2(900, 1.6f), new Color("#c9c1b2")).MaterialOverride = SurfaceMat(new Color("#c9c1b2"));
         // side road heading north along the west of the plot
-        Plane(root, new Vector3(-9, -0.014f, s / 2f - 60), new Vector2(6, 2 * s + 120), Brand.Asphalt).MaterialOverride = GrainMat(Brand.Asphalt, 14);
+        Plane(root, new Vector3(-9, -0.014f, s / 2f - 60), new Vector2(6, 2 * s + 120), Brand.Asphalt).MaterialOverride = SurfaceMat(Brand.Asphalt);
         // fibre pits of carriers along the road (orange = fiber)
         foreach (var x in Catalog.StreetPits.Select((_, i) => _state.StreetPit(i)))
         {
@@ -158,15 +186,9 @@ public partial class WorldView : Node3D
         foreach (var c in new[] { new Vector3(0, 0, 0), new Vector3(s, 0, 0), new Vector3(0, 0, s), new Vector3(s, 0, s) })
             Box(root, c + new Vector3(0, 0.6f, 0), new Vector3(0.25f, 1.2f, 0.25f), Brand.Power);
 
-        // forest to the north and east, as multimeshes so it stays light
-        var trunks = new List<Transform3D>(); var crowns = new List<Transform3D>(); var crowns2 = new List<Transform3D>();
-        void Tree(float x, float z)
-        {
-            var sc = 0.8f + (float)rng.NextDouble() * 0.9f;
-            trunks.Add(new Transform3D(Basis.Identity.Scaled(new Vector3(sc, sc, sc)), new Vector3(x, 0.8f * sc, z)));
-            var list = rng.Next(3) == 0 ? crowns2 : crowns;
-            list.Add(new Transform3D(Basis.Identity.Scaled(new Vector3(sc, sc * 1.1f, sc)), new Vector3(x, 2.4f * sc, z)));
-        }
+        // forest to the north and east: CC0 tree models, instanced per model so it stays light
+        var spots = new List<(float x, float z, float size)>();
+        void Tree(float x, float z) => spots.Add((x, z, 0.75f + (float)rng.NextDouble() * 0.45f));
         for (var i = 0; i < 1400; i++)
         {
             var x = -120 + (float)rng.NextDouble() * (s + 240);
@@ -187,29 +209,45 @@ public partial class WorldView : Node3D
             if (x > -14) continue;
             Tree(x, z);
         }
-        Multi(root, new CylinderMesh { TopRadius = 0.12f, BottomRadius = 0.18f, Height = 1.6f, RadialSegments = 6 }, trunks, new Color("#7a5a3c"));
-        var crownMat = new StandardMaterial3D { AlbedoColor = new Color("#5a9142"), Roughness = 0.9f };
-        var crown2Mat = new StandardMaterial3D { AlbedoColor = new Color("#6fa94e"), Roughness = 0.9f };
-        var c1 = Multi(root, new SphereMesh { Radius = 1.3f, Height = 2.6f, RadialSegments = 8, Rings = 5 }, crowns, new Color("#5a9142"));
-        var c2 = Multi(root, new SphereMesh { Radius = 1.3f, Height = 2.6f, RadialSegments = 8, Rings = 5 }, crowns2, new Color("#6fa94e"));
-        if (c1 != null) c1.MaterialOverride = crownMat;
-        if (c2 != null) c2.MaterialOverride = crown2Mat;
-        var fieldMat = new StandardMaterial3D { AlbedoColor = new Color("#b5a35a"), Roughness = 1f };
+        Forest(root, spots, rng, 0.35f);
+        // undergrowth and grass along the forest edges and the verges outside the plot
+        var verge = new List<Vector2>();
+        for (var i = 0; i < 9000; i++)
+        {
+            var x = -40 + (float)rng.NextDouble() * (s + 80);
+            var z = -40 + (float)rng.NextDouble() * (s + 80);
+            if (x >= -0.5f && x <= s + 0.5f && z >= -0.5f && z <= s + 0.5f) continue;
+            if (z > s + 0.5f && z < s + 9) continue; // the public road and its pavement
+            if (x > -12.5f && x < -5.5f && z > -70 && z < s + 9) continue; // the side road
+            verge.Add(new Vector2(x, z));
+        }
+        Meadow(root, verge, rng, 0.07f, 140);
+        var bushXf = new List<Transform3D>[Shrubs.Length]; var bushCol = new List<Color>[Shrubs.Length];
+        for (var i = 0; i < Shrubs.Length; i++) { bushXf[i] = new(); bushCol[i] = new(); }
+        for (var i = 0; i < 500; i++)
+        {
+            // bushes along the forest edge on the north and east
+            var north = rng.Next(3) > 0;
+            var x = north ? -60 + (float)rng.NextDouble() * (s + 120) : s + 6 + (float)rng.NextDouble() * 6;
+            var z = north ? -8 - (float)rng.NextDouble() * 6 : -8 + (float)rng.NextDouble() * (s + 8);
+            var k = rng.Next(Shrubs.Length); var sc = 0.8f + (float)rng.NextDouble() * 0.6f;
+            bushXf[k].Add(new Transform3D(new Basis(Vector3.Up, (float)rng.NextDouble() * Mathf.Tau).Scaled(Vector3.One * sc), new Vector3(x, 0, z)));
+            bushCol[k].Add(Shade(rng));
+        }
+        for (var i = 0; i < Shrubs.Length; i++) Assets.Many(root, Assets.Mesh(Shrubs[i].file, Shrubs[i].mats), bushXf[i], bushCol[i]);
+        var fieldMat = Textured(new StandardMaterial3D { AlbedoColor = new Color("#b5a35a"), Roughness = 1f }, "raked_dirt", 3.5f, 30);
         // farmland south of the road
         var fields = new[] { new Color("#c9b45e"), new Color("#8fb15a"), new Color("#b8995a"), new Color("#9cbd63") };
         for (var i = 0; i < 8; i++)
         {
             var w = 40 + rng.Next(30);
-            var f = Plane(root, new Vector3(-90 + i * 52, -0.025f, s + 40 + (i % 2) * 6), new Vector2(w, 50), fields[i % fields.Length]);
+            var f = Plane(root, new Vector3(-90 + i * 52, -0.025f, s + 72 + (i % 2) * 6), new Vector2(w, 50), fields[i % fields.Length]);
             if (i % 2 == 0) f.MaterialOverride = fieldMat;
         }
-        SeasonMaterials(grass, plotGrass, crownMat, crown2Mat, fieldMat);
+        SeasonMaterials(grass, plotGrass, null, null, fieldMat);
         _lastSeason = (Season)(-1);
-        // a few neighbours: a farm, a small office block, and a distant data centre
-        Neighbour(root, new Vector3(-40, 0, s + 20), new Vector3(10, 5, 7), new Color("#c96b4e"), new Color("#7d3f32"));
-        Neighbour(root, new Vector3(-30, 0, s + 18), new Vector3(6, 7, 6), new Color("#e3dccf"), new Color("#6f7b85"));
-        Neighbour(root, new Vector3(s + 30, 0, s + 22), new Vector3(16, 9, 12), new Color("#d9dee2"), Brand.Fiber);
-        Neighbour(root, new Vector3(s + 60, 0, s + 18), new Vector3(28, 8, 18), new Color("#cfd5da"), new Color("#55D2F2"));
+        // neighbours along the road: an office park, a few houses and an industrial estate (CC0 Kenney city kits)
+        Neighbours(root, s, rng);
         // hills on the horizon
         var hill = new Color("#7fa267");
         for (var i = 0; i < 9; i++)
@@ -404,6 +442,7 @@ public partial class WorldView : Node3D
         foreach (var c in _layout.GetChildren()) c.QueueFree();
         PlaceGrid();
         Surfaces(_layout);
+        PlotMeadow(_layout);
         FencesLayer(_layout);
         foreach (var b in _state.Buildings.Where(b => b.Stage == Stage.Done)) DoneBuilding(_layout, b);
     }
@@ -445,7 +484,8 @@ public partial class WorldView : Node3D
         stripes.AddRange(ParkingStripes(ParkingLayout.Lines(s, (x, z) => _state.SurfaceAt(x, z) == Surface.Parking && !_curveCells.Contains(z * s + x),
             (x, z) => _state.SurfaceAt(x, z) == Surface.Asphalt || _curveCells.Contains(z * s + x)), 0.02f));
         Multi(root, new PlaneMesh { Size = new Vector2(1, 1) }, stripes, new Color("#f2f2ee"), false);
-        Multi(root, new PlaneMesh { Size = new Vector2(0.46f, 0.46f) }, tiles, new Color("#e4dac5"), false);
+        ParkedCars(root, ParkingLayout.Lines(s, (x, z) => _state.SurfaceAt(x, z) == Surface.Parking && !_curveCells.Contains(z * s + x),
+            (x, z) => _state.SurfaceAt(x, z) == Surface.Asphalt || _curveCells.Contains(z * s + x)));
     }
 
     /// <summary>
@@ -500,7 +540,7 @@ public partial class WorldView : Node3D
                 }
             }
         if (!any) return;
-        root.AddChild(new MeshInstance3D { Mesh = st.Commit(), MaterialOverride = GrainMat(c, 14, 0.9f), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+        root.AddChild(new MeshInstance3D { Mesh = st.Commit(), MaterialOverride = SurfaceMat(c), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
 
         bool Is(int x, int z) => _state.InPlot(x, z) && _state.SurfaceAt(x, z) == t && !_curveCells.Contains(z * n + x);
         // grass with nothing on it; outside the plot counts as closed so edges stay straight
@@ -521,7 +561,7 @@ public partial class WorldView : Node3D
             return _state.InPlot(x, z) && _state.SurfaceAt(x, z) == c.Surface;
         });
         if (mesh == null) return;
-        root.AddChild(new MeshInstance3D { Mesh = mesh, MaterialOverride = GrainMat(col, 14, 0.9f), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+        root.AddChild(new MeshInstance3D { Mesh = mesh, MaterialOverride = SurfaceMat(col), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
         if (c.Surface == Surface.Asphalt && c.Width >= 3)
         {
             // dashed centre line on wider roads
@@ -676,6 +716,17 @@ public partial class WorldView : Node3D
                     if (Linked(x, z - 1) && Gate(x, z - 1)) panels.Add(new Transform3D(Basis.Identity.Rotated(Vector3.Up, Mathf.Pi / 2), new Vector3(x + 0.5f, def.Height / 2, z)));
                 }
             var (postCol, panelCol, thick) = FenceStyle(type);
+            // modelled fence panels and posts (tools/models/blender/infra.py), standing on the ground
+            var file = "made/fence_" + type.ToString().ToLowerInvariant();
+            var panelMesh = Assets.Mesh(file + "_panel.glb", Models.MadeMat);
+            var postMesh = Assets.Mesh(file + "_post.glb", Models.MadeMat);
+            if (panelMesh != null && postMesh != null)
+            {
+                Transform3D Ground(Transform3D t) => new(t.Basis, new Vector3(t.Origin.X, 0, t.Origin.Z));
+                Assets.Many(root, postMesh, posts.Select(Ground).ToList());
+                Assets.Many(root, panelMesh, panels.Select(Ground).ToList());
+                continue;
+            }
             Multi(root, new BoxMesh { Size = new Vector3(0.1f, def.Height, 0.1f) }, posts, postCol);
             Multi(root, new BoxMesh { Size = new Vector3(1f, def.Height * 0.92f, thick) }, panels, panelCol);
         }
@@ -687,7 +738,7 @@ public partial class WorldView : Node3D
     {
         var col = WallColor(b);
         var open = Open(b);
-        Box(root, new Vector3(b.X + b.W / 2f, Slab / 2, b.Z + b.D / 2f), new Vector3(b.W + 0.2f, Slab, b.D + 0.2f), Brand.Concrete, 0.95f);
+        Box(root, new Vector3(b.X + b.W / 2f, Slab / 2, b.Z + b.D / 2f), new Vector3(b.W + 0.2f, Slab, b.D + 0.2f), Brand.Concrete, 0.95f).MaterialOverride = SurfaceMat(Brand.Concrete, 0.95f);
         var top = open ? _viewFloor : b.Floors - 1;
         for (var f = 0; f <= top; f++)
         {
@@ -758,8 +809,9 @@ public partial class WorldView : Node3D
                     var isOuter = b != null && (dir == 0 ? g.Key == b.X || g.Key == b.X + b.W : g.Key == b.Z || g.Key == b.Z + b.D);
                     var c = isOuter ? outer : inner;
                     var th = isOuter ? 0.25f : 0.14f;
-                    if (dir == 0) Box(root, new Vector3(g.Key, y + h / 2, start + len / 2f), new Vector3(th, h, len + (isOuter ? 0.25f : 0)), c);
-                    else Box(root, new Vector3(start + len / 2f, y + h / 2, g.Key), new Vector3(len + (isOuter ? 0.25f : 0), h, th), c);
+                    var wall = dir == 0 ? Box(root, new Vector3(g.Key, y + h / 2, start + len / 2f), new Vector3(th, h, len + (isOuter ? 0.25f : 0)), c)
+                        : Box(root, new Vector3(start + len / 2f, y + h / 2, g.Key), new Vector3(len + (isOuter ? 0.25f : 0), h, th), c);
+                    if (isOuter && WallMat(c) is { } wm) wall.MaterialOverride = wm;
                     if (i < along.Count) { start = along[i]; prev = start; }
                 }
             }
@@ -876,13 +928,13 @@ public partial class WorldView : Node3D
         var p = (float)GameState.StageProgress(b);
         var col = WallColor(b);
         // site boundary tape and dug-out ground
-        Box(root, new Vector3(b.X + b.W / 2f, 0.01f, b.Z + b.D / 2f), new Vector3(b.W + 1.2f, 0.02f, b.D + 1.2f), new Color("#8b6f4e"), 1f);
+        Box(root, new Vector3(b.X + b.W / 2f, 0.01f, b.Z + b.D / 2f), new Vector3(b.W + 1.2f, 0.02f, b.D + 1.2f), new Color("#8b6f4e"), 1f).MaterialOverride = SurfaceMat(new Color("#8b6f4e"), 1f);
         foreach (var (x, z) in new[] { (b.X - 0.6f, b.Z - 0.6f), (b.X + b.W + 0.6f, b.Z - 0.6f), (b.X - 0.6f, b.Z + b.D + 0.6f), (b.X + b.W + 0.6f, b.Z + b.D + 0.6f) })
             Cyl(root, new Vector3(x, 0.5f, z), 0.12f, 1f, Brand.Amber, 0.04f);
         if (b.Stage == Stage.Foundation)
         {
             var rows = (int)Math.Ceiling(b.D * p);
-            if (rows > 0) Box(root, new Vector3(b.X + b.W / 2f, Slab / 2, b.Z + rows / 2f), new Vector3(b.W, Slab, rows), Brand.Concrete, 0.95f);
+            if (rows > 0) Box(root, new Vector3(b.X + b.W / 2f, Slab / 2, b.Z + rows / 2f), new Vector3(b.W, Slab, rows), Brand.Concrete, 0.95f).MaterialOverride = SurfaceMat(Brand.Concrete, 0.95f);
             var ex = Excavator();
             ex.Position = new Vector3(b.X + b.W * 0.3f, 0, b.Z + Math.Min(b.D - 2, rows + 2));
             ex.RotationDegrees = new Vector3(0, 200, 0);
@@ -890,7 +942,7 @@ public partial class WorldView : Node3D
         }
         else
         {
-            Box(root, new Vector3(b.X + b.W / 2f, Slab / 2, b.Z + b.D / 2f), new Vector3(b.W + 0.2f, Slab, b.D + 0.2f), Brand.Concrete, 0.95f);
+            Box(root, new Vector3(b.X + b.W / 2f, Slab / 2, b.Z + b.D / 2f), new Vector3(b.W + 0.2f, Slab, b.D + 0.2f), Brand.Concrete, 0.95f).MaterialOverride = SurfaceMat(Brand.Concrete, 0.95f);
             var total = b.Floors * FloorH;
             var h = b.Stage == Stage.Walls ? Math.Max(0.2f, total * p) : total;
             var edges = GameState.Perimeter(b.X, b.Z, b.W, b.D).ToList();
@@ -994,7 +1046,7 @@ public partial class WorldView : Node3D
         if (b == null) return true;
         if (b.Stage != Stage.Done) return false;
         if (o.Floor == GameState.RoofFloor) return !Open(b);
-        if (o.Kind == ObjKind.Lift) return Open(b);
+        if (Catalog.IsShaft(o.Kind)) return Open(b);
         return Open(b) && o.Floor == _viewFloor;
     }
 
@@ -1020,7 +1072,15 @@ public partial class WorldView : Node3D
                 if (o.Status > ObjStatus.Delivered && o.Status != ObjStatus.Live) AddMarker(o, pos);
                 continue;
             }
-            var n = Models.Object(o.Kind);
+            Node3D n;
+            if (Catalog.IsShaft(o.Kind) && _state.BuildingAt(o.X, o.Z) is { } sb)
+            {
+                // stairs and lifts serve every floor: draw them on the floor in view
+                var f = Math.Clamp(_viewFloor, 0, sb.Floors - 1);
+                n = Models.Shaft(o.Kind, f == sb.Floors - 1 && sb.Floors > 1);
+                pos.Y = Base(f);
+            }
+            else n = Models.Object(o.Kind);
             n.Position = pos;
             n.Basis = basis;
             foreach (var f in n.GetChildren().OfType<Node3D>().Where(c => c.Name.ToString().StartsWith("Fan"))) _fans.Add(f);

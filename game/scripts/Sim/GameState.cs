@@ -348,11 +348,11 @@ public partial class GameState
     }
 
     /// <summary>Objects the building and fence layout depends on: gates in fences, lifts and plant on roofs.</summary>
-    public static bool ShapesLayout(PlacedObject o) => Catalog.IsGate(o.Kind) || o.Kind == ObjKind.Lift || o.Floor == RoofFloor;
+    public static bool ShapesLayout(PlacedObject o) => Catalog.IsGate(o.Kind) || Catalog.IsShaft(o.Kind) || o.Floor == RoofFloor;
 
     static bool Covers(PlacedObject o, int x, int z, int floor)
     {
-        if (o.Floor != floor && (o.Kind != ObjKind.Lift || floor < 0)) return false;
+        if (o.Floor != floor && (!Catalog.IsShaft(o.Kind) || floor < 0)) return false;
         var (w, d) = Footprint(o);
         return x >= o.X && x < o.X + w && z >= o.Z && z < o.Z + d;
     }
@@ -379,7 +379,7 @@ public partial class GameState
     void IndexAdd(int i)
     {
         var o = Objects[i];
-        if (o.Kind == ObjKind.Lift) { _liftIndex.Add(i); return; }
+        if (Catalog.IsShaft(o.Kind)) { _liftIndex.Add(i); return; }
         var (w, d) = Footprint(o);
         for (var x = o.X; x < o.X + w; x++)
             for (var z = o.Z; z < o.Z + d; z++)
@@ -718,6 +718,38 @@ public partial class GameState
         return list;
     }
 
+    /// <summary>
+    /// Smart drag for racks: a drag one row deep gives one row (fronts by <paramref name="rot"/>); a wider drag fills
+    /// the rectangle with pairs of rows that face each other across a 1 m cold aisle, with 2 m hot aisles between
+    /// the pairs (row, cold, row, hot, hot, row ...). <paramref name="rot"/> 2 or 3 starts with the backs instead.
+    /// </summary>
+    public static List<(int x, int z, int rot)> RowBlock(int ax, int az, int bx, int bz, ObjKind k, int rot, int max = Catalog.MaxRow)
+    {
+        var alongX = Math.Abs(bx - ax) >= Math.Abs(bz - az);
+        var perp = alongX ? bz - az : bx - ax;
+        if (perp == 0) return RowCells(ax, az, bx, bz, k, rot, max).Select(c => (c.x, c.z, rot)).ToList();
+        var sign = perp < 0 ? -1 : 1;
+        var flip = rot >= 2;
+        // fronts toward +perp / -perp: along X the perpendicular is z (rot 0 = +z, rot 2 = -z); along Z it is x (rot 3 = +x, rot 1 = -x)
+        int Toward(bool plus) => alongX ? (plus ? 0 : 2) : (plus ? 3 : 1);
+        var depth = Catalog.Objects[k].D;
+        var list = new List<(int, int, int)>();
+        var off = 0; var first = true;
+        while (off * depth <= Math.Abs(perp))
+        {
+            // the first row of a pair faces the cold aisle ahead (+sign), the second faces back at it
+            var facesAhead = first != flip;
+            var r = Toward(facesAhead == (sign > 0));
+            var o = sign * off * depth;
+            var cells = alongX ? RowCells(ax, az + o, bx, az + o, k, r, max) : RowCells(ax + o, az, ax + o, bz, k, r, max);
+            foreach (var c in cells) list.Add((c.x, c.z, r));
+            // after a front-facing row comes the 1 m cold aisle, after a back-facing row the 2 m hot aisle
+            off += facesAhead ? 2 : 3;
+            first = !first;
+        }
+        return list;
+    }
+
     // ---------------- erase ----------------
     /// <summary>Remove what lies in a rectangle on a floor: objects, doors, rooms, then buildings and paving.</summary>
     public bool Erase(int x0, int z0, int w, int d, int floor, bool roof = false)
@@ -725,7 +757,7 @@ public partial class GameState
         bool In(int x, int z) => x >= x0 && z >= z0 && x < x0 + w && z < z0 + d;
         var changed = false;
         var layout = false;
-        foreach (var o in Objects.Where(o => (o.Floor == floor || (o.Kind == ObjKind.Lift && floor == 0) || (roof && o.Floor == RoofFloor)) && Cells(o).Any(c => In(c.x, c.z))).ToList())
+        foreach (var o in Objects.Where(o => (o.Floor == floor || (Catalog.IsShaft(o.Kind) && floor == 0) || (roof && o.Floor == RoofFloor)) && Cells(o).Any(c => In(c.x, c.z))).ToList())
         {
             Objects.Remove(o); Refund(o.Def.Cost / 2); changed = true; layout |= ShapesLayout(o);
         }
@@ -760,7 +792,7 @@ public partial class GameState
 
     void RemoveRoom(Room r)
     {
-        Objects.RemoveAll(o => o.Floor == r.Floor && o.Kind != ObjKind.Lift && r.Contains(o.X, o.Z));
+        Objects.RemoveAll(o => o.Floor == r.Floor && !Catalog.IsShaft(o.Kind) && r.Contains(o.X, o.Z));
         var edges = Perimeter(r.X, r.Z, r.W, r.D).ToHashSet();
         Doors.RemoveAll(o => o.Floor == r.Floor && o.Edges().Any(edges.Contains) && !o.Edges().Any(IsOuterEdge));
         Rooms.Remove(r);

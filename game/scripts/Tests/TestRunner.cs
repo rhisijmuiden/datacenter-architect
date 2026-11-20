@@ -26,7 +26,7 @@ public static partial class TestRunner
         {
             ("semver", SemVerTests), ("updates", UpdateTests), ("translations", TranslationTests),
             ("saves", SaveTests), ("building", BuildTests), ("construction", ConstructionTests),
-            ("rack chain", RackChainTests), ("gates", GateTests), ("curves", CurveTests), ("navigation", NavTests), ("creative", CreativeTests), ("demo", DemoTests),
+            ("rack chain", RackChainTests), ("gates", GateTests), ("curves", CurveTests), ("navigation", NavTests), ("stairs and lifts", StairsTests), ("undo", UndoTests), ("smart drag", SmartDragTests), ("creative", CreativeTests), ("demo", DemoTests),
             ("power chain", PowerTests), ("backup power", BackupTests), ("grid and suppliers", GridTests),
             ("cooling", CoolingTests), ("roof and underground", RoofTests), ("overlay rows", OverlayTests),
             ("options", OptionsTests), ("thumbnails", ThumbnailTests), ("network", NetworkTests), ("network money", NetworkMoneyTests), ("peering", PeeringTests),
@@ -388,6 +388,90 @@ public static partial class TestRunner
         Check(nav.Find(new Pt(5, 35, 0), 0, (x, z) => z == 25, NavMode.Walk) == null, "a closed fence blocks");
         s.AddObject(ObjKind.PedGate, 6, 30, 0, 0);
         Check(nav.Find(new Pt(5, 35, 0), 0, (x, z) => z == 25, NavMode.Walk) != null, "a gate lets people through");
+    }
+
+    static void UndoTests()
+    {
+        var s = GameState.New(new NewGameOptions());
+        var h = new UndoHistory();
+        var money = s.Money;
+        var snap = UndoHistory.Take(s);
+        Check(!h.Commit(s, snap, "tool_select"), "an action that changes nothing is not recorded");
+        snap = UndoHistory.Take(s);
+        s.PaintSurface(2, 2, 4, 3, Surface.Asphalt, out _);
+        Check(h.Commit(s, snap, "surface_asphalt") && s.SurfaceAt(3, 3) == Surface.Asphalt, "paving is recorded");
+        snap = UndoHistory.Take(s);
+        var m1 = s.Money;
+        var b = s.AddBuilding(BuildingKind.Office, 20, 20, 8, 8, 2);
+        h.Commit(s, snap, "building_office");
+        var paid = m1 - s.Money;
+        Check(paid > 0 && h.NextUndo == "building_office", "a building is recorded with its cost");
+        var hours = s.Hours;
+        s.Hours += 3;
+        Check(h.Undo(s) == "building_office" && !s.Buildings.Contains(b), "undo takes the building away");
+        Check(s.Money == m1 && s.Hours == hours + 3, "undo refunds the building and leaves the clock running");
+        Check(s.SurfaceAt(3, 3) == Surface.Asphalt, "undo leaves earlier actions alone");
+        Check(h.Redo(s) == "building_office" && s.Buildings.Contains(b) && h.CanUndo && !h.CanRedo, "redo puts the building back");
+        h.Undo(s); h.Undo(s);
+        Check(s.SurfaceAt(3, 3) == Surface.Grass && s.Buildings.Count == 0, "undo goes back step by step");
+        Check(h.Undo(s) == null, "nothing left to undo");
+        // erasing can be undone too, and the erase refund is taken back
+        h.Redo(s); h.Redo(s);
+        b.Stage = Stage.Done;
+        s.AddDoor(DoorType.Single, 22, 28, 1, 0);
+        var lift = s.AddObject(ObjKind.Stairs, 21, 21, 0, 0);
+        var before = s.Money;
+        snap = UndoHistory.Take(s);
+        s.Erase(21, 21, 2, 5, 0);
+        h.Commit(s, snap, "tool_erase");
+        Check(!s.Objects.Contains(lift) && s.Money > before, "erasing refunds half");
+        h.Undo(s);
+        Check(s.Objects.Contains(lift) && s.Money == before, "undoing an erase brings the stairs back and returns the refund");
+        snap = UndoHistory.Take(s);
+        s.PaintSurface(40, 40, 2, 2, Surface.Footpath, out _);
+        h.Commit(s, snap, "surface_footpath");
+        Check(!h.CanRedo, "a new action clears redo");
+    }
+
+    static void SmartDragTests()
+    {
+        var one = GameState.RowBlock(12, 16, 24, 16, ObjKind.Rack, 0);
+        Check(one.Count == 13 && one.All(c => c.z == 16 && c.rot == 0), "a flat drag is one row");
+        var block = GameState.RowBlock(12, 16, 24, 23, ObjKind.Rack, 0);
+        var rows = block.GroupBy(c => c.z).ToDictionary(g => g.Key, g => g.First().rot);
+        Check(rows.Count == 4 && rows[16] == 0 && rows[18] == 2 && rows[21] == 0 && rows[23] == 2, "a wide drag lays rows like the demo hall: cold aisles between fronts, hot aisles between backs");
+        Check(block.Count == 4 * 13, "every row runs the full length");
+        var up = GameState.RowBlock(12, 23, 24, 16, ObjKind.Rack, 0).GroupBy(c => c.z).ToDictionary(g => g.Key, g => g.First().rot);
+        Check(up[23] == 2 && up[21] == 0, "dragging the other way mirrors the pattern");
+        var flipped = GameState.RowBlock(12, 16, 24, 23, ObjKind.Rack, 2).GroupBy(c => c.z).ToDictionary(g => g.Key, g => g.First().rot);
+        Check(flipped.Count == 3 && flipped[16] == 2 && flipped[19] == 0 && flipped[21] == 2, "R starts the block with the backs");
+        var alongZ = GameState.RowBlock(10, 10, 12, 20, ObjKind.Rack, 0).GroupBy(c => c.x).ToDictionary(g => g.Key, g => g.First().rot);
+        Check(alongZ.Count == 2 && alongZ[10] == 3 && alongZ[12] == 1, "rows along z face each other across x");
+    }
+
+    static void StairsTests()
+    {
+        var s = GameState.New(new NewGameOptions());
+        var b = s.AddBuilding(BuildingKind.Office, 10, 10, 12, 12, 3);
+        b.Stage = Stage.Done;
+        s.AddDoor(DoorType.Single, 12, 22, 1, 0);
+        var nav = new Nav(s);
+        Check(s.CanPlace(new PlacedObject { Kind = ObjKind.Stairs, X = 11, Z = 11 }) == null, "stairs can be placed in a building");
+        var stairs = s.AddObject(ObjKind.Stairs, 11, 11, 0, 0);
+        var stairCells = GameState.Cells(stairs).ToHashSet();
+        Check(stairCells.Count == 10, "stairs take 2 x 5 cells");
+        var up = nav.Find(new Pt(15, 18, 0), 1, (x, z) => x == 18 && z == 18, NavMode.Walk);
+        Check(up != null && up[^1].F == 1, "people take the stairs to the next floor");
+        Check(up != null && up.Zip(up.Skip(1)).Any(p => p.First.F == 0 && p.Second.F == 1 && stairCells.Contains((p.First.X, p.First.Z))), "the floor change happens on the stairs");
+        Check(nav.Find(new Pt(15, 18, 0), 1, (x, z) => x == 18 && z == 18, NavMode.Carry) == null, "loads cannot be carried up the stairs");
+        var lift = s.AddObject(ObjKind.PassengerLift, 19, 11, 0, 0);
+        var liftCells = GameState.Cells(lift).ToHashSet();
+        var high = nav.Find(new Pt(19, 14, 0), 2, (x, z) => x == 20 && z == 14, NavMode.Walk);
+        Check(high != null && high.Zip(high.Skip(1)).Any(p => p.First.F != p.Second.F && liftCells.Contains((p.First.X, p.First.Z))), "people next to a passenger lift ride it two floors up");
+        var near = nav.Find(new Pt(13, 17, 0), 1, (x, z) => x == 13 && z == 17, NavMode.Walk);
+        Check(near != null && near.Zip(near.Skip(1)).Any(p => p.First.F != p.Second.F && stairCells.Contains((p.First.X, p.First.Z))), "for one floor next to the stairs people walk up");
+        Check(nav.Find(new Pt(19, 14, 0), 1, (x, z) => x == 20 && z == 14, NavMode.Carry) == null, "a passenger lift does not take racks");
+        Check(s.ObjectAt(12, 12, 2) == stairs, "stairs serve every floor");
     }
 
     static void CreativeTests()
