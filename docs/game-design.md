@@ -86,6 +86,7 @@ Elke locatie toont vooraf de **beschikbare netcapaciteit (MVA)** en de **glasvez
 - Elke rack produceert warmte, afhankelijk van de klant. De koelbalk toont de belasting tegenover de capaciteit.
 - Racks staan **aaneengesloten in rijen**, zonder ruimte tussen de racks in een rij. Je plaatst ze rij voor rij (slepen).
 - **Tussen de rijen zit altijd een gang.** Aan de voorkant is dat de koude gang, aan de achterkant de warme gang. Engineers moeten aan **beide kanten** bij een rack kunnen. Een rack waarvan de voor- of achterkant geblokkeerd is (door een muur, een ander object of een rack dat er tegenaan staat), kun je niet plaatsen; het spookbeeld kleurt rood met de reden erbij (wens van Reinder, 20 november 2026, speelronde).
+- **Fibergoten in datahallen** (wens van Reinder, 20 november 2026, speelronde): de goten worden pas aangelegd boven rijen waar racks staan, en groeien mee als je rijen bijplaatst. Ze zijn duidelijk zichtbaar in oranje (de huisstijlkleur voor glasvezel), met een aftakking naar elk rack.
 - **Voorkant zichtbaar bij plaatsen**: alles met een voorkant (racks, koelunits, UPS-kasten, bureaus, deuren) toont tijdens het plaatsen een pijl of gekleurde rand aan de voorkant, en bij racks ook de vrije gang die voor en achter nodig is.
 - **Zaal-upgrades:** een datazaal kun je upgraden in stappen. Elke stap kost geld en bouwtijd, verhoogt de effectieve koelcapaciteit en verlaagt het energieverbruik (PUE):
 
