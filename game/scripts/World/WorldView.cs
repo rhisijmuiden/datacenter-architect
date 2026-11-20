@@ -453,6 +453,7 @@ public partial class WorldView : Node3D
     void RebuildLayout()
     {
         foreach (var c in _layout.GetChildren()) c.QueueFree();
+        _doorLeaves.Clear();
         PlaceGrid();
         var under = Underground;
         foreach (var c in _static.GetChildren().OfType<Node3D>()) if (c != _grid) c.Visible = !under;
@@ -840,7 +841,7 @@ public partial class WorldView : Node3D
             var doors = _state.Doors.Where(d => d.Floor == f).ToList();
             var doorEdges = doors.SelectMany(d => d.Edges()).ToHashSet();
             Walls(root, edges.Where(e => !doorEdges.Contains(e)), Base(f), h, f == GameState.BasementFloor ? BasementWall : col, cut ? new Color("#e4e8eb") : col, b);
-            foreach (var d in doors.Where(d => d.Edges().Any(edges.Contains))) DoorModel(root, d, Base(f), h);
+            foreach (var d in doors.Where(d => d.Edges().Any(edges.Contains))) DoorModel(root, d, Base(f), h, _doorLeaves);
             if (!cut) FacadeDetail(root, b, f);
             if (cut)
                 foreach (var r in _state.Rooms.Where(r => r.BuildingId == b.Id && r.Floor == f))
@@ -906,14 +907,28 @@ public partial class WorldView : Node3D
         }
     }
 
-    public static void DoorModel(Node3D root, Door d, float y, float wallH)
+    /// <summary>A door leaf that swings (hinge, +1/-1 for its direction) or a roll-up curtain, and how far it is open (0..1).</summary>
+    sealed class DoorLeaf
     {
+        public Vector3 At; public int Floor; public bool Roll; public float Height;
+        public readonly List<(Node3D hinge, float sign)> Hinges = new();
+        public MeshInstance3D Curtain; public float Open;
+    }
+    readonly List<DoorLeaf> _doorLeaves = new();
+
+    /// <summary>Draw a door, closed. With <paramref name="leaves"/> its moving parts are registered so it opens for people passing.</summary>
+    public static void DoorModel(Node3D root, Door d, float y, float wallH) => DoorModel(root, d, y, wallH, null);
+
+    static void DoorModel(Node3D root, Door d, float y, float wallH, List<DoorLeaf> leaves)
+    {
+        var reg = leaves == null ? null : new DoorLeaf { Floor = d.Floor, Roll = d.Type == DoorType.RollUp };
         var def = Catalog.Doors[d.Type];
         var w = def.Width;
         var center = d.Dir == 0 ? new Vector3(d.X, y, d.Z + w / 2f) : new Vector3(d.X + w / 2f, y, d.Z);
         var n = new Node3D { Position = center, RotationDegrees = new Vector3(0, d.Dir == 0 ? 90 : 0, 0) };
         root.AddChild(n);
         var h = Math.Min(2.3f, wallH);
+        if (reg != null) { reg.At = center; reg.Height = h; leaves.Add(reg); }
         var leaf = d.Type switch
         {
             DoorType.Fire => new Color("#c0392b"),
@@ -926,15 +941,21 @@ public partial class WorldView : Node3D
         if (wallH > 2.3f) Box(n, new Vector3(0, 2.3f + (wallH - 2.3f) / 2, 0), new Vector3(w, wallH - 2.3f, 0.25f), new Color("#c9d0d6"));
         if (d.Type == DoorType.RollUp)
         {
-            Box(n, new Vector3(0, h * 0.85f, 0), new Vector3(w - 0.1f, h * 0.3f, 0.08f), leaf, 0.5f, 0.4f);
+            // closed: the curtain fills the opening; it rolls up into the drum at the top when something passes
+            var curtain = Box(n, new Vector3(0, h / 2, 0), new Vector3(w - 0.1f, 1, 0.08f), leaf, 0.5f, 0.4f);
+            curtain.Scale = new Vector3(1, h, 1);
+            Box(n, new Vector3(0, h + 0.12f, 0.04f), new Vector3(w, 0.24f, 0.24f), new Color("#7d878e"), 0.5f, 0.5f);
+            if (reg != null) reg.Curtain = curtain;
         }
         else
         {
-            var leaves = w;
-            for (var i = 0; i < leaves; i++)
+            var leafCount = w;
+            for (var i = 0; i < leafCount; i++)
             {
-                var hinge = new Node3D { Position = new Vector3(-w / 2f + i * 1f + (i % 2 == 0 ? 0.05f : 0.95f), 0, 0), RotationDegrees = new Vector3(0, i % 2 == 0 ? -70 : 70, 0) };
+                // closed by default; the leaves swing open for someone passing
+                var hinge = new Node3D { Position = new Vector3(-w / 2f + i * 1f + (i % 2 == 0 ? 0.05f : 0.95f), 0, 0) };
                 n.AddChild(hinge);
+                reg?.Hinges.Add((hinge, i % 2 == 0 ? -1f : 1f));
                 Box(hinge, new Vector3(i % 2 == 0 ? 0.45f : -0.45f, h / 2, 0), new Vector3(0.88f, h - 0.05f, 0.05f), leaf);
             }
             if (d.Type is DoorType.Badge or DoorType.Mantrap) Box(n, new Vector3(w / 2f + 0.15f, 1.2f, 0.16f), new Vector3(0.12f, 0.18f, 0.04f), Brand.Ok, glow: true);
@@ -1441,8 +1462,38 @@ public partial class WorldView : Node3D
         }
     }
 
+    /// <summary>Doors open when a person, cart or vehicle comes close on the same floor and close again behind them.</summary>
+    void AnimateDoors(double delta)
+    {
+        if (_doorLeaves.Count == 0 || _sim == null) return;
+        var step = (float)Math.Min(delta, 0.1) * 3.5f;
+        foreach (var dl in _doorLeaves)
+        {
+            var near = false;
+            var reach = dl.Roll ? 4.5f : 1.7f;
+            foreach (var a in _sim.Agents)
+            {
+                if (a.Floor != dl.Floor) continue;
+                float dx = (float)a.X - dl.At.X, dz = (float)a.Z - dl.At.Z;
+                if (dx * dx + dz * dz < reach * reach) { near = true; break; }
+            }
+            var target = near ? 1f : 0f;
+            if (Mathf.IsEqualApprox(dl.Open, target)) continue;
+            dl.Open = Mathf.MoveToward(dl.Open, target, step * (dl.Roll ? 0.5f : 1f));
+            var e = dl.Open * dl.Open * (3 - 2 * dl.Open);
+            foreach (var (hinge, sign) in dl.Hinges) hinge.RotationDegrees = new Vector3(0, sign * 88 * e, 0);
+            if (dl.Curtain != null)
+            {
+                var hh = Mathf.Max(0.15f, dl.Height * (1 - 0.92f * e));
+                dl.Curtain.Scale = new Vector3(1, hh, 1);
+                dl.Curtain.Position = new Vector3(0, dl.Height - hh / 2, 0);
+            }
+        }
+    }
+
     void Animate(double delta)
     {
+        AnimateDoors(delta);
         if (MovingParts)
         foreach (var c in _cranes)
         {

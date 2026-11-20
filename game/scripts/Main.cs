@@ -1417,6 +1417,13 @@ public partial class Main : Node3D
             _speed = 0;
             _cam.SetView(0.35f, 1.05f, 26, new Vector3(14, 0, 10));
             if (args.Contains("--close")) _cam.SetView(0.5f, 0.75f, 11, new Vector3(9, 0, 6.5f));
+            if (args.Contains("--doors"))
+            {
+                // two people stepping through doorways: their doors swing open, the others stay closed
+                _sim.Agents.Add(new Agent { Id = 990001, Role = Role.Engineer, X = 13.5, Z = 9.2, Heading = 0 });
+                _sim.Agents.Add(new Agent { Id = 990002, Role = Role.Staff, X = 20.5, Z = 8.6, Heading = Math.PI });
+                _cam.SetView(0.45f, 0.62f, 13, new Vector3(16, 0, 9));
+            }
         }
         else if (args.Contains("--showcase"))
         {
