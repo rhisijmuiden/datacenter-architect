@@ -34,6 +34,10 @@ public partial class RackRenderer : Node3D
     static readonly BoxMesh BodyMesh = new() { Size = new Vector3(0.985f, 2.1f, 0.95f) };
     static readonly BoxMesh FrontMesh = new() { Size = new Vector3(0.9f, 1.95f, 0.01f) };
     static readonly BoxMesh GhostMesh = new() { Size = new Vector3(0.95f, 2.1f, 0.92f) };
+    /// <summary>Perforated doors front and back (see <see cref="HallLook.Door"/>), with a swing handle on each.</summary>
+    static readonly QuadMesh DoorMesh = new() { Size = new Vector2(0.94f, 2.02f) };
+    static readonly BoxMesh HandleMesh = new() { Size = new Vector3(0.035f, 0.2f, 0.03f) };
+    static readonly BoxMesh CapMesh = new() { Size = new Vector3(0.99f, 0.03f, 0.955f) };
 
     public void Clear()
     {
@@ -84,6 +88,7 @@ public partial class RackRenderer : Node3D
     {
         var node = new Node3D();
         var bodies = new List<Transform3D>(); var fronts = new List<Transform3D>(); var ghosts = new List<Transform3D>();
+        var doors = new List<Transform3D>(); var handles = new List<Transform3D>(); var caps = new List<Transform3D>();
         var plates = new List<float>();
         var plateCount = 0;
         foreach (var (o, y) in list)
@@ -93,6 +98,12 @@ public partial class RackRenderer : Node3D
             if (o.Status <= ObjStatus.Delivered) { ghosts.Add(new Transform3D(basis, pos + new Vector3(0, 1.05f, 0))); continue; }
             bodies.Add(new Transform3D(basis, pos + new Vector3(0, 1.05f, 0)));
             fronts.Add(new Transform3D(basis, pos + basis * new Vector3(0, 1.05f, 0.476f)));
+            var back = basis.Rotated(Vector3.Up, Mathf.Pi);
+            doors.Add(new Transform3D(basis, pos + basis * new Vector3(0, 1.05f, 0.494f)));
+            doors.Add(new Transform3D(back, pos + basis * new Vector3(0, 1.05f, -0.477f)));
+            handles.Add(new Transform3D(basis, pos + basis * new Vector3(0.39f, 1.05f, 0.51f)));
+            handles.Add(new Transform3D(back, pos + basis * new Vector3(-0.39f, 1.05f, -0.493f)));
+            caps.Add(new Transform3D(basis, pos + new Vector3(0, 2.115f, 0)));
             // servers go in once a fitter has installed the rack; their LEDs light up when it is live
             if (o.Status < ObjStatus.Placed) continue;
             var live = o.Status == ObjStatus.Live;
@@ -106,9 +117,12 @@ public partial class RackRenderer : Node3D
                 plateCount++;
             }
         }
-        Add(node, BodyMesh, bodies, Models.Mat(Brand.Rack, 0.9f), true);
+        Add(node, BodyMesh, bodies, Models.Mat(new Color("#1a1e23"), 0.6f, 0.25f), true);
         Add(node, FrontMesh, fronts, Models.Mat(new Color("#3a414a"), 0.9f), false);
         Add(node, GhostMesh, ghosts, Models.Mat(new Color(1, 1, 1, 0.22f), 1f), false);
+        Add(node, DoorMesh, doors, HallLook.Door, false);
+        Add(node, HandleMesh, handles, Models.Mat(new Color("#14171a"), 0.4f, 0.6f), false);
+        Add(node, CapMesh, caps, Models.Mat(new Color("#15181c"), 0.6f, 0.3f), false);
         if (plateCount > 0)
         {
             var mm = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, UseColors = true, UseCustomData = true, Mesh = ServerFill.PlateMesh };

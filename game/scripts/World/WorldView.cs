@@ -237,6 +237,16 @@ public partial class WorldView : Node3D
         return mi;
     }
 
+    static MultiMeshInstance3D MultiMat(Node3D root, Mesh mesh, List<Transform3D> xf, Material mat)
+    {
+        if (xf.Count == 0) return null;
+        var mm = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = mesh, InstanceCount = xf.Count };
+        for (var i = 0; i < xf.Count; i++) mm.SetInstanceTransform(i, xf[i]);
+        var mi = new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = mat, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
+        root.AddChild(mi);
+        return mi;
+    }
+
     static NoiseTexture2D _grain;
     static readonly Dictionary<(Color, float), StandardMaterial3D> GrainMats = new();
 
@@ -802,14 +812,9 @@ public partial class WorldView : Node3D
     {
         var col = new Color(Catalog.Rooms[r.Type].Color);
         if (r.Stage != Stage.Done) col = new Color(col, 0.55f);
-        Box(root, new Vector3(r.X + r.W / 2f, y + 0.015f, r.Z + r.D / 2f), new Vector3(r.W - 0.12f, 0.01f, r.D - 0.12f), col, 0.95f);
-        if (r.Type == RoomType.DataHall)
-        {
-            // raised-floor tile lines
-            var lines = new List<Transform3D>();
-            for (var x = r.X + 1; x < r.X + r.W; x++) lines.Add(new Transform3D(Basis.Identity, new Vector3(x, y + 0.022f, r.Z + r.D / 2f)));
-            Multi(root, new BoxMesh { Size = new Vector3(0.03f, 0.005f, r.D - 0.2f) }, lines, new Color("#8a949c"), false);
-        }
+        var floor = Box(root, new Vector3(r.X + r.W / 2f, y + 0.015f, r.Z + r.D / 2f), new Vector3(r.W - 0.12f, 0.01f, r.D - 0.12f), col, 0.95f);
+        // a finished data hall gets a light raised floor of 600 mm tiles
+        if (r.Type == RoomType.DataHall && r.Stage == Stage.Done) floor.MaterialOverride = HallLook.Floor;
         var label = new Label3D
         {
             Text = Loc.T(Catalog.Rooms[r.Type].NameKey).ToUpperInvariant(),
@@ -1227,6 +1232,7 @@ public partial class WorldView : Node3D
     {
         var tiles = new List<Transform3D>(); var glass = new List<Transform3D>(); var frames = new List<Transform3D>();
         var busA = new List<Transform3D>(); var busB = new List<Transform3D>();
+        var fiberTray = new List<Transform3D>(); var powerLadder = new List<Transform3D>(); var tapOff = new List<Transform3D>(); var hangers = new List<Transform3D>();
         foreach (var r in _state.Rooms.Where(r => r.Type == RoomType.DataHall && r.Stage == Stage.Done && r.Floor == _viewFloor))
         {
             var b = _state.BuildingOf(r);
@@ -1258,6 +1264,18 @@ public partial class WorldView : Node3D
                             frames.Add(new Transform3D(basis, new Vector3(x + 0.5f + dx * 0.5f, y + 1.08f, z + 0.5f + dz * 0.5f)));
                         }
             }
+            // overhead: an orange fiber tray over the front of every rack row and a grey power cable ladder over the back,
+            // on drop rods from the ceiling
+            foreach (var o in racks)
+            {
+                var basis = o.Rot % 2 == 0 ? Basis.Identity : Basis.Identity.Rotated(Vector3.Up, Mathf.Pi / 2);
+                var (fx, fz) = FrontOffset(o.Rot);
+                var c = new Vector3(o.X + 0.5f, y, o.Z + 0.5f);
+                fiberTray.Add(new Transform3D(basis, c + new Vector3(fx * 0.2f, 2.42f, fz * 0.2f)));
+                if (!r.Busbar) powerLadder.Add(new Transform3D(basis, c + new Vector3(fx * -0.3f, 2.52f, fz * -0.3f)));
+                if ((o.X + o.Z) % 2 == 0) hangers.Add(new Transform3D(basis, c + new Vector3(fx * 0.2f, 2.9f, fz * 0.2f)));
+                if (r.Busbar) tapOff.Add(new Transform3D(basis, c + new Vector3(fx * -0.22f, 2.33f, fz * -0.22f)));
+            }
             if (r.Busbar)
                 foreach (var o in racks)
                 {
@@ -1268,11 +1286,15 @@ public partial class WorldView : Node3D
                     busB.Add(new Transform3D(basis, c + new Vector3(fx, 0, fz) * -0.38f));
                 }
         }
-        Multi(_objects, new BoxMesh { Size = new Vector3(0.94f, 0.012f, 0.94f) }, tiles, new Color("#7fd9ee"), false);
+        if (tiles.Count > 0) MultiMat(_objects, new QuadMesh { Size = new Vector2(0.6f, 0.6f), Orientation = PlaneMesh.OrientationEnum.Y }, tiles, HallLook.Grate);
         Multi(_objects, new BoxMesh { Size = new Vector3(1f, 0.03f, 1f) }, glass, new Color(Brand.Cooling, 0.28f), false);
         Multi(_objects, new BoxMesh { Size = new Vector3(0.96f, 2.1f, 0.04f) }, frames, new Color(Brand.Cooling, 0.3f), false);
         Multi(_objects, new BoxMesh { Size = new Vector3(1.0f, 0.1f, 0.1f) }, busA, Brand.Power);
         Multi(_objects, new BoxMesh { Size = new Vector3(1.0f, 0.1f, 0.1f) }, busB, new Color("#d8dde1"));
+        Multi(_objects, new BoxMesh { Size = new Vector3(1.0f, 0.07f, 0.3f) }, fiberTray, Brand.Fiber);
+        Multi(_objects, new BoxMesh { Size = new Vector3(1.0f, 0.05f, 0.34f) }, powerLadder, new Color("#9aa4ab"));
+        Multi(_objects, new BoxMesh { Size = new Vector3(0.025f, 0.9f, 0.025f) }, hangers, new Color("#8a949c"));
+        Multi(_objects, new BoxMesh { Size = new Vector3(0.24f, 0.14f, 0.18f) }, tapOff, new Color("#c8322b"));
     }
 
     /// <summary>Cell offset in front of an object (the cold aisle side of a rack).</summary>
