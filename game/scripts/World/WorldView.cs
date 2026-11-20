@@ -772,7 +772,8 @@ public partial class WorldView : Node3D
             // a few rooftop units so the roof is not empty, unless the player put plant there
             var roofPlant = _state.Objects.Any(o => o.Floor == GameState.RoofFloor && b.Contains(o.X, o.Z));
             for (var i = 0; i < (roofPlant ? 0 : Math.Min(4, b.W / 6)); i++)
-                Box(root, new Vector3(b.X + 3 + i * 5, roofY + 0.75f, b.Z + 2.5f), new Vector3(2.5f, 1f, 1.6f), new Color("#e3e7ea"));
+                if (Assets.Place(root, "made/roof_unit.glb", new Vector3(b.X + 3 + i * 5, roofY + 0.25f, b.Z + 2.5f), 1, 0, Models.MadeMat) == null)
+                    Box(root, new Vector3(b.X + 3 + i * 5, roofY + 0.75f, b.Z + 2.5f), new Vector3(2.5f, 1f, 1.6f), new Color("#e3e7ea"));
         }
     }
 
