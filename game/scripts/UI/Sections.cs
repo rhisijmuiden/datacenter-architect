@@ -35,6 +35,7 @@ public static class Sections
             new("gr_tab_people", "key", PanelKind.Growth, GrowthPanel.TabPeople),
             new("co_tab_finance", "money", PanelKind.Company, CompanyPanel.TabFinance),
             new("gr_tab_risks", "shield", PanelKind.Growth, GrowthPanel.TabRisks),
+            new("co_tab_brand", "palette", PanelKind.Company, CompanyPanel.TabBrand),
         }),
         new("nav_customers", "nav_customers_short", "cat_customers", Brand.Ok, Key.F3, new SectionTab[]
         {

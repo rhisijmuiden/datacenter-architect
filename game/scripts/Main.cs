@@ -19,6 +19,7 @@ public partial class Main : Node3D
     (int floor, bool roofs, bool grid) _beforeWalk;
     Control _walkHint;
     Ambience _sound;
+    Music _music;
     UiSounds _uiSounds;
     Timelapse _lapse;
     PhotoMode _photo;
@@ -60,6 +61,8 @@ public partial class Main : Node3D
         _fp = new FirstPerson { Name = "Walker" }; AddChild(_fp);
         _fp.Exit = StopWalk; _fp.Moved = WalkView;
         _sound = new Ambience(); AddChild(_sound);
+        _music = new Music(); AddChild(_music);
+        AddChild(new LogoArt());
         _uiSounds = new UiSounds(); AddChild(_uiSounds);
         AddChild(new Thumbnails());
         _lapse = new Timelapse { Name = "Timelapse", State = () => _state, Playing = () => _playing && !_walking && _photo == null, World = _world };
@@ -479,6 +482,37 @@ public partial class Main : Node3D
         var wet = WeatherFxOn && w.Kind is WeatherKind.Rain or WeatherKind.Storm ? (float)(0.45 + 0.55 * w.Intensity) : 0f;
         _sound.Rain = (_playing || _walking ? wet : wet * 0.4f) * (_world.Indoor ? 0.25f : _walking ? 0.9f : Mathf.Clamp(1.1f - _cam.Distance / 140f, 0.35f, 1f));
         if (_world.Flashed) _sound.Thunder(_world.Indoor ? 0.5f : 1f);
+        AreaSound(t, floor, zoom);
+    }
+
+    static readonly HashSet<RoomType> OfficeRooms = new() { RoomType.Office, RoomType.Executive, RoomType.Meeting, RoomType.Canteen, RoomType.Lounge, RoomType.Reception, RoomType.Noc, RoomType.Soc, RoomType.Lab, RoomType.Security };
+
+    /// <summary>Step 11 round 3: what the area under the camera sounds like, and the music mood that goes with it.</summary>
+    void AreaSound(Vector3 t, int floor, float zoom)
+    {
+        var hour = _state.Date.Hour + _state.Date.Minute / 60f;
+        var day = Mathf.Clamp(Mathf.Min((hour - 5.5f) / 1.5f, (21f - hour) / 1.5f), 0, 1);
+        _sound.Daylight = day;
+        if (!_playing && !_walking) { _sound.Outdoor = 0.5f; _sound.Office = 0; _sound.Site = 0; _music.Mood = MusicMood.Campus; return; }
+        var (x, z) = ((int)Math.Floor(t.X), (int)Math.Floor(t.Z));
+        var b = _state.BuildingAt(x, z);
+        var inside = _walking ? _world.Indoor : b != null && b.Stage == Stage.Done && !_world.Roofs;
+        var room = inside ? _state.RoomAt(x, z, Math.Max(0, floor)) : null;
+        var office = room != null && OfficeRooms.Contains(room.Type);
+        var hall = room?.Type == RoomType.DataHall;
+        // building sites nearby: the closer, the louder
+        var site = 0f;
+        foreach (var sb in _state.Buildings.Where(sb => sb.Stage != Stage.Done && !_state.IsPlanned(sb)))
+        {
+            var dx = Math.Max(0, Math.Max(sb.X - t.X, t.X - (sb.X + sb.W))); var dz = Math.Max(0, Math.Max(sb.Z - t.Z, t.Z - (sb.Z + sb.D)));
+            site = Math.Max(site, Mathf.Clamp(1 - (float)Math.Sqrt(dx * dx + dz * dz) / 25f, 0, 1));
+        }
+        if (_state.Rooms.Any(r => r.Stage != Stage.Done && !_state.IsPlanned(r) && Math.Abs(r.X + r.W / 2f - t.X) < 12 && Math.Abs(r.Z + r.D / 2f - t.Z) < 12)) site = Math.Max(site, 0.5f);
+        var near = _walking ? 1 : 0.35f + 0.65f * zoom;
+        _sound.Outdoor = (inside ? 0.08f : 1f) * near;
+        _sound.Office = office ? near : 0;
+        _sound.Site = site * (inside ? 0.3f : 1f) * near;
+        _music.Mood = hall ? MusicMood.Hall : office ? MusicMood.Office : site > 0.55f ? MusicMood.Building : day < 0.3f ? MusicMood.Night : MusicMood.Campus;
     }
 
     static bool WeatherFxOn => AppSettings.Instance.Weather;
@@ -1279,7 +1313,7 @@ public partial class Main : Node3D
             var loads = new[] { TruckLoad.Material, TruckLoad.Equipment, TruckLoad.Customer };
             for (var i = 0; i < loads.Length; i++)
             {
-                var t = Models.Truck(loads[i]);
+                var t = _world.Livery(Models.Truck(loads[i]), loads[i]);
                 t.Position = new Vector3(48.5f, 0, 26 + i * 14);
                 t.RotationDegrees = new Vector3(0, 180, 0);
                 _world.AddChild(t);
@@ -1437,6 +1471,16 @@ public partial class Main : Node3D
         if (args.Contains("--photo")) StartPhoto();
         if (args.Contains("--award-demo")) AwardDemo(args.Contains("--close"));
         if (args.Contains("--plan-demo")) PlanDemo();
+        var bdi = Array.IndexOf(args, "--brand-demo");
+        if (bdi >= 0)
+        {
+            // step 11 round 3: a company logo; "facade" or "racks" frames it in the world
+            _state.Logo = new CompanyLogo { Shape = 2, Primary = "#38c6f4", Secondary = "#111d2b" };
+            _state.Touch();
+            var mode = bdi + 1 < args.Length ? args[bdi + 1] : "";
+            if (mode == "facade") _cam.SetView(0.25f, 0.3f, 20, new Vector3(14, 3f, 34));
+            if (mode == "racks") { SetView(0, false); _cam.SetView(0.5f, 0.55f, 8, new Vector3(16, 1.2f, 22)); }
+        }
         var tui = Array.IndexOf(args, "--tutorial");
         if (tui >= 0)
         {

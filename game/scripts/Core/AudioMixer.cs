@@ -4,17 +4,17 @@ using Godot;
 namespace DatacenterArchitect.Core;
 
 /// <summary>
-/// Audio buses: Master with Ambience (server room sound) and Interface (clicks and notification chimes) under it.
+/// Audio buses: Master with Ambience (server room and area sound), Interface (clicks and notification chimes) and Music under it.
 /// Volumes come from <see cref="AppSettings"/> as 0..100.
 /// </summary>
 public static class AudioMixer
 {
-    public const string Ambience = "Ambience", Interface = "Interface";
+    public const string Ambience = "Ambience", Interface = "Interface", Music = "Music";
     static bool _inBackground;
 
     public static void EnsureBuses()
     {
-        foreach (var name in new[] { Ambience, Interface })
+        foreach (var name in new[] { Ambience, Interface, Music })
         {
             if (AudioServer.GetBusIndex(name) >= 0) continue;
             AudioServer.AddBus();
@@ -38,6 +38,7 @@ public static class AudioMixer
         Set("Master", s.MasterVolume, s.MuteInBackground && _inBackground);
         Set(Ambience, s.AmbienceVolume, !s.AmbienceSound);
         Set(Interface, s.InterfaceVolume, false);
+        Set(Music, s.MusicVolume, !s.MusicOn);
     }
 
     static void Set(string bus, int volume, bool mute)

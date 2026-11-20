@@ -55,6 +55,9 @@ public class AppSettings
     public int AmbienceVolume = 80;
     public int InterfaceVolume = 70;
     public bool AmbienceSound = true;
+    /// <summary>Step 11: generative background music per area.</summary>
+    public int MusicVolume = 45;
+    public bool MusicOn = true;
     public bool ClickSounds = true;
     public bool NotificationSounds = true;
     public bool MuteInBackground = true;
@@ -105,6 +108,8 @@ public class AppSettings
         s.AmbienceVolume = Mathf.Clamp(Get("audio", "ambience", s.AmbienceVolume), 0, 100);
         s.InterfaceVolume = Mathf.Clamp(Get("audio", "interface", s.InterfaceVolume), 0, 100);
         s.AmbienceSound = Get("audio", "ambience_on", s.AmbienceSound);
+        s.MusicVolume = Mathf.Clamp(Get("audio", "music", s.MusicVolume), 0, 100);
+        s.MusicOn = Get("audio", "music_on", s.MusicOn);
         s.ClickSounds = Get("audio", "clicks", s.ClickSounds);
         s.NotificationSounds = Get("audio", "notifications", s.NotificationSounds);
         s.MuteInBackground = Get("audio", "mute_in_background", s.MuteInBackground);
@@ -147,6 +152,8 @@ public class AppSettings
         cfg.SetValue("audio", "ambience", AmbienceVolume);
         cfg.SetValue("audio", "interface", InterfaceVolume);
         cfg.SetValue("audio", "ambience_on", AmbienceSound);
+        cfg.SetValue("audio", "music", MusicVolume);
+        cfg.SetValue("audio", "music_on", MusicOn);
         cfg.SetValue("audio", "clicks", ClickSounds);
         cfg.SetValue("audio", "notifications", NotificationSounds);
         cfg.SetValue("audio", "mute_in_background", MuteInBackground);
@@ -162,7 +169,7 @@ public class AppSettings
         BlinkingLights = d.BlinkingLights; MovingParts = d.MovingParts; SmoothCamera = d.SmoothCamera;
         DayNight = d.DayNight; Weather = d.Weather; Seasons = d.Seasons; MouseSensitivity = d.MouseSensitivity; InvertMouse = d.InvertMouse;
         MasterVolume = d.MasterVolume; AmbienceVolume = d.AmbienceVolume; InterfaceVolume = d.InterfaceVolume;
-        AmbienceSound = d.AmbienceSound; ClickSounds = d.ClickSounds; NotificationSounds = d.NotificationSounds; MuteInBackground = d.MuteInBackground;
+        AmbienceSound = d.AmbienceSound; MusicVolume = d.MusicVolume; MusicOn = d.MusicOn; ClickSounds = d.ClickSounds; NotificationSounds = d.NotificationSounds; MuteInBackground = d.MuteInBackground;
         AutosaveMinutes = d.AutosaveMinutes;
     }
 

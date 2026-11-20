@@ -14,9 +14,9 @@ namespace DatacenterArchitect.UI;
 /// </summary>
 public partial class CompanyPanel : Modal
 {
-    public const int TabOrg = 0, TabSales = 1, TabContracts = 2, TabTenders = 3, TabFinance = 4;
-    static readonly string[] Tabs = { "co_tab_org", "co_tab_sales", "co_tab_contracts", "co_tab_tenders", "co_tab_finance" };
-    static readonly string[] TabIcons = { "org", "cat_customers", "contract", "tender", "money" };
+    public const int TabOrg = 0, TabSales = 1, TabContracts = 2, TabTenders = 3, TabFinance = 4, TabBrand = 5;
+    static readonly string[] Tabs = { "co_tab_org", "co_tab_sales", "co_tab_contracts", "co_tab_tenders", "co_tab_finance", "co_tab_brand" };
+    static readonly string[] TabIcons = { "org", "cat_customers", "contract", "tender", "money", "palette" };
 
     readonly Func<GameState> _state;
     readonly Action<string> _fail;
@@ -110,6 +110,7 @@ public partial class CompanyPanel : Modal
             case TabSales: SalesTab(s); break;
             case TabContracts: ContractsTab(s); break;
             case TabTenders: TendersTab(s); break;
+            case TabBrand: BrandTab(s); break;
             default: FinanceTab(s); break;
         }
         NoWrapInRows(_content);
@@ -126,7 +127,7 @@ public partial class CompanyPanel : Modal
         }
     }
 
-    string Signature(GameState s) =>
+    string Signature(GameState s) => _tab == TabBrand ? $"{_tab}|{Loc.Language}|{s.Logo.Version}|{s.Options.Company}" :
         $"{_tab}|{Loc.Language}|{(int)s.Day}|{s.Money / 1000}|{s.Execs.Count}:{string.Join(",", s.Execs.Select(x => $"{x.Role}{x.Training}{x.TrainingDaysLeft > 0}"))}|{s.Offices}|{s.Workplaces}|{s.SalesReps}|" +
         string.Join(",", s.Deals.Select(d => $"{d.Id}{d.State}")) + $"|{s.Loans.Count}|{s.InvestorShare}|{s.Rooms.Count}|{s.Supplier}|{s.Revision / 50}";
 
