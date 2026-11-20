@@ -180,6 +180,10 @@ public partial class WorldView
             sky = sky.Lerp(grey, _cloud * 0.75f);
             sky = sky.Lerp(new Color("#e8eeff"), _flash * 0.8f);
             env.BackgroundColor = sky;
+            _skyMat.SkyTopColor = sky.Darkened(0.28f).Lerp(new Color("#2f6fc0"), 0.35f * day * (1 - _cloud));
+            _skyMat.SkyHorizonColor = sky.Lightened(0.22f);
+            _skyMat.GroundHorizonColor = sky.Lightened(0.22f);
+            _skyMat.GroundBottomColor = new Color("#4d6b3c").Lerp(new Color("#0b1016"), night);
             var amb = new Color("#3a4f7a").Lerp(new Color("#b9d6f2"), day); // cool sky fill against the warm sun
             env.AmbientLightColor = Indoor ? new Color("#f2f6ff") : amb;
             env.AmbientLightEnergy = Indoor ? 0.85f : 0.16f + 0.1f * day + 0.16f * _cloud * day + _flash * 0.9f;
@@ -219,11 +223,16 @@ public partial class WorldView
             _lastSeason = w.Season; _lastSnow = _snowK;
             var (leaf, leaf2, tint) = SeasonColors(w.Season);
             var snowy = _snowK * 0.85f;
-            if (_grassMat != null) _grassMat.AlbedoColor = Mul(Brand.Grass, tint).Lerp(SnowColor, snowy);
-            if (_plotGrassMat != null) _plotGrassMat.AlbedoColor = Mul(Brand.PlotGrass, tint).Lerp(SnowColor, snowy);
+            if (_grassMat != null) _grassMat.AlbedoColor = Lift(Mul(Brand.Grass, tint).Lerp(SnowColor, snowy));
+            if (_plotGrassMat != null) _plotGrassMat.AlbedoColor = Lift(Mul(Brand.PlotGrass, tint).Lerp(SnowColor, snowy));
             if (_crownMat != null) _crownMat.AlbedoColor = leaf.Lerp(SnowColor, snowy * 0.5f);
             if (_crown2Mat != null) _crown2Mat.AlbedoColor = leaf2.Lerp(SnowColor, snowy * 0.5f);
             if (_fieldMat != null) _fieldMat.AlbedoColor = Mul(new Color("#b5a35a"), tint).Lerp(SnowColor, snowy);
+            Foliage.SetColor(Foliage.Leaf, (w.Season == Season.Summer ? Foliage.LeafSummer : leaf).Lerp(SnowColor, snowy * 0.5f));
+            Foliage.SetColor(Foliage.Leaf2, (w.Season == Season.Summer ? Foliage.Leaf2Summer : leaf2).Lerp(SnowColor, snowy * 0.5f));
+            Foliage.SetColor(Foliage.Needle, Foliage.NeedleSummer.Lerp(SnowColor, snowy * 0.45f));
+            Foliage.SetColor(Foliage.Bush, Mul(new Color("#4f8a37"), tint).Lerp(SnowColor, snowy * 0.5f));
+            Foliage.SetColor(Foliage.Grass, Mul(Foliage.GrassSummer, tint).Lerp(SnowColor, snowy * 0.8f));
             Models.LeafMat.AlbedoColor = (w.Season == Season.Summer ? new Color("#5f9a45") : leaf).Lerp(SnowColor, snowy * 0.4f);
             Models.Leaf2Mat.AlbedoColor = (w.Season == Season.Summer ? new Color("#77b356") : leaf2).Lerp(SnowColor, snowy * 0.4f);
             RoofMat.AlbedoColor = RoofColor.Lerp(SnowColor, _snowK);

@@ -1,0 +1,25 @@
+[remap]
+
+importer="wavefront_obj"
+importer_version=1
+type="Mesh"
+uid="uid://chfcg63gydexp"
+path="res://.godot/imported/kitchenMicrowave.obj-2f8169779487444405646da527000cad.mesh"
+
+[deps]
+
+files=["res://.godot/imported/kitchenMicrowave.obj-2f8169779487444405646da527000cad.mesh"]
+
+source_file="res://assets/models/furniture/kitchenMicrowave.obj"
+dest_files=["res://.godot/imported/kitchenMicrowave.obj-2f8169779487444405646da527000cad.mesh", "res://.godot/imported/kitchenMicrowave.obj-2f8169779487444405646da527000cad.mesh"]
+
+[params]
+
+generate_tangents=true
+generate_lods=true
+generate_shadow_mesh=true
+generate_lightmap_uv2=false
+generate_lightmap_uv2_texel_size=0.2
+scale_mesh=Vector3(1, 1, 1)
+offset_mesh=Vector3(0, 0, 0)
+force_disable_mesh_compression=false

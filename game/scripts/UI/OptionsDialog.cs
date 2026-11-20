@@ -239,6 +239,8 @@ public partial class OptionsDialog : Modal
         Row("opt_fog", Toggle(S.Fog, on => { S.Fog = on; SaveOther(); }), "opt_fog_help");
         int[] aa = { 0, 2, 4, 8 };
         Row("opt_msaa", Choice(new[] { Loc.T("opt_off"), "2×", "4×", "8×" }, Math.Max(0, Array.IndexOf(aa, S.Msaa)), i => { S.Msaa = aa[i]; SaveOther(); }), "opt_msaa_help");
+        Row("opt_lighting", Choice(new[] { Loc.T("opt_light_standard"), Loc.T("opt_light_high"), Loc.T("opt_light_ultra") }, S.Lighting, i => { S.Lighting = i; SaveOther(); }), "opt_lighting_help");
+        Row("opt_grass", Toggle(S.Grass, on => { S.Grass = on; SaveOther(); }), "opt_grass_help");
 
         Section("opt_section_effects");
         Row("opt_blinking", Toggle(S.BlinkingLights, on => { S.BlinkingLights = on; SaveOther(); }), "opt_blinking_help");
@@ -258,6 +260,8 @@ public partial class OptionsDialog : Modal
         s.AmbientOcclusion = level >= 2;
         s.Fog = level >= 1;
         s.Msaa = level switch { 0 => 0, 1 => 2, _ => 4 };
+        s.Lighting = level;
+        s.Grass = level >= 1;
     }
 
     void AudioTab()

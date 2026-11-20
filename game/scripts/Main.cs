@@ -1226,6 +1226,23 @@ public partial class Main : Node3D
             UpdateGoals(); UpdateProjects();
             _speed = 0;
         }
+        // --gallery a.glb,b.glb: models from assets/models in a row on an empty plot, to judge them in the game's light
+        var gal = Array.IndexOf(args, "--gallery");
+        if (gal >= 0 && gal + 1 < args.Length)
+        {
+            if (_state == null || !_playing) StartGame(GameState.New(new NewGameOptions { Company = "Polder Datacenters", Creative = true }), false);
+            var x = 6f;
+            foreach (var f in args[gal + 1].Split(','))
+            {
+                var mesh = Assets.Mesh(f, Foliage.ByName);
+                if (mesh == null) continue;
+                var w = Math.Max(mesh.GetAabb().Size.X, 1f);
+                x += w / 2;
+                _world.AddChild(new MeshInstance3D { Mesh = mesh, Position = new Vector3(x, 0, 20) });
+                x += w / 2 + 1.5f;
+            }
+            _cam.SetView(0.25f, 0.4f, Math.Max(7, (x - 6) * 0.62f), new Vector3((6 + x) / 2, 1.2f, 20));
+        }
         var cami = Array.IndexOf(args, "--cam");
         if (cami >= 0 && cami + 1 < args.Length)
         {
