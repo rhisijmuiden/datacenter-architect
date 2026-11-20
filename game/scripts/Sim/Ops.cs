@@ -334,7 +334,7 @@ public partial class GameState
     void EventsDay(int day, Random rng, List<Room> halls)
     {
         if (day < 10) return; // a quiet start
-        if (!GridDown && rng.NextDouble() < 1 / 90.0)
+        if (!GridDown && rng.NextDouble() < OutageWeatherFactor / 90.0)
         {
             StartEvent(EventKind.CityOutage, 2 + rng.Next(7));
             var inf = Infra;

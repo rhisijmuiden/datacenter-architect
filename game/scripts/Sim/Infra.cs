@@ -138,6 +138,8 @@ public static class Infra
         }
         var weight = r.Halls.Sum(h => h.ItKw);
         r.Pue = weight > 0 ? r.Halls.Sum(h => h.Pue * h.ItKw) / weight : 0;
+        // step 10: free cooling on cold days, harder work on hot ones
+        if (r.Pue > 0 && s.WeatherMatters) r.Pue = 1 + (r.Pue - 1) * s.CoolingWeatherFactor;
         var pue = r.Pue > 0 ? r.Pue : Catalog.Containments[Containment.Open].Pue;
 
         // ---- the power chain ----

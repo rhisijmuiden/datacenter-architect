@@ -56,6 +56,13 @@ public static class Models
         }
     }
 
+    /// <summary>Outdoor trees and shrubs share these so the seasons can recolour them all at once.</summary>
+    public static readonly StandardMaterial3D LeafMat = new() { AlbedoColor = new Color("#5f9a45"), Roughness = 0.9f };
+    public static readonly StandardMaterial3D Leaf2Mat = new() { AlbedoColor = new Color("#77b356"), Roughness = 0.9f };
+    /// <summary>Lamp heads glow brighter at night; their lights sit in this group and switch on at dusk.</summary>
+    public static readonly StandardMaterial3D LampMat = new() { AlbedoColor = new Color("#fff2c4"), EmissionEnabled = true, Emission = new Color("#fff2c4"), EmissionEnergyMultiplier = 1.2f };
+    public const string NightLightGroup = "night_light";
+
     static readonly Color White = new("#eef1f3"), Steel = new("#8f989f"), Dark = new("#2b3036"), Wood = new("#9a7550"), Leaf = new("#5f9a45"), Leaf2 = new("#77b356");
 
     /// <summary>Model of a placed object, centred on its footprint, facing +z when Rot = 0.</summary>
@@ -157,16 +164,19 @@ public static class Models
                 break;
             case ObjKind.Tree:
                 Cyl(n, new Vector3(0, 0.8f, 0), 0.1f, 1.6f, new Color("#7a5a3c"), 0.07f);
-                Ball(n, new Vector3(0, 2.1f, 0), 0.85f, Leaf, 0.9f);
-                Ball(n, new Vector3(0.25f, 2.6f, 0.1f), 0.55f, Leaf2);
+                Ball(n, new Vector3(0, 2.1f, 0), 0.85f, Leaf, 0.9f).MaterialOverride = LeafMat;
+                Ball(n, new Vector3(0.25f, 2.6f, 0.1f), 0.55f, Leaf2).MaterialOverride = Leaf2Mat;
                 break;
             case ObjKind.Shrub:
-                Ball(n, new Vector3(0, 0.35f, 0), 0.48f, Leaf, 0.75f);
+                Ball(n, new Vector3(0, 0.35f, 0), 0.48f, Leaf, 0.75f).MaterialOverride = LeafMat;
                 break;
             case ObjKind.LampPost:
                 Cyl(n, new Vector3(0, 2.0f, 0), 0.06f, 4f, Dark);
                 Box(n, new Vector3(0, 4.0f, 0.25f), new Vector3(0.18f, 0.08f, 0.6f), Dark);
-                Box(n, new Vector3(0, 3.95f, 0.45f), new Vector3(0.16f, 0.03f, 0.24f), new Color("#fff2c4"), glow: true);
+                Box(n, new Vector3(0, 3.95f, 0.45f), new Vector3(0.16f, 0.03f, 0.24f), new Color("#fff2c4"), glow: true).MaterialOverride = LampMat;
+                var lamp = new OmniLight3D { Position = new Vector3(0, 3.7f, 0.45f), OmniRange = 9, LightColor = new Color("#ffd9a0"), LightEnergy = 0, ShadowEnabled = false, Visible = false };
+                lamp.AddToGroup(NightLightGroup);
+                n.AddChild(lamp);
                 break;
             case ObjKind.Bench:
                 Box(n, new Vector3(0, 0.45f, 0), new Vector3(1.8f, 0.07f, 0.45f), Wood);
@@ -555,7 +565,21 @@ public static class Models
     static readonly Color[] Casual = { new("#6c5aa8"), new("#3f8f6b"), new("#b0473f"), new("#5d6b78"), new("#c48a3a"), new("#2f6f9a") };
     static readonly Color[] Skins = { new("#f1c7a5"), new("#d9a27c"), new("#a8714d"), new("#7a4e32"), new("#e8b48f") };
 
-    /// <summary>A round, friendly worker figure. Colour and hat show the role.</summary>
+    static readonly Color[] Hair = { new("#2b211c"), new("#6b4a2f"), new("#c99a5b"), new("#9a3f2a"), new("#d9d2c6"), new("#3a2f2a") };
+
+    /// <summary>A joint the walk animation turns: shoulders and hips, so arms and legs swing from the top.</summary>
+    static Node3D Joint(Node3D p, string name, Vector3 at)
+    {
+        var j = new Node3D { Name = name, Position = at };
+        p.AddChild(j);
+        return j;
+    }
+
+    /// <summary>
+    /// A round, friendly figure (step 10): a big round head with eyes, cheeks and hair, a soft pear-shaped body,
+    /// arms with hands that swing from the shoulder and legs with shoes that swing from the hip.
+    /// Colour, hat and a coloured band show the role. Node names Fig, L1, L2, A1, A2, Crate, Cart, Rack and Tool are animated.
+    /// </summary>
     public static Node3D Person(Role role, int id, StaffRole staff = StaffRole.Support)
     {
         var n = new Node3D();
@@ -569,14 +593,24 @@ public static class Models
             Role.Visitor => Casual[id % Casual.Length],
             _ => White,
         };
-        var legs = role == Role.Builder ? new Color("#3f4a57") : new Color("#2f3a46");
+        var legs = role == Role.Builder ? new Color("#3f4a57") : role == Role.Visitor ? new Color("#3b4a63") : new Color("#2f3a46");
+        var skin = Skins[Math.Abs(id) % Skins.Length];
         var fig = new Node3D { Name = "Fig" }; n.AddChild(fig);
-        var l1 = Capsule(fig, new Vector3(-0.1f, 0.28f, 0), 0.09f, 0.56f, legs); l1.Name = "L1";
-        var l2 = Capsule(fig, new Vector3(0.1f, 0.28f, 0), 0.09f, 0.56f, legs); l2.Name = "L2";
-        Capsule(fig, new Vector3(0, 0.82f, 0), 0.24f, 0.75f, body);
-        if (role == Role.Builder) Box(fig, new Vector3(0, 0.88f, 0.2f), new Vector3(0.3f, 0.06f, 0.06f), new Color("#e8f0f4"), glow: false);
-        if (role == Role.Engineer) Box(fig, new Vector3(0, 0.95f, 0.22f), new Vector3(0.36f, 0.05f, 0.05f), Brand.Power);
-        if (role == Role.Visitor) Box(fig, new Vector3(0.1f, 0.98f, 0.23f), new Vector3(0.1f, 0.13f, 0.02f), Brand.Cooling);
+        // legs swing from the hip; short and round, with chunky shoes
+        foreach (var (name, x) in new[] { ("L1", -0.11f), ("L2", 0.11f) })
+        {
+            var hip = Joint(fig, name, new Vector3(x, 0.5f, 0));
+            Capsule(hip, new Vector3(0, -0.22f, 0), 0.095f, 0.5f, legs);
+            var shoe = Ball(hip, new Vector3(0, -0.45f, 0.05f), 0.1f, Dark, 0.6f);
+            shoe.Scale = new Vector3(1, 0.6f, 1.45f);
+        }
+        // pear-shaped body: wide at the hips, narrower at the shoulders
+        var torso = Ball(fig, new Vector3(0, 0.78f, 0), 0.3f, body);
+        torso.Scale = new Vector3(1, 1.18f, 0.88f);
+        Ball(fig, new Vector3(0, 1.0f, 0), 0.23f, body).Scale = new Vector3(1, 0.8f, 0.85f);
+        if (role == Role.Builder) Box(fig, new Vector3(0, 0.88f, 0.24f), new Vector3(0.34f, 0.06f, 0.05f), new Color("#e8f0f4"), glow: false);
+        if (role == Role.Engineer) Box(fig, new Vector3(0, 0.95f, 0.245f), new Vector3(0.36f, 0.05f, 0.05f), Brand.Power);
+        if (role == Role.Visitor) Box(fig, new Vector3(0.11f, 0.98f, 0.255f), new Vector3(0.1f, 0.13f, 0.02f), Brand.Cooling);
         if (role == Role.Staff && id > 0)
         {
             // a coloured band shows the trade: amber power, cyan cooling, orange fiber (the brand colours)
@@ -586,38 +620,66 @@ public static class Models
                 StaffRole.Noc => Brand.Cooling, StaffRole.Guard => new Color("#c9d3dc"), StaffRole.Canteen => new Color("#2f3a46"), StaffRole.RemoteHands => Brand.Power,
                 _ => null,
             };
-            if (band is Color b) Box(fig, new Vector3(0, 0.95f, 0.22f), new Vector3(0.36f, 0.05f, 0.05f), b);
-            switch (staff)
-            {
-                case StaffRole.Guard: Ball(fig, new Vector3(0, 1.53f, 0), 0.2f, new Color("#1a2a44"), 0.45f); break;
-                case StaffRole.Gardener: Ball(fig, new Vector3(0, 1.52f, 0), 0.25f, new Color("#c9a85a"), 0.35f); break;
-                case StaffRole.FireSafety: Ball(fig, new Vector3(0, 1.5f, 0), 0.235f, new Color("#d23c32"), 0.62f); break;
-                case StaffRole.Electrical or StaffRole.Cooling or StaffRole.GeneratorTech or StaffRole.NetworkEng: Ball(fig, new Vector3(0, 1.5f, 0), 0.235f, White, 0.62f); break;
-                case StaffRole.Canteen: Ball(fig, new Vector3(0, 1.56f, 0), 0.17f, White, 1.1f); break;
-            }
+            if (band is Color b) Box(fig, new Vector3(0, 0.95f, 0.245f), new Vector3(0.36f, 0.05f, 0.05f), b);
         }
-        if (role == Role.Staff && id < 0) Ball(fig, new Vector3(0, 1.5f, 0), 0.235f, new Color("#ff8a2a"), 0.62f);
-        var arm1 = Capsule(fig, new Vector3(-0.29f, 0.85f, 0), 0.07f, 0.5f, body); arm1.Name = "A1";
-        var arm2 = Capsule(fig, new Vector3(0.29f, 0.85f, 0), 0.07f, 0.5f, body); arm2.Name = "A2";
-        Ball(fig, new Vector3(0, 1.38f, 0), 0.22f, Skins[Math.Abs(id) % Skins.Length]);
-        Ball(fig, new Vector3(-0.07f, 1.41f, 0.2f), 0.025f, Dark);
-        Ball(fig, new Vector3(0.07f, 1.41f, 0.2f), 0.025f, Dark);
+        // arms swing from the shoulder and end in a round hand
+        foreach (var (name, x) in new[] { ("A1", -0.31f), ("A2", 0.31f) })
+        {
+            var sh = Joint(fig, name, new Vector3(x, 1.06f, 0));
+            Capsule(sh, new Vector3(0, -0.2f, 0), 0.075f, 0.42f, body);
+            Ball(sh, new Vector3(0, -0.42f, 0.01f), 0.075f, skin);
+        }
+        // the big round head
+        const float hy = 1.42f;
+        Ball(fig, new Vector3(0, hy, 0), 0.27f, skin);
+        foreach (var x in new[] { -0.09f, 0.09f })
+        {
+            Ball(fig, new Vector3(x, hy + 0.03f, 0.235f), 0.045f, White);
+            Ball(fig, new Vector3(x, hy + 0.03f, 0.27f), 0.026f, Dark);
+            Ball(fig, new Vector3(x * 1.55f, hy - 0.06f, 0.215f), 0.04f, new Color("#f09a8a"), 0.6f);
+        }
+        Box(fig, new Vector3(0, hy - 0.1f, 0.255f), new Vector3(0.08f, 0.018f, 0.02f), new Color("#7a3b32"));
+        // hair under the hats; visitors and office staff show it
+        var hair = Ball(fig, new Vector3(0, hy + 0.07f, -0.03f), 0.275f, Hair[Math.Abs(id * 7 + 3) % Hair.Length], 0.82f);
+        hair.Scale = new Vector3(1.02f, 0.82f, 1.0f);
+        Color? hat = null; var hatSquash = 0.62f; var hatY = hy + 0.12f; var hatR = 0.285f;
         switch (role)
         {
-            case Role.Builder:
-                Ball(fig, new Vector3(0, 1.5f, 0), 0.235f, new Color("#ffd23e"), 0.62f);
-                Box(fig, new Vector3(0, 1.46f, 0.18f), new Vector3(0.3f, 0.03f, 0.12f), new Color("#ffd23e"));
-                break;
-            case Role.Engineer:
-                Ball(fig, new Vector3(0, 1.5f, 0), 0.235f, White, 0.62f);
-                break;
-            case Role.Fitter:
-                Ball(fig, new Vector3(0, 1.52f, -0.02f), 0.2f, new Color("#24466f"), 0.5f);
+            case Role.Builder: hat = new Color("#ffd23e"); break;
+            case Role.Engineer: hat = White; break;
+            case Role.Fitter: hat = new Color("#24466f"); hatSquash = 0.5f; break;
+            case Role.Staff when id < 0: hat = new Color("#ff8a2a"); break;
+            case Role.Staff:
+                switch (staff)
+                {
+                    case StaffRole.Guard: hat = new Color("#1a2a44"); hatSquash = 0.45f; hatY += 0.05f; break;
+                    case StaffRole.Gardener: hat = new Color("#c9a85a"); hatSquash = 0.3f; hatR = 0.36f; break;
+                    case StaffRole.FireSafety: hat = new Color("#d23c32"); break;
+                    case StaffRole.Electrical or StaffRole.Cooling or StaffRole.GeneratorTech or StaffRole.NetworkEng: hat = White; break;
+                    case StaffRole.Canteen: hat = White; hatSquash = 1.1f; hatR = 0.2f; hatY += 0.1f; break;
+                }
                 break;
         }
-        var crate = Box(n, new Vector3(0, 0.95f, 0.32f), new Vector3(0.4f, 0.3f, 0.3f), new Color("#c79a5b")); crate.Name = "Crate"; crate.Visible = false;
+        if (hat is Color hc)
+        {
+            Ball(fig, new Vector3(0, hatY, 0), hatR, hc, hatSquash);
+            if (role == Role.Builder || role == Role.Staff && staff == StaffRole.Guard)
+                Box(fig, new Vector3(0, hatY - 0.04f, 0.22f), new Vector3(0.32f, 0.03f, 0.14f), hc);
+        }
+        var crate = Box(n, new Vector3(0, 0.95f, 0.36f), new Vector3(0.4f, 0.3f, 0.3f), new Color("#c79a5b")); crate.Name = "Crate"; crate.Visible = false;
+        // movers push a small trolley with a stack of servers (customer migrations)
+        var cart = new Node3D { Name = "Cart", Position = new Vector3(0, 0, 0.75f), Visible = false }; n.AddChild(cart);
+        Box(cart, new Vector3(0, 0.18f, 0), new Vector3(0.6f, 0.05f, 0.75f), Steel, 0.5f, 0.5f);
+        Box(cart, new Vector3(0, 0.62f, -0.36f), new Vector3(0.56f, 0.04f, 0.04f), Dark);
+        Box(cart, new Vector3(0, 0.4f, -0.36f), new Vector3(0.04f, 0.45f, 0.04f), Dark);
+        for (var i = 0; i < 4; i++)
+        {
+            Box(cart, new Vector3(0, 0.25f + i * 0.1f, 0.02f), new Vector3(0.5f, 0.085f, 0.62f), Brand.Rack, 0.5f, 0.3f);
+            Box(cart, new Vector3(0.18f, 0.25f + i * 0.1f, 0.335f), new Vector3(0.05f, 0.02f, 0.01f), i % 2 == 0 ? Brand.Ok : Brand.Cooling, glow: true);
+        }
+        foreach (var (x, z) in new[] { (-0.25f, -0.3f), (0.25f, -0.3f), (-0.25f, 0.3f), (0.25f, 0.3f) }) Ball(cart, new Vector3(x, 0.07f, z), 0.06f, Dark);
         var rack = Box(n, new Vector3(0, 1.05f, 0.62f), new Vector3(0.9f, 2.1f, 0.85f), Brand.Rack, 0.5f, 0.4f); rack.Name = "Rack"; rack.Visible = false;
-        var tool = Box(fig, new Vector3(0.3f, 0.62f, 0.12f), new Vector3(0.12f, 0.2f, 0.06f), role == Role.Engineer ? Brand.Fiber : role == Role.Visitor ? Dark : Steel); tool.Name = "Tool";
+        var tool = Box(fig, new Vector3(0.33f, 0.66f, 0.12f), new Vector3(0.12f, 0.2f, 0.06f), role == Role.Engineer ? Brand.Fiber : role == Role.Visitor ? Dark : Steel); tool.Name = "Tool";
         return n;
     }
 
@@ -649,9 +711,15 @@ public static class Models
     public static Node3D Truck(TruckLoad load)
     {
         var n = new Node3D();
-        var cab = load == TruckLoad.Material ? new Color("#f2a33a") : new Color("#e9edf0");
+        var cab = load == TruckLoad.Material ? new Color("#f2a33a") : load == TruckLoad.Customer ? new Color("#3b4f66") : new Color("#e9edf0");
         Box(n, new Vector3(0, 1.15f, 2.4f), new Vector3(2.2f, 1.9f, 1.6f), cab, 0.5f);
         Box(n, new Vector3(0, 1.55f, 3.21f), new Vector3(1.9f, 0.8f, 0.02f), new Color("#2c4359"), 0.2f);
+        // headlights and tail lights; they glow brighter at night and in fog
+        foreach (var x in new[] { -0.8f, 0.8f })
+        {
+            Box(n, new Vector3(x, 0.75f, 3.21f), new Vector3(0.32f, 0.16f, 0.03f), new Color("#fff6d8")).MaterialOverride = World.WorldView.HeadlightMat;
+            Box(n, new Vector3(x * 1.2f, 0.75f, -2.72f), new Vector3(0.2f, 0.14f, 0.03f), Brand.Critical, glow: true);
+        }
         Box(n, new Vector3(0, 0.55f, -0.4f), new Vector3(2.2f, 0.3f, 4.6f), Dark);
         foreach (var z in new[] { 2.3f, -1.2f, -2.2f })
             foreach (var x in new[] { -1.05f, 1.05f })
@@ -659,7 +727,27 @@ public static class Models
                 var w = Cyl(n, new Vector3(x, 0.45f, z), 0.45f, 0.35f, new Color("#1e2226"));
                 w.RotationDegrees = new Vector3(0, 0, 90);
             }
-        if (load == TruckLoad.Equipment)
+        if (load == TruckLoad.Customer)
+        {
+            // a moving truck: a long box trailer in the customer colour band, rear doors open on a load of servers
+            Box(n, new Vector3(0, 1.85f, -0.5f), new Vector3(2.3f, 2.3f, 4.4f), new Color("#f4f6f8"), 0.6f);
+            Box(n, new Vector3(0, 1.3f, -0.5f), new Vector3(2.32f, 0.35f, 4.42f), Brand.Cooling);
+            Box(n, new Vector3(0, 2.6f, -0.5f), new Vector3(2.32f, 0.18f, 4.42f), Brand.Fiber);
+            Box(n, new Vector3(0, 1.9f, -2.71f), new Vector3(2.0f, 2.0f, 0.02f), new Color("#20262c"));
+            foreach (var x in new[] { -1.16f, 1.16f })
+            {
+                var door = new Node3D { Position = new Vector3(x, 0, -2.72f), RotationDegrees = new Vector3(0, x < 0 ? 100 : -100, 0) }; n.AddChild(door);
+                Box(door, new Vector3(x < 0 ? 0.55f : -0.55f, 1.85f, 0), new Vector3(1.1f, 2.2f, 0.04f), new Color("#e3e7ea"));
+            }
+            var cargo = new Node3D { Name = "Cargo" }; n.AddChild(cargo);
+            for (var i = 0; i < 3; i++)
+                foreach (var x in new[] { -0.5f, 0.5f })
+                {
+                    Box(cargo, new Vector3(x, 1.75f, -2.0f + i * 1.0f), new Vector3(0.8f, 1.9f, 0.8f), Brand.Rack, 0.5f, 0.3f);
+                    for (var u = 0; u < 5; u++) Box(cargo, new Vector3(x + 0.2f, 1.0f + u * 0.35f, -2.41f + i * 1.0f), new Vector3(0.06f, 0.025f, 0.01f), u % 2 == 0 ? Brand.Ok : Brand.Cooling, glow: true);
+                }
+        }
+        else if (load == TruckLoad.Equipment)
         {
             Box(n, new Vector3(0, 1.85f, -0.5f), new Vector3(2.3f, 2.3f, 4.4f), White, 0.6f);
             Box(n, new Vector3(0, 2.6f, -0.5f), new Vector3(2.32f, 0.3f, 4.42f), Brand.Power);

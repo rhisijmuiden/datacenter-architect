@@ -35,11 +35,13 @@ public partial class Hud : Control
     public Action<Role, int> CrewChanged;
     public Action<Facade> FacadeChanged;
     public Action<int> CyclePriority;
+    public Action Walk;
     public Action RotateLeft, RotateRight, ToggleGrid, ToggleRoofs, FloorUp, FloorDown, OpenInfo, OpenOptions, OpenMenu, ToggleLanguage, OpenPower, OpenNetwork;
     public Action<int> ToggleOverlay, OpenCompany, OpenStaff, OpenReputation, OpenGrowth;
     public Func<GameState> State;
 
     readonly Dictionary<string, (Label value, ProgressBar bar)> _bars = new();
+    Label _weather;
     Label _money, _date, _company, _toolHint, _floorLabel, _creative;
     Label _staffStat, _repStat;
     bool _alert;
@@ -705,6 +707,7 @@ public partial class Hud : Control
         h.AddChild(Ui.IconButton("rotate_left", "hud_rotate_left", () => RotateLeft?.Invoke()));
         h.AddChild(Ui.IconButton("rotate_right", "hud_rotate_right", () => RotateRight?.Invoke()));
         h.AddChild(Ui.IconButton("grid", "hud_grid", () => ToggleGrid?.Invoke()));
+        h.AddChild(Ui.IconButton("walk", "hud_walk", () => Walk?.Invoke()));
         _roofBtn = Ui.IconButton("roof", "hud_roofs", () => ToggleRoofs?.Invoke());
         h.AddChild(_roofBtn);
         h.AddChild(Ui.IconButton("floor_down", "hud_floor_down", () => FloorDown?.Invoke()));
@@ -876,9 +879,17 @@ public partial class Hud : Control
         AddChild(time);
         var h = new HBoxContainer(); h.AddThemeConstantOverride("separation", 4);
         time.AddChild(h);
-        _date = Ui.Number("", 17); _date.CustomMinimumSize = new Vector2(180, 0); _date.VerticalAlignment = VerticalAlignment.Center;
+        // the clock with the weather underneath, so the panel does not get wider
+        var clock = new VBoxContainer { Alignment = BoxContainer.AlignmentMode.Center };
+        clock.AddThemeConstantOverride("separation", -4);
+        h.AddChild(clock);
+        _date = Ui.Number("", 16); _date.CustomMinimumSize = new Vector2(180, 0); _date.VerticalAlignment = VerticalAlignment.Center;
         _date.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
-        h.AddChild(_date);
+        clock.AddChild(_date);
+        _weather = Ui.Text("", 12, Brand.InkDim);
+        _weather.AutoTranslateMode = AutoTranslateModeEnum.Disabled; _weather.TooltipText = "hud_weather";
+        _weather.MouseFilter = MouseFilterEnum.Stop;
+        clock.AddChild(_weather);
         string[] icons = { "pause", "play", "fast", "faster" };
         for (var i = 0; i < 4; i++)
         {
@@ -887,6 +898,38 @@ public partial class Hud : Control
             _speedBtns.Add(b); h.AddChild(b);
         }
         SetSpeed(1);
+    }
+
+    /// <summary>Weather and temperature next to the clock, for example "Rain · 8 °C" (step 10).</summary>
+    public void SetWeather(Sim.WeatherNow w, bool weatherOn, Sim.GameState state = null)
+    {
+        if (_weather == null) return;
+        string Key(Sim.WeatherNow x) => x.Kind switch
+        {
+            Sim.WeatherKind.Clear => x.Daylight < 0.3 ? "wx_clear_night" : "wx_clear",
+            Sim.WeatherKind.Cloudy => "wx_cloudy", Sim.WeatherKind.Rain => "wx_rain", Sim.WeatherKind.Storm => "wx_storm",
+            Sim.WeatherKind.Snow => "wx_snow", _ => "wx_fog",
+        };
+        var season = Loc.T("season_" + w.Season.ToString().ToLowerInvariant());
+        _weather.Text = !weatherOn ? season : Loc.T(Key(w)) + " · " + Math.Round(w.TempC).ToString("0") + " °C · " + season;
+        // the tooltip is the weather report: what the weather does now and the next three days
+        var tip = season + " · " + Loc.T("hud_weather");
+        if (state != null && weatherOn)
+        {
+            if (state.WeatherMatters)
+            {
+                var f = Sim.GameState.CoolingFactorAt(w.TempC);
+                tip += "\n" + Loc.T(f < 0.7 ? "wx_effect_cold" : f < 0.9 ? "wx_effect_mild" : f <= 1 ? "wx_effect_warm" : "wx_effect_hot");
+                if (w.Kind == Sim.WeatherKind.Storm) tip += "\n" + Loc.T("wx_effect_storm");
+                if (w.Kind is Sim.WeatherKind.Snow or Sim.WeatherKind.Fog) tip += "\n" + Loc.T("wx_effect_slow");
+            }
+            else tip += "\n" + Loc.T("wx_effect_off");
+            var culture = new System.Globalization.CultureInfo(Loc.Language == "nl" ? "nl-NL" : "en-GB");
+            tip += "\n\n" + Loc.T("hud_forecast");
+            foreach (var (day, f) in state.Forecast(3))
+                tip += "\n" + day.ToString("ddd d MMM", culture) + ": " + Loc.T(Key(f with { Daylight = 1 })) + ", " + Math.Round(f.TempC).ToString("0") + " °C";
+        }
+        _weather.TooltipText = tip;
     }
 
     public void SetSpeed(int s)

@@ -48,6 +48,8 @@ public partial class WorldView : Node3D
         BlinkingLights = s.BlinkingLights;
         ServerFill.SetBlinking(BlinkingLights);
         MovingParts = s.MovingParts;
+        DayNight = s.DayNight; WeatherFx = s.Weather; Seasons = s.Seasons;
+        _lastSeason = (Season)(-1);
         if (IsInsideTree()) GetViewport().Msaa3D = s.Msaa switch { 2 => Viewport.Msaa.Msaa2X, 4 => Viewport.Msaa.Msaa4X, 8 => Viewport.Msaa.Msaa8X, _ => Viewport.Msaa.Disabled };
     }
 
@@ -55,6 +57,9 @@ public partial class WorldView : Node3D
     bool _roofs = true;
     public int ViewFloor { get => _viewFloor; set { _viewFloor = Math.Clamp(value, 0, Catalog.MaxFloors - 1); Invalidate(); } }
     public bool Roofs { get => _roofs; set { _roofs = value; Invalidate(); } }
+    bool _fullWalls;
+    /// <summary>First-person view: walls of the open floor go up to the ceiling and a ceiling closes the room.</summary>
+    public bool FullWalls { get => _fullWalls; set { if (_fullWalls == value) return; _fullWalls = value; Invalidate(); } }
     public void Invalidate() { _layoutRev = -1; _objRev = -1; }
 
     public override void _Ready()
@@ -98,6 +103,7 @@ public partial class WorldView : Node3D
         }
         _racks = new RackRenderer { Name = "Racks" };
         AddChild(_racks);
+        SetupSky();
     }
 
     public void Build(GameState state, Simulation sim)
@@ -119,8 +125,10 @@ public partial class WorldView : Node3D
     void Surroundings(Node3D root, int s)
     {
         var rng = new Random(42);
-        Plane(root, new Vector3(s / 2f, -0.03f, s / 2f), new Vector2(900, 900), Brand.Grass);
-        Plane(root, new Vector3(s / 2f, -0.02f, s / 2f), new Vector2(s, s), Brand.PlotGrass);
+        var grass = new StandardMaterial3D { AlbedoColor = Brand.Grass, Roughness = 1f };
+        var plotGrass = new StandardMaterial3D { AlbedoColor = Brand.PlotGrass, Roughness = 1f };
+        Plane(root, new Vector3(s / 2f, -0.03f, s / 2f), new Vector2(900, 900), Brand.Grass).MaterialOverride = grass;
+        Plane(root, new Vector3(s / 2f, -0.02f, s / 2f), new Vector2(s, s), Brand.PlotGrass).MaterialOverride = plotGrass;
         // public road with markings and pavement
         Plane(root, new Vector3(s / 2f, -0.015f, s + 4), new Vector2(900, 6), Brand.Asphalt);
         for (var x = -420; x < 480; x += 6) Plane(root, new Vector3(s / 2f + x, -0.01f, s + 4), new Vector2(3, 0.18f), new Color("#ece6cc"));
@@ -163,15 +171,23 @@ public partial class WorldView : Node3D
             Tree(x, z);
         }
         Multi(root, new CylinderMesh { TopRadius = 0.12f, BottomRadius = 0.18f, Height = 1.6f, RadialSegments = 6 }, trunks, new Color("#7a5a3c"));
-        Multi(root, new SphereMesh { Radius = 1.3f, Height = 2.6f, RadialSegments = 8, Rings = 5 }, crowns, new Color("#5a9142"));
-        Multi(root, new SphereMesh { Radius = 1.3f, Height = 2.6f, RadialSegments = 8, Rings = 5 }, crowns2, new Color("#6fa94e"));
+        var crownMat = new StandardMaterial3D { AlbedoColor = new Color("#5a9142"), Roughness = 0.9f };
+        var crown2Mat = new StandardMaterial3D { AlbedoColor = new Color("#6fa94e"), Roughness = 0.9f };
+        var c1 = Multi(root, new SphereMesh { Radius = 1.3f, Height = 2.6f, RadialSegments = 8, Rings = 5 }, crowns, new Color("#5a9142"));
+        var c2 = Multi(root, new SphereMesh { Radius = 1.3f, Height = 2.6f, RadialSegments = 8, Rings = 5 }, crowns2, new Color("#6fa94e"));
+        if (c1 != null) c1.MaterialOverride = crownMat;
+        if (c2 != null) c2.MaterialOverride = crown2Mat;
+        var fieldMat = new StandardMaterial3D { AlbedoColor = new Color("#b5a35a"), Roughness = 1f };
         // farmland south of the road
         var fields = new[] { new Color("#c9b45e"), new Color("#8fb15a"), new Color("#b8995a"), new Color("#9cbd63") };
         for (var i = 0; i < 8; i++)
         {
             var w = 40 + rng.Next(30);
-            Plane(root, new Vector3(-90 + i * 52, -0.025f, s + 40 + (i % 2) * 6), new Vector2(w, 50), fields[i % fields.Length]);
+            var f = Plane(root, new Vector3(-90 + i * 52, -0.025f, s + 40 + (i % 2) * 6), new Vector2(w, 50), fields[i % fields.Length]);
+            if (i % 2 == 0) f.MaterialOverride = fieldMat;
         }
+        SeasonMaterials(grass, plotGrass, crownMat, crown2Mat, fieldMat);
+        _lastSeason = (Season)(-1);
         // a few neighbours: a farm, a small office block, and a distant data centre
         Neighbour(root, new Vector3(-40, 0, s + 20), new Vector3(10, 5, 7), new Color("#c96b4e"), new Color("#7d3f32"));
         Neighbour(root, new Vector3(-30, 0, s + 18), new Vector3(6, 7, 6), new Color("#e3dccf"), new Color("#6f7b85"));
@@ -191,20 +207,24 @@ public partial class WorldView : Node3D
         Box(root, pos + new Vector3(0, size.Y / 2, 0), size, wall);
         Box(root, pos + new Vector3(0, size.Y + 0.15f, 0), new Vector3(size.X + 0.3f, 0.3f, size.Z + 0.3f), roof);
         for (var y = 1.5f; y < size.Y - 1; y += 2.5f)
-            Box(root, pos + new Vector3(0, y, size.Z / 2 + 0.01f), new Vector3(size.X * 0.85f, 0.7f, 0.02f), new Color("#3c5a75"), 0.2f);
+            Box(root, pos + new Vector3(0, y, size.Z / 2 + 0.01f), new Vector3(size.X * 0.85f, 0.7f, 0.02f), new Color("#3c5a75"), 0.2f).MaterialOverride = WindowMat;
     }
 
-    static void Multi(Node3D root, Mesh mesh, List<Transform3D> xf, Color c, bool shadow = true)
+    static MultiMeshInstance3D Multi(Node3D root, Mesh mesh, List<Transform3D> xf, Color c, bool shadow = true)
     {
-        if (xf.Count == 0) return;
+        if (xf.Count == 0) return null;
         var mm = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = mesh, InstanceCount = xf.Count };
         for (var i = 0; i < xf.Count; i++) mm.SetInstanceTransform(i, xf[i]);
-        root.AddChild(new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = Mat(c, 0.9f), CastShadow = shadow ? GeometryInstance3D.ShadowCastingSetting.On : GeometryInstance3D.ShadowCastingSetting.Off });
+        var mi = new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = Mat(c, 0.9f), CastShadow = shadow ? GeometryInstance3D.ShadowCastingSetting.On : GeometryInstance3D.ShadowCastingSetting.Off };
+        root.AddChild(mi);
+        return mi;
     }
 
-    static void Plane(Node3D parent, Vector3 pos, Vector2 size, Color c)
+    static MeshInstance3D Plane(Node3D parent, Vector3 pos, Vector2 size, Color c)
     {
-        parent.AddChild(new MeshInstance3D { Mesh = new PlaneMesh { Size = size }, Position = pos, MaterialOverride = Mat(c, 1f), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+        var m = new MeshInstance3D { Mesh = new PlaneMesh { Size = size }, Position = pos, MaterialOverride = Mat(c, 1f), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
+        parent.AddChild(m);
+        return m;
     }
 
     void BuildGrid(Node3D root, int s)
@@ -231,13 +251,14 @@ public partial class WorldView : Node3D
     public void Sync(double delta)
     {
         if (_state == null) return;
-        if (_layoutRev != _state.LayoutRevision) { _layoutRev = _state.LayoutRevision; RebuildLayout(); _siteTimer = 0; }
-        if (_objRev != _state.Revision) { _objRev = _state.Revision; RebuildObjects(); }
+        if (_layoutRev != _state.LayoutRevision) { _layoutRev = _state.LayoutRevision; RebuildLayout(); _siteTimer = 0; _lampEnergy = -1; }
+        if (_objRev != _state.Revision) { _objRev = _state.Revision; RebuildObjects(); _lampEnergy = -1; }
         _siteTimer -= delta;
         if (_siteTimer <= 0) { _siteTimer = 0.35; RebuildSites(); }
         if (_stock != _state.MaterialStock) { _stock = _state.MaterialStock; RebuildPallets(); }
         SyncAgents(delta);
         Animate(delta);
+        UpdateSky(delta);
         Overlay.Sync(_state, delta);
     }
 
@@ -275,7 +296,7 @@ public partial class WorldView : Node3D
                     for (var yy = 0.45f; yy < FloorH; yy += 0.45f) Box(n, new Vector3(0, y + yy, 0), new Vector3(len, 0.03f, 0.01f), new Color("#8f4a36"));
                     for (var x = -len / 2 + 1.5f; x < len / 2 - 1; x += 2.5f)
                     {
-                        Box(n, new Vector3(x, y + 1.7f, 0.005f), new Vector3(1.5f, 1.5f, 0.02f), glass, 0.2f);
+                        Box(n, new Vector3(x, y + 1.7f, 0.005f), new Vector3(1.5f, 1.5f, 0.02f), glass, 0.2f).MaterialOverride = WindowMat;
                         Box(n, new Vector3(x, y + 0.92f, 0.03f), new Vector3(1.7f, 0.1f, 0.06f), new Color("#e9e3d8"));
                     }
                     break;
@@ -285,11 +306,12 @@ public partial class WorldView : Node3D
                     break;
                 case Facade.Concrete when b.Kind == BuildingKind.Office:
                     for (var x = -len / 2 + 1.5f; x < len / 2 - 1; x += 2.2f)
-                        Box(n, new Vector3(x, y + 1.7f, 0.005f), new Vector3(1.6f, 1.7f, 0.02f), glass, 0.2f);
+                        Box(n, new Vector3(x, y + 1.7f, 0.005f), new Vector3(1.6f, 1.7f, 0.02f), glass, 0.2f).MaterialOverride = WindowMat;
                     Box(n, new Vector3(0, y + 0.05f, 0.005f), new Vector3(len, 0.04f, 0.01f), new Color("#b3ada4"));
                     break;
                 case Facade.Concrete:
                     for (var x = -len / 2 + 3; x < len / 2; x += 3) Box(n, new Vector3(x, y + FloorH / 2, 0.005f), new Vector3(0.04f, FloorH, 0.01f), new Color("#b4babf"));
+                    if (f == 0) FacadeLights(n, len, y);
                     Box(n, new Vector3(0, y + FloorH - 0.05f, 0.005f), new Vector3(len, 0.04f, 0.01f), new Color("#b4babf"));
                     break;
                 case Facade.Cladding:
@@ -613,7 +635,8 @@ public partial class WorldView : Node3D
         for (var f = 0; f <= top; f++)
         {
             var cut = open && f == _viewFloor;
-            var h = cut ? CutH : FloorH;
+            var h = cut && !_fullWalls ? CutH : FloorH;
+            if (cut && _fullWalls) Box(root, new Vector3(b.X + b.W / 2f, Base(f) + FloorH - 0.06f, b.Z + b.D / 2f), new Vector3(b.W, 0.12f, b.D), new Color("#dfe3e6"), 0.95f);
             if (f > 0) Box(root, new Vector3(b.X + b.W / 2f, Base(f) - 0.1f, b.Z + b.D / 2f), new Vector3(b.W, 0.2f, b.D), Brand.Concrete, 0.95f);
             if (cut) Box(root, new Vector3(b.X + b.W / 2f, Base(f) + 0.005f, b.Z + b.D / 2f), new Vector3(b.W - 0.1f, 0.01f, b.D - 0.1f), new Color("#c4c9cd"), 0.95f);
             var edges = GameState.Perimeter(b.X, b.Z, b.W, b.D).ToHashSet();
@@ -635,13 +658,28 @@ public partial class WorldView : Node3D
         if (!open)
         {
             var roofY = Base(b.Floors - 1) + FloorH;
-            Box(root, new Vector3(b.X + b.W / 2f, roofY + 0.12f, b.Z + b.D / 2f), new Vector3(b.W + 0.3f, 0.24f, b.D + 0.3f), new Color("#6f7a83"));
-            Box(root, new Vector3(b.X + b.W / 2f, roofY + 0.27f, b.Z + b.D / 2f), new Vector3(b.W - 0.6f, 0.08f, b.D - 0.6f), new Color("#8a949c"));
+            Box(root, new Vector3(b.X + b.W / 2f, roofY + 0.12f, b.Z + b.D / 2f), new Vector3(b.W + 0.3f, 0.24f, b.D + 0.3f), new Color("#6f7a83")).MaterialOverride = RoofMat;
+            Box(root, new Vector3(b.X + b.W / 2f, roofY + 0.27f, b.Z + b.D / 2f), new Vector3(b.W - 0.6f, 0.08f, b.D - 0.6f), new Color("#8a949c")).MaterialOverride = RoofTopMat;
             if (b.Kind == BuildingKind.Datacenter) Box(root, new Vector3(b.X + b.W / 2f, roofY - 0.25f, b.Z + b.D + 0.16f), new Vector3(b.W, 0.25f, 0.06f), Brand.Power);
             // a few rooftop units so the roof is not empty, unless the player put plant there
             var roofPlant = _state.Objects.Any(o => o.Floor == GameState.RoofFloor && b.Contains(o.X, o.Z));
             for (var i = 0; i < (roofPlant ? 0 : Math.Min(4, b.W / 6)); i++)
                 Box(root, new Vector3(b.X + 3 + i * 5, roofY + 0.75f, b.Z + 2.5f), new Vector3(2.5f, 1f, 1.6f), new Color("#e3e7ea"));
+        }
+    }
+
+    /// <summary>Wall lamps along a closed datacenter facade: they glow at night and every other one lights the wall and ground.</summary>
+    static void FacadeLights(Node3D n, float len, float y)
+    {
+        var i = 0;
+        for (var x = -len / 2 + 4.5f; x < len / 2 - 2; x += 9, i++)
+        {
+            Box(n, new Vector3(x, y + 3.1f, 0.08f), new Vector3(0.36f, 0.12f, 0.16f), new Color("#3a4652"));
+            Box(n, new Vector3(x, y + 3.03f, 0.1f), new Vector3(0.3f, 0.02f, 0.12f), new Color("#fff2c4"), glow: true).MaterialOverride = LampMat;
+            if (i % 2 != 0) continue;
+            var l = new OmniLight3D { Position = new Vector3(x, y + 2.8f, 0.6f), OmniRange = 6, LightColor = new Color("#ffd9a0"), LightEnergy = 0, ShadowEnabled = false, Visible = false };
+            l.AddToGroup(NightLightGroup);
+            n.AddChild(l);
         }
     }
 
@@ -825,7 +863,7 @@ public partial class WorldView : Node3D
             if (b.Stage == Stage.Roof)
             {
                 var rows = (int)Math.Ceiling(b.D * p);
-                if (rows > 0) Box(root, new Vector3(b.X + b.W / 2f, Slab + total + 0.12f, b.Z + rows / 2f), new Vector3(b.W + 0.3f, 0.24f, rows), new Color("#6f7a83"));
+                if (rows > 0) Box(root, new Vector3(b.X + b.W / 2f, Slab + total + 0.12f, b.Z + rows / 2f), new Vector3(b.W + 0.3f, 0.24f, rows), new Color("#6f7a83")).MaterialOverride = RoofMat;
             }
         }
         var crane = Crane(Math.Max(12, b.Floors * FloorH + 8), Math.Max(b.W, b.D) * 0.8f);
@@ -966,7 +1004,11 @@ public partial class WorldView : Node3D
             var arm = a.Working ? Mathf.Sin(t * 14 + a.Id) * 50 - 40 : walking ? -Mathf.Sin(ph) * 22 : 0;
             fig.GetNode<Node3D>("A1").RotationDegrees = new Vector3(arm, 0, 0);
             fig.GetNode<Node3D>("A2").RotationDegrees = new Vector3(a.Working ? -arm - 80 : -arm, 0, 0);
-            n.GetNode<Node3D>("Crate").Visible = (a.Role == Role.Builder || a.Role == Role.Visitor) && a.Loaded && a.Carry > 0 && a.Phase == 1;
+            n.GetNode<Node3D>("Crate").Visible = a.Role == Role.Builder && a.Loaded && a.Carry > 0 && a.Phase == 1;
+            // movers of a customer migration push a trolley of servers: in to the racks, or out to the truck
+            var cart = n.GetNode<Node3D>("Cart");
+            cart.Visible = a.Role == Role.Visitor && a.Carry > 0;
+            if (cart.Visible) fig.GetNode<Node3D>("A1").RotationDegrees = fig.GetNode<Node3D>("A2").RotationDegrees = new Vector3(-62, 0, 0);
             n.GetNode<Node3D>("Rack").Visible = a.Role == Role.Fitter && a.CarryObj != 0 && a.Phase == 2;
         }
         foreach (var id in _agentNodes.Keys.Where(id => !alive.Contains(id)).ToList())
