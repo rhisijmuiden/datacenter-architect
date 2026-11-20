@@ -29,7 +29,7 @@ public class AppSettings
     /// <summary>Frame cap, 0 = unlimited.</summary>
     public int MaxFps = 0;
     /// <summary>Interface size on top of the automatic scaling, 0.75 to 1.5.</summary>
-    public float UiScale = 1f;
+    public float UiScale = 0.75f;
 
     // graphics and visual effects
     public bool Shadows = true;
