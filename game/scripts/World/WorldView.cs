@@ -210,6 +210,7 @@ public partial class WorldView : Node3D
             Tree(x, z);
         }
         Forest(root, spots, rng, 0.35f);
+        Willows(root, s);
         // undergrowth and grass along the forest edges and the verges outside the plot
         var verge = new List<Vector2>();
         for (var i = 0; i < 9000; i++)

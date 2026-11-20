@@ -203,10 +203,69 @@ def roof_unit():
     save(P('roof_unit'), o, keep_separate=())
 
 
+def park_bench():
+    """2 m park bench: cast-iron sides with armrests, curved wooden seat and back slats."""
+    reset(); o = []
+    for x in (-0.88, 0.88):
+        o.append(tube_path([g(x, 0, 0.22), g(x, 0.43, 0.18), g(x, 0.45, -0.18), g(x, 0, -0.25)], 0.03, 'dark_steel', 8))   # leg frame
+        o.append(tube_path([g(x, 0.43, -0.2), g(x, 0.62, -0.26), g(x, 0.88, -0.32)], 0.028, 'dark_steel', 8))           # back post
+        o.append(tube_path([g(x, 0.45, 0.2), g(x, 0.66, 0.18), g(x, 0.66, -0.2)], 0.025, 'dark_steel', 8))             # armrest
+        o.append(box(gs(0.07, 0.03, 0.3), g(x, 0.67, 0.0), 'wood', 0.01))
+    for k in range(5):
+        z = 0.17 - k * 0.085
+        o.append(box(gs(1.9, 0.035, 0.07), g(0, 0.45 + (0.01 if k in (0, 4) else 0), z), 'wood', 0.012))
+    for k in range(3):
+        y = 0.56 + k * 0.11
+        o.append(box(gs(1.9, 0.09, 0.03), g(0, y, -0.25 - k * 0.025), 'wood', 0.01, (math.radians(-14), 0, 0)))
+    o.append(box(gs(0.5, 0.08, 0.01), g(0, 0.36, 0.2), 'accent_power', 0))                                         # small plaque
+    save(P('park_bench'), o)
+
+
+def picnic_table():
+    """Wooden picnic table with two attached benches, 2 x 2 m."""
+    reset(); o = []
+    for k in range(5):
+        o.append(box(gs(1.8, 0.04, 0.15), g(0, 0.74, -0.32 + k * 0.16), 'wood', 0.012))                                 # table top
+    for x in (-0.7, 0.7):
+        for z in (-1, 1):
+            o.append(box(gs(0.07, 0.95, 0.07), g(x, 0.37, z * 0.36), 'wood', 0.01, (math.radians(z * 32), 0, 0)))      # A-frame legs
+        o.append(box(gs(0.07, 0.07, 1.55), g(x, 0.4, 0), 'wood', 0.01))                                                 # cross bar under the seats
+        o.append(box(gs(0.06, 0.06, 0.7), g(x, 0.68, 0), 'wood', 0.01))
+    for z in (-0.68, 0.68):
+        for k in range(2):
+            o.append(box(gs(1.8, 0.04, 0.12), g(0, 0.44, z - 0.065 + k * 0.13), 'wood', 0.01))                         # bench seats
+    save(P('picnic_table'), o)
+
+
+def terrace_set():
+    """Round bistro table with four chairs under a canvas parasol, 2 x 2 m."""
+    reset(); o = []
+    o.append(cyl(0.38, 0.03, g(0, 0.73, 0), 'paint_light', 28, bevel=0.01))
+    o.append(cyl(0.025, 0.7, g(0, 0.37, 0), 'dark_steel', 10))
+    o.append(cyl(0.22, 0.03, g(0, 0.015, 0), 'dark_steel', 20))
+    for k in range(4):
+        a = math.pi / 4 + k * math.pi / 2
+        cx, cz = math.cos(a) * 0.68, math.sin(a) * 0.68
+        rot = (0, 0, -a + math.pi / 2)
+        seat = box(gs(0.42, 0.04, 0.42), g(cx, 0.45, cz), 'navy', 0.015)
+        seat.rotation_euler = (0, 0, -a - math.pi / 2); o.append(seat)
+        bx, bz = math.cos(a) * 0.88, math.sin(a) * 0.88
+        back = box(gs(0.42, 0.36, 0.03), g(bx, 0.7, bz), 'navy', 0.01)
+        back.rotation_euler = (0, 0, -a - math.pi / 2); o.append(back)
+        for dx, dz in ((-0.17, -0.17), (0.17, -0.17), (-0.17, 0.17), (0.17, 0.17)):
+            ca, sa = math.cos(a), math.sin(a)
+            o.append(cyl(0.012, 0.45, g(cx + dx * ca - dz * sa, 0.225, cz + dx * sa + dz * ca), 'steel', 6, bevel=0))
+    o.append(cyl(0.02, 2.3, g(0, 1.15, 0), 'paint_light', 8))                                                          # parasol pole
+    o.append(cyl(1.25, 0.45, g(0, 2.2, 0), 'paint_white', 8, r2=0.05, bevel=0.0))                                      # canvas
+    o.append(cyl(1.26, 0.12, g(0, 1.98, 0), 'accent_power', 8, r2=1.2, bevel=0.0))                                     # valance
+    o.append(cyl(0.05, 0.12, g(0, 2.48, 0), 'paint_light', 8))
+    save(P('terrace_set'), o)
+
+
 if __name__ == '__main__':
     only = set(os.environ.get('ONLY', '').split(',')) - {''}
     fns = [guard_booth, intercom, ped_gate, barrier_post, barrier_arm, lambda: sliding_gate(3), lambda: sliding_gate(6),
-           solar_panel, wind_tower, wind_rotor, roof_unit]
+           solar_panel, wind_tower, wind_rotor, roof_unit, park_bench, picnic_table, terrace_set]
     for f in fns:
         if not only or f.__name__ in only:
             f()

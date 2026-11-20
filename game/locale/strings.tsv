@@ -171,6 +171,9 @@ obj_shrub	Shrub	Struik
 obj_lamp	Lamp post	Lantaarnpaal
 obj_bench	Bench	Bankje
 obj_bikerack	Bike rack	Fietsenrek
+obj_park_bench	Park bench	Parkbank
+obj_picnic_table	Picnic table	Picknicktafel
+obj_terrace_set	Terrace table with parasol	Terrastafel met parasol
 obj_guardbooth	Guard booth	Beveiligingshokje
 obj_intercom	Intercom	Intercom
 obj_barrier	Barrier	Slagboom
