@@ -53,6 +53,7 @@ public static class Achievements
         new("year_1", "dashboard", s => s.Hours >= 365 * 24),
         new("year_10", "dashboard", s => s.Hours >= 3650 * 24),
         new("campus_256", "cat_land", s => s.PlotSize >= 256),
+        new("dc_of_year", "trophy", null),
         new(Photo, "camera", null),
         new(Walk, "walk", null),
         new(Timelapse, "film", null),

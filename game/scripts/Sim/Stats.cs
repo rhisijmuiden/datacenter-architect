@@ -77,6 +77,7 @@ public partial class GameState
         RecordStats(day);
         AchievementsDay();
         ScenarioDay(day);
+        AwardsDay(day);
     }
 
     void RecordStats(int day)

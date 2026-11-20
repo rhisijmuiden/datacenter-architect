@@ -76,6 +76,7 @@ public static class Sections
             new("pg_tab_scenario", "medal", PanelKind.Progress, ProgressPanel.TabScenario),
             new("pg_tab_achievements", "trophy", PanelKind.Progress, ProgressPanel.TabAchievements),
             new("pg_tab_timelapse", "film", PanelKind.Progress, ProgressPanel.TabTimelapse),
+            new("pg_tab_awards", "trophy", PanelKind.Progress, ProgressPanel.TabAwards),
         }),
     };
 

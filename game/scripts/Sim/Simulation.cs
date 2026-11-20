@@ -108,8 +108,8 @@ public partial class Simulation
     public IEnumerable<Site> Sites()
     {
         var list = new List<Site>();
-        foreach (var b in S.Buildings.Where(b => b.Stage != Stage.Done)) list.Add(new Site { B = b });
-        foreach (var r in S.Rooms.Where(r => r.Stage != Stage.Done))
+        foreach (var b in S.Buildings.Where(b => b.Stage != Stage.Done && !S.IsPlanned(b))) list.Add(new Site { B = b });
+        foreach (var r in S.Rooms.Where(r => r.Stage != Stage.Done && !S.IsPlanned(r)))
             if (S.BuildingOf(r)?.Stage == Stage.Done) list.Add(new Site { R = r });
         return list.OrderByDescending(s => s.Priority).ThenBy(s => s.Id);
     }
@@ -216,9 +216,9 @@ public partial class Simulation
     public void FinishEverything()
     {
         var changed = false;
-        foreach (var b in S.Buildings.Where(b => b.Stage != Stage.Done)) { b.Stage = Stage.Done; b.Material = 0; b.Work = 0; changed = true; }
-        foreach (var r in S.Rooms.Where(r => r.Stage != Stage.Done)) { r.Stage = Stage.Done; r.Material = 0; r.Work = 0; changed = true; }
-        foreach (var o in S.Objects.Where(o => o.Status != ObjStatus.Live)) { o.Status = ObjStatus.Live; changed = true; }
+        foreach (var b in S.Buildings.Where(b => b.Stage != Stage.Done && !S.IsPlanned(b))) { b.Stage = Stage.Done; b.Material = 0; b.Work = 0; changed = true; }
+        foreach (var r in S.Rooms.Where(r => r.Stage != Stage.Done && !S.IsPlanned(r))) { r.Stage = Stage.Done; r.Material = 0; r.Work = 0; changed = true; }
+        foreach (var o in S.Objects.Where(o => o.Status != ObjStatus.Live && !S.IsPlanned(o))) { o.Status = ObjStatus.Live; changed = true; }
         foreach (var a in Agents.Where(a => a.Role is not (Role.Visitor or Role.Staff) && (a.Role != Role.Builder || a.Phase != 0))) Reset(a);
         Agents.RemoveAll(a => a.Role == Role.Truck);
         if (changed) S.Touch();
@@ -577,7 +577,7 @@ public partial class Simulation
         }
         // racks and cooling units (and customers moving in) to the loading dock
         var onTruck = trucks.SelectMany(t => t.Items).ToHashSet();
-        var waiting = S.Objects.Where(o => o.Status == ObjStatus.Ordered && !onTruck.Contains(o.Id) && HallReady(o) && !S.SupplyHeld(o)).OrderBy(o => o.Id).ToList();
+        var waiting = S.Objects.Where(o => o.Status == ObjStatus.Ordered && !S.IsPlanned(o) && !onTruck.Contains(o.Id) && HallReady(o) && !S.SupplyHeld(o)).OrderBy(o => o.Id).ToList();
         if (waiting.Count > 0 && trucks.Count(t => t.Load == TruckLoad.Equipment) < 2 && !Cooling(-2))
         {
             var docks = Docks();

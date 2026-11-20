@@ -38,6 +38,8 @@ public partial class Hud : Control
     public Action Photo;
     /// <summary>Undo and redo the last building action (Ctrl+Z / Ctrl+Y), from the buttons above the bulldozer.</summary>
     public Action Undo, Redo;
+    /// <summary>Step 11: plan mode on/off (button above the bulldozer, key B).</summary>
+    public Action TogglePlan;
     public Action RotateLeft, RotateRight, ToggleGrid, ToggleRoofs, FloorUp, FloorDown, OpenInfo, OpenOptions, OpenMenu, ToggleLanguage, OpenPower, OpenNetwork;
     public Action<int> ToggleOverlay, OpenCompany, OpenStaff, OpenReputation, OpenGrowth;
     public Func<GameState> State;
@@ -67,7 +69,7 @@ public partial class Hud : Control
     PanelContainer _inspectPanel;
     readonly List<Button> _speedBtns = new();
     readonly Dictionary<string, Button> _catBtns = new();
-    Button _selectBtn, _eraseBtn, _undoBtn, _redoBtn;
+    Button _selectBtn, _eraseBtn, _undoBtn, _redoBtn, _planBtn;
     HBoxContainer _floorsRow, _facadeRow;
     SpinBox _floors;
     OptionButton _facade;
@@ -550,6 +552,8 @@ public partial class Hud : Control
         // undo and redo sit just above the bulldozer
         _undoBtn = SmallCorner("undo", "hud_undo", 2, () => Undo?.Invoke());
         _redoBtn = SmallCorner("redo", "hud_redo", 1, () => Redo?.Invoke());
+        _planBtn = SmallCorner("blueprint", "hud_plan", 3, () => TogglePlan?.Invoke());
+        _planBtn.ToggleMode = true;
         RefreshCategory();
     }
 
@@ -570,6 +574,15 @@ public partial class Hud : Control
         return b;
     }
 
+    /// <summary>Shows whether plan mode is on (the blueprint button lights up in cyan).</summary>
+    public void SetPlan(bool on)
+    {
+        if (_planBtn == null) return;
+        _planBtn.SetPressedNoSignal(on);
+        _planBtn.AddThemeStyleboxOverride("pressed", Ui.Box(new Color(Brand.Cooling, 0.35f), 10, Brand.Cooling, 2, 6, true));
+        _planBtn.AddThemeColorOverride("icon_pressed_color", Brand.Cooling);
+    }
+
     /// <summary>Grey out undo and redo when there is nothing to take back or do again; tooltips name the action.</summary>
     public void SetUndo(string undo, string redo)
     {
@@ -578,6 +591,10 @@ public partial class Hud : Control
         _undoBtn.TooltipText = undo == null ? Loc.T("hud_undo") : Loc.T("hud_undo_what", Loc.T(undo));
         _redoBtn.TooltipText = redo == null ? Loc.T("hud_redo") : Loc.T("hud_redo_what", Loc.T(redo));
     }
+
+    /// <summary>Step 11 tutorial: the build-bar button of a category (to point at it), and opening a category from outside.</summary>
+    public Button CategoryButton(string cat) => cat != null && _catBtns.TryGetValue(cat, out var b) ? b : null;
+    public void OpenCategory(string cat) { if (cat == null || !_catBtns.ContainsKey(cat)) return; _category = cat; RefreshCategory(); }
 
     Button CatButton(string key, string icon, Color accent, Action a)
     {

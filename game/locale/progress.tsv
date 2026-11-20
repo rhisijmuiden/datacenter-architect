@@ -181,3 +181,89 @@ ach_tourist	Tourist	Toerist
 ach_tourist_desc	Walk around your own datacenter	Loop rond in je eigen datacenter
 ach_director_cut	Director's cut	Director's cut
 ach_director_cut_desc	Watch the timelapse of your campus to the end	Kijk de timelapse van je campus helemaal af
+grid_queue_place	queue place {0}	wachtrij plek {0}
+grid_queue_running	In the grid operator's queue for {0} MVA: place {1}, about {2} days until connected	In de wachtrij van de netbeheerder voor {0} MVA: plek {1}, nog ongeveer {2} dagen tot aansluiting
+grid_queue_help	The grid is congested: a heavier connection first waits in the operator's queue, about a month per place, then the works start. Battery containers on your site help the grid and move you up one place.	Het net is vol: een zwaardere aansluiting wacht eerst in de wachtrij van de netbeheerder, ongeveer een maand per plek, daarna begint het werk. Batterijcontainers op je terrein helpen het net en schuiven je één plek op.
+msg_grid_queue_joined	Grid request filed. You are place {0} in the grid operator's queue.	Netaanvraag ingediend. Je staat op plek {0} in de wachtrij van de netbeheerder.
+msg_grid_queue_place	Grid queue: you moved up to place {0}.	Netwachtrij: je bent opgeschoven naar plek {0}.
+msg_grid_queue_done	Your turn in the grid queue: the operator starts the works for {0} MVA.	Je bent aan de beurt in de netwachtrij: de netbeheerder begint aan {0} MVA.
+new_grid_queue	Grid congestion	Netcongestie
+new_grid_queue_help	A heavier grid connection first waits in the grid operator's queue before the works start, like on today's busy grid.	Een zwaardere netaansluiting wacht eerst in de wachtrij van de netbeheerder voordat het werk begint, zoals op het drukke net van nu.
+pg_tab_awards	Datacenter of the year	Datacenter van het jaar
+aw_title	Datacenter of the year {0}	Datacenter van het jaar {0}
+aw_days_left	jury in {0} days	jury over {0} dagen
+aw_help	On New Year's Day a jury picks the best datacenter of the past year. It looks at reputation, uptime, PUE, ESG, growth and size, and compares you with your rivals. A top three place puts a statuette on the CEO's desk and lifts your reputation.	Op nieuwjaarsdag kiest een jury het beste datacenter van het afgelopen jaar. Ze kijkt naar reputatie, uptime, PUE, ESG, groei en omvang, en vergelijkt je met je concurrenten. Een plek in de top drie zet een beeldje op het bureau van de CEO en geeft je reputatie een duw.
+aw_too_small	The jury only looks at sites with at least {0} live racks.	De jury kijkt alleen naar locaties met minstens {0} live racks.
+aw_score_now	Jury score so far: {0} / 100	Juryscore tot nu toe: {0} / 100
+aw_rep	Reputation	Reputatie
+aw_uptime	Uptime	Uptime
+aw_pue	PUE	PUE
+aw_esg	ESG	ESG
+aw_growth	Growth	Groei
+aw_size	Size	Omvang
+aw_field	The field this year	Het veld dit jaar
+aw_no_rivals	No rivals in this game: beat the jury's own bar.	Geen concurrenten in dit spel: versla de lat van de jury.
+aw_field_help	Rival scores are the jury's estimate; the final ranking comes on New Year's Day.	De scores van concurrenten zijn een inschatting van de jury; de uitslag volgt op nieuwjaarsdag.
+aw_history	Earlier years	Eerdere jaren
+aw_none_yet	No awards yet. The first jury meets after a full year with a running site.	Nog geen prijzen. De eerste jury komt na een volledig jaar met een draaiende locatie.
+aw_won	Winner	Winnaar
+aw_place	Place {0}	Plek {0}
+aw_lost	Won by {0}	Gewonnen door {0}
+aw_score	score {0}	score {0}
+aw_on_desk	Your statuettes stand on the desk in the director's office.	Je beeldjes staan op het bureau in de directiekamer.
+aw_no_desk	Build a director's office with a desk to show your statuettes.	Bouw een directiekamer met een bureau om je beeldjes te laten zien.
+msg_award_won	You are Datacenter of the year {0}! A gold statuette goes on the CEO's desk.	Jullie zijn Datacenter van het jaar {0}! Er komt een gouden beeldje op het bureau van de CEO.
+msg_award_place	Datacenter of the year {0}: you take {1}. A statuette goes on the CEO's desk.	Datacenter van het jaar {0}: jullie winnen {1}. Er komt een beeldje op het bureau van de CEO.
+msg_award_lost	Datacenter of the year {0} goes to {1}. Next year better.	Datacenter van het jaar {0} gaat naar {1}. Volgend jaar beter.
+ach_dc_of_year	Datacenter of the year	Datacenter van het jaar
+ach_dc_of_year_desc	Win the yearly Datacenter of the year award.	Win de jaarlijkse prijs Datacenter van het jaar.
+new_tutorial	Tutorial: guide me through my first datacenter	Tutorial: begeleid me bij mijn eerste datacenter
+new_tutorial_help	A coach explains each step of the checklist: what to build, where it is and why.	Een coach legt elke stap van de checklist uit: wat je bouwt, waar het zit en waarom.
+tut_heading	Tutorial	Tutorial
+tut_step	Tutorial · step {0} of {1}	Tutorial · stap {0} van {1}
+tut_show	Show me	Laat zien
+tut_next	Next tip	Volgende tip
+tut_start	Let's start	Aan de slag
+tut_close	Close	Sluiten
+tut_stop	Stop tutorial	Tutorial stoppen
+tut_where_build	You find it in the build bar under {0} (it glows).	Je vindt het in de bouwbalk onder {0} (die licht op).
+tut_where_screen	Open {0} in the menu on the left.	Open {0} in het menu aan de linkerkant.
+tut_welcome	Welcome to your plot	Welkom op je kavel
+tut_welcome_text	Right-drag rotates the camera, the wheel zooms and WASD moves around. The checklist on the right shows what a first datacenter needs; I explain each step here. Builders, trucks and staff do the work by themselves: you design.	Rechts slepen draait de camera, het scrollwiel zoomt en met WASD schuif je. De checklist rechts toont wat een eerste datacenter nodig heeft; ik leg hier elke stap uit. Bouwers, vrachtwagens en personeel doen het werk zelf: jij ontwerpt.
+tut_finished	Your datacenter is up and running	Je datacenter draait
+tut_finished_text	Everything on the checklist is done. From here: sign more customers, grow your halls, and keep an eye on Progress (F8) for scenarios, achievements and the Datacenter of the year.	Alles op de checklist is klaar. Vanaf hier: teken meer klanten, laat je zalen groeien en houd Voortgang (F8) in de gaten voor scenario's, prestaties en Datacenter van het jaar.
+tut_driveway	Trucks and builders need a way in. Drag asphalt from the road at the edge of your plot towards where you will build.	Vrachtwagens en bouwers moeten erin kunnen. Sleep asfalt vanaf de weg aan de rand van je kavel naar de plek waar je gaat bouwen.
+tut_yard	Builders store their materials on a yard. Paint a small yard (about 4 by 4) next to your driveway.	Bouwers leggen hun materiaal op een bouwplaats. Schilder een kleine bouwplaats (ongeveer 4 bij 4) naast je oprit.
+tut_building	Drag out a datacenter building on the grass. Start modest, around 20 by 14: you can always build more later. The crews start right away.	Trek een datacenterpand uit op het gras. Begin bescheiden, zo'n 20 bij 14: je kunt later altijd uitbreiden. De ploegen beginnen meteen.
+tut_hall	Inside the finished building, drag a data hall room. This is where the racks will stand. Leave space for a loading dock and an office.	Trek in het afgebouwde pand een datahal uit. Hier komen de racks te staan. Laat ruimte over voor een laadperron en een kantoor.
+tut_dock	Racks arrive by truck. Make a loading dock room against an outer wall, then put a roll-up door (Buildings) in that wall next to the asphalt.	Racks komen per vrachtwagen. Maak een laadperron tegen een buitenmuur en zet een roldeur (Gebouwen) in die muur, naast het asfalt.
+tut_rack	Drag rows of racks in the data hall. A wide drag makes pairs of rows with cold and hot aisles. A truck delivers them and engineers install them.	Sleep rijen racks in de datahal. Breed slepen maakt paren rijen met koude en warme gangen. Een vrachtwagen levert ze en engineers installeren ze.
+tut_office	Your directors need a place to work. Make a director's office room and furnish it with a desk and a chair (Interior).	Je directie heeft een werkplek nodig. Maak een directiekamer en zet er een bureau en een stoel in (Inrichting).
+tut_ceo	Hire a CEO under Company. From then on the managers run the company by themselves.	Neem een CEO aan onder Bedrijf. Daarna runnen de managers het bedrijf zelf.
+tut_sales	Hire a sales director: they find customers for your racks and sign contracts.	Neem een salesdirecteur aan: die zoekt klanten voor je racks en tekent contracten.
+tut_switchgear	Racks need power. Place the main switchgear in the building: it takes the grid connection in.	Racks hebben stroom nodig. Plaats de hoofdschakelkast in het pand: die neemt de netaansluiting binnen.
+tut_ups	A UPS with batteries bridges the seconds of a power cut until the generators run. Place both, ideally in a UPS room.	Een UPS met accu's overbrugt de seconden van een stroomstoring tot de generatoren draaien. Plaats beide, het liefst in een UPS-ruimte.
+tut_pdu	A PDU (or a busbar) brings power to the racks. Place one in the data hall.	Een PDU (of een busbar) brengt stroom naar de racks. Plaats er een in de datahal.
+tut_cooling	Every kW of IT becomes heat. Put CRAH units in the hall and a chiller or cooling tower outside to carry the heat away.	Elke kW IT wordt warmte. Zet CRAH-units in de hal en een koelmachine of koeltoren buiten om de warmte af te voeren.
+tut_generators	Place two generators outside: one carries the load, one is spare. That is N+1.	Plaats twee generatoren buiten: één draagt de last, één is reserve. Dat is N+1.
+tut_fiber	Customers need the internet. Place a fiber pit at the edge of the plot and make a meet-me room with an ODF inside the building.	Klanten hebben internet nodig. Plaats een glasvezelput aan de rand van het kavel en maak een meet-me room met een ODF in het pand.
+tut_carrier	Under Infrastructure › Network, sign contracts with two carriers. Two routes keep you online when one fails.	Sluit onder Infrastructuur › Netwerk contracten met twee carriers. Twee routes houden je online als er één uitvalt.
+tut_network	Place a core router and spine switches so the racks reach the carriers. When the first rack is online, you can sell it.	Plaats een core router en spine-switches zodat de racks de carriers bereiken. Zodra het eerste rack online is, kun je het verkopen.
+tut_contract	Open Customers: your sales director brings in leads. Sign the first customer and the money starts to flow.	Open Klanten: je salesdirecteur brengt leads binnen. Teken de eerste klant en het geld gaat stromen.
+hud_plan	Plan mode (B): draw a blueprint first, build it in one click	Planmodus (B): eerst een blauwdruk tekenen, in één klik bouwen
+plan_mode_on	Plan mode	Planmodus
+plan_waiting	Blueprint waiting	Blauwdruk klaar
+plan_empty_help	Draw buildings, rooms and objects: nothing is paid until you build the plan.	Teken gebouwen, ruimtes en objecten: je betaalt pas als je het plan bouwt.
+plan_summary	{0} items · {1}	{0} onderdelen · {1}
+plan_short	{0} short	{0} tekort
+plan_build	Build plan	Plan bouwen
+plan_build_tip	Pay the whole blueprint and let the crews start.	Betaal de hele blauwdruk en laat de ploegen beginnen.
+plan_discard	Discard	Weggooien
+plan_done	Done planning	Klaar met plannen
+plan_edit	Edit plan	Plan bewerken
+msg_plan_on	Plan mode on: what you draw becomes a blueprint.	Planmodus aan: wat je tekent wordt een blauwdruk.
+msg_plan_off	Plan mode off: you build for real again.	Planmodus uit: je bouwt weer echt.
+msg_plan_built	Plan built: {0} items for {1}. The crews are on their way.	Plan gebouwd: {0} onderdelen voor {1}. De ploegen komen eraan.
+msg_plan_discarded	Blueprint discarded ({0} items).	Blauwdruk weggegooid ({0} onderdelen).
+msg_plan_empty	The blueprint is empty.	De blauwdruk is leeg.
+msg_racks_planned	{0} planned.	{0} gepland.

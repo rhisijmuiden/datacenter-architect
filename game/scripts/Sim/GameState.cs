@@ -136,6 +136,10 @@ public class NewGameOptions
     public bool WeatherEffects { get; set; }
     /// <summary>Step 11: the scenario chosen in the new-game dialog (null = free play).</summary>
     public string Scenario { get; set; }
+    /// <summary>Step 11: grid congestion. A bigger grid connection waits in the operator's queue first. On in the new-game dialog, off for older saves.</summary>
+    public bool GridQueue { get; set; }
+    /// <summary>Step 11: the tutorial coach guides the first site.</summary>
+    public bool Tutorial { get; set; }
     public long StartMoney => Difficulty switch { 0 => 25_000_000, 2 => 6_000_000, _ => 12_000_000 };
     [JsonIgnore] public CreativeOptions C => Creative ? CreativeOptions : None;
     static readonly CreativeOptions None = new();
@@ -305,10 +309,10 @@ public partial class GameState
     public FenceType FenceAt(int x, int z) => InPlot(x, z) ? (FenceType)Fences[Idx(x, z)] : FenceType.None;
 
     // ---------------- money ----------------
-    public bool CanAfford(long cost) => Creative.UnlimitedMoney || Money >= cost;
+    public bool CanAfford(long cost) => Creative.UnlimitedMoney || Planning || Money >= cost;
     public bool Spend(long cost)
     {
-        if (Creative.UnlimitedMoney) return true;
+        if (Creative.UnlimitedMoney || Planning) return true;
         if (Money < cost) return false;
         Money -= cost; Book("cost_build", -cost); return true;
     }
@@ -759,9 +763,9 @@ public partial class GameState
         var layout = false;
         foreach (var o in Objects.Where(o => (o.Floor == floor || (Catalog.IsShaft(o.Kind) && floor == 0) || (roof && o.Floor == RoofFloor)) && Cells(o).Any(c => In(c.x, c.z))).ToList())
         {
-            Objects.Remove(o); Refund(o.Def.Cost / 2); changed = true; layout |= ShapesLayout(o);
+            Objects.Remove(o); RefundRemoved(o.Id, o.Def.Cost / 2); changed = true; layout |= ShapesLayout(o);
         }
-        foreach (var door in Doors.Where(o => o.Floor == floor && In(o.X, o.Z)).ToList()) { Doors.Remove(door); changed = true; layout = true; }
+        foreach (var door in Doors.Where(o => o.Floor == floor && In(o.X, o.Z)).ToList()) { Doors.Remove(door); if (IsPlanned(door.Id)) Planned.Remove(door.Id); changed = true; layout = true; }
         if (changed) { Touch(layout); return true; }
         foreach (var r in Rooms.Where(r => r.Floor == floor && In(r.X, r.Z) && In(r.X + r.W - 1, r.Z + r.D - 1)).ToList())
         {
@@ -774,7 +778,7 @@ public partial class GameState
             Objects.RemoveAll(o => b.Contains(o.X, o.Z));
             Doors.RemoveAll(o => Perimeter(b.X, b.Z, b.W, b.D).Intersect(o.Edges()).Any());
             Buildings.Remove(b);
-            Refund(BuildingCost(b.Kind, b.W, b.D, b.Floors) / 4);
+            RefundRemoved(b.Id, BuildingCost(b.Kind, b.W, b.D, b.Floors) / 4);
             changed = true;
         }
         if (changed) { Touch(); return true; }
@@ -796,7 +800,7 @@ public partial class GameState
         var edges = Perimeter(r.X, r.Z, r.W, r.D).ToHashSet();
         Doors.RemoveAll(o => o.Floor == r.Floor && o.Edges().Any(edges.Contains) && !o.Edges().Any(IsOuterEdge));
         Rooms.Remove(r);
-        Refund(Catalog.RoomCost(r.W, r.D) / 4);
+        RefundRemoved(r.Id, Catalog.RoomCost(r.W, r.D) / 4);
     }
 
     // ---------------- derived resources ----------------
@@ -878,7 +882,12 @@ public partial class GameState
         var def = Catalog.GridLevels[level];
         Spend(def.Cost);
         if (Creative.InstantBuild) { GridLevel = level; Notes.Add(("msg_grid_ready", def.Mva.ToString(System.Globalization.CultureInfo.InvariantCulture))); }
-        else { GridRequest = level; GridDaysLeft = def.LeadDays; }
+        else
+        {
+            GridRequest = level; GridDaysLeft = def.LeadDays;
+            GridQueueDays = GridQueueLength(level) * GridQueueStep;
+            if (GridQueueDays > 0) Notes.Add(("msg_grid_queue_joined", GridQueuePlace.ToString()));
+        }
         Touch(false);
         return null;
     }
@@ -954,12 +963,13 @@ public partial class GameState
     /// <summary>Grid works, hall upgrades and hall temperatures move on with the clock.</summary>
     public void UpdateInfra(double hours)
     {
-        if (GridRequest >= 0)
+        var worksHours = GridRequest >= 0 && !Creative.InstantBuild ? GridQueueTick(hours) : hours;
+        if (GridRequest >= 0 && (Creative.InstantBuild || worksHours > 0))
         {
-            GridDaysLeft -= hours / 24;
+            GridDaysLeft -= worksHours / 24;
             if (GridDaysLeft <= 0 || Creative.InstantBuild)
             {
-                GridLevel = GridRequest; GridRequest = -1; GridDaysLeft = 0;
+                GridLevel = GridRequest; GridRequest = -1; GridDaysLeft = 0; GridQueueDays = 0;
                 Notes.Add(("msg_grid_ready", Catalog.GridLevels[GridLevel].Mva.ToString(System.Globalization.CultureInfo.InvariantCulture)));
                 Touch(false);
             }

@@ -32,6 +32,10 @@ public partial class Main : Node3D
     bool _playing;
     int _speed = 1;
     double _autosaveTimer, _goalTimer;
+    TutorialCoach _coach;
+    PlanBar _planBar;
+    bool _planMode;
+    HashSet<int> _planIds;
     BuildItem _item = BuildItem.Select;
     int _rot, _floors = 1;
     Facade _facade = Facade.Brick;
@@ -79,6 +83,8 @@ public partial class Main : Node3D
         StopWalk(); StopPhoto();
         _playing = false;
         _hud?.QueueFree(); _hud = null;
+        _coach?.QueueFree(); _coach = null;
+        _planBar?.QueueFree(); _planBar = null; _planMode = false;
         SetState(Demo.Build());
         _world.GridVisible = false;
         _world.Roofs = true; _world.ViewFloor = 0;
@@ -125,6 +131,8 @@ public partial class Main : Node3D
         Profile.Instance.Merge(s.Achieved, s.ScenarioId, s.ScenarioMedal, s.Date.ToString("yyyy-MM-dd"));
         _menu?.QueueFree(); _menu = null;
         _hud?.QueueFree();
+        _coach?.QueueFree(); _coach = null;
+        _planBar?.QueueFree(); _planBar = null; _planMode = false;
         // the title screen shows the demo site in the background: swap it for the game that starts or loads now
         SetState(s);
         _world.GridVisible = true;
@@ -148,11 +156,18 @@ public partial class Main : Node3D
             FloorDown = () => SetView(_world.ViewFloor - 1, _world.ViewFloor - 1 <= 0 && _world.Roofs),
             OpenInfo = OpenInfo, OpenOptions = OpenOptions, OpenMenu = OpenPause, ToggleLanguage = ToggleLanguage,
             OpenSection = ToggleSection,
-            Undo = DoUndo, Redo = DoRedo,
+            Undo = DoUndo, Redo = DoRedo, TogglePlan = TogglePlan,
             OpenPower = OpenPower, OpenNetwork = OpenNetwork, OpenCompany = OpenCompany, OpenStaff = OpenStaff, OpenReputation = OpenReputation, OpenGrowth = OpenGrowth, ToggleOverlay = m => SetOverlay(_world.Overlay.Mode == (OverlayMode)m ? OverlayMode.None : (OverlayMode)m),
         };
         _ui.AddChild(_hud);
         _ui.MoveChild(_hud, 0);
+        _coach = new TutorialCoach { State = () => _state, Goals = () => _hud?.Goals ?? Array.Empty<(string, bool)>(), Hud = _hud, OpenSection = (sec, tab) => OpenSectionTab(sec, tab) };
+        _ui.AddChild(_coach);
+        _ui.MoveChild(_coach, 1);
+        _planMode = false;
+        _planBar = new PlanBar { State = () => _state, PlanMode = () => _planMode, Build = BuildPlan, Discard = DiscardPlan, Toggle = TogglePlan };
+        _ui.AddChild(_planBar);
+        _ui.MoveChild(_planBar, 2);
         _playing = true; _speed = 1; _autosaveTimer = 0; _item = BuildItem.Select; _bankruptShown = false;
         _inspectCell = null; SetOverlay(OverlayMode.None);
         _hud.UpdateStats(_state);
@@ -444,7 +459,7 @@ public partial class Main : Node3D
         CheckLand();
         _hud.UpdateStats(_state);
         _goalTimer -= delta;
-        if (_goalTimer <= 0) { _goalTimer = 1; _hud.SetWeather(_world.Now, AppSettings.Instance.Weather, _state); UpdateGoals(); UpdateProjects(); RefreshInspect(); }
+        if (_goalTimer <= 0) { _goalTimer = 1; _hud.SetWeather(_world.Now, AppSettings.Instance.Weather, _state); UpdateGoals(); UpdateProjects(); RefreshInspect(); _coach?.Refresh(); _planBar?.Refresh(); }
         _autosaveTimer += delta;
         if (_autosaveTimer > AppSettings.Instance.AutosaveMinutes * 60) { _autosaveTimer = 0; Autosave(); _hud.Notify(Loc.T("msg_autosaved"), Brand.Ok); }
     }
@@ -617,9 +632,9 @@ public partial class Main : Node3D
     {
         if (_hud == null) return;
         var list = new List<(int, string, double, int, bool)>();
-        foreach (var b in _state.Buildings.Where(b => b.Stage != Stage.Done))
+        foreach (var b in _state.Buildings.Where(b => b.Stage != Stage.Done && !_state.IsPlanned(b)))
             list.Add((b.Id, Catalog.Buildings[b.Kind].NameKey, GameState.Progress(b), b.Priority, false));
-        foreach (var r in _state.Rooms.Where(r => r.Stage != Stage.Done))
+        foreach (var r in _state.Rooms.Where(r => r.Stage != Stage.Done && !_state.IsPlanned(r)))
             list.Add((r.Id, Catalog.Rooms[r.Type].NameKey, GameState.StageProgress(r), r.Priority, _state.BuildingOf(r)?.Stage != Stage.Done));
         _hud.UpdateProjects(list.OrderByDescending(p => p.Item4).ThenBy(p => p.Item1).ToList());
     }
@@ -677,6 +692,7 @@ public partial class Main : Node3D
             if (k.Keycode == Key.Pageup) SetView(_world.ViewFloor + 1, false);
             if (k.Keycode == Key.Pagedown) SetView(_world.ViewFloor - 1, _world.Roofs);
             if (k.Keycode == Key.T) SetView(_world.ViewFloor, !_world.Roofs);
+            if (k.Keycode == Key.B && !k.CtrlPressed) TogglePlan();
             if (k.Keycode == Key.P) SetOverlay(_world.Overlay.Mode == OverlayMode.Power ? OverlayMode.None : OverlayMode.Power);
             if (k.Keycode == Key.H) SetOverlay(_world.Overlay.Mode == OverlayMode.Cooling ? OverlayMode.None : OverlayMode.Cooling);
             if (k.Keycode == Key.N) SetOverlay(_world.Overlay.Mode == OverlayMode.Network ? OverlayMode.None : OverlayMode.Network);
@@ -749,6 +765,13 @@ public partial class Main : Node3D
     void UpdateGhost()
     {
         if (_world == null || _state == null) return;
+        // in plan mode nothing is paid yet: the ghost does not turn red for money
+        _state.Planning = _planMode;
+        try { GhostNow(); } finally { _state.Planning = false; }
+    }
+
+    void GhostNow()
+    {
         var r = RectOf(_dragStart ?? _hoverCell, _hoverCell);
         var y = PickHeight;
         switch (_item.Mode)
@@ -863,6 +886,56 @@ public partial class Main : Node3D
         return new CurvePath { Surface = (Surface)_item.Arg, Ax = a.X, Az = a.Y, Bx = b.X, Bz = b.Y, Cx = c.X, Cz = c.Y, Width = _curveWidth };
     }
 
+    // ---------------- plan mode (step 11) ----------------
+    /// <summary>Before a build action in plan mode: remember what exists and let the action cost nothing.</summary>
+    void PlanBegin(bool plannable)
+    {
+        if (!_planMode || !plannable) return;
+        _planIds = _state.LayoutIds();
+        _state.Planning = true;
+    }
+
+    /// <summary>After the action: whatever it added becomes part of the blueprint.</summary>
+    void PlanEnd()
+    {
+        if (_planIds == null) return;
+        _state.Planning = false;
+        _state.MarkPlanned(_planIds);
+        _planIds = null;
+        _planBar?.Refresh();
+    }
+
+    void TogglePlan()
+    {
+        if (!_playing) return;
+        _planMode = !_planMode;
+        _hud?.SetPlan(_planMode);
+        _hud?.Notify(Loc.T(_planMode ? "msg_plan_on" : "msg_plan_off"), Brand.Cooling);
+        _planBar?.Refresh();
+        UpdateGhost();
+    }
+
+    void BuildPlan()
+    {
+        var count = _state.PlanCount; var cost = _state.PlanCost;
+        var why = _state.BuildPlan();
+        if (why != null) { Fail(why); return; }
+        // the history cannot take back half a plan that is now paid for
+        _history.Clear(); RefreshUndo();
+        _hud.Notify(Loc.T("msg_plan_built", count, Ui.Money(cost)), Brand.Ok);
+        if (_planMode) TogglePlan();
+        _planBar?.Refresh();
+        _hud.UpdateStats(_state);
+    }
+
+    void DiscardPlan()
+    {
+        var n = _state.DiscardPlan();
+        _history.Clear(); RefreshUndo();
+        if (n > 0) _hud.Notify(Loc.T("msg_plan_discarded", n), Brand.Amber);
+        _planBar?.Refresh();
+    }
+
     void CurveClick(Vector2 p)
     {
         if (_curveA == null) { _curveA = p; return; }
@@ -878,6 +951,7 @@ public partial class Main : Node3D
     void ApplyDrag(Vector2I a, Vector2I b, Rect2I r)
     {
         var before = UndoHistory.Take(_state);
+        PlanBegin(_item.Mode is Mode.Building or Mode.Room or Mode.Row);
         switch (_item.Mode)
         {
             case Mode.Erase:
@@ -914,9 +988,10 @@ public partial class Main : Node3D
                     if (last == null && _state.AddObject(k, x, z, rr, _world.ViewFloor) != null) placed++;
                 }
                 if (placed == 0) Fail(last);
-                else _hud.Notify(Loc.T("msg_racks_ordered", placed), Brand.Ok);
+                else _hud.Notify(Loc.T(_planMode ? "msg_racks_planned" : "msg_racks_ordered", placed), _planMode ? Brand.Cooling : Brand.Ok);
                 break;
         }
+        PlanEnd();
         Record(before, _item.NameKey);
         _hud.UpdateStats(_state);
     }
@@ -926,20 +1001,28 @@ public partial class Main : Node3D
         var k = (ObjKind)_item.Arg;
         var floor = _state.PlaceFloor(k, c.X, c.Y, _world.ViewFloor);
         var o = new PlacedObject { Kind = k, X = c.X, Z = c.Y, Rot = _rot, Floor = floor };
+        _state.Planning = _planMode;
         var why = _state.CanPlace(o);
+        _state.Planning = false;
         if (why != null) { Fail(why); return; }
         var before = UndoHistory.Take(_state);
+        PlanBegin(true);
         _state.AddObject(k, c.X, c.Y, _rot, floor);
+        PlanEnd();
         Record(before, _item.NameKey);
         _hud.UpdateStats(_state);
     }
 
     void PlaceDoor(Door d)
     {
+        _state.Planning = _planMode;
         var why = _state.CanDoor(d);
+        _state.Planning = false;
         if (why != null) { Fail(why); return; }
         var before = UndoHistory.Take(_state);
+        PlanBegin(true);
         _state.AddDoor(d.Type, d.X, d.Z, d.Dir, d.Floor);
+        PlanEnd();
         Record(before, Catalog.Doors[d.Type].NameKey);
         _hud.UpdateStats(_state);
     }
@@ -1352,6 +1435,17 @@ public partial class Main : Node3D
         if (args.Contains("--growth-demo")) GrowthDemo();
         if (args.Contains("--progress-demo")) await ProgressDemo();
         if (args.Contains("--photo")) StartPhoto();
+        if (args.Contains("--award-demo")) AwardDemo(args.Contains("--close"));
+        if (args.Contains("--plan-demo")) PlanDemo();
+        var tui = Array.IndexOf(args, "--tutorial");
+        if (tui >= 0)
+        {
+            StartNew(new NewGameOptions { Tutorial = true, GridQueue = true });
+            var skip = tui + 1 < args.Length && int.TryParse(args[tui + 1], out var n) ? n : 0;
+            if (skip > 0) _state.TutorialSkipped.Add(Tutorial.Welcome);
+            for (var i = 1; i < skip; i++) _state.TutorialSkipped.Add(Tutorial.Steps[i - 1].Goal);
+            UpdateGoals(); _coach?.Refresh();
+        }
         var gri = Array.IndexOf(args, "--growth");
         if (gri >= 0 && gri + 1 < args.Length) { _playing = true; OpenGrowth(int.Parse(args[gri + 1])); }
         var rpi = Array.IndexOf(args, "--reputation");
@@ -1419,6 +1513,50 @@ public partial class Main : Node3D
         _speed = 0;
         for (var i = 0; i < 20; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         await _lapse.Capture(s);
+    }
+
+    /// <summary>Screenshot setup for step 11 round 2: three years of awards, statuettes on the CEO desk.</summary>
+    void AwardDemo(bool close)
+    {
+        var s = _state;
+        s.Awards.Clear();
+        s.Awards.Add(new AwardResult { Year = 2027, Place = 3, Score = 61.4, Winner = s.Rivals.FirstOrDefault()?.Name ?? "", WinnerScore = 70.2, Entrants = 4 });
+        s.Awards.Add(new AwardResult { Year = 2028, Place = 2, Score = 72.9, Winner = s.Rivals.Skip(1).FirstOrDefault()?.Name ?? "", WinnerScore = 74.0, Entrants = 4 });
+        s.Awards.Add(new AwardResult { Year = 2029, Place = 1, Score = 81.3, Winner = s.Options.Company, WinnerScore = 81.3, Entrants = 4 });
+        s.Touch();
+        if (close && s.TrophyDesk is { } desk)
+        {
+            SetView(0, false);
+            _cam.SetView(-2.3f, 0.75f, 7f, new Vector3(desk.X + 1f, 0.8f, desk.Z + 0.5f));
+        }
+    }
+
+    /// <summary>Screenshot setup for plan mode: a planned second datacenter with a hall and racks beside the demo campus.</summary>
+    void PlanDemo()
+    {
+        var s = _state;
+        s.Options.Creative = false; s.Options.CreativeOptions = new CreativeOptions(); s.Money = 4_000_000;
+        _planMode = true; _hud?.SetPlan(true);
+        var ids = s.LayoutIds();
+        s.Planning = true;
+        (int x, int z)? spot = null;
+        for (var z = 4; z < s.PlotSize - 14 && spot == null; z += 2)
+            for (var x = 4; x < s.PlotSize - 20 && spot == null; x += 2)
+                if (s.CanBuild(BuildingKind.Datacenter, x, z, 18, 12, 1) == null) spot = (x, z);
+        if (spot is { } p)
+        {
+            s.AddBuilding(BuildingKind.Datacenter, p.x, p.z, 18, 12, 1);
+            s.AddRoom(RoomType.DataHall, p.x + 1, p.z + 1, 12, 10, 0);
+            s.AddRoom(RoomType.UpsRoom, p.x + 13, p.z + 1, 4, 10, 0);
+            foreach (var (x, z, r) in GameState.RowBlock(p.x + 2, p.z + 2, p.x + 11, p.z + 8, ObjKind.Rack, 0, s.MaxRowLength)) s.AddObject(ObjKind.Rack, x, z, r, 0);
+            s.AddObject(ObjKind.Ups, p.x + 14, p.z + 2, 0, 0);
+            s.AddObject(ObjKind.Generator, p.x + 2, p.z + 13, 0, 0);
+            s.AddObject(ObjKind.Generator, p.x + 7, p.z + 13, 0, 0);
+            _cam.SetView(0.7f, 0.85f, 46, new Vector3(p.x + 9, 0, p.z + 7));
+        }
+        s.Planning = false;
+        s.MarkPlanned(ids);
+        _planBar?.Refresh();
     }
 
     /// <summary>Screenshot setup for step 10: a big customer moves in; run until the moving truck is at the dock and movers push trolleys.</summary>

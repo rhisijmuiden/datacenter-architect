@@ -105,6 +105,9 @@ public partial class NewGameDialog : Modal
         diff.Selected = 1;
         careerBox.AddChild(diff);
         careerBox.AddChild(Ui.Text("new_career_help", 13, Brand.InkDim));
+        // step 11: the tutorial coach for a first site (ticked when there are no savegames yet)
+        var tutorial = new CheckButton { Text = "new_tutorial", ButtonPressed = SaveSystem.List().Count == 0, TooltipText = "new_tutorial_help" };
+        careerBox.AddChild(tutorial);
         Body.AddChild(careerBox);
 
         var creativeBox = new VBoxContainer { Visible = false }; creativeBox.AddThemeConstantOverride("separation", 2);
@@ -172,7 +175,8 @@ public partial class NewGameDialog : Modal
         var disasters = new CheckBox { Text = "new_disasters", ButtonPressed = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "new_disasters_help" };
         var supply = new CheckBox { Text = "new_supply", ButtonPressed = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "new_supply_help" };
         var weather = new CheckBox { Text = "new_weather_effects", ButtonPressed = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "new_weather_effects_help" };
-        world.AddChild(news); world.AddChild(prices); world.AddChild(disasters); world.AddChild(supply); world.AddChild(weather);
+        var gridQueue = new CheckBox { Text = "new_grid_queue", ButtonPressed = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "new_grid_queue_help" };
+        world.AddChild(news); world.AddChild(prices); world.AddChild(disasters); world.AddChild(supply); world.AddChild(weather); world.AddChild(gridQueue);
         Body.AddChild(Ui.Heading("new_world"));
         Body.AddChild(world);
         Body.AddChild(Ui.Text("new_world_help", 13, Brand.InkDim));
@@ -182,7 +186,8 @@ public partial class NewGameDialog : Modal
             o.Company = string.IsNullOrWhiteSpace(name.Text) ? Loc.T("new_company_default") : name.Text.Trim();
             o.Difficulty = diff.Selected; o.AiCompetitors = ai.ButtonPressed; o.Events = events.ButtonPressed;
             o.Competitors = (int)count.Value; o.Aggression = aggr.Selected;
-            o.News = news.ButtonPressed; o.DynamicPrices = prices.ButtonPressed; o.Disasters = disasters.ButtonPressed; o.SupplyDelays = supply.ButtonPressed; o.WeatherEffects = weather.ButtonPressed;
+            o.News = news.ButtonPressed; o.DynamicPrices = prices.ButtonPressed; o.Disasters = disasters.ButtonPressed; o.SupplyDelays = supply.ButtonPressed; o.WeatherEffects = weather.ButtonPressed; o.GridQueue = gridQueue.ButtonPressed;
+            o.Tutorial = tutorial.ButtonPressed && scenario.Selected == 0 && !creative.ButtonPressed;
             o.Creative = creative.ButtonPressed;
             o.Scenario = scenario.Selected > 0 ? Scenarios.All[scenario.Selected - 1].Id : null;
             if (o.Scenario != null) o.Creative = false;

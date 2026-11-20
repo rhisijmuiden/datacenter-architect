@@ -670,6 +670,26 @@ public static class Models
     static MeshInstance3D F(Node3D n, string name, Vector3 pos, float yaw = 0) => Assets.Centered(n, "furniture/" + name + ".obj", pos, Kf, yaw);
     static float FTop(string name) => Assets.Top("furniture/" + name + ".obj", Kf);
 
+    /// <summary>Height of a desk top, for things that stand on it.</summary>
+    public static float DeskTop => Assets.Has("furniture/desk.obj") ? FTop("desk") : 0.77f;
+
+    /// <summary>
+    /// Step 11: the "Datacenter of the year" statuette. A small rack-shaped column on a dark plinth, with a glowing orb on top:
+    /// gold for the winner, silver and bronze for second and third place.
+    /// </summary>
+    public static Node3D Statuette(int place)
+    {
+        var n = new Node3D { Name = "Statuette" };
+        var metal = place switch { 1 => new Color("#e8b84a"), 2 => new Color("#c9d0d6"), _ => new Color("#b9774a") };
+        Box(n, new Vector3(0, 0.02f, 0), new Vector3(0.11f, 0.04f, 0.11f), Dark, 0.4f);
+        Box(n, new Vector3(0, 0.045f, 0), new Vector3(0.09f, 0.01f, 0.09f), metal, 0.25f, 0.9f);
+        Box(n, new Vector3(0, 0.12f, 0), new Vector3(0.045f, 0.15f, 0.045f), metal, 0.22f, 0.95f);
+        for (var i = 0; i < 3; i++) Box(n, new Vector3(0, 0.07f + i * 0.045f, 0.0235f), new Vector3(0.035f, 0.006f, 0.002f), Dark, 0.5f);
+        Ball(n, new Vector3(0, 0.215f, 0), 0.028f, metal);
+        Box(n, new Vector3(0, 0.215f, 0), new Vector3(0.012f, 0.012f, 0.012f), new Color("#fff4d6"), glow: true);
+        return n;
+    }
+
     /// <summary>Office, canteen and lounge furniture from the CC0 Kenney Furniture Kit, when the model files are there.</summary>
     static bool Furnished(ObjKind k, Node3D n)
     {

@@ -39,6 +39,7 @@ public static partial class TestRunner
             ("seasons, weather and the sun", ClimateTests), ("customer migrations", MigrationTests), ("first-person walking", WalkTests),
             ("management rail", RailTests), ("playtest batch 1", PlaytestTests),
             ("progress (step 11)", ProgressTests),
+            ("round 2 (step 11)", Round2Tests),
         };
         foreach (var (name, t) in tests)
         {
