@@ -20,6 +20,10 @@ public partial class Main : Node3D
     Control _walkHint;
     Ambience _sound;
     UiSounds _uiSounds;
+    Timelapse _lapse;
+    PhotoMode _photo;
+    int _speedBeforePhoto;
+    bool _gridBeforePhoto;
     Control _ui;
     Hud _hud;
     MainMenu _menu;
@@ -54,6 +58,8 @@ public partial class Main : Node3D
         _sound = new Ambience(); AddChild(_sound);
         _uiSounds = new UiSounds(); AddChild(_uiSounds);
         AddChild(new Thumbnails());
+        _lapse = new Timelapse { Name = "Timelapse", State = () => _state, Playing = () => _playing && !_walking && _photo == null, World = _world };
+        AddChild(_lapse);
         ApplyDisplay(); ApplyOther();
         var layer = new CanvasLayer(); AddChild(layer);
         _ui = new Control { Theme = Ui.BuildTheme(), MouseFilter = Control.MouseFilterEnum.Ignore };
@@ -70,7 +76,7 @@ public partial class Main : Node3D
     // ---------------- screens ----------------
     void ShowTitle()
     {
-        StopWalk();
+        StopWalk(); StopPhoto();
         _playing = false;
         _hud?.QueueFree(); _hud = null;
         SetState(Demo.Build());
@@ -99,7 +105,11 @@ public partial class Main : Node3D
         _landRev = s.LandRevision;
     }
 
-    void StartNew(NewGameOptions o) => StartGame(GameState.New(o), true);
+    void StartNew(NewGameOptions o)
+    {
+        var sc = o.Scenario != null && Scenarios.ById.TryGetValue(o.Scenario, out var d) ? d : null;
+        StartGame(sc != null ? Scenarios.Start(sc, o) : GameState.New(o), true);
+    }
 
     void LoadSlot(string slot)
     {
@@ -111,7 +121,8 @@ public partial class Main : Node3D
 
     void StartGame(GameState s, bool fresh)
     {
-        StopWalk();
+        StopWalk(); StopPhoto();
+        Profile.Instance.Merge(s.Achieved, s.ScenarioId, s.ScenarioMedal, s.Date.ToString("yyyy-MM-dd"));
         _menu?.QueueFree(); _menu = null;
         _hud?.QueueFree();
         // the title screen shows the demo site in the background: swap it for the game that starts or loads now
@@ -130,7 +141,7 @@ public partial class Main : Node3D
             FloorsChanged = f => { _floors = f; UpdateGhost(); },
             FacadeChanged = f => _facade = f,
             CyclePriority = CyclePriority,
-            RotateLeft = () => _cam.RotateStep(1), RotateRight = () => _cam.RotateStep(-1), Walk = StartWalk,
+            RotateLeft = () => _cam.RotateStep(1), RotateRight = () => _cam.RotateStep(-1), Walk = StartWalk, Photo = StartPhoto,
             ToggleGrid = () => _world.GridVisible = !_world.GridVisible,
             ToggleRoofs = () => SetView(_world.ViewFloor, !_world.Roofs),
             FloorUp = () => SetView(_world.ViewFloor + 1, false),
@@ -151,6 +162,7 @@ public partial class Main : Node3D
         {
             _hud.Notify(Loc.T(s.Options.AiCompetitors ? "msg_welcome_ai" : "msg_welcome", s.Options.Company));
             _hud.Notify(Loc.T("msg_start_hint"), Brand.Cooling);
+            if (s.Scenario is ScenarioDef sd) _hud.Notify(Loc.T("msg_scenario_start", Loc.T("sc_" + sd.Id), Loc.T("sc_" + sd.Id + "_goal")), Brand.Amber);
         }
     }
 
@@ -225,6 +237,7 @@ public partial class Main : Node3D
             PanelKind.Reputation => new ReputationPanel(() => _state, Fail, want),
             PanelKind.Growth => new GrowthPanel(() => _state, Fail, want),
             PanelKind.Power => new PowerPanel(() => _state, Fail),
+            PanelKind.Progress => new ProgressPanel(() => _state, StartPhoto, want),
             _ => new NetworkPanel(() => _state, Fail),
         };
         m.Kind = e.Kind;
@@ -418,6 +431,7 @@ public partial class Main : Node3D
         }
         foreach (var (key, arg) in _sim.Messages.Concat(_state.Notes))
         {
+            ProgressNote(key, arg);
             var text = arg != null && arg.Contains('¦') ? Loc.T(key, arg.Split('¦').Select(ArgText).ToArray<object>()) : Loc.T(key, ArgText(arg));
             var accent = key is "msg_signed" or "msg_tender_won" or "msg_tender_delivered" or "msg_hired" or "msg_renewed" or "msg_trained" or "msg_staff_hired" or "msg_staff_trained"
                     or "msg_repaired" or "msg_replaced" or "msg_ev_press_good" or "msg_ev_fire_false" or "msg_ev_outage_gen" or "msg_parts_arrived" ? Brand.Ok
@@ -460,6 +474,7 @@ public partial class Main : Node3D
     {
         if (!_playing || _walking || _state == null) return;
         _walking = true;
+        _state.Unlock(Achievements.Walk);
         _beforeWalk = (_world.ViewFloor, _world.Roofs, _world.GridVisible);
         if (_item.Mode != Mode.Select) _hud.Pick(BuildItem.Select);
         _world.ClearGhost();
@@ -502,6 +517,44 @@ public partial class Main : Node3D
             if (!_world.Roofs) _world.Roofs = true;
             if (_world.ViewFloor != 0) _world.ViewFloor = 0;
         }
+    }
+
+    // ---------------- step 11: photo mode, achievements and medals ----------------
+    /// <summary>Photo mode: hides the interface, stops the clock and shows the photo bar.</summary>
+    void StartPhoto()
+    {
+        if (!_playing || _photo != null || _state == null) return;
+        StopWalk();
+        CloseDrawer();
+        if (_item.Mode != Mode.Select) _hud.Pick(BuildItem.Select);
+        _world.ClearGhost(); _inspectCell = null;
+        _speedBeforePhoto = _speed; _speed = 0; _hud.SetSpeed(0);
+        _gridBeforePhoto = _world.GridVisible; _world.GridVisible = false;
+        _hud.Visible = false;
+        var env = _world.GetChildren().OfType<WorldEnvironment>().FirstOrDefault()?.Environment;
+        _photo = new PhotoMode(_cam, () => _state, env)
+        {
+            Exit = StopPhoto,
+            Saved = _ => _state?.Unlock(Achievements.Photo),
+        };
+        _ui.AddChild(_photo);
+    }
+
+    void StopPhoto()
+    {
+        if (_photo == null) return;
+        _photo.Restore();
+        _photo.QueueFree(); _photo = null;
+        if (_hud != null) { _hud.Visible = true; _speed = _speedBeforePhoto; _hud.SetSpeed(_speed); }
+        _world.GridVisible = _gridBeforePhoto;
+    }
+
+    /// <summary>Achievements and medals also go into the profile that spans all savegames.</summary>
+    void ProgressNote(string key, string arg)
+    {
+        if (_state == null || arg == null) return;
+        if (key == "msg_achievement" && arg.StartsWith("ach_")) Profile.Instance.Earn(arg[4..], _state.Date.ToString("yyyy-MM-dd"));
+        if (key is "msg_medal" or "msg_scenario_won" or "msg_scenario_over" && _state.ScenarioId != null) Profile.Instance.Medal(_state.ScenarioId, _state.ScenarioMedal);
     }
 
     void StopWalk()
@@ -595,7 +648,7 @@ public partial class Main : Node3D
 
     public override void _UnhandledInput(InputEvent e)
     {
-        if (!_playing || _state == null || _walking) return;
+        if (!_playing || _state == null || _walking || _photo != null) return;
         if (e.IsActionPressed("ui_cancel"))
         {
             if (_curveA != null) { _curveA = _curveB = null; UpdateGhost(); }
@@ -608,6 +661,7 @@ public partial class Main : Node3D
         {
             if (k.Keycode == Key.R) { _rot = (_rot + 1) % 4; UpdateGhost(); }
             if (k.Keycode == Key.F) { StartWalk(); GetViewport().SetInputAsHandled(); return; }
+            if (k.Keycode == Key.F9) { StartPhoto(); GetViewport().SetInputAsHandled(); return; }
             if (_item.Mode == Mode.Curve && k.Keycode is Key.Bracketleft or Key.Bracketright)
             {
                 _curveWidth = Math.Clamp(_curveWidth + (k.Keycode == Key.Bracketright ? 1 : -1), CurvePath.MinWidth, CurvePath.MaxWidth);
@@ -1296,6 +1350,8 @@ public partial class Main : Node3D
         }
         if (args.Contains("--rep-demo")) RepDemo();
         if (args.Contains("--growth-demo")) GrowthDemo();
+        if (args.Contains("--progress-demo")) await ProgressDemo();
+        if (args.Contains("--photo")) StartPhoto();
         var gri = Array.IndexOf(args, "--growth");
         if (gri >= 0 && gri + 1 < args.Length) { _playing = true; OpenGrowth(int.Parse(args[gri + 1])); }
         var rpi = Array.IndexOf(args, "--reputation");
@@ -1333,6 +1389,36 @@ public partial class Main : Node3D
         }
         GetViewport().GetTexture().GetImage().SavePng(path);
         GetTree().Quit();
+    }
+
+    /// <summary>Screenshot setup for step 11: two years of figures, a scenario with a medal, some achievements and a timelapse picture.</summary>
+    async System.Threading.Tasks.Task ProgressDemo()
+    {
+        var s = _state;
+        s.Options.Creative = false; s.Options.CreativeOptions = new CreativeOptions();
+        s.ScenarioId = "ten_mw"; s.ScenarioStartDay = s.Hours / 24 - 700; s.ScenarioMedal = 1;
+        var rng = new Random(7);
+        s.Stats.Clear();
+        for (var d = 0; d <= 730; d++)
+        {
+            var g = Math.Min(1, d / 600.0);
+            var racks = (int)(8 + 900 * g * g * (3 - 2 * g));
+            var wobble = 1 + 0.03 * Math.Sin(d / 9.0) + 0.02 * (rng.NextDouble() - 0.5);
+            s.Stats.Add(new StatSample
+            {
+                Day = d, LiveRacks = racks, ItKw = racks * 3.9 * wobble, FacilityKw = racks * 3.9 * (1.62 - 0.3 * g) * wobble,
+                Pue = 1.62 - 0.3 * g + 0.02 * Math.Sin(d / 30.0), Uptime = d % 97 == 13 ? 0.982 : 1,
+                Customers = (int)(1 + racks / 18.0), Revenue = racks * 800, Income = (long)(racks * 800 / 30.0 * wobble), Costs = (long)((40_000 + racks * 610) / 30.0 * (2 - wobble)),
+                Money = (long)(12_000_000 - 4_000_000 * Math.Sin(Math.Min(d, 400) / 400.0 * Math.PI / 2) + Math.Max(0, d - 380) * 21_000),
+                Gbps = racks * 0.35 * wobble, Reputation = 50 + 32 * g, Esg = 30 + 35 * g, Staff = 6 + (int)(64 * g), HostingCustomers = d > 420 ? (d - 420) * 9 : 0,
+            });
+        }
+        foreach (var id in new[] { "first_rack", "racks_100", "mw_1", "n_plus_1", "pue_14", "carriers_3", "first_contract", "clients_25", "profit_month", "first_cert", "year_1", "tourist", "photographer" })
+            if (!s.Achieved.Contains(id)) s.Achieved.Add(id);
+        s.Notes.Clear();
+        _speed = 0;
+        for (var i = 0; i < 20; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        await _lapse.Capture(s);
     }
 
     /// <summary>Screenshot setup for step 10: a big customer moves in; run until the moving truck is at the dock and movers push trolleys.</summary>

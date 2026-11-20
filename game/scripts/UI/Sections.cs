@@ -5,7 +5,7 @@ using Godot;
 namespace DatacenterArchitect.UI;
 
 /// <summary>The screens that can open in the management drawer.</summary>
-public enum PanelKind { Overview, Company, Staff, Reputation, Growth, Power, Network }
+public enum PanelKind { Overview, Company, Staff, Reputation, Growth, Power, Network, Progress }
 
 /// <summary>One tab in a management section: which screen it opens and at which of that screen's own tabs.</summary>
 public record SectionTab(string Key, string Icon, PanelKind Kind, int Tab);
@@ -19,7 +19,7 @@ public record Section(string Key, string ShortKey, string Icon, Color Accent, Ke
 /// </summary>
 public static class Sections
 {
-    public const int Overview = 0, Company = 1, Customers = 2, Infra = 3, Staff = 4, Reputation = 5, Growth = 6;
+    public const int Overview = 0, Company = 1, Customers = 2, Infra = 3, Staff = 4, Reputation = 5, Growth = 6, Progress = 7;
 
     public static readonly Section[] All =
     {
@@ -69,6 +69,13 @@ public static class Sections
             new("gr_tab_locations", "globe", PanelKind.Growth, GrowthPanel.TabLocations),
             new("gr_tab_offices", "office", PanelKind.Growth, GrowthPanel.TabOffices),
             new("gr_tab_hosting", "cloud", PanelKind.Growth, GrowthPanel.TabHosting),
+        }),
+        new("nav_progress", "nav_progress_short", "trophy", new Color("f2c94c"), Key.F8, new SectionTab[]
+        {
+            new("pg_tab_stats", "stats", PanelKind.Progress, ProgressPanel.TabStats),
+            new("pg_tab_scenario", "medal", PanelKind.Progress, ProgressPanel.TabScenario),
+            new("pg_tab_achievements", "trophy", PanelKind.Progress, ProgressPanel.TabAchievements),
+            new("pg_tab_timelapse", "film", PanelKind.Progress, ProgressPanel.TabTimelapse),
         }),
     };
 

@@ -814,6 +814,22 @@ Zo werkt stap 10 (versie 0.9.0) nu echt in de game.
 - **Opgelost**: klanten liepen vaak niet naar hun rack omdat het spel bij het kiezen van een rack per object een nieuw willekeurig getal trok; klantbezoeken en verhuizers kiezen nu echt een rack.
 - **Later** (staat bij *Uitbreidingen en ideeën per stap*, stap 10): gevelbouwer, doorsnede-weergave, bouwanimaties, interieurdetails en sfeerlicht in de gangen, gloeiende flow-lijnen, natuur en water, afdelingen met een eigen sfeer.
 
+## Afwerking in het spel
+
+Zo werkt stap 11, ronde 1 (testversie 0.10.0) nu echt in de game. Alles staat onder het nieuwe onderdeel **Voortgang (F8)** in de balk links. Het spel houdt alles zelf bij; de speler kijkt alleen.
+
+- **Statistieken**: elke speldag één meting van geld, inkomsten en kosten (per maand, gemiddeld over 30 dagen), contractwaarde, stroomverbruik (IT-last en hele locatie), PUE, uptime (racks die draaien én online zijn), racks, klanten (plus hostingklanten), netwerkverkeer, reputatie en ESG, en personeel. Grafieken over 30 dagen, 1 jaar of alles; met de muis zie je de waarden per dag. Met onbeperkt geld vallen de geldgrafieken weg. De laatste 400 dagen blijven per dag bewaard, daarvoor per week en het oudste deel per maand (maximaal 800 metingen, compact in de savegame).
+- **Scenario's met medailles**: bij Nieuw spel kies je vrij spelen of een scenario (altijd carrière, normale moeilijkheid). Een medaille telt zodra je hem haalt; goud wint het scenario meteen, na de deadline krijg je wat je hebt. Daarna speel je gewoon door. De beste medaille per scenario wordt over alle savegames onthouden.
+  - *Snelle start*: racks in gebruik binnen 1 jaar (40 / 100 / 200).
+  - *Red een failliet datacenter*: de voorbeeldcampus met een lening van € 2,4 miljoen, versleten machines (twee CRAH's kapot), vijf ontevreden klanten op goedkope contracten en reputatie 28. Winst in één maand binnen 3 jaar (elke winst / € 25.000 / € 75.000). De balans moet in de speeltest blijken.
+  - *10 MW in 5 jaar*: draaiende IT-last (2,5 / 5 / 10 MW).
+  - *Groene reus*: ESG-score binnen 4 jaar (50 / 70 / 85).
+  - *Elke watt telt*: PUE met minstens 100 racks binnen 3 jaar (1,45 / 1,30 / 1,20).
+- **Prestaties**: 38 prestaties (racks, megawatts, N+1, PUE, carriers, klanten, geld, beurs, reputatie, ESG, certificaat, research, personeel, locaties, hosting, uptime-reeksen, speljaren, campusgrootte, en voor de lol: fotograaf, toerist en de timelapse helemaal afkijken). Ze worden elke speldag gecontroleerd en blijven bewaard in een profiel over al je savegames (user://profile.cfg). Geldprestaties tellen niet met onbeperkt geld. Later kan een Steam-versie dit profiel overnemen.
+- **Timelapse**: elke 7 speldagen om 12 uur maakt een tweede camera hoog boven het terrein een foto van de hele campus, altijd vanaf dezelfde hoek (en verder weg als de campus groeit), zonder bouwgrid. De foto's (960 × 540 JPG) staan per spel in user://timelapse. In Voortgang speel je ze af als film (4 tot 30 foto's per seconde) met een schuifbalk en datum, en open je de map.
+- **Fotomodus** (F9, de camera-knop rechtsboven of de knop in Voortgang): de interface verdwijnt en de klok staat stil. Een balk onderin geeft het tijdstip van de dag (alleen voor de foto), zeven filters (natuurlijk, warm, koel, levendig, zacht, zwart-wit, vintage), scherptediepte en een **filmcamera** die langzaam rond de campus zweeft. Foto's (PNG, zonder interface) gaan naar de map Afbeeldingen/Datacenter Architect. H verbergt de balk, C de filmcamera, F12 of Enter maakt een foto, Esc sluit.
+- **Volgende rondes**: ronde 2 tutorial met een begeleide eerste kavel, plan-modus (blauwdruk met kosten, in één klik bouwen), de jaarlijkse prijs Datacenter van het jaar en de wachtrij voor netcongestie; ronde 3 eigen bedrijfsnaam en logo, muziek en geluid per gebied; ronde 4 (na de 3D-wereld) groeiende stad met verkeer, schoolbezoeken, ontruimingsoefening, klantkooien met eigen racks en mods.
+
 ## Grote datahallen
 
 Reinder wil echt grote hallen kunnen bouwen, op hyperscale-formaat met duizenden racks. Wat daarvoor nodig is:
@@ -891,7 +907,7 @@ Goedgekeurd door Reinder op 19 november 2026; ze komen in de genoemde stap.
 9. **Groei**: campus, warehouse, hostingbedrijf (cloud, dedicated servers met voorraad, grote contracten, dashboard), meerdere locaties en landen, markt en concurrentie (aanbestedingen, overnames, beursgang, marktnieuws), dynamische energieprijzen, ESG-score met waterverbruik, cyberaanvallen en SOC, rampen en verzekering, leveringsproblemen, sleutelpersoneel
 10. **Uiterlijk** (testversie 0.9.0): rondere 3D-poppetjes, first-person rondlopen door je datacenter (alleen kijken en luisteren), klantmigraties met vrachtwagens, seizoenen en weer, dag en nacht
    - *Speelronde na stap 10*: Reinder speelt het spel een tijdje en geeft bugs en verbeteringen door in een aparte thread; die worden opgelost voordat stap 11 begint.
-11. **Afwerking en extra's**: tutorial met een begeleide eerste kavel, scenario's en uitdagingen met medailles ("red een failliet datacenter", "haal binnen 5 jaar 10 MW"), statistieken en grafieken door de tijd (omzet, PUE, uptime, verbruik), fotomodus, timelapse van je campus, achievements en later Steam-ondersteuning, mod-ondersteuning (eigen gebouwen en objecten)
+11. **Afwerking en extra's** (ronde 1 in testversie 0.10.0: statistieken, scenario's, prestaties, timelapse, fotomodus en filmcamera; zie *Afwerking in het spel*): tutorial met een begeleide eerste kavel, scenario's en uitdagingen met medailles ("red een failliet datacenter", "haal binnen 5 jaar 10 MW"), statistieken en grafieken door de tijd (omzet, PUE, uptime, verbruik), fotomodus, timelapse van je campus, achievements en later Steam-ondersteuning, mod-ondersteuning (eigen gebouwen en objecten)
 
 Bij elke stap horen ook de uitbreidingen uit *Uitbreidingen en ideeën per stap*.
 

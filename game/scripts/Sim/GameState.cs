@@ -134,6 +134,8 @@ public class NewGameOptions
     /// Off unless chosen: the new-game dialog ticks it by default, older saves and the demo keep the weather for looks only.
     /// </summary>
     public bool WeatherEffects { get; set; }
+    /// <summary>Step 11: the scenario chosen in the new-game dialog (null = free play).</summary>
+    public string Scenario { get; set; }
     public long StartMoney => Difficulty switch { 0 => 25_000_000, 2 => 6_000_000, _ => 12_000_000 };
     [JsonIgnore] public CreativeOptions C => Creative ? CreativeOptions : None;
     static readonly CreativeOptions None = new();
@@ -999,6 +1001,7 @@ public partial class GameState
         UpdateOps(hours);
         UpdateInfra(hours);
         UpdateNetwork(hours, hourBefore);
+        StatsTick(hours);
         var days = (int)(Hours / 24) - before;
         for (var i = 0; i < days; i++)
         {
@@ -1013,6 +1016,7 @@ public partial class GameState
             ReputationDay(day, rng);
             GrowthDay(day);
             MoneyDay(day);
+            ProgressDay(day);
         }
     }
 }

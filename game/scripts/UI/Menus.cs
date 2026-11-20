@@ -73,7 +73,24 @@ public partial class NewGameDialog : Modal
         var name = new LineEdit { Text = Loc.T("new_company_default"), MaxLength = 40 };
         Body.AddChild(name);
 
-        Body.AddChild(Ui.Heading("new_mode"));
+        // step 11: free play or a scenario with medals
+        Body.AddChild(Ui.Heading("new_scenario"));
+        var scenario = new OptionButton();
+        scenario.AddItem(Loc.T("new_free_play"));
+        foreach (var sc in Scenarios.All)
+        {
+            var best = Profile.Instance.BestMedal(sc.Id);
+            scenario.AddItem(Loc.T("sc_" + sc.Id) + (best > 0 ? "  ·  " + Loc.T(Scenarios.MedalKey(best)) : ""));
+        }
+        Body.AddChild(scenario);
+        var scenarioHelp = Ui.Text("", 13, Brand.InkDim);
+        scenarioHelp.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
+        scenarioHelp.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        scenarioHelp.CustomMinimumSize = new Vector2(500, 0);
+        Body.AddChild(scenarioHelp);
+
+        var modeHead = Ui.Heading("new_mode");
+        Body.AddChild(modeHead);
         var modes = new HBoxContainer(); modes.AddThemeConstantOverride("separation", 8);
         var career = new Button { Text = "new_mode_career", ToggleMode = true, ButtonPressed = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 40) };
         var creative = new Button { Text = "new_mode_creative", ToggleMode = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, CustomMinimumSize = new Vector2(0, 40) };
@@ -114,16 +131,30 @@ public partial class NewGameDialog : Modal
         }
         creativeBox.AddChild(grid);
         Body.AddChild(creativeBox);
-        career.Toggled += on => { careerBox.Visible = on; creativeBox.Visible = !on; };
+        career.Toggled += on => { careerBox.Visible = on && scenario.Selected == 0; creativeBox.Visible = !on && scenario.Selected == 0; };
+        void ScenarioChanged(long i)
+        {
+            var free = i <= 0;
+            modeHead.Visible = modes.Visible = free;
+            careerBox.Visible = free && career.ButtonPressed; creativeBox.Visible = free && creative.ButtonPressed;
+            scenarioHelp.Visible = !free;
+            if (free) return;
+            var d = Scenarios.All[i - 1];
+            scenarioHelp.Text = Loc.T("sc_" + d.Id + "_desc") + "\n" + Loc.T("sc_" + d.Id + "_goal") + "  " + Loc.T("new_scenario_years", d.Years);
+        }
+        scenario.ItemSelected += ScenarioChanged;
+        ScenarioChanged(0);
 
         var ai = new CheckButton { Text = "new_ai", ButtonPressed = true };
         Body.AddChild(ai);
         Body.AddChild(Ui.Text("new_ai_help", 13, Brand.InkDim));
         var rivalRow = new HBoxContainer(); rivalRow.AddThemeConstantOverride("separation", 8);
-        rivalRow.AddChild(Ui.Text("new_rivals", 14, Brand.Ink));
+        var rivalsLabel = Ui.Text("new_rivals", 14, Brand.Ink); rivalsLabel.AutowrapMode = TextServer.AutowrapMode.Off; rivalsLabel.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+        rivalRow.AddChild(rivalsLabel);
         var count = new SpinBox { MinValue = 1, MaxValue = 5, Value = 3, CustomMinimumSize = new Vector2(90, 0) };
         rivalRow.AddChild(count);
-        rivalRow.AddChild(Ui.Text("new_aggression", 14, Brand.Ink));
+        var aggrLabel = Ui.Text("new_aggression", 14, Brand.Ink); aggrLabel.AutowrapMode = TextServer.AutowrapMode.Off; aggrLabel.SizeFlagsVertical = SizeFlags.ShrinkCenter;
+        rivalRow.AddChild(aggrLabel);
         var aggr = new OptionButton();
         aggr.AddItem(Loc.T("new_aggr_0")); aggr.AddItem(Loc.T("new_aggr_1")); aggr.AddItem(Loc.T("new_aggr_2"));
         aggr.Selected = 1;
@@ -153,6 +184,8 @@ public partial class NewGameDialog : Modal
             o.Competitors = (int)count.Value; o.Aggression = aggr.Selected;
             o.News = news.ButtonPressed; o.DynamicPrices = prices.ButtonPressed; o.Disasters = disasters.ButtonPressed; o.SupplyDelays = supply.ButtonPressed; o.WeatherEffects = weather.ButtonPressed;
             o.Creative = creative.ButtonPressed;
+            o.Scenario = scenario.Selected > 0 ? Scenarios.All[scenario.Selected - 1].Id : null;
+            if (o.Scenario != null) o.Creative = false;
             o.CreativeOptions = o.Creative ? c : new CreativeOptions();
             if (o.Creative && c.UnlimitedMoney) o.Difficulty = 0;
             Close(); start(o);

@@ -35,6 +35,7 @@ public partial class Hud : Control
     public Action<Facade> FacadeChanged;
     public Action<int> CyclePriority;
     public Action Walk;
+    public Action Photo;
     /// <summary>Undo and redo the last building action (Ctrl+Z / Ctrl+Y), from the buttons above the bulldozer.</summary>
     public Action Undo, Redo;
     public Action RotateLeft, RotateRight, ToggleGrid, ToggleRoofs, FloorUp, FloorDown, OpenInfo, OpenOptions, OpenMenu, ToggleLanguage, OpenPower, OpenNetwork;
@@ -789,6 +790,7 @@ public partial class Hud : Control
         h.AddChild(Ui.IconButton("rotate_right", "hud_rotate_right", () => RotateRight?.Invoke()));
         h.AddChild(Ui.IconButton("grid", "hud_grid", () => ToggleGrid?.Invoke()));
         h.AddChild(Ui.IconButton("walk", "hud_walk", () => Walk?.Invoke()));
+        h.AddChild(Ui.IconButton("camera", "hud_photo", () => Photo?.Invoke()));
         _roofBtn = Ui.IconButton("roof", "hud_roofs", () => ToggleRoofs?.Invoke());
         h.AddChild(_roofBtn);
         h.AddChild(Ui.IconButton("floor_down", "hud_floor_down", () => FloorDown?.Invoke()));

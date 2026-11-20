@@ -1,0 +1,183 @@
+key	en	nl
+# step 11: progress, statistics, scenarios, achievements, timelapse and photo mode
+nav_progress	Progress	Voortgang
+nav_progress_short	Progress	Voortgang
+hud_photo	Photo mode (F9)	Fotomodus (F9)
+pg_tab_stats	Statistics	Statistieken
+pg_tab_scenario	Scenario	Scenario
+pg_tab_achievements	Achievements	Prestaties
+pg_tab_timelapse	Timelapse	Timelapse
+pg_range_30	30 days	30 dagen
+pg_range_365	1 year	1 jaar
+pg_range_all	All	Alles
+pg_since	Recorded every day since {0}. Hover over a chart to see the values.	Elke dag bijgehouden sinds {0}. Ga met de muis over een grafiek voor de waarden.
+pg_first_day	The first figures appear after one game day.	De eerste cijfers verschijnen na één speldag.
+pg_no_data	No figures yet	Nog geen cijfers
+pg_money	Money	Geld
+pg_income_costs	Income and costs per month	Inkomsten en kosten per maand
+pg_income	Income	Inkomsten
+pg_costs	Costs	Kosten
+pg_profit_month	{0} profit per month	{0} winst per maand
+pg_revenue	Contract value	Contractwaarde
+pg_per_month	 / month	 / maand
+pg_power	Power use	Stroomverbruik
+pg_it_load	IT load	IT-last
+pg_facility_load	Whole site	Hele locatie
+pg_uptime	Uptime	Uptime
+pg_racks	Live racks	Racks in gebruik
+pg_customers	Customers	Klanten
+pg_network	Network traffic	Netwerkverkeer
+pg_rep_esg	Reputation and ESG	Reputatie en ESG
+pg_hosting	Hosting customers	Hostingklanten
+pg_free_play	Free play	Vrij spelen
+pg_free_play_help	This game has no scenario: build at your own pace. Pick a scenario under New game to play for bronze, silver and gold.	Dit spel heeft geen scenario: je bouwt in je eigen tempo. Kies bij Nieuw spel een scenario om te spelen voor brons, zilver en goud.
+pg_days_left	{0} days left	Nog {0} dagen
+pg_scenario_over	Finished	Afgelopen
+pg_now	Now: {0}	Nu: {0}
+pg_next_medal	On the way to {0}	Op weg naar {0}
+pg_all_scenarios	All scenarios	Alle scenario's
+pg_years	{0}-year challenge	Uitdaging van {0} jaar
+pg_best	Best: {0}	Beste: {0}
+pg_not_played	No medal yet	Nog geen medaille
+pg_scenario_how	A medal counts as soon as you reach it; gold ends the scenario straight away. You can keep playing afterwards. Your best medal per scenario is remembered over all savegames.	Een medaille telt zodra je hem haalt; met goud is het scenario meteen gewonnen. Daarna kun je gewoon doorspelen. Je beste medaille per scenario wordt over al je savegames onthouden.
+pg_ach_count	{0} of {1} in this game · {2} in total	{0} van {1} in dit spel · {2} in totaal
+pg_ach_creative	With unlimited money the money achievements do not count. All others do.	Met onbeperkt geld tellen de geldprestaties niet mee. Alle andere wel.
+pg_ach_before	Earned in another game	Behaald in een ander spel
+pg_ach_money_only	Only in a game with money	Alleen in een spel met geld
+medal_none	no medal	geen medaille
+medal_bronze	Bronze	Brons
+medal_silver	Silver	Zilver
+medal_gold	Gold	Goud
+msg_achievement	Achievement: {0}	Prestatie behaald: {0}
+msg_medal	{0} medal in {1}!	Medaille {0} in {1}!
+msg_scenario_won	Gold! You won the scenario {0}. Keep playing as long as you like.	Goud! Je hebt het scenario {0} gewonnen. Speel gerust verder.
+msg_scenario_over	Time is up in {1}. Your medal: {0}. You can keep playing.	De tijd is om in {1}. Je medaille: {0}. Je kunt gewoon doorspelen.
+msg_scenario_start	Scenario {0}: {1}	Scenario {0}: {1}
+msg_scenario_rescue	You took over a datacenter close to bankruptcy. Look at the books, fix the cooling and win back the customers.	Je hebt een datacenter overgenomen dat bijna failliet is. Kijk in de boeken, repareer de koeling en win de klanten terug.
+new_scenario	Scenario	Scenario
+new_free_play	Free play	Vrij spelen
+new_free_play_help	Build at your own pace, in career or creative mode.	Bouw in je eigen tempo, als carrière of in de creatieve modus.
+new_scenario_years	Time: {0} years.	Tijd: {0} jaar.
+sc_rush	Quick start	Snelle start
+sc_rush_desc	An empty plot, a bank balance and one year. How many racks can you get running?	Een leeg terrein, geld op de bank en één jaar. Hoeveel racks krijg je aan de praat?
+sc_rush_goal	Live racks within 1 year: bronze 40, silver 100, gold 200.	Racks in gebruik binnen 1 jaar: brons 40, zilver 100, goud 200.
+sc_rescue	Rescue a bankrupt datacenter	Red een failliet datacenter
+sc_rescue_desc	You take over a campus in trouble: a big loan, worn and broken machines, unhappy customers on cheap contracts and a bad name.	Je neemt een campus in nood over: een grote lening, versleten en kapotte machines, ontevreden klanten op goedkope contracten en een slechte naam.
+sc_rescue_goal	Profit in one month within 3 years: bronze any profit, silver € 25,000, gold € 75,000.	Winst in één maand binnen 3 jaar: brons elke winst, zilver € 25.000, goud € 75.000.
+sc_ten_mw	10 MW in 5 years	10 MW in 5 jaar
+sc_ten_mw_desc	Grow from an empty plot into a serious campus. Grid connection, cooling and customers have to grow along.	Groei van een leeg terrein naar een serieuze campus. Netaansluiting, koeling en klanten moeten meegroeien.
+sc_ten_mw_goal	Running IT load within 5 years: bronze 2.5 MW, silver 5 MW, gold 10 MW.	Draaiende IT-last binnen 5 jaar: brons 2,5 MW, zilver 5 MW, goud 10 MW.
+sc_green	Green giant	Groene reus
+sc_green_desc	Investors want a sustainable datacenter. Think of green power, solar and wind, little water and a low PUE.	Investeerders willen een duurzaam datacenter. Denk aan groene stroom, zon en wind, weinig water en een lage PUE.
+sc_green_goal	ESG score within 4 years: bronze 50, silver 70, gold 85.	ESG-score binnen 4 jaar: brons 50, zilver 70, goud 85.
+sc_efficient	Every watt counts	Elke watt telt
+sc_efficient_desc	Build a site of at least 100 live racks that wastes as little power as possible on cooling and losses.	Bouw een locatie met minstens 100 racks in gebruik die zo min mogelijk stroom verliest aan koeling en verliezen.
+sc_efficient_goal	PUE with at least 100 live racks within 3 years: bronze 1.45, silver 1.30, gold 1.20.	PUE met minstens 100 racks in gebruik binnen 3 jaar: brons 1,45, zilver 1,30, goud 1,20.
+tl_help	Every {0} game days at noon the game takes a picture of your whole campus from the same corner. Play them back here as a film of your campus growing.	Elke {0} speldagen om 12 uur maakt het spel een foto van je hele campus vanaf dezelfde hoek. Speel ze hier af als film van je groeiende campus.
+tl_none	No pictures yet. The first one is taken as soon as the game runs.	Nog geen foto's. De eerste wordt gemaakt zodra het spel loopt.
+tl_play	Play	Afspelen
+tl_pause	Pause	Pauze
+tl_first	First picture	Eerste foto
+tl_speed	Pictures per second	Foto's per seconde
+tl_fps	{0} per second	{0} per seconde
+tl_count	{0} pictures since {1}	{0} foto's sinds {1}
+tl_folder	Open folder	Map openen
+ph_open	Photo mode (F9)	Fotomodus (F9)
+ph_help	Photo mode hides the interface and stops the clock. Choose the time of day, a filter and depth of field, or let the cinematic camera glide around your campus.	De fotomodus verbergt de interface en zet de klok stil. Kies het tijdstip, een filter en scherptediepte, of laat de filmcamera rond je campus zweven.
+ph_title	Photo mode	Fotomodus
+ph_time	Time	Tijd
+ph_time_help	The time of day on this day (only for the photo)	Het tijdstip op deze dag (alleen voor de foto)
+ph_filter	Filter	Filter
+ph_filter_none	Natural	Natuurlijk
+ph_filter_warm	Warm	Warm
+ph_filter_cool	Cool	Koel
+ph_filter_vivid	Vivid	Levendig
+ph_filter_soft	Soft	Zacht
+ph_filter_bw	Black and white	Zwart-wit
+ph_filter_vintage	Vintage	Vintage
+ph_dof	Depth of field	Scherptediepte
+ph_dof_help	Blurs what is close by and far away	Maakt wat dichtbij en ver weg is wazig
+ph_cinematic	Cinematic camera	Filmcamera
+ph_cinematic_help	The camera glides slowly around the campus (C)	De camera zweeft langzaam rond de campus (C)
+ph_take	Take photo	Foto maken
+ph_take_help	Saves a photo without the interface (F12 or Enter)	Bewaart een foto zonder interface (F12 of Enter)
+ph_folder	Photos folder	Fotomap
+ph_exit	Close	Sluiten
+ph_hint	Right mouse rotates · wheel zooms · WASD moves · H hides this bar · C cinematic camera · F12 photo · Esc closes	Rechtermuis draait · wiel zoomt · WASD beweegt · H verbergt deze balk · C filmcamera · F12 foto · Esc sluit
+ph_saved	Saved: {0}	Opgeslagen: {0}
+ach_first_rack	First rack	Eerste rack
+ach_first_rack_desc	A rack is live	Er draait een rack
+ach_racks_100	Hundred racks	Honderd racks
+ach_racks_100_desc	100 live racks	100 racks in gebruik
+ach_racks_1000	Thousand racks	Duizend racks
+ach_racks_1000_desc	1,000 live racks	1.000 racks in gebruik
+ach_racks_5000	Hyperscale	Hyperscale
+ach_racks_5000_desc	5,000 live racks	5.000 racks in gebruik
+ach_mw_1	First megawatt	Eerste megawatt
+ach_mw_1_desc	1 MW of running IT load	1 MW draaiende IT-last
+ach_mw_10	Ten megawatt	Tien megawatt
+ach_mw_10_desc	10 MW of running IT load	10 MW draaiende IT-last
+ach_mw_50	Power plant	Elektriciteitscentrale
+ach_mw_50_desc	50 MW of running IT load	50 MW draaiende IT-last
+ach_n_plus_1	N+1	N+1
+ach_n_plus_1_desc	Generators with N+1 or better, behind an ATS	Generatoren met N+1 of beter, achter een ATS
+ach_pue_14	Cool head	Koel hoofd
+ach_pue_14_desc	PUE 1.40 or lower with 50 live racks	PUE 1,40 of lager met 50 racks in gebruik
+ach_pue_12	Ice cold	IJskoud
+ach_pue_12_desc	PUE 1.20 or lower with 200 live racks	PUE 1,20 of lager met 200 racks in gebruik
+ach_carriers_3	Well connected	Goed verbonden
+ach_carriers_3_desc	Three carriers in service	Drie carriers in dienst
+ach_carriers_4	Carrier hotel	Carrierhotel
+ach_carriers_4_desc	Every carrier in service	Alle carriers in dienst
+ach_tbit	Terabit	Terabit
+ach_tbit_desc	1,000 Gbit/s of traffic	1.000 Gbit/s aan verkeer
+ach_first_contract	First customer	Eerste klant
+ach_first_contract_desc	Sign your first contract	Teken je eerste contract
+ach_clients_25	Busy reception	Drukke receptie
+ach_clients_25_desc	25 customers at the same time	25 klanten tegelijk
+ach_clients_100	Colocation king	Koning van de colocatie
+ach_clients_100_desc	100 customers at the same time	100 klanten tegelijk
+ach_millionaire	Millionaire	Miljonair
+ach_millionaire_desc	€ 1,000,000 in the bank	€ 1.000.000 op de bank
+ach_revenue_1m	A million a month	Een miljoen per maand
+ach_revenue_1m_desc	€ 1,000,000 contract value per month	€ 1.000.000 contractwaarde per maand
+ach_profit_month	In the black	Zwarte cijfers
+ach_profit_month_desc	A month with profit	Een maand met winst
+ach_ipo	Ring the bell	Luid de bel
+ach_ipo_desc	Go public on the stock exchange	Ga naar de beurs
+ach_reputation_90	Famous	Beroemd
+ach_reputation_90_desc	Reputation 90 or higher	Reputatie 90 of hoger
+ach_esg_80	Green leaf	Groen blad
+ach_esg_80_desc	ESG score 80 or higher	ESG-score 80 of hoger
+ach_first_cert	Certified	Gecertificeerd
+ach_first_cert_desc	Earn a certificate	Haal een certificaat
+ach_research_10	Lab coat	Labjas
+ach_research_10_desc	Finish 10 research projects	Rond 10 researchprojecten af
+ach_staff_50	Team spirit	Teamgeest
+ach_staff_50_desc	50 employees	50 medewerkers
+ach_staff_200	Big employer	Grote werkgever
+ach_staff_200_desc	200 employees	200 medewerkers
+ach_second_site	Second location	Tweede locatie
+ach_second_site_desc	Open another location	Open een andere locatie
+ach_countries_3	International	Internationaal
+ach_countries_3_desc	Open three other countries	Open drie andere landen
+ach_hosting	Own brand	Eigen merk
+ach_hosting_desc	Start your own hosting company	Start je eigen hostingbedrijf
+ach_hosting_10k	Cloud provider	Cloudprovider
+ach_hosting_10k_desc	10,000 hosting customers	10.000 hostingklanten
+ach_uptime_30	Rock solid	Rotsvast
+ach_uptime_30_desc	30 days in a row without any rack down	30 dagen achter elkaar zonder één rack eruit
+ach_uptime_365	Five nines	Vijf negens
+ach_uptime_365_desc	A whole year without any rack down	Een heel jaar zonder één rack eruit
+ach_year_1	First anniversary	Eerste verjaardag
+ach_year_1_desc	Play one game year	Speel één speljaar
+ach_year_10	Ten years on	Tien jaar verder
+ach_year_10_desc	Play ten game years	Speel tien speljaren
+ach_campus_256	Land baron	Grootgrondbezitter
+ach_campus_256_desc	Grow the campus to 256 metres	Laat de campus groeien tot 256 meter
+ach_photographer	Photographer	Fotograaf
+ach_photographer_desc	Take a photo in photo mode	Maak een foto in de fotomodus
+ach_tourist	Tourist	Toerist
+ach_tourist_desc	Walk around your own datacenter	Loop rond in je eigen datacenter
+ach_director_cut	Director's cut	Director's cut
+ach_director_cut_desc	Watch the timelapse of your campus to the end	Kijk de timelapse van je campus helemaal af
