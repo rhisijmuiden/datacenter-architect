@@ -174,6 +174,7 @@ Een gebouw bouw je in fases, elk met bouwtijd en kosten. Een bouwkraan en bouwva
 
 - Een **parkeerplaats** werkt pas als hij met een weg op de **openbare weg** is aangesloten. Hetzelfde geldt voor het laadperron en de beveiligingsloge: vrachtwagens, personeel en bezoekers moeten er kunnen komen.
 - Je legt zelf wegen, paden en toegangen aan. De route van de openbare weg via de loge naar het terrein is de enige officiële ingang.
+- **Tweerichtingswegen** (wens van Reinder, 20 november 2026, speelronde): een weg van 6 tegels breed of breder krijgt vanzelf een witte middenstreep. Auto's en vrachtwagens rijden daarop **rechts**, zoals in Nederland, en halen elkaar niet in op smallere wegen.
 - **Hekwerk** trek je zelf rond (delen van) het terrein. Er zijn verschillende soorten:
 
 | Hekwerk | Beveiliging | Kosten | Opmerking |
