@@ -41,6 +41,8 @@ public partial class TutorialCoach : PanelContainer
         head.AddChild(_step);
         v.AddChild(head);
         _title = Ui.Text("", 18, Brand.Ink, Ui.DisplaySemi); _title.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
+        // autowrap labels without a width report a tall minimum size: give every wrapping label the card's width
+        _title.CustomMinimumSize = new Vector2(390, 0);
         v.AddChild(_title);
         _text = Ui.Text("", 14, Brand.Ink); _text.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
         _text.CustomMinimumSize = new Vector2(390, 0);
@@ -91,6 +93,7 @@ public partial class TutorialCoach : PanelContainer
             _show.Visible = true; _next.Text = "tut_next";
             Glow(Hud?.CategoryButton(st.Category));
         }
+        Size = new Vector2(420, 0);
         ResetSize();
     }
 

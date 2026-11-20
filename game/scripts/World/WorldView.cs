@@ -1122,7 +1122,8 @@ public partial class WorldView : Node3D
         for (var i = 0; i < list.Count; i++)
         {
             var st = Models.Statuette(list[i].Place);
-            st.Position = new Vector3(-0.82f + i * 0.13f, Models.DeskTop, -0.24f);
+            st.Position = new Vector3(-0.86f + i * 0.15f, Models.DeskTop, -0.33f);
+            st.Scale = Vector3.One * 1.4f;
             st.RotationDegrees = new Vector3(0, 180, 0);
             desk.AddChild(st);
         }

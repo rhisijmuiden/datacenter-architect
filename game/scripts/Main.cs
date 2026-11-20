@@ -632,9 +632,9 @@ public partial class Main : Node3D
     {
         if (_hud == null) return;
         var list = new List<(int, string, double, int, bool)>();
-        foreach (var b in _state.Buildings.Where(b => b.Stage != Stage.Done))
+        foreach (var b in _state.Buildings.Where(b => b.Stage != Stage.Done && !_state.IsPlanned(b)))
             list.Add((b.Id, Catalog.Buildings[b.Kind].NameKey, GameState.Progress(b), b.Priority, false));
-        foreach (var r in _state.Rooms.Where(r => r.Stage != Stage.Done))
+        foreach (var r in _state.Rooms.Where(r => r.Stage != Stage.Done && !_state.IsPlanned(r)))
             list.Add((r.Id, Catalog.Rooms[r.Type].NameKey, GameState.StageProgress(r), r.Priority, _state.BuildingOf(r)?.Stage != Stage.Done));
         _hud.UpdateProjects(list.OrderByDescending(p => p.Item4).ThenBy(p => p.Item1).ToList());
     }
@@ -1527,7 +1527,7 @@ public partial class Main : Node3D
         if (close && s.TrophyDesk is { } desk)
         {
             SetView(0, false);
-            _cam.SetView(0.9f, 0.42f, 3.2f, new Vector3(desk.X + 0.5f, 0.9f, desk.Z + 0.5f));
+            _cam.SetView(-2.3f, 0.75f, 7f, new Vector3(desk.X + 1f, 0.8f, desk.Z + 0.5f));
         }
     }
 
