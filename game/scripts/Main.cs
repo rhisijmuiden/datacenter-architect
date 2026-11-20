@@ -156,6 +156,8 @@ public partial class Main : Node3D
             CyclePriority = CyclePriority,
             RotateLeft = () => _cam.RotateStep(1), RotateRight = () => _cam.RotateStep(-1), Walk = StartWalk, Photo = StartPhoto,
             ToggleGrid = () => _world.GridVisible = !_world.GridVisible,
+            ToggleDayNight = () => { var st = AppSettings.Instance; st.DayNight = !st.DayNight; st.Save(); ApplyOther(); },
+            ToggleWeather = () => { var st = AppSettings.Instance; st.Weather = !st.Weather; st.Save(); ApplyOther(); },
             ToggleRoofs = () => SetView(_world.ViewFloor, !_world.Roofs),
             FloorUp = () => SetView(StepFloor(1), false),
             FloorDown = () => SetView(StepFloor(-1), StepFloor(-1) == 0 && _world.Roofs),
@@ -369,6 +371,7 @@ public partial class Main : Node3D
     {
         var s = AppSettings.Instance;
         _world?.ApplyEffects(s);
+        _hud?.SetWorldSwitches(s.DayNight, s.Weather);
         if (_cam != null) _cam.Smooth = s.SmoothCamera;
         AudioMixer.Apply(s);
     }
