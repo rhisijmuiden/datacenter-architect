@@ -26,7 +26,7 @@ public static class TestRunner
         {
             ("semver", SemVerTests), ("updates", UpdateTests), ("translations", TranslationTests),
             ("saves", SaveTests), ("building", BuildTests), ("construction", ConstructionTests),
-            ("rack chain", RackChainTests), ("gates", GateTests), ("curves", CurveTests), ("navigation", NavTests), ("stairs and lifts", StairsTests), ("undo", UndoTests), ("creative", CreativeTests), ("demo", DemoTests),
+            ("rack chain", RackChainTests), ("gates", GateTests), ("curves", CurveTests), ("navigation", NavTests), ("stairs and lifts", StairsTests), ("undo", UndoTests), ("smart drag", SmartDragTests), ("creative", CreativeTests), ("demo", DemoTests),
             ("power chain", PowerTests), ("backup power", BackupTests), ("grid and suppliers", GridTests),
             ("cooling", CoolingTests), ("roof and underground", RoofTests), ("overlay rows", OverlayTests),
             ("options", OptionsTests), ("thumbnails", ThumbnailTests), ("network", NetworkTests), ("network money", NetworkMoneyTests), ("peering", PeeringTests),
@@ -430,6 +430,22 @@ public static class TestRunner
         s.PaintSurface(40, 40, 2, 2, Surface.Footpath, out _);
         h.Commit(s, snap, "surface_footpath");
         Check(!h.CanRedo, "a new action clears redo");
+    }
+
+    static void SmartDragTests()
+    {
+        var one = GameState.RowBlock(12, 16, 24, 16, ObjKind.Rack, 0);
+        Check(one.Count == 13 && one.All(c => c.z == 16 && c.rot == 0), "a flat drag is one row");
+        var block = GameState.RowBlock(12, 16, 24, 23, ObjKind.Rack, 0);
+        var rows = block.GroupBy(c => c.z).ToDictionary(g => g.Key, g => g.First().rot);
+        Check(rows.Count == 4 && rows[16] == 0 && rows[18] == 2 && rows[21] == 0 && rows[23] == 2, "a wide drag lays rows like the demo hall: cold aisles between fronts, hot aisles between backs");
+        Check(block.Count == 4 * 13, "every row runs the full length");
+        var up = GameState.RowBlock(12, 23, 24, 16, ObjKind.Rack, 0).GroupBy(c => c.z).ToDictionary(g => g.Key, g => g.First().rot);
+        Check(up[23] == 2 && up[21] == 0, "dragging the other way mirrors the pattern");
+        var flipped = GameState.RowBlock(12, 16, 24, 23, ObjKind.Rack, 2).GroupBy(c => c.z).ToDictionary(g => g.Key, g => g.First().rot);
+        Check(flipped.Count == 3 && flipped[16] == 2 && flipped[19] == 0 && flipped[21] == 2, "R starts the block with the backs");
+        var alongZ = GameState.RowBlock(10, 10, 12, 20, ObjKind.Rack, 0).GroupBy(c => c.x).ToDictionary(g => g.Key, g => g.First().rot);
+        Check(alongZ.Count == 2 && alongZ[10] == 3 && alongZ[12] == 1, "rows along z face each other across x");
     }
 
     static void StairsTests()

@@ -700,7 +700,10 @@ public partial class Main : Node3D
         switch (_item.Mode)
         {
             case Mode.Select: _world.ClearGhost(); break;
-            case Mode.Erase: _world.ShowGhostRect(r, Brand.Critical, y); break;
+            case Mode.Erase:
+                var gone = _dragStart == null ? 0 : _state.Objects.Count(o => o.Floor == _world.ViewFloor && GameState.Cells(o).Any(c => r.HasPoint(new Vector2I(c.x, c.z))));
+                _world.ShowGhostRect(r, Brand.Critical, y, _dragStart == null ? null : Dim(r) + (gone > 0 ? " · " + Loc.T("erase_objects", gone) : ""));
+                break;
             case Mode.Curve:
                 var mouse = Snap(_hoverPoint);
                 if (_curveA == null)
@@ -754,10 +757,14 @@ public partial class Main : Node3D
             case Mode.Row:
                 var start = _dragStart ?? _hoverCell;
                 var kindR = (ObjKind)_item.Arg;
-                var cells = GameState.RowCells(start.X, start.Y, _hoverCell.X, _hoverCell.Y, kindR, _rot, _state.MaxRowLength);
-                var objs = cells.Select(c => new PlacedObject { Kind = kindR, X = c.x, Z = c.z, Rot = _rot, Floor = _world.ViewFloor }).Select(x => (x, _state.CanPlace(x) == null)).ToList();
+                var cells = GameState.RowBlock(start.X, start.Y, _hoverCell.X, _hoverCell.Y, kindR, _rot, _state.MaxRowLength);
+                var objs = cells.Select(c => new PlacedObject { Kind = kindR, X = c.x, Z = c.z, Rot = c.rot, Floor = _world.ViewFloor }).Select(x => (x, _state.CanPlace(x) == null)).ToList();
                 var ok = objs.Count(x => x.Item2);
-                _world.ShowGhostObjects(objs, _dragStart == null ? null : $"{ok} × {Loc.T(Catalog.Objects[kindR].NameKey)} · {Ui.Money(ok * Catalog.Objects[kindR].Cost)}");
+                var rows = cells.Select(c => Math.Abs(_hoverCell.X - start.X) >= Math.Abs(_hoverCell.Y - start.Y) ? c.z : c.x).Distinct().Count();
+                var rowText = rows > 1 ? " · " + Loc.T("row_rows", rows) : "";
+                var kw = ok * Catalog.Objects[kindR].PowerKw;
+                var powerText = kw > 0 ? $" · {kw:0} kW" : "";
+                _world.ShowGhostObjects(objs, _dragStart == null ? null : $"{ok} × {Loc.T(Catalog.Objects[kindR].NameKey)}{rowText} · {Dim(RectOf(start, _hoverCell))}{powerText} · {Ui.Money(ok * Catalog.Objects[kindR].Cost)}");
                 break;
         }
     }
@@ -846,11 +853,11 @@ public partial class Main : Node3D
             case Mode.Row:
                 var k = (ObjKind)_item.Arg;
                 var placed = 0; string last = null;
-                foreach (var (x, z) in GameState.RowCells(a.X, a.Y, b.X, b.Y, k, _rot, _state.MaxRowLength))
+                foreach (var (x, z, rr) in GameState.RowBlock(a.X, a.Y, b.X, b.Y, k, _rot, _state.MaxRowLength))
                 {
-                    var o = new PlacedObject { Kind = k, X = x, Z = z, Rot = _rot, Floor = _world.ViewFloor };
+                    var o = new PlacedObject { Kind = k, X = x, Z = z, Rot = rr, Floor = _world.ViewFloor };
                     last = _state.CanPlace(o);
-                    if (last == null && _state.AddObject(k, x, z, _rot, _world.ViewFloor) != null) placed++;
+                    if (last == null && _state.AddObject(k, x, z, rr, _world.ViewFloor) != null) placed++;
                 }
                 if (placed == 0) Fail(last);
                 else _hud.Notify(Loc.T("msg_racks_ordered", placed), Brand.Ok);
@@ -1225,6 +1232,14 @@ public partial class Main : Node3D
             // --cam yaw,pitch,distance,x,z
             var v = args[cami + 1].Split(',').Select(x => float.Parse(x, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
             _cam.SetView(v[0], v[1], v[2], new Vector3(v[3], 0, v[4]));
+        }
+        // --drag-demo: an empty demo hall with a smart-drag rack block in progress
+        if (args.Contains("--drag-demo"))
+        {
+            _state.Objects.RemoveAll(o => o.Kind == ObjKind.Rack); _state.Touch();
+            _hud.Pick(new BuildItem(Mode.Row, (int)ObjKind.Rack));
+            _dragStart = new Vector2I(12, 16); _hoverCell = new Vector2I(24, 30);
+            UpdateGhost();
         }
         // --floor N: look at floor N with the roofs off (stairs and lifts screenshots)
         var fli = Array.IndexOf(args, "--floor");
