@@ -1050,9 +1050,14 @@ public partial class WorldView : Node3D
         return Open(b) && a.Floor == _viewFloor;
     }
 
+    int _animTick;
+    Vector3 _camPos;
+
     void SyncAgents(double delta)
     {
         if (_sim == null) return;
+        _animTick++;
+        _camPos = GetViewport()?.GetCamera3D()?.GlobalPosition ?? Vector3.Zero;
         var alive = new HashSet<int>();
         var t = (float)Time.GetTicksMsec() / 1000f;
         foreach (var a in _sim.Agents)
@@ -1079,22 +1084,25 @@ public partial class WorldView : Node3D
                 FollowTrailer(n, a, delta);
                 continue;
             }
-            var fig = n.GetNode<Node3D>("Fig");
-            var walking = a.Moving;
-            var ph = t * 9 + a.Id;
-            fig.Position = new Vector3(0, walking ? Mathf.Abs(Mathf.Sin(ph)) * 0.06f : 0, 0);
-            fig.GetNode<Node3D>("L1").RotationDegrees = new Vector3(walking ? Mathf.Sin(ph) * 28 : 0, 0, 0);
-            fig.GetNode<Node3D>("L2").RotationDegrees = new Vector3(walking ? -Mathf.Sin(ph) * 28 : 0, 0, 0);
-            var arm = a.Working ? Mathf.Sin(t * 14 + a.Id) * 50 - 40 : walking ? -Mathf.Sin(ph) * 22 : 0;
-            fig.GetNode<Node3D>("A1").RotationDegrees = new Vector3(arm, 0, 0);
-            fig.GetNode<Node3D>("A2").RotationDegrees = new Vector3(a.Working ? -arm - 80 : -arm, 0, 0);
+            var fig = (PersonFigure)n;
             n.GetNode<Node3D>("Crate").Visible = a.Role == Role.Builder && a.Loaded && a.Carry > 0 && a.Phase == 1;
             // movers of a customer migration push a trolley of servers: in to the racks, or out to the truck
             var cart = n.GetNode<Node3D>("Cart");
             cart.Visible = a.Role == Role.Visitor && a.Carry > 0;
-            if (cart.Visible) fig.GetNode<Node3D>("A1").RotationDegrees = fig.GetNode<Node3D>("A2").RotationDegrees = new Vector3(-62, 0, 0);
             n.GetNode<Node3D>("Rack").Visible = a.Role == Role.Fitter && a.CarryObj != 0 && a.Phase == 2;
-            AnimateReels(n, fig, a, t);
+            var reel = AnimateReels(n, a, t);
+            var pose = a.Working && !reel ? PersonPose.Work
+                : n.GetNode<Node3D>("Crate").Visible ? PersonPose.Carry
+                : cart.Visible ? PersonPose.Push
+                : reel && !a.Working ? PersonPose.Reel
+                : a.Moving ? PersonPose.Walk : PersonPose.Idle;
+            if (reel && a.Working) pose = PersonPose.Work;
+            // only figures on screen are animated; far away ones every other frame
+            if (n.Visible && (pose != PersonPose.Idle || _animTick % 3 == a.Id % 3))
+            {
+                var far = _camPos.DistanceSquaredTo(n.Position) > 90 * 90;
+                if (!far || (_animTick + a.Id) % 2 == 0) fig.Animate(far ? delta * 2 : delta, pose, a.Id);
+            }
         }
         foreach (var id in _agentNodes.Keys.Where(id => !alive.Contains(id)).ToList())
         {
@@ -1152,16 +1160,16 @@ public partial class WorldView : Node3D
     /// goes on the floor beside them and a cable run leads to the rack while the drum slowly unrolls.
     /// Electricians and network engineers on a repair carry one too.
     /// </summary>
-    static void AnimateReels(Node3D n, Node3D fig, Agent a, float t)
+    static bool AnimateReels(Node3D n, Agent a, float t)
     {
         var p = n.GetNodeOrNull<Node3D>("ReelP");
         var f = n.GetNodeOrNull<Node3D>("ReelF");
-        if (p == null && f == null) return;
+        if (p == null && f == null) return false;
         var kind = a.Role == Role.Engineer ? a.Cable
             : a.Target == 0 ? CableKind.None
             : a.Staff == StaffRole.NetworkEng ? CableKind.Fiber : CableKind.Power;
         if (a.Role == Role.Engineer && a.Phase == 0) kind = CableKind.None;
-        var tool = fig.GetNodeOrNull<Node3D>("Tool");
+        var tool = (n as PersonFigure)?.Tool;
         if (tool != null) tool.Visible = kind == CableKind.None;
         foreach (var (reel, k) in new[] { (p, CableKind.Power), (f, CableKind.Fiber) })
         {
@@ -1169,13 +1177,12 @@ public partial class WorldView : Node3D
             reel.Visible = kind == k;
             if (!reel.Visible) continue;
             var down = a.Working;
-            reel.Position = down ? new Vector3(0.42f, 0.16f, 0.22f) : new Vector3(0, 0.76f, 0.4f);
+            reel.Position = down ? new Vector3(0.42f, 0.16f, 0.22f) : new Vector3(0, 0.72f, 0.38f);
             reel.GetNode<Node3D>("Lead").Visible = down;
             var drum = reel.GetNode<Node3D>("Drum");
             drum.RotationDegrees = new Vector3(down ? t * 40 % 360 : a.Moving ? t * 90 % 360 : drum.RotationDegrees.X, 0, 0);
-            if (!down)
-                fig.GetNode<Node3D>("A1").RotationDegrees = fig.GetNode<Node3D>("A2").RotationDegrees = new Vector3(-48, 0, 0);
         }
+        return kind != CableKind.None;
     }
 
     /// <summary>Sliding gates roll their leaf aside and barriers lift their arm, as far as the simulation has them open.</summary>

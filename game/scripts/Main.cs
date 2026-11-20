@@ -1114,6 +1114,12 @@ public partial class Main : Node3D
                 var p = Models.Person(people[i].role, people[i].id, people[i].staff);
                 p.Position = new Vector3(54 + i * 1.0f, 0, 20);
                 _world.AddChild(p);
+                // a mix of poses: standing, walking, carrying a crate, pushing a trolley, holding a cable reel
+                var pose = i switch { 0 => PersonPose.Carry, 2 => PersonPose.Reel, 4 => PersonPose.Push, 1 or 5 or 7 => PersonPose.Walk, _ => PersonPose.Idle };
+                if (pose == PersonPose.Carry) p.GetNode<Node3D>("Crate").Visible = true;
+                if (pose == PersonPose.Push) p.GetNode<Node3D>("Cart").Visible = true;
+                if (pose == PersonPose.Reel) p.GetNode<Node3D>("ReelP").Visible = true;
+                if (p is PersonFigure f) f.Animate(0.4 + i * 0.13, pose, i);
             }
             _cam.SetView(0.75f, 0.85f, 62, new Vector3(36, 0, 32));
             if (args.Contains("--close")) _cam.SetView(1.1f, 0.5f, 22, new Vector3(48.5f, 0, 42));
