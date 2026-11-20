@@ -60,6 +60,8 @@ public class Room
     public bool Hot { get; set; }
     /// <summary>Data halls: what the hall is sold as (full racks, per U, cages, a private hall).</summary>
     public HallZone Zone { get; set; }
+    /// <summary>Data halls: the customer types hosted here. Empty means every type is welcome.</summary>
+    public List<CustomerType> Clients { get; set; } = new();
     public bool Contains(int x, int z) => x >= X && z >= Z && x < X + W && z < Z + D;
 }
 

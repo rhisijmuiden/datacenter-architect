@@ -1221,6 +1221,8 @@ public partial class Main : Node3D
                 lines.Add(Loc.T("inspect_zone", Loc.T("zone_" + r.Zone.ToString().ToLowerInvariant())));
                 var nextZone = (HallZone)(((int)r.Zone + 1) % Enum.GetValues<HallZone>().Length);
                 actions.Add((Loc.T("action_zone", Loc.T("zone_" + nextZone.ToString().ToLowerInvariant())), () => { _state.SetZone(hall, nextZone); Act(null); }, true));
+                lines.Add(Loc.T("inspect_hall_clients", CompanyPanel.ClientsText(r)));
+                actions.Add((Loc.T("action_hall_clients"), () => OpenCompany(CompanyPanel.TabSales), true));
             }
             if (r.Type is RoomType.Executive or RoomType.Office)
             {
@@ -1648,6 +1650,13 @@ public partial class Main : Node3D
         if (oi >= 0) OpenOptions(oi + 1 < args.Length && int.TryParse(args[oi + 1], out var tab) ? tab : 0);
         if (args.Contains("--power")) { _playing = true; OpenPower(); }
         if (args.Contains("--network")) { _playing = true; OpenNetwork(); }
+        // --hall-clients: keep the first hall for banks and government and the second for AI companies (screenshots)
+        if (args.Contains("--hall-clients") && _state != null)
+        {
+            var hs = _state.Rooms.Where(r => r.Type == RoomType.DataHall).ToList();
+            if (hs.Count > 0) _state.SetHallClients(hs[0], new[] { CustomerType.Bank, CustomerType.Government });
+            if (hs.Count > 1) _state.SetHallClients(hs[1], new[] { CustomerType.Ai });
+        }
         var coi = Array.IndexOf(args, "--company");
         if (coi >= 0 && coi + 1 < args.Length) { _playing = true; OpenCompany(int.Parse(args[coi + 1])); }
         var seci = Array.IndexOf(args, "--section");

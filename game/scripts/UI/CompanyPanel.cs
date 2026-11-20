@@ -275,6 +275,7 @@ public partial class CompanyPanel : Modal
             var room = hall;
             opt.ItemSelected += idx => { _state().SetZone(room, (HallZone)(int)idx); _sig = null; };
             row.AddChild(opt);
+            row.AddChild(ClientPicker(_state, room));
             _content.AddChild(row);
         }
         _content.AddChild(new HSeparator());
@@ -284,6 +285,59 @@ public partial class CompanyPanel : Modal
         _content.AddChild(Ui.Heading("leads_title", 16, Brand.Amber));
         if (leads.Count == 0) _content.AddChild(Plain(Loc.T(s.Has(Exec.Sales) ? "leads_none" : "leads_no_sales"), 14, Brand.InkDim));
         foreach (var d in leads) _content.AddChild(DealCard(s, d));
+    }
+
+    /// <summary>Short text for the customer types a hall takes: everyone, one or two names, or a count.</summary>
+    public static string ClientsText(Room hall)
+    {
+        var c = hall.Clients ?? new List<CustomerType>();
+        if (c.Count == 0) return Loc.T("hall_clients_all");
+        var first = Loc.T(Org.Customers[c[^1]].Key);
+        return c.Count == 1 ? first : $"{first} +{c.Count - 1}";
+    }
+
+    /// <summary>
+    /// A drop-down with a tick per customer type for one data hall. Everyone is welcome by default; picking a type
+    /// while everyone is welcome narrows the hall to that type, and further ticks add or remove types.
+    /// </summary>
+    public static MenuButton ClientPicker(Func<GameState> state, Room hall)
+    {
+        var types = Enum.GetValues<CustomerType>();
+        var btn = new MenuButton { Flat = false, Alignment = HorizontalAlignment.Left, ClipText = true, CustomMinimumSize = new Vector2(240, 0), AutoTranslateMode = AutoTranslateModeEnum.Disabled, TooltipText = Loc.T("hall_clients_tip") };
+        btn.AddThemeStyleboxOverride("normal", Ui.Box(new Color(1, 1, 1, 0.06f), 7, Brand.Line, 1, 9));
+        btn.AddThemeStyleboxOverride("hover", Ui.Box(Brand.PanelHover, 7, Brand.Line, 1, 9));
+        btn.AddThemeStyleboxOverride("pressed", Ui.Box(Brand.PanelHover, 7, Brand.Amber, 1, 9));
+        btn.AddThemeColorOverride("font_color", Brand.Ink);
+        var pop = btn.GetPopup();
+        pop.HideOnCheckableItemSelection = false;
+        pop.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
+        void Sync()
+        {
+            btn.Text = ClientsText(hall);
+            btn.TooltipText = Loc.T("hall_clients_tip") + (hall.Clients.Count > 1 ? "\n\n" + string.Join(", ", hall.Clients.Select(t => Loc.T(Org.Customers[t].Key))) : "");
+            pop.SetItemChecked(0, hall.Clients.Count == 0);
+            for (var i = 0; i < types.Length; i++) pop.SetItemChecked(i + 2, hall.Clients.Contains(types[i]));
+        }
+        pop.AddCheckItem(Loc.T("hall_clients_all"), 0);
+        pop.AddSeparator();
+        for (var i = 0; i < types.Length; i++) pop.AddCheckItem(Loc.T(Org.Customers[types[i]].Key), i + 1);
+        pop.IdPressed += id =>
+        {
+            var s = state();
+            if (s == null) return;
+            if (id == 0) s.SetHallClients(hall, Array.Empty<CustomerType>());
+            else
+            {
+                var t = types[id - 1];
+                var set = hall.Clients.ToHashSet();
+                if (set.Count == 0) set.Add(t);
+                else if (!set.Remove(t)) set.Add(t);
+                s.SetHallClients(hall, set);
+            }
+            Sync();
+        };
+        Sync();
+        return btn;
     }
 
     static string Product(Deal d) => d.Product switch

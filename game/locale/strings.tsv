@@ -708,7 +708,7 @@ sales_needs_director	Hire a sales director to start a sales team. Without sales 
 sales_reps	{0} sales rep(s) · {1} workplace(s) · {2} / month each	{0} verkoper(s) · {1} werkplek(ken) · {2} / maand per persoon
 sales_help	Each sales rep needs a desk in an office room. More reps bring more and bigger customer requests.	Elke verkoper heeft een bureau in een kantoorruimte nodig. Meer verkopers geven meer en grotere klantaanvragen.
 zones_title	Hall zones	Zones per hal
-zones_help	Choose what each data hall is sold as. Customers only get racks in halls with the matching zone.	Kies per datahal wat je verkoopt. Klanten krijgen alleen racks in een hal met de passende zone.
+zones_help	Choose what each data hall is sold as and which customers it hosts. Customers only get racks in halls with the matching zone that take their type.	Kies per datahal wat je verkoopt en welke klanten er komen. Klanten krijgen alleen racks in een hal met de passende zone die hun type toelaat.
 zones_none	No data halls yet.	Nog geen datahallen.
 zones_hall	Hall {0}: {1} racks · {2} rented · {3} for sale	Hal {0}: {1} racks · {2} verhuurd · {3} te koop
 zone_fullracks	Full racks	Volle racks
@@ -1811,3 +1811,8 @@ hud_basement_tip	Add a basement under the building: a good place for transformer
 hud_floor_basement	Basement	Kelder
 msg_no_basement	Only datacenters and offices can have a basement.	Alleen datacenters en kantoren kunnen een kelder hebben.
 msg_not_in_basement	This room needs daylight and a street door; it cannot go in the basement.	Deze ruimte heeft daglicht en een straatdeur nodig; die kan niet in de kelder.
+hall_clients_all	All customers	Alle klanten
+hall_clients_tip	Which customers this hall hosts. Pick one or more types to keep the hall for them, for example banks and government in a secure hall or AI companies in a 32 A hall.	Welke klanten deze hal host. Kies een of meer types om de hal voor hen te houden, bijvoorbeeld banken en overheid in een beveiligde hal of AI-bedrijven in een 32 A-hal.
+inspect_hall_clients	Customers: {0}	Klanten: {0}
+action_hall_clients	Choose customers	Klanten kiezen
+req_hall_clients	A hall that hosts this customer type	Een hal die dit klanttype host
