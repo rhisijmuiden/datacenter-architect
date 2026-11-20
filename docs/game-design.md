@@ -246,6 +246,8 @@ Binnen een gebouw **teken je zelf ruimtes**: muren trekken, deuren plaatsen en e
 - Elke verdieping heeft een **maximale vloerbelasting** (kg/m²). Zware installaties zoals UPS, accu's en switchgear horen daarom meestal op de begane grond.
 - **Schachten (risers)** voor stroom, glasvezel en koelleidingen verbinden de verdiepingen. Een verdieping werkt pas als hij daarop is aangesloten.
 - Een **goederenlift** is nodig om racks naar boven te brengen. **Trappen** zijn verplicht als vluchtroute.
+- **Trappen** (idee van Reinder, 20 november 2026, voor de speelronde): je plaatst een trap of trappenhuis in een gebouw, en die verbindt twee of meer verdiepingen. Medewerkers en bezoekers lopen zichtbaar via de trap tussen verdiepingen; de goederenlift blijft voor racks, karretjes en zware spullen. Zonder trap of personenlift kan personeel een hogere verdieping niet bereiken en krijg je een melding, net als bij de goederenlift. In first person kun je de trap ook zelf op- en aflopen.
+- **Personenlift** (idee van Reinder, 20 november 2026): naast de goederenlift een gewone lift, vooral voor kantoorpanden. Medewerkers en bezoekers nemen de lift of de trap, wat het dichtstbij is; met een personenlift is een kantoor hoog in een pand prettiger (kleine bonus op tevredenheid en bij klantbezoek). Racks en zware spullen blijven via de goederenlift gaan.
 - Op het **dak** kun je koelmachines, dry coolers en zonnepanelen plaatsen. Dat bespaart grond, maar vraagt een sterk dak.
 - Warmte stijgt op: hogere zalen vragen iets meer koeling.
 - In de bouwmodus kies je een verdieping. Alles daarboven wordt verborgen, en met de uitgeklapte weergave zie je alle verdiepingen tegelijk.
