@@ -37,6 +37,7 @@ public static class TestRunner
             ("market and rivals", MarketTests), ("campus land", LandTests), ("locations", SiteTests), ("office tenants", OfficeLeaseTests),
             ("hosting company", HostingTests), ("energy and ESG", EnergyTests), ("risks", RiskTests), ("key people", KeyPeopleTests), ("old saves get growth", GrowthMigrationTests),
             ("seasons, weather and the sun", ClimateTests), ("customer migrations", MigrationTests), ("first-person walking", WalkTests),
+            ("management rail", RailTests),
         };
         foreach (var (name, t) in tests)
         {
@@ -476,6 +477,36 @@ public static class TestRunner
         Check(!poked && Math.Abs(tr.Z - (36 + 2.75)) < 0.01 && Math.Abs(Math.Cos(tr.Heading) - 1) < 1e-6, $"truck backs up to the dock door, nose away from the building ({tr.X:0.00},{tr.Z:0.00} h{tr.Heading:0.00})");
         Run(sim, 6, () => sim.Agents.All(a => a.Role != Role.Truck));
         Check(sim.GateOpen[gate.Id] < 0.01 && sim.GateOpen[barrier.Id] < 0.01, "gate and barrier close after the trucks have left");
+    }
+
+    static void RailTests()
+    {
+        // every screen tab is reachable from exactly the section the rail promises
+        Check(Sections.All.Length == 7, "seven sections on the rail");
+        Check(Sections.All.Select(x => x.Hotkey).Distinct().Count() == 7 && Sections.ForKey(Key.F1) == 0 && Sections.ForKey(Key.F7) == 6, "F1 to F7 open the sections");
+        var keys = Sections.All.SelectMany(x => x.Tabs.Select(t => t.Key).Append(x.Key).Append(x.ShortKey)).ToList();
+        Check(keys.All(k => Loc.T(k) != k), "every section and tab has a text: " + string.Join(", ", keys.Where(k => Loc.T(k) == k)));
+        var icons = Sections.All.SelectMany(x => x.Tabs.Select(t => t.Icon).Append(x.Icon)).Distinct().ToList();
+        Check(icons.All(i => ResourceLoader.Exists($"res://assets/icons/{i}.svg")), "every section icon exists");
+        foreach (var (kind, count) in new[] { (PanelKind.Company, 5), (PanelKind.Staff, 4), (PanelKind.Reputation, 5), (PanelKind.Growth, 7), (PanelKind.Overview, 3) })
+            for (var t = 0; t < count; t++)
+            {
+                var (sec, tab) = Sections.Find(kind, t);
+                var e = Sections.All[sec].Tabs[tab];
+                Check(e.Kind == kind && e.Tab == t, $"{kind} tab {t} has a place on the rail");
+            }
+        Check(Sections.Find(PanelKind.Growth, GrowthPanel.TabEnergy).section == Sections.Infra, "energy lives under infrastructure");
+        Check(Sections.Find(PanelKind.Company, CompanyPanel.TabSales).section == Sections.Customers, "sales lives under customers");
+        Check(Sections.Find(PanelKind.Network, 0).section == Sections.Infra, "network lives under infrastructure");
+
+        // the overview dashboard and its advice on the demo campus
+        var s = Demo.Build();
+        var figs = OverviewPanel.Figures(s);
+        Check(figs.Count == 8 && figs.All(f => !string.IsNullOrEmpty(f.value)), "dashboard shows eight figures");
+        s.Deals.Add(new Deal { Id = s.NextId++, State = DealState.Lead, Racks = 2, Name = "Test" });
+        var adv = OverviewPanel.Advice(s, new[] { ("goal_rack", true), ("goal_ceo", false) });
+        Check(adv.Any(a => a.kind == PanelKind.Company && a.tab == CompanyPanel.TabSales), "new leads show up as advice");
+        Check(adv.Any(a => a.kind == PanelKind.Overview && a.text.Contains(Loc.T("goal_ceo"))), "the next goal shows up as advice");
     }
 
     static void DemoTests()

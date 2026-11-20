@@ -127,7 +127,6 @@ public partial class Main : Node3D
             SpeedChanged = sp => _speed = sp,
             FloorsChanged = f => { _floors = f; UpdateGhost(); },
             FacadeChanged = f => _facade = f,
-            CrewChanged = ChangeCrew,
             CyclePriority = CyclePriority,
             RotateLeft = () => _cam.RotateStep(1), RotateRight = () => _cam.RotateStep(-1), Walk = StartWalk,
             ToggleGrid = () => _world.GridVisible = !_world.GridVisible,
@@ -135,6 +134,7 @@ public partial class Main : Node3D
             FloorUp = () => SetView(_world.ViewFloor + 1, false),
             FloorDown = () => SetView(_world.ViewFloor - 1, _world.ViewFloor - 1 <= 0 && _world.Roofs),
             OpenInfo = OpenInfo, OpenOptions = OpenOptions, OpenMenu = OpenPause, ToggleLanguage = ToggleLanguage,
+            OpenSection = ToggleSection,
             OpenPower = OpenPower, OpenNetwork = OpenNetwork, OpenCompany = OpenCompany, OpenStaff = OpenStaff, OpenReputation = OpenReputation, OpenGrowth = OpenGrowth, ToggleOverlay = m => SetOverlay(_world.Overlay.Mode == (OverlayMode)m ? OverlayMode.None : (OverlayMode)m),
         };
         _ui.AddChild(_hud);
@@ -169,13 +169,6 @@ public partial class Main : Node3D
         if (item.Mode is Mode.Surface or Mode.Curve or Mode.Fence or Mode.Building && _world.ViewFloor > 0) SetView(0, _world.Roofs);
     }
 
-    void ChangeCrew(Role role, int delta)
-    {
-        var why = _state.ChangeCrew(role, delta);
-        if (why != null) Fail(why);
-        _hud.UpdateStats(_state);
-    }
-
     void CyclePriority(int id)
     {
         var b = _state.Buildings.FirstOrDefault(x => x.Id == id);
@@ -185,31 +178,94 @@ public partial class Main : Node3D
         UpdateProjects();
     }
 
-    void OpenPower()
+    // ---------------- management drawer (GUI v2) ----------------
+    Modal _drawer;
+    OverlayMode _overlayBeforeDrawer;
+    bool _drawerSetOverlay;
+
+    void OpenPower() => OpenPanel(PanelKind.Power, 0);
+    void OpenNetwork() => OpenPanel(PanelKind.Network, 0);
+    void OpenCompany(int tab) => OpenPanel(PanelKind.Company, tab);
+    void OpenReputation(int tab) => OpenPanel(PanelKind.Reputation, tab);
+    void OpenGrowth(int tab) => OpenPanel(PanelKind.Growth, tab);
+    void OpenStaff(int tab) => OpenPanel(PanelKind.Staff, tab);
+
+    /// <summary>Opens a screen in the drawer, in the section and tab that show it.</summary>
+    void OpenPanel(PanelKind kind, int tab)
     {
-        if (!_playing || _ui.GetChildren().OfType<PowerPanel>().Any()) return;
-        _ui.AddChild(new PowerPanel(() => _state, Fail));
+        var (sec, t) = Sections.Find(kind, tab);
+        // a screen can sit under two tabs of a section only once, so open the exact tab when it exists
+        OpenSectionTab(sec, t, tab);
     }
 
-    void OpenCompany(int tab)
+    /// <summary>
+    /// Opens tab <paramref name="tabIndex"/> of rail section <paramref name="section"/>. Pressing the rail button of the open section closes the drawer.
+    /// </summary>
+    void OpenSectionTab(int section, int tabIndex) => OpenSectionTab(section, tabIndex, null);
+
+    void OpenSectionTab(int section, int tabIndex, int? screenTab)
     {
-        if (!_playing) return;
-        foreach (var p in _ui.GetChildren().OfType<CompanyPanel>()) p.Close();
-        _ui.AddChild(new CompanyPanel(() => _state, Fail, tab));
+        if (!_playing || section < 0 || section >= Sections.All.Length) return;
+        var e = Sections.All[section].Tabs[Math.Clamp(tabIndex, 0, Sections.All[section].Tabs.Length - 1)];
+        var want = screenTab ?? e.Tab;
+        if (_drawer != null && IsInstanceValid(_drawer) && !_drawer.IsQueuedForDeletion())
+        {
+            if (_drawer.DrawerSection == section && _drawer.Kind == e.Kind) { _drawer.SelectTab(want); ApplyDrawerOverlay(e.Kind); return; }
+            CloseDrawer(keepOverlay: true);
+        }
+        Modal m = e.Kind switch
+        {
+            PanelKind.Overview => new OverviewPanel(() => _state, () => _hud?.Goals ?? Array.Empty<(string, bool)>(), () => _hud?.History ?? new List<HudMessage>(), OpenPanel, want),
+            PanelKind.Company => new CompanyPanel(() => _state, Fail, want),
+            PanelKind.Staff => new StaffPanel(() => _state, Fail, want),
+            PanelKind.Reputation => new ReputationPanel(() => _state, Fail, want),
+            PanelKind.Growth => new GrowthPanel(() => _state, Fail, want),
+            PanelKind.Power => new PowerPanel(() => _state, Fail),
+            _ => new NetworkPanel(() => _state, Fail),
+        };
+        m.Kind = e.Kind;
+        m.Dock(Hud.LeftEdge - 2, section, tabIndex, (s, t) => OpenSectionTab(s, t));
+        var self = m;
+        m.OnClosed = () =>
+        {
+            if (_drawer != self) return;
+            _drawer = null;
+            _hud?.SetActiveSection(-1);
+            if (_drawerSetOverlay) { SetOverlay(_overlayBeforeDrawer); _drawerSetOverlay = false; }
+        };
+        _ui.AddChild(m);
+        _drawer = m;
+        _hud?.SetActiveSection(section);
+        ApplyDrawerOverlay(e.Kind);
     }
 
-    void OpenReputation(int tab)
+    /// <summary>A rail button: opens its section, or closes the drawer when that section is already open.</summary>
+    void ToggleSection(int section)
     {
-        if (!_playing) return;
-        foreach (var p in _ui.GetChildren().OfType<ReputationPanel>()) p.Close();
-        _ui.AddChild(new ReputationPanel(() => _state, Fail, tab));
+        if (_drawer != null && IsInstanceValid(_drawer) && _drawer.DrawerSection == section) { CloseDrawer(); return; }
+        OpenSectionTab(section, 0);
     }
 
-    void OpenGrowth(int tab)
+    void CloseDrawer(bool keepOverlay = false)
     {
-        if (!_playing) return;
-        foreach (var p in _ui.GetChildren().OfType<GrowthPanel>()) p.Close();
-        _ui.AddChild(new GrowthPanel(() => _state, Fail, tab));
+        if (_drawer == null) return;
+        var d = _drawer;
+        if (keepOverlay) { _drawer = null; d.QueueFree(); _hud?.SetActiveSection(-1); return; }
+        d.Close();
+        _drawer = null;
+    }
+
+    /// <summary>The power and network screens switch on their overlay, and put back the previous one when the drawer closes.</summary>
+    void ApplyDrawerOverlay(PanelKind kind)
+    {
+        var want = kind switch { PanelKind.Power => OverlayMode.Power, PanelKind.Network => OverlayMode.Network, _ => (OverlayMode?)null };
+        if (want == null)
+        {
+            if (_drawerSetOverlay) { SetOverlay(_overlayBeforeDrawer); _drawerSetOverlay = false; }
+            return;
+        }
+        if (!_drawerSetOverlay) { _overlayBeforeDrawer = _world.Overlay.Mode; _drawerSetOverlay = true; }
+        SetOverlay(want.Value);
     }
 
     /// <summary>Bought land: the plot grew, so the world and the people on it are rebuilt and the camera follows the shift.</summary>
@@ -226,12 +282,6 @@ public partial class Main : Node3D
     }
     int _landRev;
 
-    void OpenStaff(int tab)
-    {
-        if (!_playing) return;
-        foreach (var p in _ui.GetChildren().OfType<StaffPanel>()) p.Close();
-        _ui.AddChild(new StaffPanel(() => _state, Fail, tab));
-    }
 
     bool _bankruptShown;
 
@@ -251,11 +301,6 @@ public partial class Main : Node3D
         _ui.AddChild(m);
     }
 
-    void OpenNetwork()
-    {
-        if (!_playing || _ui.GetChildren().OfType<NetworkPanel>().Any()) return;
-        _ui.AddChild(new NetworkPanel(() => _state, Fail));
-    }
 
     void SetOverlay(OverlayMode m)
     {
@@ -566,7 +611,9 @@ public partial class Main : Node3D
             }
             if (k.Keycode == Key.Space) { var s = _speed == 0 ? 1 : 0; _speed = s; _hud.SetSpeed(s); }
             if (k.Keycode is Key.Key1 or Key.Key2 or Key.Key3) { _speed = (int)(k.Keycode - Key.Key0); _hud.SetSpeed(_speed); }
-            if (k.Keycode == Key.F5) { Autosave(); _hud.Notify(Loc.T("msg_autosaved"), Brand.Ok); }
+            if (k.Keycode == Key.S && k.CtrlPressed) { Autosave(); _hud.Notify(Loc.T("msg_autosaved"), Brand.Ok); }
+            var sec = Sections.ForKey(k.Keycode);
+            if (sec >= 0) { ToggleSection(sec); GetViewport().SetInputAsHandled(); return; }
             if (k.Keycode == Key.Pageup) SetView(_world.ViewFloor + 1, false);
             if (k.Keycode == Key.Pagedown) SetView(_world.ViewFloor - 1, _world.Roofs);
             if (k.Keycode == Key.T) SetView(_world.ViewFloor, !_world.Roofs);
@@ -1143,6 +1190,14 @@ public partial class Main : Node3D
         if (args.Contains("--network")) { _playing = true; OpenNetwork(); }
         var coi = Array.IndexOf(args, "--company");
         if (coi >= 0 && coi + 1 < args.Length) { _playing = true; OpenCompany(int.Parse(args[coi + 1])); }
+        var seci = Array.IndexOf(args, "--section");
+        if (seci >= 0 && seci + 1 < args.Length)
+        {
+            _playing = true;
+            var parts = args[seci + 1].Split(',');
+            OpenSectionTab(int.Parse(parts[0]), parts.Length > 1 ? int.Parse(parts[1]) : 0);
+        }
+        if (args.Contains("--goals-open")) _hud?.ToggleGoals();
         if (args.Contains("--overlay-network") && !args.Contains("--interior")) { SetOverlay(OverlayMode.Network); _cam.SetView(0.62f, 0.9f, 70, new Vector3(30, 0, 40)); }
         for (var i = 0; i < 50; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         if (args.Contains("--new-game"))

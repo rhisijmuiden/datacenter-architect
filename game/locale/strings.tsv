@@ -1723,3 +1723,45 @@ wx_effect_hot	Hot: cooling energy +15%.	Heet: koelenergie +15%.
 wx_effect_storm	Storm: a city-wide power cut is four times as likely.	Storm: stroomuitval in de stad is vier keer zo waarschijnlijk.
 wx_effect_slow	Trucks and visitors are slower in snow and fog.	Vrachtwagens en bezoekers zijn trager in sneeuw en mist.
 wx_effect_off	In this game the weather is only for looks (switch it on in a new game).	In dit spel is het weer alleen voor de sfeer (aan te zetten bij een nieuw spel).
+nav_overview	Overview	Overzicht
+nav_overview_short	Overview	Overzicht
+nav_company	Company	Bedrijf
+nav_company_short	Company	Bedrijf
+nav_customers	Customers	Klanten
+nav_customers_short	Customers	Klanten
+nav_infra	Infrastructure	Infrastructuur
+nav_infra_short	Infra	Infra
+nav_staff	Staff	Personeel
+nav_staff_short	Staff	Personeel
+nav_reputation	Reputation and research	Reputatie en onderzoek
+nav_reputation_short	Reputation	Reputatie
+nav_growth	Growth	Groei
+nav_growth_short	Growth	Groei
+nav_tab_power	Power and cooling	Stroom en koeling
+nav_tab_network	Network	Netwerk
+drawer_keys	F1–F7 switch section · Esc closes	F1–F7 wisselt onderdeel · Esc sluit
+crew_title	Construction crew	Bouwploeg
+hud_goals_tip	Click to show or hide the checklist	Klik om de checklist te tonen of te verbergen
+ov_tab_dashboard	Dashboard	Dashboard
+ov_tab_goals	Goals	Doelen
+ov_tab_messages	Messages	Meldingen
+ov_revenue	Revenue {0} / month	Omzet {0} / maand
+ov_contracts	{0} contracts · {1} new leads	{0} contracten · {1} nieuwe aanvragen
+ov_proposals	{0} open proposals	{0} open voorstellen
+ov_faults	{0} open faults	{0} open storingen
+ov_of	of {0} · {1}	van {0} · {1}
+ov_online	{0} racks online	{0} racks online
+ov_pue_hint	Lower is cheaper	Lager is goedkoper
+ov_advice	Advice	Adviezen
+ov_advice_none	Everything is running fine. Time to build!	Alles draait goed. Tijd om te bouwen!
+ov_go	Open	Openen
+ov_adv_grid	The grid is down: check fuel and generators.	Het stroomnet ligt eruit: controleer brandstof en generatoren.
+ov_adv_faults	{0} faults are waiting for a repair.	{0} storingen wachten op een reparatie.
+ov_adv_power	Power is over 85%: expand the grid connection or the UPS.	Stroom zit boven 85%: breid de netaansluiting of de UPS uit.
+ov_adv_cooling	Cooling is over 85%: add CRAH units or chillers.	Koeling zit boven 85%: plaats extra CRAH-units of koelmachines.
+ov_adv_network	{0} racks are offline: check spines, core and carriers.	{0} racks zijn offline: controleer spines, core en carriers.
+ov_adv_leads	{0} new customer requests are waiting.	{0} nieuwe klantaanvragen wachten.
+ov_adv_proposals	{0} proposals from your team are waiting for an answer.	{0} voorstellen van je team wachten op antwoord.
+ov_adv_goal	Next goal: {0}	Volgende doel: {0}
+ov_goals_count	{0} of {1} done	{0} van {1} klaar
+ov_messages_none	No messages yet.	Nog geen meldingen.

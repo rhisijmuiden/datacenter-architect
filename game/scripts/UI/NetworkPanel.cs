@@ -34,6 +34,7 @@ public partial class NetworkPanel : Modal
         _content.AddThemeConstantOverride("separation", 8);
         scroll.AddChild(_content);
         Body.AddChild(scroll);
+        FillHeight(scroll);
         Refresh();
     }
 

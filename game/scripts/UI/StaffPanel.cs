@@ -64,13 +64,23 @@ public partial class StaffPanel : Modal
         tabs.AddChild(DynText(s => Loc.T("st_shift_now", Loc.T("shift_" + s.CurrentShift.ToString().ToLowerInvariant())), 14, Brand.Cooling));
         tabs.AddChild(DynText(s => Loc.T("st_pay_month", Ui.Money(s.StaffPayPerMonth)), 14, Brand.InkDim));
         split.AddChild(tabs);
-        split.AddChild(new VSeparator());
+        var tabLine = new VSeparator();
+        split.AddChild(tabLine);
+        OwnTabs(tabs, tabLine);
         _scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 600), SizeFlagsHorizontal = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         _content = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _content.AddThemeConstantOverride("separation", 8);
         var pad = Ui.Pad(_content, 0, 0, 14, 0); pad.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         _scroll.AddChild(pad);
         split.AddChild(_scroll);
+        FillHeight(split, _scroll);
+        Refresh(true);
+    }
+
+    public override void SelectTab(int tab)
+    {
+        _tab = Math.Clamp(tab, 0, Tabs.Length - 1); _sig = null;
+        _scroll.ScrollVertical = 0;
         Refresh(true);
     }
 
@@ -123,7 +133,7 @@ public partial class StaffPanel : Modal
     string Signature(GameState s)
     {
         var broken = string.Join(",", s.Objects.Where(o => o.Broken).Select(o => $"{o.Id}:{o.RepairBy}:{(int)o.RepairLeft}:{o.Noticed}"));
-        return $"{_tab}|{Loc.Language}|{(int)s.Day}|{s.CurrentShift}|{s.Money / 5000}|{s.Staff.Count}:{string.Join(",", s.Staff.Select(e => $"{e.Id}{e.Level}{e.Shift}{(int)e.Satisfaction / 5}"))}|" +
+        return $"{_tab}|{Loc.Language}|{s.Builders}{s.Fitters}{s.Engineers}|{(int)s.Day}|{s.CurrentShift}|{s.Money / 5000}|{s.Staff.Count}:{string.Join(",", s.Staff.Select(e => $"{e.Id}{e.Level}{e.Shift}{(int)e.Satisfaction / 5}"))}|" +
                $"{s.TrainingBudget}|{s.PayPolicy}|{s.MaintenancePolicy}|{string.Join(",", s.StaffingLevel.Select(x => $"{x.Key}{x.Value}"))}|{s.Support247}{s.Noc247}{s.RemoteHandsService}|{broken}|{s.ActiveEvents.Count}|{s.Incidents.Count}|" +
                $"{string.Join(",", s.PartStock.Select(p => $"{p.Key}{p.Value}"))}|{string.Join(",", s.PartMin.Select(p => $"{p.Key}{p.Value}"))}|{s.PartOrders.Count}|{s.AutoOrderParts}|{s.Execs.Count}|{s.Rooms.Count}|{s.Revision / 50}";
     }
@@ -201,6 +211,42 @@ public partial class StaffPanel : Modal
     static Color Mood(double v) => v >= 65 ? Brand.Ok : v >= 40 ? Brand.Warning : Brand.Critical;
     static string When(double hours) => GameState.Epoch.AddHours(hours).ToString("d MMM HH:mm", Culture);
 
+    // ---------------- construction crew (moved here from the build bar in GUI v2) ----------------
+    void CrewCard(GameState s)
+    {
+        var card = Card(Brand.Amber, out var v);
+        var name = Plain(Loc.T("crew_title"), 17); name.AddThemeFontOverride("font", Ui.BodySemi);
+        v.AddChild(name);
+        v.AddChild(Plain(Loc.T("crew_help"), 13, Brand.InkDim));
+        var row = Row(24);
+        foreach (var (role, count) in new[] { (Role.Builder, s.Builders), (Role.Fitter, s.Fitters), (Role.Engineer, s.Engineers) })
+        {
+            var box = new VBoxContainer(); box.AddThemeConstantOverride("separation", 0);
+            var h = Row(4);
+            var label = Plain(Loc.T("crew_" + role.ToString().ToLowerInvariant()), 15); label.CustomMinimumSize = new Vector2(120, 0);
+            h.AddChild(label);
+            var r = role;
+            var minus = new Button { Text = "−", CustomMinimumSize = new Vector2(30, 28), AutoTranslateMode = AutoTranslateModeEnum.Disabled };
+            minus.Pressed += () => ChangeCrew(r, -1);
+            var plus = new Button { Text = "+", CustomMinimumSize = new Vector2(30, 28), AutoTranslateMode = AutoTranslateModeEnum.Disabled };
+            plus.Pressed += () => ChangeCrew(r, 1);
+            var n = Plain(count.ToString(), 17); n.CustomMinimumSize = new Vector2(28, 0); n.HorizontalAlignment = HorizontalAlignment.Center;
+            h.AddChild(minus); h.AddChild(n); h.AddChild(plus);
+            box.AddChild(h);
+            box.AddChild(Plain(Ui.Money(Catalog.WagePerDay[role]) + " " + Loc.T("crew_per_day"), 12, Brand.InkDim));
+            row.AddChild(box);
+        }
+        v.AddChild(row);
+        _content.AddChild(card);
+    }
+
+    void ChangeCrew(Role role, int delta)
+    {
+        var why = _state().ChangeCrew(role, delta);
+        if (why != null) _fail(why);
+        _sig = null; Refresh(true);
+    }
+
     // ---------------- team ----------------
     void TeamTab(GameState s)
     {
@@ -212,6 +258,7 @@ public partial class StaffPanel : Modal
         if (s.Staff.Count > 0) sum.AddChild(Plain(Loc.T("st_mood", N(s.AverageSatisfaction)), 15, Mood(s.AverageSatisfaction)));
         sum.AddChild(Plain(Loc.T("st_desks", s.DeskNeed, s.Workplaces), 15, s.DeskNeed <= s.Workplaces ? Brand.Ink : Brand.Warning));
         _content.AddChild(sum);
+        CrewCard(s);
         foreach (var role in Staffing.Order)
         {
             var def = Staffing.Roles[role];

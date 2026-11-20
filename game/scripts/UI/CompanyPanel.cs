@@ -56,13 +56,23 @@ public partial class CompanyPanel : Modal
         tabs.AddChild(DynText(s => Loc.T("co_reputation", N(s.Reputation, "0")), 14, Brand.Ink));
         tabs.AddChild(DynText(s => Loc.T("co_revenue", Ui.Money(s.MonthlyRevenue)), 14, Brand.Ok));
         split.AddChild(tabs);
-        split.AddChild(new VSeparator());
+        var tabLine = new VSeparator();
+        split.AddChild(tabLine);
+        OwnTabs(tabs, tabLine);
         _scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 600), SizeFlagsHorizontal = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         _content = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _content.AddThemeConstantOverride("separation", 8);
         var pad = Ui.Pad(_content, 0, 0, 14, 0); pad.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         _scroll.AddChild(pad);
         split.AddChild(_scroll);
+        FillHeight(split, _scroll);
+        Refresh(true);
+    }
+
+    public override void SelectTab(int tab)
+    {
+        _tab = Math.Clamp(tab, 0, Tabs.Length - 1); _sig = null;
+        _scroll.ScrollVertical = 0;
         Refresh(true);
     }
 
