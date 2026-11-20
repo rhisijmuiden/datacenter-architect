@@ -432,6 +432,13 @@ opt_fog_help	Light haze that fades the far edge of the map.	Lichte nevel die de 
 opt_msaa	Anti-aliasing	Anti-aliasing
 opt_msaa_help	Smooths jagged edges. Higher costs more graphics power.	Strijkt kartelranden glad. Hoger vraagt meer van de videokaart.
 opt_off	Off	Uit
+opt_lighting	Lighting quality	Lichtkwaliteit
+opt_lighting_help	High adds light that bounces off walls and ground; Ultra adds full global illumination. Ultra needs a strong graphics card.	Hoog voegt licht toe dat terugkaatst van muren en grond; Ultra voegt volledige globale belichting toe. Ultra vraagt een sterke videokaart.
+opt_light_standard	Standard	Standaard
+opt_light_high	High	Hoog
+opt_light_ultra	Ultra	Ultra
+opt_grass	Grass and flowers	Gras en bloemen
+opt_grass_help	Tufts of grass and wild flowers that sway in the wind. Turn off for more speed on big sites.	Plukjes gras en wilde bloemen die meewaaien in de wind. Zet uit voor meer snelheid op grote terreinen.
 opt_section_effects	Visual effects	Visuele effecten
 opt_blinking	Blinking status lights	Knipperende statuslampjes
 opt_blinking_help	The LEDs on the servers in live racks blink.	De lampjes op de servers in actieve racks knipperen.

@@ -37,6 +37,10 @@ public class AppSettings
     public bool Fog = true;
     /// <summary>3D anti-aliasing: 0 = off, 2, 4 or 8 samples.</summary>
     public int Msaa = 2;
+    /// <summary>0 = standard, 1 = high (bounce light, SSIL), 2 = ultra (global illumination, SDFGI).</summary>
+    public int Lighting = 1;
+    /// <summary>Grass tufts and flowers on open land.</summary>
+    public bool Grass = true;
     public bool BlinkingLights = true;
     public bool MovingParts = true;
     public bool SmoothCamera = true;
@@ -86,6 +90,8 @@ public class AppSettings
         s.AmbientOcclusion = Get("graphics", "ambient_occlusion", s.AmbientOcclusion);
         s.Fog = Get("graphics", "fog", s.Fog);
         s.Msaa = Get("graphics", "msaa", s.Msaa) switch { 0 => 0, 2 => 2, 4 => 4, 8 => 8, _ => 2 };
+        s.Lighting = Mathf.Clamp(Get("graphics", "lighting", s.Lighting), 0, 2);
+        s.Grass = Get("graphics", "grass", s.Grass);
         s.BlinkingLights = Get("graphics", "blinking_lights", s.BlinkingLights);
         s.MovingParts = Get("graphics", "moving_parts", s.MovingParts);
         s.DayNight = Get("graphics", "day_night", s.DayNight);
@@ -126,6 +132,8 @@ public class AppSettings
         cfg.SetValue("graphics", "ambient_occlusion", AmbientOcclusion);
         cfg.SetValue("graphics", "fog", Fog);
         cfg.SetValue("graphics", "msaa", Msaa);
+        cfg.SetValue("graphics", "lighting", Lighting);
+        cfg.SetValue("graphics", "grass", Grass);
         cfg.SetValue("graphics", "blinking_lights", BlinkingLights);
         cfg.SetValue("graphics", "moving_parts", MovingParts);
         cfg.SetValue("graphics", "day_night", DayNight);

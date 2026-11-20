@@ -149,6 +149,7 @@ public static class Models
     static Node3D Thing(ObjKind k)
     {
         var n = new Node3D();
+        if (Furnished(k, n) || Made(k, n)) return n;
         switch (k)
         {
             case ObjKind.Rack:
@@ -593,6 +594,84 @@ public static class Models
                 break;
         }
         return n;
+    }
+
+    /// <summary>The game's own equipment and street models (tools/models/blender/infra.py) per object kind.</summary>
+    static readonly Dictionary<ObjKind, string> MadeModels = new()
+    {
+        [ObjKind.Generator] = "generator", [ObjKind.Transformer] = "transformer", [ObjKind.Switchgear] = "switchgear",
+        [ObjKind.Ups] = "ups", [ObjKind.Battery] = "battery", [ObjKind.Pdu] = "pdu", [ObjKind.DieselTank] = "diesel_tank",
+        [ObjKind.UndergroundTank] = "underground_tank", [ObjKind.Chiller] = "chiller", [ObjKind.DryCooler] = "dry_cooler",
+        [ObjKind.CoolingTower] = "cooling_tower", [ObjKind.Crah] = "crah", [ObjKind.CoreRouter] = "core_router",
+        [ObjKind.Spine] = "spine", [ObjKind.Odf] = "odf", [ObjKind.BatteryContainer] = "battery_container",
+        [ObjKind.LampPost] = "lamp_post", [ObjKind.Bench] = "bench", [ObjKind.BikeRack] = "bike_rack",
+        [ObjKind.Bollard] = "bollard", [ObjKind.CameraPole] = "camera_pole",
+        [ObjKind.Tree] = "tree_young", [ObjKind.Shrub] = "bush_round",
+    };
+
+    /// <summary>Glowing brand colours and lamp heads of the made models.</summary>
+    public static Material MadeMat(string name, Material m) => name switch
+    {
+        "glow_power" => Mat(Brand.Power, 0.4f, 0, true),
+        "glow_cooling" => Mat(Brand.Cooling, 0.4f, 0, true),
+        "glow_fiber" => Mat(Brand.Fiber, 0.4f, 0, true),
+        "glow_ok" => Mat(Brand.Ok, 0.4f, 0, true),
+        "glow_alert" => Mat(Brand.Critical, 0.4f, 0, true),
+        "lamp" => LampMat,
+        _ => Foliage.ByName(name, m),
+    };
+
+    static bool Made(ObjKind k, Node3D n)
+    {
+        if (!MadeModels.TryGetValue(k, out var file) || !Assets.Mount(n, "made/" + file + ".glb", MadeMat)) return false;
+        if (k == ObjKind.LampPost)
+        {
+            var lamp = new OmniLight3D { Position = new Vector3(0, 4.7f, 0.65f), OmniRange = 11, LightColor = new Color("#ffd9a0"), LightEnergy = 0, ShadowEnabled = false, Visible = false };
+            lamp.AddToGroup(NightLightGroup);
+            n.AddChild(lamp);
+        }
+        return true;
+    }
+
+    const float Kf = 0.2f; // Kenney Furniture Kit units to metres
+    static MeshInstance3D F(Node3D n, string name, Vector3 pos, float yaw = 0) => Assets.Centered(n, "furniture/" + name + ".obj", pos, Kf, yaw);
+    static float FTop(string name) => Assets.Top("furniture/" + name + ".obj", Kf);
+
+    /// <summary>Office, canteen and lounge furniture from the CC0 Kenney Furniture Kit, when the model files are there.</summary>
+    static bool Furnished(ObjKind k, Node3D n)
+    {
+        if (!Assets.Has("furniture/desk.obj")) return false;
+        switch (k)
+        {
+            case ObjKind.Desk:
+                F(n, "desk", Vector3.Zero, 180);
+                var top = FTop("desk");
+                F(n, "computerScreen", new Vector3(0.3f, top, -0.15f), 180);
+                F(n, "computerKeyboard", new Vector3(0.3f, top, 0.12f), 180);
+                if (Assets.Has("furniture/laptop.obj")) F(n, "laptop", new Vector3(-0.5f, top, 0.05f), 160);
+                return true;
+            case ObjKind.Chair: F(n, "chairDesk", Vector3.Zero, 180); return true;
+            case ObjKind.Plant: F(n, "pottedPlant", Vector3.Zero); return true;
+            case ObjKind.Cabinet: F(n, "bookcaseClosed", Vector3.Zero, 180); return true;
+            case ObjKind.MeetingTable:
+                F(n, "table", Vector3.Zero);
+                foreach (var x in new[] { -0.8f, 0f, 0.8f })
+                {
+                    F(n, "chair", new Vector3(x, 0, -0.85f), 0);
+                    F(n, "chair", new Vector3(x, 0, 0.85f), 180);
+                }
+                return true;
+            case ObjKind.Microwave:
+                F(n, "kitchenCabinet", Vector3.Zero, 180);
+                F(n, "kitchenMicrowave", new Vector3(0, FTop("kitchenCabinet"), -0.05f), 180);
+                return true;
+            case ObjKind.Coffee:
+                F(n, "kitchenCabinet", Vector3.Zero, 180);
+                F(n, "kitchenCoffeeMachine", new Vector3(0.1f, FTop("kitchenCabinet"), -0.05f), 180);
+                return true;
+            case ObjKind.Sofa: F(n, "loungeSofa", Vector3.Zero, 180); return true;
+        }
+        return false;
     }
 
     /// <summary>The grid operator's connection on the site, growing with the contracted capacity (2, 10, 20 or 50 MVA).</summary>
