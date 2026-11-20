@@ -608,6 +608,7 @@ public static class Models
         [ObjKind.Bollard] = "bollard", [ObjKind.CameraPole] = "camera_pole",
         [ObjKind.Tree] = "tree_young", [ObjKind.Shrub] = "bush_round",
         [ObjKind.GuardBooth] = "guard_booth", [ObjKind.Intercom] = "intercom", [ObjKind.PedGate] = "ped_gate", [ObjKind.SolarPanel] = "solar_panel",
+        [ObjKind.PalletRack] = "pallet_rack", [ObjKind.Workbench] = "workbench", [ObjKind.PalletJack] = "pallet_jack", [ObjKind.Shredder] = "shredder",
     };
 
     /// <summary>Glowing brand colours and lamp heads of the made models.</summary>
@@ -619,6 +620,7 @@ public static class Models
         "glow_ok" => Mat(Brand.Ok, 0.4f, 0, true),
         "glow_alert" => Mat(Brand.Critical, 0.4f, 0, true),
         "lamp" => LampMat,
+        "window_glass" => World.WorldView.WindowMat,
         _ => Foliage.ByName(name, m),
     };
 

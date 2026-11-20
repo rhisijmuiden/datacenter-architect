@@ -375,24 +375,29 @@ public partial class WorldView : Node3D
         var faces = new[]
         {
             (new Vector3(b.X + b.W / 2f, 0, b.Z + b.D + 0.135f), (float)b.W, 0f),
-            (new Vector3(b.X + b.W / 2f, 0, b.Z - 0.135f), (float)b.W, 0f),
+            (new Vector3(b.X + b.W / 2f, 0, b.Z - 0.135f), (float)b.W, 180f),
             (new Vector3(b.X + b.W + 0.135f, 0, b.Z + b.D / 2f), (float)b.D, 90f),
-            (new Vector3(b.X - 0.135f, 0, b.Z + b.D / 2f), (float)b.D, 90f),
+            (new Vector3(b.X - 0.135f, 0, b.Z + b.D / 2f), (float)b.D, -90f),
         };
         var glass = new Color("#34536e");
+        var brickWin = Assets.Mesh("made/window_brick.glb", Models.MadeMat);
+        var officeWin = Assets.Mesh("made/window_office.glb", Models.MadeMat);
         foreach (var (c, len, rot) in faces)
         {
             var n = new Node3D { Position = c, RotationDegrees = new Vector3(0, rot, 0) };
             root.AddChild(n);
+            var wins = new List<Transform3D>();
             switch (b.Facade)
             {
                 case Facade.Brick:
                     for (var yy = 0.45f; yy < FloorH; yy += 0.45f) Box(n, new Vector3(0, y + yy, 0), new Vector3(len, 0.03f, 0.01f), new Color("#8f4a36"));
                     for (var x = -len / 2 + 1.5f; x < len / 2 - 1; x += 2.5f)
                     {
+                        if (brickWin != null) { wins.Add(new Transform3D(Basis.Identity, new Vector3(x, y + 1.7f, 0))); continue; }
                         Box(n, new Vector3(x, y + 1.7f, 0.005f), new Vector3(1.5f, 1.5f, 0.02f), glass, 0.2f).MaterialOverride = WindowMat;
                         Box(n, new Vector3(x, y + 0.92f, 0.03f), new Vector3(1.7f, 0.1f, 0.06f), new Color("#e9e3d8"));
                     }
+                    Assets.Many(n, brickWin, wins);
                     break;
                 case Facade.Glass:
                     for (var x = -len / 2 + 1; x < len / 2; x += 1.5f) Box(n, new Vector3(x, y + FloorH / 2, 0.005f), new Vector3(0.06f, FloorH, 0.03f), new Color("#3a4652"));
@@ -400,7 +405,9 @@ public partial class WorldView : Node3D
                     break;
                 case Facade.Concrete when b.Kind == BuildingKind.Office:
                     for (var x = -len / 2 + 1.5f; x < len / 2 - 1; x += 2.2f)
-                        Box(n, new Vector3(x, y + 1.7f, 0.005f), new Vector3(1.6f, 1.7f, 0.02f), glass, 0.2f).MaterialOverride = WindowMat;
+                        if (officeWin != null) wins.Add(new Transform3D(Basis.Identity, new Vector3(x, y + 1.7f, 0)));
+                        else Box(n, new Vector3(x, y + 1.7f, 0.005f), new Vector3(1.6f, 1.7f, 0.02f), glass, 0.2f).MaterialOverride = WindowMat;
+                    Assets.Many(n, officeWin, wins);
                     Box(n, new Vector3(0, y + 0.05f, 0.005f), new Vector3(len, 0.04f, 0.01f), new Color("#b3ada4"));
                     break;
                 case Facade.Concrete:
