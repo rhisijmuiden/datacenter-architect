@@ -39,17 +39,25 @@ public partial class Thumbnails : Node
             RenderTargetUpdateMode = SubViewport.UpdateMode.Once,
             Msaa3D = Viewport.Msaa.Msaa4X,
         };
+        // a small photo studio: filmic tone mapping, soft key light with shadows, a cool fill from the other side
+        // and ambient occlusion, so the models read as solid objects on a podium
         vp.AddChild(new WorldEnvironment
         {
             Environment = new Godot.Environment
             {
                 BackgroundMode = Godot.Environment.BGMode.ClearColor,
                 AmbientLightSource = Godot.Environment.AmbientSource.Color,
-                AmbientLightColor = new Color("#dfeefa"), AmbientLightEnergy = 0.55f,
-                TonemapMode = Godot.Environment.ToneMapper.Linear,
+                AmbientLightColor = new Color("#dfeefa"), AmbientLightEnergy = 0.5f,
+                TonemapMode = Godot.Environment.ToneMapper.Filmic, TonemapExposure = 1.15f, TonemapWhite = 6f,
+                SsaoEnabled = true, SsaoRadius = 0.6f, SsaoIntensity = 1.6f,
             },
         });
-        vp.AddChild(new DirectionalLight3D { LightEnergy = 1.0f, LightColor = new Color("#fff0d8"), RotationDegrees = new Vector3(-52, -38, 0), ShadowEnabled = false });
+        vp.AddChild(new DirectionalLight3D
+        {
+            LightEnergy = 1.35f, LightColor = new Color("#fff0d8"), RotationDegrees = new Vector3(-50, -35, 0),
+            ShadowEnabled = true, ShadowBlur = 2.5f, DirectionalShadowMode = DirectionalLight3D.ShadowMode.Orthogonal, DirectionalShadowMaxDistance = 40,
+        });
+        vp.AddChild(new DirectionalLight3D { LightEnergy = 0.35f, LightColor = new Color("#bcd7f2"), RotationDegrees = new Vector3(-25, 140, 0) });
         vp.AddChild(scene);
         var cam = new Camera3D { Fov = 28 };
         vp.AddChild(cam);
@@ -104,8 +112,8 @@ public partial class Thumbnails : Node
             {
                 var k = (ObjKind)item.Arg;
                 var def = Catalog.Objects[k];
-                // a hint of floor under small things so they do not float
-                if (def.W * def.D <= 2) Tile(n, Vector3.Zero, new Vector2(Math.Max(1.4f, def.W + 0.6f), Math.Max(1.4f, def.D + 0.6f)), Brand.PlotGrass);
+                // every object stands on a round podium with a rim in the colour of its system (power, cooling, network)
+                Podium(n, Math.Max(def.W, def.D) * 0.62f + 0.35f, Accent(k));
                 n.AddChild(Models.Object(k));
                 break;
             }
@@ -116,7 +124,7 @@ public partial class Thumbnails : Node
                     r.Position = new Vector3(i - 1.5f, 0, 0);
                     n.AddChild(r);
                 }
-                Tile(n, new Vector3(0, 0, 1.2f), new Vector2(4.4f, 1.2f), new Color("#c9d3da"));
+                Podium(n, 2.9f, Accent((ObjKind)item.Arg));
                 break;
             case Mode.Surface:
             case Mode.Curve:
@@ -152,19 +160,52 @@ public partial class Thumbnails : Node
         return n;
     }
 
+    /// <summary>Accent colour of an object's system, used for the podium rim.</summary>
+    static Color Accent(ObjKind k) => k switch
+    {
+        ObjKind.Generator or ObjKind.Transformer or ObjKind.Switchgear or ObjKind.Ups or ObjKind.Battery or ObjKind.Pdu or ObjKind.DieselTank
+            or ObjKind.UndergroundTank or ObjKind.SolarPanel or ObjKind.WindTurbine or ObjKind.BatteryContainer or ObjKind.EvCharger => Brand.Power,
+        ObjKind.Crah or ObjKind.Chiller or ObjKind.CoolingTower or ObjKind.DryCooler => Brand.Cooling,
+        ObjKind.FiberPit or ObjKind.Odf or ObjKind.CoreRouter or ObjKind.Spine or ObjKind.NocWall or ObjKind.Rack => Brand.Fiber,
+        ObjKind.CameraPole or ObjKind.CameraDome or ObjKind.SecurityWall or ObjKind.GlassLodge or ObjKind.GuardBooth or ObjKind.Intercom
+            or ObjKind.Barrier or ObjKind.SlidingGate or ObjKind.SlidingGateLarge or ObjKind.PedGate or ObjKind.Bollard => Brand.Critical,
+        ObjKind.Tree or ObjKind.Shrub or ObjKind.Plant or ObjKind.Bench or ObjKind.BikeRack or ObjKind.BikeShed or ObjKind.LampPost => Brand.Ok,
+        _ => new Color("#8fa1b0"),
+    };
+
+    /// <summary>A light round podium with a thin coloured rim, the base every build item is shown on.</summary>
+    static void Podium(Node3D n, float r, Color accent)
+    {
+        n.AddChild(new MeshInstance3D
+        {
+            Mesh = new CylinderMesh { TopRadius = r, BottomRadius = r, Height = 0.08f, RadialSegments = 48 },
+            Position = new Vector3(0, -0.045f, 0),
+            MaterialOverride = new StandardMaterial3D { AlbedoColor = new Color("#e3e8ec"), Roughness = 0.55f },
+        });
+        n.AddChild(new MeshInstance3D
+        {
+            Mesh = new CylinderMesh { TopRadius = r + 0.04f, BottomRadius = r + 0.06f, Height = 0.05f, RadialSegments = 48 },
+            Position = new Vector3(0, -0.09f, 0),
+            MaterialOverride = new StandardMaterial3D { AlbedoColor = accent, EmissionEnabled = true, Emission = accent, EmissionEnergyMultiplier = 0.6f, Roughness = 0.4f },
+        });
+    }
+
     static void Tile(Node3D n, Vector3 center, Vector2 size, Color c) =>
         Box(n, center + new Vector3(0, -0.03f, 0), new Vector3(size.X, 0.06f, size.Y), c, 0.95f);
 
     static void SurfacePatch(Node3D n, Surface s, bool curved)
     {
-        Tile(n, new Vector3(0, -0.02f, 0), new Vector2(3.6f, 2.6f), Brand.PlotGrass);
+        // the patch uses the same photo-textured ground materials as the world, on a bed of grass
+        var bed = Box(n, new Vector3(0, -0.05f, 0), new Vector3(3.6f, 0.06f, 2.6f), Brand.PlotGrass, 0.95f);
+        bed.MaterialOverride = WorldView.GrassMat(Brand.PlotGrass, 14);
         if (s == Surface.Grass)
         {
-            Tile(n, Vector3.Zero, new Vector2(2.6f, 1.8f), Brand.Grass);
+            Box(n, Vector3.Zero, new Vector3(2.6f, 0.04f, 1.8f), Brand.Grass, 0.95f).MaterialOverride = WorldView.GrassMat(Brand.Grass, 14);
             for (var i = 0; i < 3; i++) Ball(n, new Vector3(-0.8f + i * 0.8f, 0.15f, 0.2f * (i - 1)), 0.18f, Brand.Grass.Darkened(0.15f));
             return;
         }
         var col = WorldView.SurfaceColors[s];
+        var mat = WorldView.SurfaceMat(col);
         if (curved)
         {
             // a quarter bend made of short straight pieces
@@ -173,11 +214,11 @@ public partial class Thumbnails : Node
                 var a = i / 6f * Mathf.Pi / 2;
                 var seg = new Node3D { Position = new Vector3(-1.4f + Mathf.Sin(a) * 2.2f, 0, 1.0f - Mathf.Cos(a) * 2.2f + 0.2f), Rotation = new Vector3(0, -a, 0) };
                 n.AddChild(seg);
-                Box(seg, Vector3.Zero, new Vector3(s == Surface.Asphalt ? 1.4f : 0.8f, 0.04f, 0.55f), col, 0.95f);
+                Box(seg, Vector3.Zero, new Vector3(s == Surface.Asphalt ? 1.4f : 0.8f, 0.04f, 0.55f), col, 0.95f).MaterialOverride = mat;
             }
             return;
         }
-        Box(n, Vector3.Zero, new Vector3(2.6f, 0.04f, 1.8f), col, 0.95f);
+        Box(n, Vector3.Zero, new Vector3(2.6f, 0.04f, 1.8f), col, 0.95f).MaterialOverride = mat;
         if (s == Surface.Parking)
             for (var i = 0; i < 4; i++) Box(n, new Vector3(-0.9f + i * 0.6f, 0.03f, 0.2f), new Vector3(0.05f, 0.01f, 1.2f), new Color("#f2f2ee"));
         if (s == Surface.Footpath)
@@ -193,7 +234,14 @@ public partial class Thumbnails : Node
     {
         var def = Catalog.Fences[type];
         var (post, panel, thick) = WorldView.FenceStyle(type);
-        Tile(n, new Vector3(0, 0, 0.3f), new Vector2(4.2f, 1.6f), Brand.PlotGrass);
+        Box(n, new Vector3(0, -0.03f, 0.3f), new Vector3(4.2f, 0.06f, 1.6f), Brand.PlotGrass, 0.95f).MaterialOverride = WorldView.GrassMat(Brand.PlotGrass, 14);
+        var file = "made/fence_" + type.ToString().ToLowerInvariant();
+        if (Assets.Mesh(file + "_panel.glb", Models.MadeMat) != null && Assets.Mesh(file + "_post.glb", Models.MadeMat) != null)
+        {
+            for (var i = 0; i < 4; i++) Assets.Place(n, file + "_post.glb", new Vector3(-1.5f + i, 0, 0), 1, 0, Models.MadeMat);
+            for (var i = 0; i < 3; i++) Assets.Place(n, file + "_panel.glb", new Vector3(-1f + i, 0, 0), 1, 0, Models.MadeMat);
+            return;
+        }
         for (var i = 0; i < 4; i++) Box(n, new Vector3(-1.5f + i, def.Height / 2, 0), new Vector3(0.1f, def.Height, 0.1f), post);
         for (var i = 0; i < 3; i++) Box(n, new Vector3(-1f + i, def.Height / 2, 0), new Vector3(1f, def.Height * 0.92f, thick), panel);
         if (type == FenceType.Electric)
@@ -206,7 +254,8 @@ public partial class Thumbnails : Node
             Facade = kind switch { BuildingKind.Office => Facade.Brick, BuildingKind.Warehouse => Facade.Cladding, _ => Facade.Concrete } };
         var h = WorldView.FloorH * b.Floors;
         Tile(n, Vector3.Zero, new Vector2(b.W + 1.2f, b.D + 1.2f), Brand.Concrete);
-        Box(n, new Vector3(0, h / 2, 0), new Vector3(b.W, h, b.D), WorldView.WallColor(b));
+        var facade = Box(n, new Vector3(0, h / 2, 0), new Vector3(b.W, h, b.D), WorldView.WallColor(b));
+        if (WorldView.WallMat(WorldView.WallColor(b)) is { } wm) facade.MaterialOverride = wm;
         Box(n, new Vector3(0, h + 0.12f, 0), new Vector3(b.W + 0.3f, 0.24f, b.D + 0.3f), new Color("#6f7a83"));
         switch (kind)
         {
@@ -236,19 +285,41 @@ public partial class Thumbnails : Node
         // two low walls at the back so it reads as a room
         Box(n, new Vector3(0, 0.6f, -1.4f), new Vector3(4f, 1.2f, 0.14f), new Color("#e4e8eb"));
         Box(n, new Vector3(-1.95f, 0.6f, 0), new Vector3(0.14f, 1.2f, 3f), new Color("#e4e8eb"));
-        // a typical piece of furniture
-        var k = type switch
+        // a furnished corner: what the room holds, in its interior style for offices
+        if (GameState.Furnishable(type))
         {
-            RoomType.DataHall => ObjKind.Rack,
-            RoomType.Office or RoomType.Executive => ObjKind.Desk,
-            RoomType.MeetMe => ObjKind.Odf,
-            RoomType.Noc => ObjKind.NocWall,
-            _ => (ObjKind?)null,
-        } ;
-        if (k is { } kind && Catalog.Objects.ContainsKey(kind))
+            var style = type == RoomType.Executive ? InteriorStyle.Formal : InteriorStyle.Standard;
+            Box(n, new Vector3(0, 0.025f, 0), new Vector3(3.6f, 0.04f, 2.6f), WorldView.StyleColors(style).floor, 0.8f);
+            Box(n, new Vector3(0, 0.6f, -1.32f), new Vector3(3.9f, 1.18f, 0.03f), WorldView.StyleColors(style).wall, 0.9f);
+        }
+        var props = type switch
         {
+            RoomType.DataHall => new[] { (ObjKind.Rack, -0.5f, -0.4f, 0), (ObjKind.Rack, 0.5f, -0.4f, 0), (ObjKind.Crah, 1.4f, -0.4f, 0) },
+            RoomType.Office => new[] { (ObjKind.Desk, 0.2f, -0.4f, 0), (ObjKind.Chair, 0.2f, 0.4f, 2), (ObjKind.Plant, -1.4f, -0.8f, 0) },
+            RoomType.Executive => new[] { (ObjKind.Desk, 0.2f, -0.4f, 2), (ObjKind.Chair, 0.2f, -1.0f, 0), (ObjKind.Cabinet, -1.4f, -0.8f, 0), (ObjKind.Plant, 1.5f, -0.8f, 0) },
+            RoomType.Meeting => new[] { (ObjKind.MeetingTable, 0f, 0f, 0), (ObjKind.Chair, -0.8f, -0.9f, 0), (ObjKind.Chair, 0.8f, 0.9f, 2) },
+            RoomType.Canteen => new[] { (ObjKind.Coffee, -1.3f, -0.8f, 0), (ObjKind.Vending, -0.3f, -0.8f, 0), (ObjKind.Chair, 0.8f, 0.4f, 2) },
+            RoomType.Lounge => new[] { (ObjKind.Sofa, 0f, -0.6f, 0), (ObjKind.Plant, -1.4f, -0.8f, 0), (ObjKind.Plant, 1.4f, -0.8f, 0) },
+            RoomType.Reception => new[] { (ObjKind.Desk, 0f, -0.4f, 2), (ObjKind.Plant, 1.4f, -0.8f, 0), (ObjKind.Sofa, -1.0f, 0.6f, 2) },
+            RoomType.MeetMe => new[] { (ObjKind.Odf, -0.4f, -0.6f, 0), (ObjKind.Rack, 0.6f, -0.6f, 0) },
+            RoomType.Noc => new[] { (ObjKind.NocWall, 0f, -0.9f, 0), (ObjKind.Desk, 0f, 0.4f, 2) },
+            RoomType.Soc => new[] { (ObjKind.SocDesk, 0f, -0.3f, 0) },
+            RoomType.Lab => new[] { (ObjKind.LabBench, 0f, -0.4f, 0) },
+            RoomType.UpsRoom => new[] { (ObjKind.Ups, -0.5f, -0.6f, 0), (ObjKind.Ups, 0.6f, -0.6f, 0) },
+            RoomType.Battery => new[] { (ObjKind.Battery, -0.5f, -0.6f, 0), (ObjKind.Battery, 0.6f, -0.6f, 0) },
+            RoomType.Switchgear => new[] { (ObjKind.Switchgear, 0f, -0.6f, 0) },
+            RoomType.Transformer => new[] { (ObjKind.Transformer, 0f, -0.3f, 0) },
+            RoomType.Warehouse or RoomType.Storage => new[] { (ObjKind.PalletRack, 0f, -0.6f, 0) },
+            RoomType.LoadingDock => new[] { (ObjKind.PalletJack, 0f, 0f, 0) },
+            RoomType.Security => new[] { (ObjKind.Terminal, 0f, -0.6f, 0) },
+            _ => Array.Empty<(ObjKind, float, float, int)>(),
+        };
+        foreach (var (kind, x, z, rot) in props)
+        {
+            if (!Catalog.Objects.ContainsKey(kind)) continue;
             var m = Models.Object(kind);
-            m.Position = new Vector3(0.6f, 0.04f, -0.4f);
+            m.Position = new Vector3(x, 0.04f, z);
+            m.RotationDegrees = new Vector3(0, -90 * rot, 0);
             n.AddChild(m);
         }
     }

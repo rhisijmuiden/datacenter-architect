@@ -44,12 +44,17 @@ public partial class Simulation
         foreach (var (id, (role, target)) in want)
         {
             if (have.Contains(id) || Agents.Count(a => a.Role == Role.Staff) >= MaxStaffAgents + 4) continue;
-            var start = id < 0 ? SpawnCell() : StaffEntry();
-            Agents.Add(new Agent { Id = _nextAgent++, Role = Role.Staff, EmpId = id, Staff = role, Target = target, X = start.x + 0.5, Z = start.z + 0.5 });
+            var start = id < 0 ? SpawnCell() : ArrivalCell(id);
+            var ag = new Agent { Id = _nextAgent++, Role = Role.Staff, EmpId = id, Staff = role, Target = target, X = start.x + 0.5, Z = start.z + 0.5 };
+            // repairs are urgent: those start at the bike rack; the others cycle in from the road
+            if (target == 0) StartRide(ag);
+            Agents.Add(ag);
         }
     }
 
-    (int x, int z) StaffEntry()
+    (int x, int z) StaffEntry() => StaffEntryCar();
+
+    (int x, int z) StaffEntryCar()
     {
         var park = Enumerable.Range(0, S.PlotSize * S.PlotSize).Select(i => (x: i % S.PlotSize, z: i / S.PlotSize))
             .Where(c => S.SurfaceAt(c.x, c.z) == Surface.Parking && Nav.Walkable(c.x, c.z, 0)).ToList();
@@ -143,13 +148,24 @@ public partial class Simulation
                 a.Timer -= dt;
                 if (a.Timer <= 0) a.Phase = 0;
                 return;
-            case 8: // leave the site
-                var (hx, hz) = a.EmpId < 0 ? SpawnCell() : StaffEntry();
+            case 8: // leave the site: walk back to the car or the bike
+                a.Ride = false;
+                var (hx, hz) = a.EmpId < 0 ? SpawnCell() : ArrivalCell(a.EmpId);
                 if (!Go(a, 0, (x, z) => x == hx && z == hz, NavMode.Walk)) { a.Gone = true; return; }
-                a.Phase = 9;
+                a.Phase = a.EmpId > 0 && ModeOf(a.EmpId) == CommuteMode.Bike ? 22 : 9;
+                return;
+            case 20: // riding in from the road
+                if (!Move(a, dt, RideSpeed * (a.Floor == 0 ? S.TravelFactor : 1))) return;
+                a.Ride = false; a.Phase = 0; a.Timer = 0.15;
+                return;
+            case 22: // at the bike: get on and ride home
+                if (!Move(a, dt, WalkSpeed)) return;
+                var (ex, ez) = RoadEdge();
+                if (!Go(a, 0, (x, z) => x == ex && z == ez, NavMode.Walk)) { a.Gone = true; return; }
+                a.Ride = true; a.Phase = 9;
                 return;
             default:
-                if (Move(a, dt, WalkSpeed)) a.Gone = true;
+                if (Move(a, dt, a.Ride ? RideSpeed : WalkSpeed)) a.Gone = true;
                 return;
         }
     }

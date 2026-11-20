@@ -352,6 +352,7 @@ public partial class WorldView : Node3D
         if (_siteTimer <= 0) { _siteTimer = 0.35; RebuildSites(); }
         if (_stock != _state.MaterialStock) { _stock = _state.MaterialStock; RebuildPallets(); }
         SyncAgents(delta);
+        SyncBikes();
         Animate(delta);
         UpdateSky(delta);
         Overlay.Sync(_state, delta);
@@ -450,6 +451,7 @@ public partial class WorldView : Node3D
         foreach (var c in _layout.GetChildren()) c.QueueFree();
         PlaceGrid();
         Surfaces(_layout);
+        DockBays(_layout);
         PlotMeadow(_layout);
         FencesLayer(_layout);
         foreach (var b in _state.Buildings.Where(b => b.Stage == Stage.Done)) DoneBuilding(_layout, b);
@@ -472,6 +474,45 @@ public partial class WorldView : Node3D
         _ => (new Color("#3a4046"), new Color(Brand.Amber, 0.35f), 0.02f),
     };
 
+    /// <summary>
+    /// Loading bays: every roll-up door of a loading dock is one bay where a truck backs up. The apron gets yellow bay
+    /// lines and a painted bay number, the wall black rubber bumpers and a steel dock leveller, so several bays read clearly.
+    /// </summary>
+    void DockBays(Node3D root)
+    {
+        if (_sim == null) return;
+        var lines = new List<Transform3D>(); var bumpers = new List<Transform3D>(); var plates = new List<Transform3D>();
+        var n = 0;
+        foreach (var (_, apron, inside) in _sim.Docks().OrderBy(d => d.apron.x).ThenBy(d => d.apron.z))
+        {
+            n++;
+            float ox = apron.x - inside.x, oz = apron.z - inside.z;
+            var door = new Vector3((apron.x + inside.x) / 2f + 0.5f, 0, (apron.z + inside.z) / 2f + 0.5f);
+            var side = new Vector3(-oz, 0, ox);
+            var along = new Vector3(ox, 0, oz);
+            var yaw = Mathf.Atan2(ox, oz);
+            const float len = 13f;
+            foreach (var sgn in new[] { -1f, 1f })
+            {
+                // bay lines start a little out from the wall and run as far as a truck is long
+                var c = door + side * (sgn * 1.5f) + along * (0.4f + len / 2);
+                lines.Add(new Transform3D(new Basis(Vector3.Up, yaw) * Basis.FromScale(new Vector3(0.12f, 1, len)), c + new Vector3(0, 0.025f, 0)));
+                bumpers.Add(new Transform3D(new Basis(Vector3.Up, yaw), door + side * (sgn * 1.05f) + along * 0.22f + new Vector3(0, 0.95f, 0)));
+            }
+            plates.Add(new Transform3D(new Basis(Vector3.Up, yaw), door + along * 0.35f + new Vector3(0, 0.03f, 0)));
+            root.AddChild(new Label3D
+            {
+                Text = n.ToString(), Font = _font, FontSize = 160, PixelSize = 0.01f, Modulate = new Color("#f2c230"), OutlineSize = 0,
+                Position = door + along * 3.2f + new Vector3(0, 0.035f, 0), Rotation = new Vector3(-Mathf.Pi / 2, yaw + Mathf.Pi, 0),
+                DoubleSided = true, Shaded = true,
+            });
+        }
+        if (lines.Count == 0) return;
+        Multi(root, new PlaneMesh { Size = new Vector2(1, 1) }, lines, new Color("#f2c230"), false);
+        Multi(root, new BoxMesh { Size = new Vector3(0.28f, 0.45f, 0.14f) }, bumpers, new Color("#1d2126"));
+        Multi(root, new BoxMesh { Size = new Vector3(2.0f, 0.04f, 0.5f) }, plates, new Color("#8a949c"));
+    }
+
     void Surfaces(Node3D root)
     {
         var s = _state.PlotSize;
@@ -491,9 +532,11 @@ public partial class WorldView : Node3D
         Driveways(root, s);
         stripes.AddRange(ParkingStripes(ParkingLayout.Lines(s, (x, z) => _state.SurfaceAt(x, z) == Surface.Parking && !_curveCells.Contains(z * s + x),
             (x, z) => _state.SurfaceAt(x, z) == Surface.Asphalt || _curveCells.Contains(z * s + x)), 0.02f));
+        stripes.AddRange(RoadCentreLines(s, 0.02f));
         Multi(root, new PlaneMesh { Size = new Vector2(1, 1) }, stripes, new Color("#f2f2ee"), false);
         ParkedCars(root, ParkingLayout.Lines(s, (x, z) => _state.SurfaceAt(x, z) == Surface.Parking && !_curveCells.Contains(z * s + x),
-            (x, z) => _state.SurfaceAt(x, z) == Surface.Asphalt || _curveCells.Contains(z * s + x)));
+            (x, z) => _state.SurfaceAt(x, z) == Surface.Asphalt || _curveCells.Contains(z * s + x)),
+            Commute.Chargers(_state).Select(o => new Vector3(o.X + 0.5f, 0, o.Z + 0.5f)).ToList());
     }
 
     /// <summary>
@@ -570,9 +613,9 @@ public partial class WorldView : Node3D
         });
         if (mesh == null) return;
         root.AddChild(new MeshInstance3D { Mesh = mesh, MaterialOverride = SurfaceMat(col), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
-        if (c.Surface == Surface.Asphalt && c.Width >= 3)
+        if (c.Surface == Surface.Asphalt && c.Width >= Nav.TwoLaneWidth)
         {
-            // dashed centre line on wider roads
+            // dashed centre line on two-lane roads (traffic keeps right)
             var dash = new CurvePath { Ax = c.Ax, Az = c.Az, Cx = c.Cx, Cz = c.Cz, Bx = c.Bx, Bz = c.Bz, Width = 0.14 };
             var len = c.Length;
             var line = StripMesh(dash, y + 0.004f, t => (t * len / 1.5) % 2 < 1 && t > 0.04 && t < 0.96, caps: false);
@@ -873,6 +916,8 @@ public partial class WorldView : Node3D
     void RoomFloor(Node3D root, Room r, float y)
     {
         var col = new Color(Catalog.Rooms[r.Type].Color);
+        // finished offices get the floor of their interior style (oak, dark carpet, walnut)
+        if (r.Stage == Stage.Done && GameState.Furnishable(r.Type)) col = StyleColors(_state.StyleOf(r)).floor;
         if (r.Stage != Stage.Done) col = new Color(col, 0.55f);
         var floor = Box(root, new Vector3(r.X + r.W / 2f, y + 0.015f, r.Z + r.D / 2f), new Vector3(r.W - 0.12f, 0.01f, r.D - 0.12f), col, 0.95f);
         // a finished data hall gets a light raised floor of 600 mm tiles
@@ -1079,6 +1124,7 @@ public partial class WorldView : Node3D
         if (_state == null) { _racks.Clear(); return; }
         GridStationModel();
         HallDecor();
+        OfficeDecor();
         var racks = new List<(PlacedObject, float)>();
         var trophyDesk = _state.Statuettes.Any() ? _state.TrophyDesk?.Id ?? -1 : -1;
         foreach (var o in _state.Objects)
@@ -1189,8 +1235,17 @@ public partial class WorldView : Node3D
             var cart = n.GetNode<Node3D>("Cart");
             cart.Visible = a.Role == Role.Visitor && a.Carry > 0;
             n.GetNode<Node3D>("Rack").Visible = a.Role == Role.Fitter && a.CarryObj != 0 && a.Phase == 2;
+            var bike = n.GetNodeOrNull<Node3D>("Bike");
+            if (a.Ride && bike == null)
+            {
+                bike = new Node3D { Name = "Bike" };
+                Assets.Place(bike, "made/" + BikeModels[Math.Abs(a.EmpId) % BikeModels.Length] + ".glb", Vector3.Zero, 1, 0, Models.MadeMat);
+                n.AddChild(bike);
+            }
+            if (bike != null) bike.Visible = a.Ride;
             var reel = AnimateReels(n, a, t);
-            var pose = a.Working && !reel ? PersonPose.Work
+            var pose = a.Ride ? PersonPose.Ride
+                : a.Working && !reel ? PersonPose.Work
                 : n.GetNode<Node3D>("Crate").Visible ? PersonPose.Carry
                 : cart.Visible ? PersonPose.Push
                 : reel && !a.Working ? PersonPose.Reel
@@ -1339,6 +1394,7 @@ public partial class WorldView : Node3D
         var tiles = new List<Transform3D>(); var glass = new List<Transform3D>(); var frames = new List<Transform3D>();
         var busA = new List<Transform3D>(); var busB = new List<Transform3D>();
         var fiberTray = new List<Transform3D>(); var powerLadder = new List<Transform3D>(); var tapOff = new List<Transform3D>(); var hangers = new List<Transform3D>();
+        var trayLip = new List<Transform3D>(); var fiberBundle = new List<Transform3D>(); var waterfall = new List<Transform3D>();
         foreach (var r in _state.Rooms.Where(r => r.Type == RoomType.DataHall && r.Stage == Stage.Done && r.Floor == _viewFloor))
         {
             var b = _state.BuildingOf(r);
@@ -1371,13 +1427,21 @@ public partial class WorldView : Node3D
                         }
             }
             // overhead: an orange fiber tray over the front of every rack row and a grey power cable ladder over the back,
-            // on drop rods from the ceiling
+            // on drop rods from the ceiling. Trays are only laid where racks stand (placed or live), so they grow with the hall.
+            // Each tray is a U-channel with a bundle of fiber in it and a "waterfall" spout that drops the fiber into the rack.
             foreach (var o in racks)
             {
                 var basis = o.Rot % 2 == 0 ? Basis.Identity : Basis.Identity.Rotated(Vector3.Up, Mathf.Pi / 2);
                 var (fx, fz) = FrontOffset(o.Rot);
+                var (sx, sz) = (fx, fz); // across the tray (the tray runs along the row)
                 var c = new Vector3(o.X + 0.5f, y, o.Z + 0.5f);
-                fiberTray.Add(new Transform3D(basis, c + new Vector3(fx * 0.2f, 2.42f, fz * 0.2f)));
+                var tc = c + new Vector3(fx * 0.2f, 2.42f, fz * 0.2f);
+                fiberTray.Add(new Transform3D(basis, tc));
+                trayLip.Add(new Transform3D(basis, tc + new Vector3(sx * 0.17f, 0.06f, sz * 0.17f)));
+                trayLip.Add(new Transform3D(basis, tc + new Vector3(sx * -0.17f, 0.06f, sz * -0.17f)));
+                fiberBundle.Add(new Transform3D(basis, tc + new Vector3(0, 0.05f, 0)));
+                if (o.Status == ObjStatus.Live)
+                    waterfall.Add(new Transform3D(Basis.Identity, c + new Vector3(fx * 0.32f, 2.27f, fz * 0.32f)));
                 if (!r.Busbar) powerLadder.Add(new Transform3D(basis, c + new Vector3(fx * -0.3f, 2.52f, fz * -0.3f)));
                 if ((o.X + o.Z) % 2 == 0) hangers.Add(new Transform3D(basis, c + new Vector3(fx * 0.2f, 2.9f, fz * 0.2f)));
                 if (r.Busbar) tapOff.Add(new Transform3D(basis, c + new Vector3(fx * -0.22f, 2.33f, fz * -0.22f)));
@@ -1397,7 +1461,14 @@ public partial class WorldView : Node3D
         Multi(_objects, new BoxMesh { Size = new Vector3(0.96f, 2.1f, 0.04f) }, frames, new Color(Brand.Cooling, 0.3f), false);
         Multi(_objects, new BoxMesh { Size = new Vector3(1.0f, 0.1f, 0.1f) }, busA, Brand.Power);
         Multi(_objects, new BoxMesh { Size = new Vector3(1.0f, 0.1f, 0.1f) }, busB, new Color("#d8dde1"));
-        Multi(_objects, new BoxMesh { Size = new Vector3(1.0f, 0.07f, 0.3f) }, fiberTray, Brand.Fiber);
+        if (fiberTray.Count > 0)
+        {
+            var trayMat = new StandardMaterial3D { AlbedoColor = Brand.Fiber, Roughness = 0.45f, EmissionEnabled = true, Emission = Brand.Fiber, EmissionEnergyMultiplier = 0.35f };
+            MultiMat(_objects, new BoxMesh { Size = new Vector3(1.0f, 0.03f, 0.36f) }, fiberTray, trayMat);
+            MultiMat(_objects, new BoxMesh { Size = new Vector3(1.0f, 0.12f, 0.025f) }, trayLip, trayMat);
+            Multi(_objects, new BoxMesh { Size = new Vector3(1.0f, 0.06f, 0.22f) }, fiberBundle, new Color("#f2c230"));
+            Multi(_objects, new CylinderMesh { TopRadius = 0.05f, BottomRadius = 0.05f, Height = 0.3f, RadialSegments = 8 }, waterfall, Brand.Fiber);
+        }
         Multi(_objects, new BoxMesh { Size = new Vector3(1.0f, 0.05f, 0.34f) }, powerLadder, new Color("#9aa4ab"));
         Multi(_objects, new BoxMesh { Size = new Vector3(0.025f, 0.9f, 0.025f) }, hangers, new Color("#8a949c"));
         Multi(_objects, new BoxMesh { Size = new Vector3(0.24f, 0.14f, 0.18f) }, tapOff, new Color("#c8322b"));
@@ -1407,6 +1478,59 @@ public partial class WorldView : Node3D
     public static (int dx, int dz) FrontOffset(int rot) => (rot % 4) switch { 1 => (-1, 0), 2 => (0, -1), 3 => (1, 0), _ => (0, 1) };
 
     /// <summary>Parking bay lines as stretched unit planes, 10 cm wide.</summary>
+    /// <summary>
+    /// Dashed centre lines (3 m line, 3 m gap) on straight asphalt roads of <see cref="Nav.TwoLaneWidth"/> to 12 m
+    /// wide: a row or column of asphalt that wide, whose cells all continue at least 8 m along the road. Junctions
+    /// and squares are wider than that, so the line stops there.
+    /// </summary>
+    IEnumerable<Transform3D> RoadCentreLines(int n, float y)
+    {
+        const int maxWidth = 12, minRun = 8;
+        bool Road(int x, int z) => _state.InPlot(x, z) && _state.SurfaceAt(x, z) == Surface.Asphalt && !_curveCells.Contains(z * n + x);
+        // length of the asphalt run through each cell, along x and along z
+        var runX = new int[n * n]; var runZ = new int[n * n];
+        for (var z = 0; z < n; z++)
+            for (var x = 0; x < n;)
+            {
+                if (!Road(x, z)) { x++; continue; }
+                var e = x; while (e < n && Road(e, z)) e++;
+                for (var i = x; i < e; i++) runX[z * n + i] = e - x;
+                x = e;
+            }
+        for (var x = 0; x < n; x++)
+            for (var z = 0; z < n;)
+            {
+                if (!Road(x, z)) { z++; continue; }
+                var e = z; while (e < n && Road(x, e)) e++;
+                for (var i = z; i < e; i++) runZ[i * n + x] = e - z;
+                z = e;
+            }
+        var dash = Basis.FromScale(new Vector3(0.14f, 1, 1));
+        var dashX = Basis.FromScale(new Vector3(1, 1, 0.14f));
+        // roads running along z: a row run of road width, every cell of it long along z
+        for (var z = 0; z < n; z++)
+            for (var x = 0; x < n;)
+            {
+                var w = runX[z * n + x];
+                if (w == 0) { x++; continue; }
+                var straight = w >= Nav.TwoLaneWidth && w <= maxWidth;
+                for (var i = x; i < x + w && straight; i++) straight = runZ[z * n + i] >= Math.Max(minRun, w + 2);
+                if (straight && z % 6 < 3) yield return new Transform3D(dash, new Vector3(x + w / 2f, y, z + 0.5f));
+                x += w;
+            }
+        // roads running along x
+        for (var x = 0; x < n; x++)
+            for (var z = 0; z < n;)
+            {
+                var w = runZ[z * n + x];
+                if (w == 0) { z++; continue; }
+                var straight = w >= Nav.TwoLaneWidth && w <= maxWidth;
+                for (var i = z; i < z + w && straight; i++) straight = runX[i * n + x] >= Math.Max(minRun, w + 2);
+                if (straight && x % 6 < 3) yield return new Transform3D(dashX, new Vector3(x + 0.5f, y, z + w / 2f));
+                z += w;
+            }
+    }
+
     static IEnumerable<Transform3D> ParkingStripes(IEnumerable<ParkingLayout.Line> lines, float y)
     {
         foreach (var l in lines)
@@ -1485,10 +1609,20 @@ public partial class WorldView : Node3D
             n.Position = last = new Vector3(o.X + w / 2f, y, o.Z + d / 2f);
             n.RotationDegrees = new Vector3(0, -90 * o.Rot, 0);
             Tint(n, ok ? Brand.Ok : Brand.Critical);
-            // arrow showing the front
-            var arrow = Box(n, new Vector3(0, 0.05f, d / 2f + 0.25f), new Vector3(0.3f, 0.02f, 0.3f), ok ? Brand.Ok : Brand.Critical);
-            arrow.RotationDegrees = new Vector3(0, 45, 0);
             _ghost.AddChild(n);
+            // a clear arrow on the floor pointing out of the front
+            var (fw, fd) = (o.Def.W, o.Def.D);
+            var arrow = new MeshInstance3D { Mesh = FrontArrow, MaterialOverride = GhostFlat(ok ? Brand.Amber : Brand.Critical, 0.95f), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off };
+            arrow.Position = new Vector3(0, 0.05f, fd / 2f + 0.08f);
+            arrow.Scale = Vector3.One * Math.Clamp(fw * 0.9f, 0.8f, 2.2f);
+            n.AddChild(arrow);
+            if (o.Kind == ObjKind.Rack)
+            {
+                // racks are worked on from both sides: show the cold aisle in front and the hot aisle behind
+                var front = new MeshInstance3D { Mesh = new PlaneMesh { Size = new Vector2(0.96f, 0.96f) }, MaterialOverride = GhostFlat(Brand.Cooling, 0.5f), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, Position = new Vector3(0, 0.03f, 1) };
+                var back = new MeshInstance3D { Mesh = new PlaneMesh { Size = new Vector2(0.96f, 0.96f) }, MaterialOverride = GhostFlat(Brand.Fiber, 0.5f), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off, Position = new Vector3(0, 0.03f, -1) };
+                n.AddChild(front); n.AddChild(back);
+            }
         }
         if (text != null)
             _ghost.AddChild(new Label3D
@@ -1497,6 +1631,37 @@ public partial class WorldView : Node3D
                 Modulate = Brand.Ink, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = true, Position = last + new Vector3(0, 3f, 0),
             });
     }
+
+    static ArrayMesh _frontArrow;
+    /// <summary>Flat arrow on the floor, pointing along +z from the origin (shaft and a wide head).</summary>
+    static ArrayMesh FrontArrow
+    {
+        get
+        {
+            if (_frontArrow != null) return _frontArrow;
+            var st = new SurfaceTool();
+            st.Begin(Mesh.PrimitiveType.Triangles);
+            st.SetNormal(Vector3.Up);
+            void Tri(Vector2 a, Vector2 b, Vector2 c)
+            {
+                foreach (var p in new[] { a, c, b }) st.AddVertex(new Vector3(p.X, 0, p.Y));
+            }
+            Vector2 V(float x, float z) => new(x, z);
+            // shaft
+            Tri(V(-0.08f, 0), V(0.08f, 0), V(0.08f, 0.3f)); Tri(V(-0.08f, 0), V(0.08f, 0.3f), V(-0.08f, 0.3f));
+            // head
+            Tri(V(-0.26f, 0.3f), V(0.26f, 0.3f), V(0, 0.62f));
+            _frontArrow = st.Commit();
+            return _frontArrow;
+        }
+    }
+
+    static StandardMaterial3D GhostFlat(Color c, float alpha) => new()
+    {
+        AlbedoColor = new Color(c, alpha), ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded,
+        Transparency = alpha < 1 ? BaseMaterial3D.TransparencyEnum.Alpha : BaseMaterial3D.TransparencyEnum.Disabled,
+        CullMode = BaseMaterial3D.CullModeEnum.Disabled, NoDepthTest = false,
+    };
 
     public void ShowGhostDoor(Door d, bool ok)
     {

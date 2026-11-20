@@ -92,7 +92,7 @@ public partial class Hud : Control
             new BuildItem(Mode.Surface, (int)Surface.Footpath), new BuildItem(Mode.Surface, (int)Surface.BikePath),
             new BuildItem(Mode.Curve, (int)Surface.Asphalt), new BuildItem(Mode.Curve, (int)Surface.Footpath), new BuildItem(Mode.Curve, (int)Surface.BikePath),
             new BuildItem(Mode.Surface, (int)Surface.Yard), new BuildItem(Mode.Surface, (int)Surface.Grass),
-            O(ObjKind.Tree), O(ObjKind.Shrub), O(ObjKind.LampPost), O(ObjKind.Bench), O(ObjKind.BikeRack),
+            O(ObjKind.Tree), O(ObjKind.Shrub), O(ObjKind.LampPost), O(ObjKind.Bench), O(ObjKind.BikeRack), O(ObjKind.BikeShed), O(ObjKind.EvCharger),
         }),
         ("cat_security", new[]
         {

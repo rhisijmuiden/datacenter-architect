@@ -1219,6 +1219,18 @@ public partial class Main : Node3D
                     : Loc.T("inspect_workplaces", desks));
                 actions.Add((Loc.T("co_tab_org"), () => OpenCompany(CompanyPanel.TabOrg), true));
             }
+            if (GameState.Furnishable(r.Type) && r.Stage == Stage.Done)
+            {
+                // interior: style (automatic by default) and the designer's furnishing
+                var room = r;
+                var style = _state.StyleOf(r);
+                lines.Add(Loc.T("inspect_style", Loc.T("style_" + style.ToString().ToLowerInvariant()) + (r.Style == InteriorStyle.Auto ? " (" + Loc.T("style_auto") + ")" : "")));
+                var nextStyle = (InteriorStyle)(((int)r.Style + 1) % Enum.GetValues<InteriorStyle>().Length);
+                actions.Add((Loc.T("action_style", Loc.T("style_" + nextStyle.ToString().ToLowerInvariant())), () => { _state.SetStyle(room, nextStyle); Act(null); }, true));
+                if (_state.FurnitureIn(r) == 0)
+                    actions.Add((Loc.T("action_furnish"), () => { var before = UndoHistory.Take(_state); var n = _state.AutoFurnish(room); Record(before, "action_furnish"); Act(n > 0 ? null : "msg_nothing_changed"); }, true));
+                OfficeChecklist(lines);
+            }
             if (r.Type is RoomType.Lab)
             {
                 lines.Add(Loc.T("inspect_lab", _state.LabBenches, _state.CountOf(StaffRole.Researcher)));
@@ -1243,11 +1255,24 @@ public partial class Main : Node3D
                 b.Stage == Stage.Done ? Loc.T("inspect_ready") : $"{Loc.T("stage_" + b.Stage.ToString().ToLowerInvariant())} · {Mathf.RoundToInt(GameState.Progress(b) * 100)}%",
             };
             if (b.Stage != Stage.Done) lines.Add(Loc.T("inspect_material", b.Material, GameState.MaterialNeed(b)));
+            if (b.Kind == BuildingKind.Office) OfficeChecklist(lines);
             _hud.Inspect(Loc.T(Catalog.Buildings[b.Kind].NameKey), lines);
             return;
         }
         _inspectCell = null;
         _hud.Inspect(null, null);
+    }
+
+    /// <summary>The rooms the offices need, ticked off: what to build next is clear at a glance.</summary>
+    void OfficeChecklist(List<string> lines)
+    {
+        lines.Add(Loc.T("office_needs"));
+        foreach (var (key, have, need) in _state.OfficeNeeds)
+        {
+            var mark = need == 0 ? "·" : have >= need ? "✓" : "○";
+            lines.Add($"{mark} {Loc.T(key)}  {have}/{(need == 0 ? "–" : need.ToString())}");
+        }
+        if (_state.AutoInterior) lines.Add(Loc.T("office_auto_note"));
     }
 
     // ---------------- dev helpers ----------------
@@ -1301,7 +1326,24 @@ public partial class Main : Node3D
         if (args.Contains("--nl")) Loc.SetLanguage("nl");
         var hi = Array.IndexOf(args, "--hours");
         var hours = hi >= 0 ? double.Parse(args[hi + 1], System.Globalization.CultureInfo.InvariantCulture) : 6;
-        if (args.Contains("--showcase"))
+        if (args.Contains("--office-demo"))
+        {
+            // playtest: an office building whose rooms the interior designer furnished by itself, in the three styles
+            var g = GameState.New(new NewGameOptions { Company = "Polder Datacenters", Creative = true, CreativeOptions = new CreativeOptions { UnlimitedMoney = true, AllUnlocks = true, InstantBuild = true } });
+            g.Staff.Add(new Employee { Id = 900, Name = "Helpdesk", Role = StaffRole.Helpdesk });
+            g.AddBuilding(BuildingKind.Office, 4, 4, 20, 12, 1);
+            g.AddRoom(RoomType.Executive, 4, 4, 6, 5, 0); g.AddRoom(RoomType.Office, 10, 4, 8, 5, 0); g.AddRoom(RoomType.Meeting, 18, 4, 6, 5, 0);
+            g.AddRoom(RoomType.Corridor, 4, 9, 20, 2, 0);
+            g.AddRoom(RoomType.Canteen, 4, 11, 8, 5, 0); g.AddRoom(RoomType.Lounge, 12, 11, 6, 5, 0); g.AddRoom(RoomType.Reception, 18, 11, 6, 5, 0);
+            foreach (var x in new[] { 6, 13, 20 }) { g.AddDoor(DoorType.Single, x, 9, 1, 0); g.AddDoor(DoorType.Single, x + 1, 11, 1, 0); }
+            g.AddDoor(DoorType.Double, 20, 16, 1, 0);
+            StartGame(g, false);
+            SetView(0, false);
+            _speed = 0;
+            _cam.SetView(0.35f, 1.05f, 26, new Vector3(14, 0, 10));
+            if (args.Contains("--close")) _cam.SetView(0.5f, 0.75f, 11, new Vector3(9, 0, 6.5f));
+        }
+        else if (args.Contains("--showcase"))
         {
             // playtest batch 1: a big building site with several cranes, an excavator, a parking lot with bays and the three trucks
             var g = GameState.New(new NewGameOptions { Company = "Polder Datacenters", Creative = true, CreativeOptions = new CreativeOptions { UnlimitedMoney = true, AllUnlocks = true } });
@@ -1421,6 +1463,17 @@ public partial class Main : Node3D
             var v = args[cami + 1].Split(',').Select(x => float.Parse(x, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
             _cam.SetView(v[0], v[1], v[2], new Vector3(v[3], 0, v[4]));
         }
+        // --road-demo: a new site with a 6 m road from the street, a bend and a narrow driveway
+        if (args.Contains("--road-demo"))
+        {
+            var rs = GameState.New(new NewGameOptions());
+            rs.Creative.UnlimitedMoney = true;
+            rs.PaintSurface(28, 20, 6, rs.PlotSize - 20, Surface.Asphalt, out _);
+            rs.PaintSurface(8, 20, 26, 6, Surface.Asphalt, out _);
+            rs.PaintSurface(44, 30, 3, rs.PlotSize - 30, Surface.Asphalt, out _);
+            StartGame(rs, false);
+            _cam.SetView(0.5f, 0.9f, 55, new Vector3(30, 0, 38));
+        }
         // --drag-demo: an empty demo hall with a smart-drag rack block in progress
         if (args.Contains("--drag-demo"))
         {
@@ -1429,6 +1482,48 @@ public partial class Main : Node3D
             _dragStart = new Vector2I(12, 16); _hoverCell = new Vector2I(24, 30);
             UpdateGhost();
         }
+        // --ghost-demo: one rack about to be placed, showing its front arrow and the aisles it needs
+        var ghi = Array.IndexOf(args, "--ghost-demo");
+        if (ghi >= 0 && ghi + 1 < args.Length)
+        {
+            var g = args[ghi + 1].Split(',').Select(int.Parse).ToArray();
+            SetView(0, false);
+            _state.Objects.RemoveAll(o => o.Kind == ObjKind.Rack && o.Z >= 30); _state.Touch();
+            _hud.Pick(new BuildItem(Mode.Object, (int)ObjKind.Rack));
+            _hoverCell = new Vector2I(g[0], g[1]);
+            UpdateGhost();
+            _cam.SetView(3.5f, 0.95f, 13, new Vector3(g[0], 0, g[1] - 1));
+        }
+        // --commute-demo: bike shed, bike racks and charging points by the parking, two loading bays, cyclists riding in
+        if (args.Contains("--commute-demo"))
+        {
+            _state.AddObject(ObjKind.BikeShed, 17, 35, 0, 0);
+            _state.AddObject(ObjKind.EvCharger, 43, 41, 3, 0);
+            _state.AddObject(ObjKind.EvCharger, 43, 44, 3, 0);
+            _state.AddDoor(DoorType.RollUp, 31, 34, 1, 0);
+            for (var i = 0; i < 24; i++)
+                _state.Staff.Add(new Employee { Id = 500 + i, Name = "Demo " + i, Role = StaffRole.Cleaner, Shift = _state.CurrentShift });
+            foreach (var o in _state.Objects) o.Status = ObjStatus.Live;
+            _state.Touch();
+            for (var i = 0; i < 3; i++)
+            {
+                var p = Models.Person(Role.Staff, 600 + i, StaffRole.Support);
+                var bike = new Node3D { Name = "Bike" };
+                Assets.Place(bike, "made/" + WorldView.BikeModels[i] + ".glb", Vector3.Zero, 1, 0, Models.MadeMat);
+                p.AddChild(bike);
+                p.Position = new Vector3(28.6f + (i % 2) * 0.9f, 0, 46 + i * 3.2f);
+                p.RotationDegrees = new Vector3(0, 180, 0);
+                _world.AddChild(p);
+                if (p is PersonFigure f) f.Animate(0.3 + i * 0.21, PersonPose.Ride, i);
+            }
+            _speed = 0;
+            _cam.SetView(0.9f, 0.75f, 30, new Vector3(28, 0, 40));
+            if (args.Contains("--bikes")) _cam.SetView(0.5f, 0.6f, 9, new Vector3(19, 0, 36));
+            if (args.Contains("--ev")) _cam.SetView(-0.9f, 0.7f, 14, new Vector3(41, 0, 43));
+        }
+        // --build-menu cat_x: open that build menu category (thumbnail screenshots)
+        var bmi = Array.IndexOf(args, "--build-menu");
+        if (bmi >= 0 && bmi + 1 < args.Length) _hud.OpenCategory(args[bmi + 1]);
         // --floor N: look at floor N with the roofs off (stairs and lifts screenshots)
         var fli = Array.IndexOf(args, "--floor");
         if (fli >= 0 && fli + 1 < args.Length) SetView(int.Parse(args[fli + 1]), false);

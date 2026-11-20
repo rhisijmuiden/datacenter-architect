@@ -55,7 +55,7 @@ public partial class WorldView
     static Color Lift(Color c) => new(Mathf.Min(c.R / 0.85f, 1.2f), Mathf.Min(c.G / 0.85f, 1.2f), Mathf.Min(c.B / 0.85f, 1.2f), c.A);
 
     /// <summary>The ground material for a paint colour: a photo texture when one belongs to it, otherwise the plain mottle.</summary>
-    static StandardMaterial3D SurfaceMat(Color c, float rough = 0.9f)
+    internal static StandardMaterial3D SurfaceMat(Color c, float rough = 0.9f)
     {
         if (!SurfaceTextures.TryGetValue(c, out var t)) return GrainMat(c, 14, rough);
         if (GrainMats.TryGetValue((c, -t.metres), out var m)) return m;
@@ -71,7 +71,7 @@ public partial class WorldView
     };
 
     /// <summary>Outer wall material for a facade colour: brick, ribbed cladding or precast concrete.</summary>
-    static Material WallMat(Color c)
+    internal static Material WallMat(Color c)
     {
         if (!WallTextures.TryGetValue(c, out var t)) return null;
         if (GrainMats.TryGetValue((c, -100 - t.metres), out var m)) return m;
@@ -87,5 +87,5 @@ public partial class WorldView
     }
 
     /// <summary>Grass for the plot and the land around it.</summary>
-    static StandardMaterial3D GrassMat(Color c, float grain) => Textured(new StandardMaterial3D { AlbedoColor = Lift(c), Roughness = 1f }, "leafy_grass", 3.2f, grain, 0.7f);
+    internal static StandardMaterial3D GrassMat(Color c, float grain) => Textured(new StandardMaterial3D { AlbedoColor = Lift(c), Roughness = 1f }, "leafy_grass", 3.2f, grain, 0.7f);
 }

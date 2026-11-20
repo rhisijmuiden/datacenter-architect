@@ -18,8 +18,8 @@ public static class Bench
     {
         const int rowLen = 60;
         var rows = (racks + rowLen - 1) / rowLen;
-        // two rows back to back (hot aisle side), then a cold aisle: three cells per pair
-        var depth = (rows + 1) / 2 * 3 + 2;
+        // pairs of rows facing each other across a 1 m cold aisle, 2 m hot aisles between the pairs: five cells per pair
+        var depth = (rows + 1) / 2 * 5 + 2;
         var o = new NewGameOptions { Company = "Bench", Creative = true, CreativeOptions = new CreativeOptions { UnlimitedMoney = true, AllUnlocks = true, InstantBuild = true } };
         var s = GameState.New(o);
         s.PlotSize = Math.Max(Math.Max(64, rowLen + 24), depth + 24);
@@ -30,8 +30,8 @@ public static class Bench
         var placed = 0;
         for (var r = 0; r < rows && placed < racks; r++)
         {
-            var z = 5 + r / 2 * 3 + r % 2;
-            var rot = r % 2 == 0 ? 2 : 0;
+            var z = 5 + r / 2 * 5 + r % 2 * 2;
+            var rot = r % 2 == 0 ? 0 : 2;
             for (var x = 7; x < 7 + rowLen && placed < racks; x++)
                 if (s.AddObject(ObjKind.Rack, x, z, rot, 0) != null) placed++;
         }

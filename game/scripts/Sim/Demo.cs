@@ -60,12 +60,12 @@ public static class Demo
         s.AddDoor(DoorType.Double, 28, 26, 1, 0);
         s.AddDoor(DoorType.Double, 26, 18, 0, 0);
         s.AddDoor(DoorType.Badge, 14, 34, 1, 0);
-        // rows face each other across a cold aisle, backs face each other across a hot aisle
-        foreach (var (z, rot) in new[] { (16, 0), (18, 2), (21, 0), (23, 2), (26, 0), (28, 2), (31, 0) })
+        // rows face each other across a cold aisle, backs face each other across a hot aisle; every rack is reachable front and back
+        foreach (var (z, rot) in new[] { (15, 0), (17, 2), (20, 0), (22, 2), (25, 0), (27, 2), (30, 0) })
             for (var x = 12; x < 25; x++) s.AddObject(ObjKind.Rack, x, z, rot, 0);
         for (var z = 15; z < 32; z += 4) s.AddObject(ObjKind.Crah, 9, z, 0, 0);
         // floor PDUs at the end of the rows; the hall also has an overhead busbar
-        foreach (var z in new[] { 16, 23, 28 }) s.AddObject(ObjKind.Pdu, 25, z, 0, 0);
+        foreach (var z in new[] { 15, 22, 27 }) s.AddObject(ObjKind.Pdu, 25, z, 0, 0);
         hall.Busbar = true;
         // spine switches at the start of the rows
         foreach (var z in new[] { 16, 23, 28 }) s.AddObject(ObjKind.Spine, 11, z, 1, 0);
@@ -136,7 +136,7 @@ public static class Demo
         // a warehouse going up, and a row of racks still on its way
         var wh = s.AddBuilding(BuildingKind.Warehouse, 40, 30, 12, 8, 1);
         wh.Stage = Stage.Walls; wh.Material = 18; wh.Work = 1.4;
-        for (var x = 12; x < 25; x++) s.AddObject(ObjKind.Rack, x, 33 - 1, 2, 0);
+        for (var x = 12; x < 25; x++) s.AddObject(ObjKind.Rack, x, 32, 2, 0);
         // carriers, the internet exchange and peering with a rival
         s.Contracts.Add(new CarrierContract { Carrier = 1, PortGbps = 100, Commit = 10 });
         s.Contracts.Add(new CarrierContract { Carrier = 3, PortGbps = 10, Commit = 5 });

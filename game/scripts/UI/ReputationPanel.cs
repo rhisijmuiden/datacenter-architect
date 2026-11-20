@@ -352,6 +352,22 @@ public partial class ReputationPanel : Modal
         if (!s.Has(Exec.Research)) _content.AddChild(Plain(Loc.T("msg_needs_research_mgr"), 14, Brand.Warning));
         else if (s.LabBenches == 0) _content.AddChild(Plain(Loc.T("rs_needs_lab"), 14, Brand.Warning));
         _content.AddChild(Plain(Loc.T("rs_status", s.CountOf(StaffRole.Researcher), s.LabBenches, N(s.ResearchPerDay, "0.0")), 14, Brand.Ink));
+        // the R&D budget: one policy choice, the lab spends it by itself
+        {
+            var card = Card(Brand.Amber, out var v);
+            v.AddChild(Ui.Heading("rs_budget", 13, Brand.Amber));
+            v.AddChild(Wrapped(Loc.T("rs_budget_help")));
+            var r = Row(6);
+            for (var i = 0; i < ResearchTree.BudgetPerDay.Length; i++)
+            {
+                var lvl = i;
+                var label = Loc.T("rs_budget_" + i) + (ResearchTree.BudgetPerDay[i] > 0 ? $" · {Ui.Money(ResearchTree.BudgetPerDay[i])}/{Loc.T("rs_per_day")}" : "");
+                r.AddChild(Act(label, st => { st.SetResearchBudget(lvl); return null; }, s.ResearchBudget != i, s.ResearchBudget == i));
+            }
+            v.AddChild(r);
+            v.AddChild(Plain(Loc.T("rs_budget_now", "×" + N(s.ResearchBudgetSpeed, "0.00"), Ui.Money(s.ResearchBudgetCost * 30)), 13, Brand.InkDim));
+            _content.AddChild(card);
+        }
         // the queue
         if (s.ResearchQueue.Count > 0)
         {

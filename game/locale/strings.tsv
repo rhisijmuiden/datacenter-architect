@@ -171,6 +171,8 @@ obj_shrub	Shrub	Struik
 obj_lamp	Lamp post	Lantaarnpaal
 obj_bench	Bench	Bankje
 obj_bikerack	Bike rack	Fietsenrek
+obj_bikeshed	Bike shed (e-bike charging)	Fietsenhok (e-bike laden)
+obj_evcharger	EV charging point	Laadpaal
 obj_guardbooth	Guard booth	Beveiligingshokje
 obj_intercom	Intercom	Intercom
 obj_barrier	Barrier	Slagboom
@@ -1785,3 +1787,27 @@ msg_nothing_to_undo	Nothing to undo.	Niets om ongedaan te maken.
 msg_nothing_to_redo	Nothing to redo.	Niets om opnieuw te doen.
 row_rows	{0} rows with aisles	{0} rijen met gangen
 erase_objects	{0} objects	{0} objecten
+msg_rack_front	The front of a rack needs a free aisle so engineers can reach it.	De voorkant van een rack heeft een vrij pad nodig zodat engineers erbij kunnen.
+msg_rack_back	The back of a rack needs a free aisle too: engineers work on both sides.	Ook de achterkant van een rack heeft een vrij pad nodig: engineers werken aan beide kanten.
+msg_blocks_rack	That would block the front or back of a rack.	Dat blokkeert de voor- of achterkant van een rack.
+rs_budget	R&D budget	R&D-budget
+rs_budget_help	Extra money for test equipment, prototypes and outside experts makes every project go faster. It is only spent on days the lab is working on something.	Extra geld voor testapparatuur, prototypes en externe experts maakt elk project sneller. Het wordt alleen uitgegeven op dagen dat het lab ergens aan werkt.
+rs_budget_0	Basic	Basis
+rs_budget_1	Modest	Bescheiden
+rs_budget_2	Normal	Normaal
+rs_budget_3	Ambitious	Ambitieus
+rs_budget_4	Maximum	Maximaal
+rs_per_day	day	dag
+rs_budget_now	Research speed {0} · at most {1} per month	Onderzoekssnelheid {0} · hooguit {1} per maand
+inspect_style	Interior: {0}	Inrichting: {0}
+style_auto	automatic	automatisch
+style_standard	Standard	Standaard
+style_tech	Support (tech)	Support (tech)
+style_formal	Formal	Formeel
+action_style	Style: {0}	Stijl: {0}
+action_furnish	Furnish this room	Richt deze ruimte in
+office_needs	What the offices need:	Wat de kantoren nodig hebben:
+need_workplaces	Workplaces (desks)	Werkplekken (bureaus)
+need_director_offices	Director's offices	Directiekamers
+office_auto_note	New office rooms are furnished automatically when they are finished.	Nieuwe kantoorruimtes worden na de bouw automatisch ingericht.
+ev_interior_done	The interior designer furnished the {0}.	De interieurontwerper heeft de {0} ingericht.

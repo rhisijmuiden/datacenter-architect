@@ -32,6 +32,8 @@ public class Agent
     public bool Gone;
     /// <summary>From this waypoint on the agent drives backwards (a truck backing up to a dock); -1 for never.</summary>
     public int ReverseFrom = -1;
+    /// <summary>Truck route on the plot (cells, starting at the entry), so the way back can keep to the right lane too.</summary>
+    public List<Pt> Route;
     /// <summary>Engineer patching a cross-connect at the ODF in Target.</summary>
     public bool Xc;
     /// <summary>Guard walking along with the visitor in Target (security policy "escort").</summary>
@@ -43,6 +45,8 @@ public class Agent
     public bool Out;
     /// <summary>The cable an engineer is pulling, for the reel they carry: power (amber) or fiber (orange).</summary>
     public CableKind Cable;
+    /// <summary>On a bicycle (staff riding in or home).</summary>
+    public bool Ride;
     public bool Moving => WayI < Way.Count;
 }
 
@@ -136,7 +140,9 @@ public partial class Simulation
         return Enumerable.Range(0, S.PlotSize).Where(x => Nav.TruckCell(x, z)).Select(x => (x, z)).ToList();
     }
 
-    /// <summary>Loading docks: the apron cell outside each roll-up door, and the dock cell inside it.</summary>
+    /// <summary>Loading bays: one per roll-up door in the outer wall of a loading dock (the middle of the door),
+    /// with the apron cell outside where a truck backs up and the dock cell inside. More doors, more bays,
+    /// and as many equipment trucks can unload at the same time.</summary>
     public List<(Room dock, (int x, int z) apron, (int x, int z) inside)> Docks()
     {
         var list = new List<(Room, (int, int), (int, int))>();
@@ -145,7 +151,7 @@ public partial class Simulation
             if (S.BuildingOf(r)?.Stage != Stage.Done) continue;
             var edges = GameState.Perimeter(r.X, r.Z, r.W, r.D).ToHashSet();
             foreach (var d in S.Doors.Where(d => d.Floor == 0 && d.Type == DoorType.RollUp))
-                foreach (var e in d.Edges())
+                foreach (var e in d.Edges().Skip((Catalog.Doors[d.Type].Width - 1) / 2).Take(1))
                 {
                     if (!edges.Contains(e) || !S.IsOuterEdge(e)) continue;
                     // the two cells on either side of the edge
@@ -157,6 +163,16 @@ public partial class Simulation
                 }
         }
         return list;
+    }
+
+    /// <summary>At most this many equipment trucks at the docks at once, however many bays there are.</summary>
+    public const int MaxDockTrucks = 6;
+
+    /// <summary>Bay aprons no truck is heading for or standing at.</summary>
+    HashSet<(int x, int z)> FreeBays(List<(Room dock, (int x, int z) apron, (int x, int z) inside)> docks)
+    {
+        var taken = Agents.Where(a => a.Role == Role.Truck && a.Route is { Count: > 0 }).Select(a => (a.Route[^1].X, a.Route[^1].Z)).ToHashSet();
+        return docks.Select(d => d.apron).Where(c => !taken.Contains(c)).ToHashSet();
     }
 
     public Room HallOf(PlacedObject o) => S.RoomAt(o.X, o.Z, o.Floor);
@@ -217,7 +233,7 @@ public partial class Simulation
     {
         var changed = false;
         foreach (var b in S.Buildings.Where(b => b.Stage != Stage.Done && !S.IsPlanned(b))) { b.Stage = Stage.Done; b.Material = 0; b.Work = 0; changed = true; }
-        foreach (var r in S.Rooms.Where(r => r.Stage != Stage.Done && !S.IsPlanned(r))) { r.Stage = Stage.Done; r.Material = 0; r.Work = 0; changed = true; }
+        foreach (var r in S.Rooms.Where(r => r.Stage != Stage.Done && !S.IsPlanned(r)).ToList()) { r.Stage = Stage.Done; r.Material = 0; r.Work = 0; changed = true; S.RoomFinished(r); }
         foreach (var o in S.Objects.Where(o => o.Status != ObjStatus.Live && !S.IsPlanned(o))) { o.Status = ObjStatus.Live; changed = true; }
         foreach (var a in Agents.Where(a => a.Role is not (Role.Visitor or Role.Staff) && (a.Role != Role.Builder || a.Phase != 0))) Reset(a);
         Agents.RemoveAll(a => a.Role == Role.Truck);
@@ -364,7 +380,8 @@ public partial class Simulation
         var deal = fresh[_rng.Next(fresh.Count)];
         var docks = Docks();
         if (docks.Count == 0) return;
-        var aprons = docks.Select(d => d.apron).ToHashSet();
+        var aprons = FreeBays(docks);
+        if (aprons.Count == 0) return;
         if (!SendTruck(TruckLoad.Customer, (x, z) => aprons.Contains((x, z)), 1, new List<int> { deal.Id })) Cool(-3, 6);
         else Agents[^1].Target = deal.Id;
     }
@@ -523,6 +540,7 @@ public partial class Simulation
             var r = s.R;
             r.Material = 0; r.Work = 0; r.Stage = Stage.Done;
             EvictFrom(r.X, r.Z, r.W, r.D, r.Floor, false);
+            S.RoomFinished(r);
             Say("msg_room_done", Catalog.Rooms[r.Type].NameKey, 0);
         }
         S.Touch();
@@ -578,11 +596,12 @@ public partial class Simulation
         // racks and cooling units (and customers moving in) to the loading dock
         var onTruck = trucks.SelectMany(t => t.Items).ToHashSet();
         var waiting = S.Objects.Where(o => o.Status == ObjStatus.Ordered && !S.IsPlanned(o) && !onTruck.Contains(o.Id) && HallReady(o) && !S.SupplyHeld(o)).OrderBy(o => o.Id).ToList();
-        if (waiting.Count > 0 && trucks.Count(t => t.Load == TruckLoad.Equipment) < 2 && !Cooling(-2))
+        if (waiting.Count > 0 && !Cooling(-2))
         {
             var docks = Docks();
-            var aprons = docks.Select(d => d.apron).ToHashSet();
+            var aprons = FreeBays(docks);
             if (docks.Count == 0) { Say("msg_need_dock", null, 24); Cool(-2, 1); }
+            else if (aprons.Count == 0 || trucks.Count(t => t.Load == TruckLoad.Equipment) >= Math.Min(MaxDockTrucks, docks.Count)) { }
             else if (!SendTruck(TruckLoad.Equipment, (x, z) => aprons.Contains((x, z)), 0, waiting.Take(TruckItems).Select(o => o.Id).ToList()))
             { Say("msg_dock_no_road", null, 24); Cool(-2, 1); }
         }
@@ -601,6 +620,8 @@ public partial class Simulation
         var t = new Agent { Id = _nextAgent++, Role = Role.Truck, Load = load, Carry = material, Items = items ?? new(), X = -20, Z = lane, Phase = 1 };
         // drive in the middle of the road, not along the kerb or the fence; turn in from the road onto that line too
         var lanePath = Nav.CenterLane(path);
+        t.Route = new List<Pt> { new(entry.x, entry.z, 0) };
+        t.Route.AddRange(path);
         var ex0 = lanePath.Count > 0 && Math.Abs(lanePath[0].x - (entry.x + 0.5)) <= 4 ? lanePath[0].x : entry.x + 0.5;
         t.Way.Add((ex0, lane, 0));
         t.Way.Add((ex0, S.PlotSize + 0.5, 0));
@@ -661,7 +682,7 @@ public partial class Simulation
                 }
                 a.Carry = a.Load == TruckLoad.Customer && a.Out ? 1 : 0; a.Items.Clear();
                 // drive back the same way and off along the road
-                var back = a.Way.Take(a.Way.Count - 1).Reverse().ToList();
+                var back = a.Route is { Count: > 0 } ? WayBack(a) : a.Way.Take(a.Way.Count - 1).Reverse().ToList();
                 a.Way.Clear(); a.WayI = 0; a.ReverseFrom = -1;
                 a.Way.AddRange(back);
                 a.Way.Add((S.PlotSize + 40, S.PlotSize + 3.2, 0));
@@ -671,6 +692,31 @@ public partial class Simulation
                 if (Drive(a, dt)) a.Gone = true;
                 return;
         }
+    }
+
+    /// <summary>
+    /// The way off the plot for a truck: its route in reverse, in the lane on its right-hand side, then out onto the
+    /// street. A truck backed up to a dock first pulls away forwards, so points behind its cab are skipped.
+    /// </summary>
+    List<(double x, double z, int f)> WayBack(Agent a)
+    {
+        var rev = Enumerable.Reverse(a.Route).ToList();
+        var lane = Nav.CenterLane(rev);
+        if (a.ReverseFrom >= 0)
+        {
+            double fx = Math.Sin(a.Heading), fz = Math.Cos(a.Heading);
+            while (lane.Count > 1)
+            {
+                var (px, pz) = lane[0];
+                var along = (px - a.X) * fx + (pz - a.Z) * fz;
+                if (along < 1.0 && Math.Abs(px - a.X) + Math.Abs(pz - a.Z) < TruckRear + 2) lane.RemoveAt(0); else break;
+            }
+        }
+        var res = lane.Select(p => (p.x, p.z, 0)).ToList();
+        var exit = lane.Count > 0 ? lane[^1].x : a.Route[0].X + 0.5;
+        res.Add((exit, S.PlotSize + 0.5, 0));
+        res.Add((exit, S.PlotSize + 3.2, 0));
+        return res;
     }
 
     /// <summary>Two people of a moving customer walk from the loading dock to their racks with boxes, and back.</summary>
