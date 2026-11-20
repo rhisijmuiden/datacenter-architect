@@ -64,9 +64,9 @@ public partial class FirstPerson : Node3D
 
     bool Stand(int x, int z, int f) => _state.InPlot(x, z) ? _nav.Walkable(x, z, f) : f == 0;
 
-    public Building Inside => _state.BuildingAt((int)Math.Floor(Position.X), (int)Math.Floor(Position.Z)) is { Stage: Stage.Done } b && b.Floors > Floor ? b : null;
+    public Building Inside => _state.BuildingAt((int)Math.Floor(Position.X), (int)Math.Floor(Position.Z)) is { Stage: Stage.Done } b && b.HasFloor(Floor) ? b : null;
 
-    float Ground() => Inside != null || Floor > 0 ? WorldView.Base(Floor) : 0;
+    float Ground() => Inside != null || Floor != 0 ? WorldView.Base(Floor) : 0;
 
     public override void _UnhandledInput(InputEvent e)
     {
@@ -101,8 +101,9 @@ public partial class FirstPerson : Node3D
             foreach (var (dx, dz) in new[] { (1, 0), (-1, 0), (0, 1), (0, -1) })
                 if (_state.ObjectAt(x + dx, z + dz) is { } n && Catalog.IsShaft(n.Kind)) { near = true; break; }
         var b = _state.BuildingAt(x, z);
-        var to = Floor + dir;
-        if (!near || b == null || to < 0 || to >= b.Floors || !_nav.Walkable(x, z, to)) return false;
+        var level = GameState.Level(Floor) + dir;
+        var to = level < 0 ? GameState.BasementFloor : level;
+        if (!near || b == null || level < -1 || !b.HasFloor(to) || !_nav.Walkable(x, z, to)) return false;
         Floor = to;
         Moved?.Invoke();
         return true;

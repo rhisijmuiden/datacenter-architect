@@ -614,7 +614,7 @@ public partial class GameState
     }
 
     /// <summary>What the company is worth to an investor: a base, two and a half years of revenue and what is built.</summary>
-    [JsonIgnore] public long Valuation => 4_000_000 + MonthlyRevenue * 30 + Objects.Sum(o => o.Def.Cost) / 2 + Buildings.Sum(b => BuildingCost(b.Kind, b.W, b.D, b.Floors)) / 2;
+    [JsonIgnore] public long Valuation => 4_000_000 + MonthlyRevenue * 30 + Objects.Sum(o => o.Def.Cost) / 2 + Buildings.Sum(b => BuildingCost(b)) / 2;
     public const double InvestorStep = 0.1, MaxInvestorShare = 0.49;
     public long InvestorOffer => (long)(Valuation * InvestorStep * (1 - InvestorShare) / 1000) * 1000;
 

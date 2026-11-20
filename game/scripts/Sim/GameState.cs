@@ -14,6 +14,8 @@ public class Building
     public int W { get; set; }
     public int D { get; set; }
     public int Floors { get; set; } = 1;
+    /// <summary>A basement under the ground floor (floor id <see cref="GameState.BasementFloor"/>), a design choice when building.</summary>
+    public bool Basement { get; set; }
     public Facade Facade { get; set; }
     /// <summary>1 = low, 2 = normal, 3 = high. Builders work on higher priority projects first.</summary>
     public int Priority { get; set; } = 2;
@@ -23,6 +25,10 @@ public class Building
     /// <summary>Builder-hours spent on the current stage.</summary>
     public double Work { get; set; }
     public bool Contains(int x, int z) => x >= X && z >= Z && x < X + W && z < Z + D;
+    /// <summary>Whether the building has this floor (the basement included).</summary>
+    public bool HasFloor(int f) => f == GameState.BasementFloor ? Basement : f >= 0 && f < Floors;
+    /// <summary>Storeys including the basement.</summary>
+    [System.Text.Json.Serialization.JsonIgnore] public int Levels => Floors + (Basement ? 1 : 0);
 }
 
 public class Room
@@ -153,6 +159,14 @@ public partial class GameState
     public const int CurrentFormat = 9;
     /// <summary>Floor value for objects that stand on the roof of a building.</summary>
     public const int RoofFloor = -1;
+    /// <summary>Floor id of a basement. Kept apart from the storey numbers so roof (-1) and storeys (0..) stay as they were.</summary>
+    public const int BasementFloor = 9;
+    /// <summary>Height level of a floor id: the basement is one level below the ground floor.</summary>
+    public static int Level(int floor) => floor == BasementFloor ? -1 : floor;
+    /// <summary>All floor ids people can be on, bottom to top.</summary>
+    public static readonly int[] FloorIds = new[] { BasementFloor }.Concat(Enumerable.Range(0, Catalog.MaxFloors)).ToArray();
+    /// <summary>Building types that can have a basement.</summary>
+    public static bool BasementAllowed(BuildingKind k) => k is BuildingKind.Datacenter or BuildingKind.Office;
     public const double WorkPerMaterial = 0.15;
 
     public int SaveFormat { get; set; } = CurrentFormat;
@@ -403,7 +417,7 @@ public partial class GameState
     {
         var set = new HashSet<(int, int, int)>();
         foreach (var b in Buildings)
-            if (b.Floors > floor && (!builtOnly || b.Stage == Stage.Done))
+            if (b.HasFloor(floor) && (!builtOnly || b.Stage == Stage.Done))
                 foreach (var e in Perimeter(b.X, b.Z, b.W, b.D)) set.Add(e);
         foreach (var r in Rooms)
             if (r.Floor == floor && (!builtOnly || r.Stage == Stage.Done))
@@ -416,15 +430,20 @@ public partial class GameState
     // ---------------- construction numbers ----------------
     public static int MaterialNeed(Building b) => b.Stage switch
     {
-        Stage.Foundation => (int)Math.Ceiling(b.W * b.D / 5.0),
-        Stage.Walls => (b.W + b.D) * b.Floors + (b.Floors - 1) * (int)Math.Ceiling(b.W * b.D / 8.0),
+        // digging out and pouring a basement makes the foundation three times the work
+        Stage.Foundation => (int)Math.Ceiling(b.W * b.D / 5.0) * (b.Basement ? 3 : 1),
+        Stage.Walls => (b.W + b.D) * b.Levels + (b.Levels - 1) * (int)Math.Ceiling(b.W * b.D / 8.0),
         Stage.Roof => (int)Math.Ceiling(b.W * b.D / 8.0),
         _ => 0,
     };
     public static int MaterialNeed(Room r) => r.Stage == Stage.Done ? 0 : (int)Math.Ceiling((r.W + r.D) * 2 / 3.0) + 1;
     public static double WorkNeed(Building b) => MaterialNeed(b) * WorkPerMaterial;
     public static double WorkNeed(Room r) => MaterialNeed(r) * WorkPerMaterial;
-    public static long BuildingCost(BuildingKind k, int w, int d, int floors) => Catalog.Buildings[k].CostPerCellPerFloor * w * d * floors;
+    public static long BuildingCost(BuildingKind k, int w, int d, int floors, bool basement = false) =>
+        Catalog.Buildings[k].CostPerCellPerFloor * w * d * floors + (basement ? BasementCost(k, w, d) : 0);
+    /// <summary>A basement costs one and a half storeys: digging, waterproofing and a heavy floor.</summary>
+    public static long BasementCost(BuildingKind k, int w, int d) => Catalog.Buildings[k].CostPerCellPerFloor * w * d * 3 / 2;
+    public static long BuildingCost(Building b) => BuildingCost(b.Kind, b.W, b.D, b.Floors, b.Basement);
 
     /// <summary>Overall progress of a building, 0..1.</summary>
     public static double Progress(Building b)
@@ -522,10 +541,11 @@ public partial class GameState
     }
 
     // ---------------- buildings, rooms, doors ----------------
-    public string CanBuild(BuildingKind k, int x, int z, int w, int d, int floors)
+    public string CanBuild(BuildingKind k, int x, int z, int w, int d, int floors, bool basement = false)
     {
         if (w < 4 || d < 4) return "msg_too_small";
         if (floors < 1 || floors > Catalog.MaxFloors) return "msg_bad_floors";
+        if (basement && !BasementAllowed(k)) return "msg_no_basement";
         for (var i = x; i < x + w; i++)
             for (var j = z; j < z + d; j++)
             {
@@ -539,18 +559,18 @@ public partial class GameState
         for (var i = x - 1; i <= x + w; i++)
             for (var j = z - 1; j <= z + d; j++)
                 if (BuildingAt(i, j) != null) return "msg_building_gap";
-        if (!CanAfford(BuildingCost(k, w, d, floors))) return "msg_no_money";
+        if (!CanAfford(BuildingCost(k, w, d, floors, basement))) return "msg_no_money";
         return null;
     }
 
     public static Facade DefaultFacade(BuildingKind k) => k switch { BuildingKind.Office => Facade.Brick, BuildingKind.Warehouse => Facade.Cladding, _ => Facade.Concrete };
 
-    public Building AddBuilding(BuildingKind k, int x, int z, int w, int d, int floors, Facade? facade = null)
+    public Building AddBuilding(BuildingKind k, int x, int z, int w, int d, int floors, Facade? facade = null, bool basement = false)
     {
-        if (CanBuild(k, x, z, w, d, floors) != null) return null;
-        Spend(BuildingCost(k, w, d, floors));
+        if (CanBuild(k, x, z, w, d, floors, basement) != null) return null;
+        Spend(BuildingCost(k, w, d, floors, basement));
         var f = k == BuildingKind.Office && facade.HasValue ? facade.Value : DefaultFacade(k);
-        var b = new Building { Id = NextId++, Kind = k, Facade = f, X = x, Z = z, W = w, D = d, Floors = floors, Stage = Creative.InstantBuild ? Stage.Done : Stage.Foundation };
+        var b = new Building { Id = NextId++, Kind = k, Facade = f, X = x, Z = z, W = w, D = d, Floors = floors, Basement = basement, Stage = Creative.InstantBuild ? Stage.Done : Stage.Foundation };
         Buildings.Add(b);
         Touch();
         return b;
@@ -561,7 +581,8 @@ public partial class GameState
         if (w < 2 || d < 2) return "msg_too_small";
         var b = BuildingAt(x, z);
         if (b == null || !b.Contains(x + w - 1, z + d - 1)) return "msg_room_in_building";
-        if (b.Floors <= floor) return "msg_no_such_floor";
+        if (!b.HasFloor(floor)) return "msg_no_such_floor";
+        if (floor == BasementFloor && t is RoomType.LoadingDock or RoomType.Reception) return "msg_not_in_basement";
         for (var i = x; i < x + w; i++)
             for (var j = z; j < z + d; j++)
                 if (RoomAt(i, j, floor) != null) return "msg_overlap_room";
@@ -587,7 +608,7 @@ public partial class GameState
         {
             if (!walls.Contains(e)) return "msg_door_on_wall";
             if (Doors.Any(o => o.Floor == door.Floor && o.Edges().Contains(e))) return "msg_occupied";
-            if (door.Floor > 0 && IsOuterEdge(e)) return "msg_door_upper_outer";
+            if (door.Floor != 0 && IsOuterEdge(e)) return "msg_door_upper_outer";
         }
         if (door.Type == DoorType.Mantrap && !Done("sec_mantrap")) return "msg_needs_research";
         if (!CanAfford(Catalog.Doors[door.Type].Cost)) return "msg_no_money";
@@ -641,7 +662,7 @@ public partial class GameState
                     break;
                 case Where.Outside:
                 case Where.Paved:
-                    if (b != null || o.Floor > 0) return "msg_outside_only";
+                    if (b != null || o.Floor != 0) return "msg_outside_only";
                     if (FenceAt(x, z) != FenceType.None) return "msg_fence_in_way";
                     if (def.Where == Where.Paved && !Catalog.Surfaces[SurfaceAt(x, z)].Trucks) return "msg_needs_asphalt";
                     break;
@@ -650,7 +671,7 @@ public partial class GameState
                     break;
                 case Where.Building:
                     if (b == null || o.Floor != 0) return "msg_inside_building";
-                    if (b.Floors < 2) return "msg_lift_floors";
+                    if (b.Levels < 2) return "msg_lift_floors";
                     break;
                 case Where.Room:
                     if (def.Rooms != null)
@@ -815,7 +836,7 @@ public partial class GameState
             Objects.RemoveAll(o => b.Contains(o.X, o.Z));
             Doors.RemoveAll(o => Perimeter(b.X, b.Z, b.W, b.D).Intersect(o.Edges()).Any());
             Buildings.Remove(b);
-            RefundRemoved(b.Id, BuildingCost(b.Kind, b.W, b.D, b.Floors) / 4);
+            RefundRemoved(b.Id, BuildingCost(b) / 4);
             changed = true;
         }
         if (changed) { Touch(); return true; }

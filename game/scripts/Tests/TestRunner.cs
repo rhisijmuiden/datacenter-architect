@@ -42,9 +42,13 @@ public static partial class TestRunner
             ("round 2 (step 11)", Round2Tests),
             ("round 3 (step 11)", Round3Tests),
             ("playtest round 3", Playtest3Tests),
+            ("basement", BasementTests),
         };
+        // DCA_TESTS=basement,stairs runs only the groups whose name contains one of the words
+        var only = System.Environment.GetEnvironmentVariable("DCA_TESTS")?.Split(',', StringSplitOptions.RemoveEmptyEntries);
         foreach (var (name, t) in tests)
         {
+            if (only != null && !only.Any(w => name.Contains(w.Trim()))) continue;
             try { t(); }
             catch (Exception e) { _fail++; GD.PrintErr($"FAIL {name}: {e}"); }
         }

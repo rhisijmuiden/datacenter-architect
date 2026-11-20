@@ -39,6 +39,7 @@ public partial class Main : Node3D
     HashSet<int> _planIds;
     BuildItem _item = BuildItem.Select;
     int _rot, _floors = 1;
+    bool _basement;
     Facade _facade = Facade.Brick;
     Vector2I? _dragStart;
     // curve tool: first click sets the start, second the end, the mouse bends it, the third click builds
@@ -151,12 +152,13 @@ public partial class Main : Node3D
             SpeedChanged = sp => _speed = sp,
             FloorsChanged = f => { _floors = f; UpdateGhost(); },
             FacadeChanged = f => _facade = f,
+            BasementChanged = on => { _basement = on; UpdateGhost(); },
             CyclePriority = CyclePriority,
             RotateLeft = () => _cam.RotateStep(1), RotateRight = () => _cam.RotateStep(-1), Walk = StartWalk, Photo = StartPhoto,
             ToggleGrid = () => _world.GridVisible = !_world.GridVisible,
             ToggleRoofs = () => SetView(_world.ViewFloor, !_world.Roofs),
-            FloorUp = () => SetView(_world.ViewFloor + 1, false),
-            FloorDown = () => SetView(_world.ViewFloor - 1, _world.ViewFloor - 1 <= 0 && _world.Roofs),
+            FloorUp = () => SetView(StepFloor(1), false),
+            FloorDown = () => SetView(StepFloor(-1), StepFloor(-1) == 0 && _world.Roofs),
             OpenInfo = OpenInfo, OpenOptions = OpenOptions, OpenMenu = OpenPause, ToggleLanguage = ToggleLanguage,
             OpenSection = ToggleSection,
             Undo = DoUndo, Redo = DoRedo, TogglePlan = TogglePlan,
@@ -186,11 +188,19 @@ public partial class Main : Node3D
 
     void SetView(int floor, bool roofs)
     {
-        floor = Math.Clamp(floor, 0, Catalog.MaxFloors - 1);
+        if (floor != GameState.BasementFloor) floor = Math.Clamp(floor, 0, Catalog.MaxFloors - 1);
         _world.ViewFloor = floor;
         _world.Roofs = roofs && floor == 0;
         _hud?.SetView(_world.ViewFloor, _world.Roofs);
         UpdateGhost();
+    }
+
+    /// <summary>The floor one level up or down from the one in view; below the ground floor is the basement if any building has one.</summary>
+    int StepFloor(int dir)
+    {
+        var level = GameState.Level(_world.ViewFloor) + dir;
+        if (level < 0) return _state != null && _state.Buildings.Any(b => b.Basement) ? GameState.BasementFloor : 0;
+        return Math.Min(level, Catalog.MaxFloors - 1);
     }
 
     void OnTool(BuildItem item)
@@ -200,7 +210,7 @@ public partial class Main : Node3D
         var inside = item.Mode is Mode.Room or Mode.Door or Mode.Row ||
             (item.Mode == Mode.Object && Catalog.Objects[(ObjKind)item.Arg].Where is Where.Room or Where.Hall or Where.Building);
         if (inside && _world.Roofs) SetView(_world.ViewFloor, false);
-        if (item.Mode is Mode.Surface or Mode.Curve or Mode.Fence or Mode.Building && _world.ViewFloor > 0) SetView(0, _world.Roofs);
+        if (item.Mode is Mode.Surface or Mode.Curve or Mode.Fence or Mode.Building && _world.ViewFloor != 0) SetView(0, _world.Roofs);
     }
 
     void CyclePriority(int id)
@@ -553,7 +563,7 @@ public partial class Main : Node3D
     void WalkView()
     {
         if (!_walking) return;
-        var inside = _fp.Inside != null || _fp.Floor > 0;
+        var inside = _fp.Inside != null || _fp.Floor != 0;
         _world.Indoor = inside;
         _world.FullWalls = inside;
         if (inside)
@@ -616,7 +626,7 @@ public partial class Main : Node3D
         var p = _fp.Feet;
         _cam.SetView(_fp.Yaw, 0.85f, 24, new Vector3(p.X, 0, p.Z));
         _cam.InputEnabled = true;
-        var inside = _fp.Floor > 0 || _fp.Inside != null;
+        var inside = _fp.Floor != 0 || _fp.Inside != null;
         SetView(inside ? _fp.Floor : _beforeWalk.floor, !inside && _beforeWalk.roofs);
         _world.GridVisible = _beforeWalk.grid;
         _hud.Visible = true;
@@ -723,8 +733,8 @@ public partial class Main : Node3D
             if (k.CtrlPressed && k.Keycode == Key.Z) { DoUndo(); GetViewport().SetInputAsHandled(); return; }
             var sec = Sections.ForKey(k.Keycode);
             if (sec >= 0) { ToggleSection(sec); GetViewport().SetInputAsHandled(); return; }
-            if (k.Keycode == Key.Pageup) SetView(_world.ViewFloor + 1, false);
-            if (k.Keycode == Key.Pagedown) SetView(_world.ViewFloor - 1, _world.Roofs);
+            if (k.Keycode == Key.Pageup) SetView(StepFloor(1), false);
+            if (k.Keycode == Key.Pagedown) SetView(StepFloor(-1), _world.Roofs);
             if (k.Keycode == Key.T) SetView(_world.ViewFloor, !_world.Roofs);
             if (k.Keycode == Key.B && !k.CtrlPressed) TogglePlan();
             if (k.Keycode == Key.P) SetOverlay(_world.Overlay.Mode == OverlayMode.Power ? OverlayMode.None : OverlayMode.Power);
@@ -843,9 +853,10 @@ public partial class Main : Node3D
                 break;
             case Mode.Building:
                 var kind = (BuildingKind)_item.Arg;
-                var why = _dragStart == null ? null : _state.CanBuild(kind, r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, _floors);
-                var cost = GameState.BuildingCost(kind, r.Size.X, r.Size.Y, _floors);
-                var text = _dragStart == null ? null : $"{Dim(r)} · {Loc.T("hud_floors_n", _floors)} · {Ui.Money(cost)}" + (why != null ? "\n" + Loc.T(why) : "");
+                var cellar = _basement && GameState.BasementAllowed(kind);
+                var why = _dragStart == null ? null : _state.CanBuild(kind, r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, _floors, cellar);
+                var cost = GameState.BuildingCost(kind, r.Size.X, r.Size.Y, _floors, cellar);
+                var text = _dragStart == null ? null : $"{Dim(r)} · {Loc.T("hud_floors_n", _floors)}" + (cellar ? $" + {Loc.T("hud_floor_basement")}" : "") + $" · {Ui.Money(cost)}" + (why != null ? "\n" + Loc.T(why) : "");
                 _world.ShowGhostRect(r, why == null ? Brand.Ok : Brand.Critical, 0, text);
                 break;
             case Mode.Room:
@@ -1001,9 +1012,10 @@ public partial class Main : Node3D
                 break;
             case Mode.Building:
                 var kind = (BuildingKind)_item.Arg;
-                var bw = _state.CanBuild(kind, r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, _floors);
+                var withCellar = _basement && GameState.BasementAllowed(kind);
+                var bw = _state.CanBuild(kind, r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, _floors, withCellar);
                 if (bw != null) { Fail(bw); break; }
-                _state.AddBuilding(kind, r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, _floors, _facade);
+                _state.AddBuilding(kind, r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, _floors, _facade, withCellar);
                 if (!_sim.YardCells().Any()) _hud.Notify(Loc.T("msg_need_yard"), Brand.Amber);
                 break;
             case Mode.Room:
@@ -1069,7 +1081,7 @@ public partial class Main : Node3D
         if (_state == null) return null;
         foreach (var b in _state.Buildings.Where(b => b.Stage == Stage.Done).OrderByDescending(b => b.Floors))
         {
-            if (!_world.Roofs && b.Floors > _world.ViewFloor) continue;
+            if (!_world.Roofs && b.HasFloor(_world.ViewFloor)) continue;
             var p = _cam.GroundAt(screen, WorldView.Base(b.Floors) + 0.3f);
             if (p == null) continue;
             var c = new Vector2I(Mathf.FloorToInt(p.Value.X), Mathf.FloorToInt(p.Value.Z));
@@ -1179,7 +1191,7 @@ public partial class Main : Node3D
         var b = _state.BuildingAt(c.X, c.Y);
         if (r != null && !_world.Roofs)
         {
-            var lines = new List<string> { $"{r.W} × {r.D} m · {(f == 0 ? Loc.T("hud_floor_ground") : Loc.T("hud_floor_n", f))}" };
+            var lines = new List<string> { $"{r.W} × {r.D} m · {Ui.FloorName(f)}" };
             var actions = new List<(string, Action, bool)>();
             lines.Add(r.Stage == Stage.Done ? Loc.T("inspect_ready") : Loc.T("inspect_building_walls", Mathf.RoundToInt(GameState.StageProgress(r) * 100)));
             if (r.Type == RoomType.DataHall)
@@ -1251,7 +1263,7 @@ public partial class Main : Node3D
         {
             var lines = new List<string>
             {
-                $"{b.W} × {b.D} m · {Loc.T("hud_floors_n", b.Floors)} · {Loc.T("facade_" + b.Facade.ToString().ToLowerInvariant())}",
+                $"{b.W} × {b.D} m · {Loc.T("hud_floors_n", b.Floors)}" + (b.Basement ? $" + {Loc.T("hud_floor_basement")}" : "") + $" · {Loc.T("facade_" + b.Facade.ToString().ToLowerInvariant())}",
                 b.Stage == Stage.Done ? Loc.T("inspect_ready") : $"{Loc.T("stage_" + b.Stage.ToString().ToLowerInvariant())} · {Mathf.RoundToInt(GameState.Progress(b) * 100)}%",
             };
             if (b.Stage != Stage.Done) lines.Add(Loc.T("inspect_material", b.Material, GameState.MaterialNeed(b)));
@@ -1326,7 +1338,43 @@ public partial class Main : Node3D
         if (args.Contains("--nl")) Loc.SetLanguage("nl");
         var hi = Array.IndexOf(args, "--hours");
         var hours = hi >= 0 ? double.Parse(args[hi + 1], System.Globalization.CultureInfo.InvariantCulture) : 6;
-        if (args.Contains("--office-demo"))
+        if (args.Contains("--basement-demo"))
+        {
+            // playtest: a datacenter with a basement for the power plant; --tool shows the build option instead
+            var g = GameState.New(new NewGameOptions { Company = "Polder Datacenters", Creative = true, CreativeOptions = new CreativeOptions { UnlimitedMoney = true, AllUnlocks = true, InstantBuild = true, NoPowerLimit = true } });
+            const int B = GameState.BasementFloor;
+            g.AddBuilding(BuildingKind.Datacenter, 4, 4, 24, 16, 1, null, true);
+            g.AddRoom(RoomType.DataHall, 4, 4, 16, 12, 0);
+            g.AddRoom(RoomType.Transformer, 4, 4, 8, 6, B); g.AddRoom(RoomType.Switchgear, 12, 4, 6, 6, B); g.AddRoom(RoomType.UpsRoom, 18, 4, 10, 6, B);
+            g.AddRoom(RoomType.Corridor, 4, 10, 24, 2, B);
+            g.AddRoom(RoomType.Battery, 4, 12, 8, 8, B); g.AddRoom(RoomType.Storage, 12, 12, 8, 8, B);
+            foreach (var x in new[] { 7, 14, 22 }) g.AddDoor(DoorType.Double, x, 10, 1, B);
+            foreach (var x in new[] { 7, 15 }) g.AddDoor(DoorType.Double, x, 12, 1, B);
+            foreach (var x in new[] { 5, 8 }) g.AddObject(ObjKind.Transformer, x, 6, 0, B);
+            foreach (var x in new[] { 13, 15 }) g.AddObject(ObjKind.Switchgear, x, 5, 0, B);
+            foreach (var x in new[] { 19, 22, 25 }) g.AddObject(ObjKind.Ups, x, 5, 0, B);
+            for (var x = 5; x <= 10; x += 2) for (var z = 14; z <= 18; z += 2) g.AddObject(ObjKind.Battery, x, z, 0, B);
+            g.AddObject(ObjKind.Stairs, 22, 12, 1, 0);
+            g.AddObject(ObjKind.Lift, 25, 17, 0, 0);
+            g.AddDoor(DoorType.Double, 23, 20, 1, 0);
+            StartGame(g, false);
+            _speed = 0;
+            if (args.Contains("--tool"))
+            {
+                SetView(0, true);
+                _hud.OpenCategory("cat_buildings");
+                _hud.Pick(new BuildItem(Mode.Building, (int)BuildingKind.Datacenter));
+                _hud.TickBasement(true);
+                _cam.SetView(0.5f, 0.9f, 40, new Vector3(16, 0, 12));
+            }
+            else
+            {
+                SetView(B, false);
+                _cam.SetView(0.35f, 0.95f, 30, new Vector3(16, WorldView.Base(B), 12));
+                if (args.Contains("--close")) _cam.SetView(0.6f, 0.7f, 13, new Vector3(10, WorldView.Base(B), 8));
+            }
+        }
+        else if (args.Contains("--office-demo"))
         {
             // playtest: an office building whose rooms the interior designer furnished by itself, in the three styles
             var g = GameState.New(new NewGameOptions { Company = "Polder Datacenters", Creative = true, CreativeOptions = new CreativeOptions { UnlimitedMoney = true, AllUnlocks = true, InstantBuild = true } });
