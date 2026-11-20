@@ -35,8 +35,13 @@ public partial class GameState
         set => Stats = DecodeStats(value);
     }
 
-    /// <summary>A unique id per game, for the timelapse folder.</summary>
-    public string GameId { get => _gameId ??= Guid.NewGuid().ToString("N")[..12]; set => _gameId = value; }
+    /// <summary>A unique id per game, for the timelapse folder. Only letters and digits, so a save cannot point the folder elsewhere.</summary>
+    public string GameId
+    {
+        get => _gameId ??= Guid.NewGuid().ToString("N")[..12];
+        set => _gameId = IsSafeId(value) ? value : null;
+    }
+    public static bool IsSafeId(string id) => !string.IsNullOrEmpty(id) && id.Length <= 64 && id.All(char.IsAsciiLetterOrDigit);
     string _gameId;
 
     // uptime of this day, weighted by hours; money in and out of this day

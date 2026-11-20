@@ -114,9 +114,6 @@ public partial class GameState
         }
     }
 
-    /// <summary>Reputation the customers' reviews and your certificates point to, for the reputation screen.</summary>
-    [JsonIgnore] public double QualityAverage => Enum.GetValues<ReviewTopic>().Average(QualityOf);
-
     /// <summary>The marketing manager brings more leads and makes good news travel further.</summary>
     [JsonIgnore] public double MarketingFactor => Has(Exec.Marketing) ? 1.2 + 0.1 * Training(Exec.Marketing) : 1;
     [JsonIgnore] public double LeadFactor => MarketingFactor * (Done("biz_crm") ? 1.15 : 1) * (1 + Bonus(ProposalKind.Crm));

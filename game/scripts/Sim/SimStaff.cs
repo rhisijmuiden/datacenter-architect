@@ -122,7 +122,7 @@ public partial class Simulation
                     var area = Area(a.Staff);
                     if (area.Count == 0) { a.Phase = 8; return; }
                     var c = area[_rng.Next(area.Count)];
-                    if (!Go(a, c.f, (x, z) => x == c.x && z == c.z, NavMode.Walk)) { a.Timer = 1; return; }
+                    if (!GoTo(a, c.f, c.x, c.z, NavMode.Walk)) { a.Timer = 1; return; }
                 }
                 a.Phase = 1;
                 return;
@@ -145,7 +145,7 @@ public partial class Simulation
                 return;
             case 8: // leave the site
                 var (hx, hz) = a.EmpId < 0 ? SpawnCell() : StaffEntry();
-                if (!Go(a, 0, (x, z) => x == hx && z == hz, NavMode.Walk)) { a.Gone = true; return; }
+                if (!GoTo(a, 0, hx, hz, NavMode.Walk)) { a.Gone = true; return; }
                 a.Phase = 9;
                 return;
             default:
@@ -182,7 +182,7 @@ public partial class Simulation
                 return;
             case 8:
                 var (hx, hz) = StaffEntry();
-                if (!Go(a, 0, (x, z) => x == hx && z == hz, NavMode.Walk)) { a.Gone = true; return; }
+                if (!GoTo(a, 0, hx, hz, NavMode.Walk)) { a.Gone = true; return; }
                 a.Phase = 9;
                 return;
             default:

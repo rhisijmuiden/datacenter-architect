@@ -94,7 +94,11 @@ public static class Infra
         var r = new InfraReport();
         var c = s.Creative;
         var live = s.Objects.Where(Live).ToList();
-        var racks = live.Where(o => o.Kind == ObjKind.Rack).OrderBy(o => o.Id).ToList();
+        var racks = live.Where(o => o.Kind == ObjKind.Rack).ToList();
+        // objects are nearly always kept in id order already; only sort when they are not (same order either way)
+        var sorted = true;
+        for (var i = 1; i < racks.Count && sorted; i++) sorted = racks[i - 1].Id <= racks[i].Id;
+        if (!sorted) racks = racks.OrderBy(o => o.Id).ToList();
         r.LiveRacks = racks.Count;
         r.OtherKw = live.Where(o => o.Kind != ObjKind.Rack).Sum(o => o.Def.PowerKw);
 

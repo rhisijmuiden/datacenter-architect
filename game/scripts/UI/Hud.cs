@@ -209,8 +209,6 @@ public partial class Hud : Control
         }
     }
 
-    public int ActiveSection => _activeSection;
-
     /// <summary>Red counters on the rail: new leads, open faults, infrastructure problems and open proposals.</summary>
     void UpdateBadges(GameState s)
     {
@@ -339,9 +337,6 @@ public partial class Hud : Control
         _trayScroll.ScrollHorizontal += (int)(dir * TrayScrollStep * (factor > 0 ? factor : 1f));
         return true;
     }
-
-    /// <summary>For tests: the horizontal position of the build tray.</summary>
-    public int TrayScrollPosition => _trayScroll?.ScrollHorizontal ?? 0;
 
     public override void _Process(double delta)
     {

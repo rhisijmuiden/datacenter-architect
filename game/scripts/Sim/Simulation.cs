@@ -257,10 +257,13 @@ public partial class Simulation
     // ---------------- movement ----------------
     (int x, int z) Cell(Agent a) => ((int)Math.Floor(a.X), (int)Math.Floor(a.Z));
 
-    bool Go(Agent a, int floor, Func<int, int, bool> goal, NavMode mode)
+    /// <summary>Walk to one cell: the same as <see cref="Go"/> with a single-cell goal, but the search is aimed at it.</summary>
+    bool GoTo(Agent a, int floor, int tx, int tz, NavMode mode) => Go(a, floor, (x, z) => x == tx && z == tz, mode, (tx, tz));
+
+    bool Go(Agent a, int floor, Func<int, int, bool> goal, NavMode mode, (int x, int z)? target = null)
     {
         var (cx, cz) = Cell(a);
-        var path = Nav.Find(new Pt(cx, cz, a.Floor), floor, goal, mode);
+        var path = Nav.Find(new Pt(cx, cz, a.Floor), floor, goal, mode, target);
         a.Way.Clear(); a.WayI = 0;
         if (path == null) return false;
         foreach (var p in path) a.Way.Add((p.X + 0.5, p.Z + 0.5, p.F));
@@ -406,7 +409,7 @@ public partial class Simulation
                 if (a.Out) a.Loaded = true; // movers carry the customer's servers back to the truck
                 else if (a.Carry > 0) a.Loaded = false;
                 int hx = a.CarryObj / 1000, hz = a.CarryObj % 1000;
-                if (!Go(a, 0, (x, z) => x == hx && z == hz, NavMode.Walk)) { a.Gone = true; return; }
+                if (!GoTo(a, 0, hx, hz, NavMode.Walk)) { a.Gone = true; return; }
                 a.Phase = 3;
                 return;
         }

@@ -233,8 +233,6 @@ public partial class WorldView
             Foliage.SetColor(Foliage.Needle, Foliage.NeedleSummer.Lerp(SnowColor, snowy * 0.45f));
             Foliage.SetColor(Foliage.Bush, Mul(new Color("#4f8a37"), tint).Lerp(SnowColor, snowy * 0.5f));
             Foliage.SetColor(Foliage.Grass, Mul(Foliage.GrassSummer, tint).Lerp(SnowColor, snowy * 0.8f));
-            Models.LeafMat.AlbedoColor = (w.Season == Season.Summer ? new Color("#5f9a45") : leaf).Lerp(SnowColor, snowy * 0.4f);
-            Models.Leaf2Mat.AlbedoColor = (w.Season == Season.Summer ? new Color("#77b356") : leaf2).Lerp(SnowColor, snowy * 0.4f);
             RoofMat.AlbedoColor = RoofColor.Lerp(SnowColor, _snowK);
             RoofTopMat.AlbedoColor = RoofTopColor.Lerp(SnowColor, _snowK);
         }

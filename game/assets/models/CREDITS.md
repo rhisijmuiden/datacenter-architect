@@ -6,10 +6,10 @@ All third-party models in this folder are public domain (CC0 1.0). Credit is not
 |---|---|---|---|---|
 | `made/` | Trees, shrubs, grass tufts, flowers, all datacenter equipment (generator, transformer, switchgear, UPS, batteries, PDU, tanks, chiller, dry cooler, cooling tower, CRAH, core router, spine, ODF, battery container), street furniture, fences, the articulated lorry with its trailers and loads, excavator, mobile crane, pallets, gatehouse, barrier, gates, intercom, solar panels, wind turbine, rooftop units, facade windows and warehouse fittings (pallet racks, workbench, pallet jack, shredder) | Made for this game with `tools/models/blender/` | CC0 1.0 (same as the game's own art) | this repository |
 | `furniture/` | Furniture Kit: desks, chairs, tables, sofa, bookcase, kitchen units, screens | [Kenney](https://kenney.nl) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | opengameart.org/content/furniture-kit |
-| `vehicles/` | Car Kit 3.1: sedans, SUVs, hatchback, van, delivery vans, trucks | [Kenney](https://kenney.nl) | CC0 1.0 | opengameart.org/content/car-kit |
+| `vehicles/` | Car Kit 3.1: sedans, SUVs, hatchback, van | [Kenney](https://kenney.nl) | CC0 1.0 | opengameart.org/content/car-kit |
 | `city/` | City Kit (Commercial) 2.1: office blocks and towers | [Kenney](https://kenney.nl) | CC0 1.0 | opengameart.org/content/city-kit-commercial |
 | `suburb/` | City Kit (Suburban) 2.0: houses | [Kenney](https://kenney.nl) | CC0 1.0 | opengameart.org/content/city-kit-suburban |
-| `industry/` | City Kit (Industrial) 2.0: sheds, tanks, chimneys | [Kenney](https://kenney.nl) | CC0 1.0 | opengameart.org/content/city-kit-industrial |
+| `industry/` | City Kit (Industrial) 2.0: sheds | [Kenney](https://kenney.nl) | CC0 1.0 | opengameart.org/content/city-kit-industrial |
 | `../textures/ground/` | Photo textures: leafy grass, asphalt 02, square concrete pavers, herringbone pavement, red brick pavers, raked dirt, gravel floor, concrete floor 02, red brick, corrugated iron 02, concrete wall 008 | [Poly Haven](https://polyhaven.com) | CC0 1.0 | polyhaven.com (1k JPG) |
 | `people/` | Ultimate Modular Men and Ultimate Modular Women: Worker, Suit, Casual, Casual 2, Casual Hoodie, Farmer, Formal (rigged, with Idle, Walk, Run, Interact and Wave animations) | [Quaternius](https://quaternius.com) | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) | quaternius.com; copied from the CC0 mirror in github.com/LuanDucate/Ducz.CharacterCreator |
 
