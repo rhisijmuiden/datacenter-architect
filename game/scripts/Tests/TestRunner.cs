@@ -44,6 +44,7 @@ public static partial class TestRunner
             ("playtest round 3", Playtest3Tests),
             ("basement", BasementTests),
             ("customers per hall", HallClientTests),
+            ("add a floor", AddLevelTests),
         };
         // DCA_TESTS=basement,stairs runs only the groups whose name contains one of the words
         var only = System.Environment.GetEnvironmentVariable("DCA_TESTS")?.Split(',', StringSplitOptions.RemoveEmptyEntries);

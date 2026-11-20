@@ -1269,8 +1269,16 @@ public partial class Main : Node3D
                 b.Stage == Stage.Done ? Loc.T("inspect_ready") : $"{Loc.T("stage_" + b.Stage.ToString().ToLowerInvariant())} · {Mathf.RoundToInt(GameState.Progress(b) * 100)}%",
             };
             if (b.Stage != Stage.Done) lines.Add(Loc.T("inspect_material", b.Material, GameState.MaterialNeed(b)));
+            if (b.Raising) lines.Add(Loc.T("inspect_raising", Mathf.RoundToInt(GameState.RaiseProgress(b) * 100)));
             if (b.Kind == BuildingKind.Office) OfficeChecklist(lines);
-            _hud.Inspect(Loc.T(Catalog.Buildings[b.Kind].NameKey), lines);
+            var bActions = new List<(string, Action, bool)>();
+            if (b.Stage == Stage.Done && !_state.IsPlanned(b))
+            {
+                var tb = b;
+                bActions.Add((b.Floors >= Catalog.MaxFloors ? Loc.T("action_add_level_max") : Loc.T("action_add_level", Ui.Money(GameState.LevelCost(b))),
+                    () => Act(_state.AddLevel(tb)), _state.CanAddLevel(b) == null));
+            }
+            _hud.Inspect(Loc.T(Catalog.Buildings[b.Kind].NameKey), lines, bActions);
             return;
         }
         _inspectCell = null;
@@ -1340,7 +1348,21 @@ public partial class Main : Node3D
         if (args.Contains("--nl")) Loc.SetLanguage("nl");
         var hi = Array.IndexOf(args, "--hours");
         var hours = hi >= 0 ? double.Parse(args[hi + 1], System.Globalization.CultureInfo.InvariantCulture) : 6;
-        if (args.Contains("--basement-demo"))
+        if (args.Contains("--raise-demo"))
+        {
+            // playtest: an extra storey going up on a finished office, with the building inspector open on it
+            var g = GameState.New(new NewGameOptions { Company = "Polder Datacenters", Creative = true, CreativeOptions = new CreativeOptions { UnlimitedMoney = true, AllUnlocks = true, InstantBuild = true } });
+            var ob = g.AddBuilding(BuildingKind.Office, 6, 6, 18, 12, 1, Facade.Brick);
+            g.AddDoor(DoorType.Double, 14, 18, 1, 0);
+            g.Options.CreativeOptions = new CreativeOptions { UnlimitedMoney = true, AllUnlocks = true };
+            g.AddLevel(ob);
+            g.UpdateInfra(GameState.LevelHours(ob) * 0.55);
+            StartGame(g, false);
+            _speed = 0;
+            _cam.SetView(0.6f, 0.75f, 34, new Vector3(15, 3, 12));
+            Inspect(new Vector2I(10, 10));
+        }
+        else if (args.Contains("--basement-demo"))
         {
             // playtest: a datacenter with a basement for the power plant; --tool shows the build option instead
             var g = GameState.New(new NewGameOptions { Company = "Polder Datacenters", Creative = true, CreativeOptions = new CreativeOptions { UnlimitedMoney = true, AllUnlocks = true, InstantBuild = true, NoPowerLimit = true } });
