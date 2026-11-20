@@ -607,6 +607,8 @@ public static class Models
         [ObjKind.LampPost] = "lamp_post", [ObjKind.Bench] = "bench", [ObjKind.BikeRack] = "bike_rack",
         [ObjKind.Bollard] = "bollard", [ObjKind.CameraPole] = "camera_pole",
         [ObjKind.Tree] = "tree_young", [ObjKind.Shrub] = "bush_round",
+        [ObjKind.GuardBooth] = "guard_booth", [ObjKind.Intercom] = "intercom", [ObjKind.PedGate] = "ped_gate", [ObjKind.SolarPanel] = "solar_panel",
+        [ObjKind.PalletRack] = "pallet_rack", [ObjKind.Workbench] = "workbench", [ObjKind.PalletJack] = "pallet_jack", [ObjKind.Shredder] = "shredder",
     };
 
     /// <summary>Glowing brand colours and lamp heads of the made models.</summary>
@@ -618,11 +620,13 @@ public static class Models
         "glow_ok" => Mat(Brand.Ok, 0.4f, 0, true),
         "glow_alert" => Mat(Brand.Critical, 0.4f, 0, true),
         "lamp" => LampMat,
+        "window_glass" => World.WorldView.WindowMat,
         _ => Foliage.ByName(name, m),
     };
 
     static bool Made(ObjKind k, Node3D n)
     {
+        if (MadeMoving(k, n)) return true;
         if (!MadeModels.TryGetValue(k, out var file) || !Assets.Mount(n, "made/" + file + ".glb", MadeMat)) return false;
         if (k == ObjKind.LampPost)
         {
@@ -631,6 +635,35 @@ public static class Models
             n.AddChild(lamp);
         }
         return true;
+    }
+
+    /// <summary>Own models with a moving part on the node the world view animates: barrier "Arm", gate "Leaf", turbine "FanRotor".</summary>
+    static bool MadeMoving(ObjKind k, Node3D n)
+    {
+        switch (k)
+        {
+            case ObjKind.Barrier:
+                if (!Assets.Has("made/barrier_arm.glb")) return false;
+                Assets.Place(n, "made/barrier_post.glb", Vector3.Zero, 1, 0, MadeMat);
+                var arm = new Node3D { Name = "Arm", Position = new Vector3(-1.3f, 0.9f, 0) }; n.AddChild(arm);
+                Assets.Place(arm, "made/barrier_arm.glb", Vector3.Zero, 1, 0, MadeMat);
+                return true;
+            case ObjKind.SlidingGate:
+            case ObjKind.SlidingGateLarge:
+                var cells = k == ObjKind.SlidingGate ? 3 : 6;
+                if (!Assets.Has($"made/gate_leaf_{cells}.glb")) return false;
+                Assets.Place(n, $"made/gate_posts_{cells}.glb", Vector3.Zero, 1, 0, MadeMat);
+                var leaf = new Node3D { Name = "Leaf" }; n.AddChild(leaf);
+                Assets.Place(leaf, $"made/gate_leaf_{cells}.glb", Vector3.Zero, 1, 0, MadeMat);
+                return true;
+            case ObjKind.WindTurbine:
+                if (!Assets.Has("made/wind_rotor.glb")) return false;
+                Assets.Place(n, "made/wind_tower.glb", Vector3.Zero, 1, 0, MadeMat);
+                var hub = new Node3D { Name = "FanRotor", Position = new Vector3(0, 8.45f, 0.5f), RotationDegrees = new Vector3(90, 0, 0) }; n.AddChild(hub);
+                Assets.Place(hub, "made/wind_rotor.glb", Vector3.Zero, 1, 0, MadeMat);
+                return true;
+        }
+        return false;
     }
 
     const float Kf = 0.2f; // Kenney Furniture Kit units to metres
@@ -789,6 +822,7 @@ public static class Models
     /// </summary>
     public static Node3D Truck(TruckLoad load)
     {
+        if (MadeTruck(load) is { } made) return made;
         var n = new Node3D();
         var cab = load == TruckLoad.Material ? new Color("#f2a33a") : load == TruckLoad.Customer ? new Color("#3b4f66") : new Color("#e9edf0");
         var glass = new Color("#2c4359");
@@ -895,6 +929,7 @@ public static class Models
     public static Node3D Pallet(int i)
     {
         var n = new Node3D();
+        if (Assets.Place(n, "made/pallet.glb", Vector3.Zero, 1, i * 37 % 4 * 90 + i % 3 * 7, i % 2 == 0 ? MadeMat : BlockPallet) != null) return n;
         Box(n, new Vector3(0, 0.07f, 0), new Vector3(0.9f, 0.14f, 0.9f), Wood);
         Box(n, new Vector3(0, 0.42f, 0), new Vector3(0.82f, 0.56f, 0.82f), i % 3 == 0 ? new Color("#b5785a") : i % 3 == 1 ? new Color("#c9c3b8") : new Color("#9aa4ab"));
         return n;
@@ -903,6 +938,7 @@ public static class Models
     /// <summary>Tower crane: Mast stays, "Jib" rotates.</summary>
     public static Node3D Crane(float height, float reach)
     {
+        if (MadeCrane(height, reach) is { } made) return made;
         // a mobile self-erecting tower crane: a three-axle carrier on outriggers, a lattice mast with the cab halfway up,
         // and a lattice jib held by tie bars from the mast top, with a trolley and hook. "Jib" (mast and jib) slews.
         var n = new Node3D();
@@ -996,6 +1032,7 @@ public static class Models
     /// <summary>Tracked excavator: undercarriage with tracks, a turning upper body ("Top") with cab and counterweight, and a two-part arm with a bucket.</summary>
     public static Node3D Excavator()
     {
+        if (MadeExcavator() is { } made) return made;
         var n = new Node3D();
         var paint = new Color("#f08a24");          // construction orange
         var black = new Color("#24282d");
@@ -1065,6 +1102,99 @@ public static class Models
         Box(bucket, new Vector3(0, -0.25f, 0.4f), new Vector3(0.95f, 0.55f, 0.6f), new Color("#8f8476"), 0.8f, 0.2f);
         Box(bucket, new Vector3(0, -0.02f, 0.45f), new Vector3(0.9f, 0.08f, 0.52f), new Color("#6b5a44"), 1f); // soil in the bucket
         for (var i = 0; i < 5; i++) Box(bucket, new Vector3(-0.36f + i * 0.18f, -0.55f, 0.72f), new Vector3(0.09f, 0.1f, 0.16f), new Color("#9aa4ab"), 0.5f, 0.6f);
+        return n;
+    }
+
+    // ---- own Blender models for the site vehicles (tools/models/blender/vehicles.py); the primitive versions above stay as fallback ----
+
+    static readonly StandardMaterial3D CabWhiteMat = Mat(new Color("#e9edf0"), 0.35f, 0.1f), CabOrangeMat = Mat(new Color("#f2a33a"), 0.35f, 0.1f), CabBlueMat = Mat(new Color("#3b4f66"), 0.35f, 0.1f);
+    static Material Vehicle(string name, Material m) => name == "headlight" ? World.WorldView.HeadlightMat : MadeMat(name, m);
+    static Material CabWhite(string name, Material m) => name == "body" ? CabWhiteMat : Vehicle(name, m);
+    static Material CabOrange(string name, Material m) => name == "body" ? CabOrangeMat : Vehicle(name, m);
+    static Material CabBlue(string name, Material m) => name == "body" ? CabBlueMat : Vehicle(name, m);
+    static readonly StandardMaterial3D BlockMat = Mat(new Color("#c9c3b8"), 0.9f);
+    static Material BlockPallet(string name, Material m) => name == "brick_stack" ? BlockMat : MadeMat(name, m);
+
+    /// <summary>The articulated lorry from the own models: tractor, then a trailer pivoting at the kingpin (node "Trailer") with its "Cargo".</summary>
+    static Node3D MadeTruck(TruckLoad load)
+    {
+        if (!Assets.Has("made/truck_tractor.glb")) return null;
+        var n = new Node3D();
+        Func<string, Material, Material> cab = load == TruckLoad.Material ? CabOrange : load == TruckLoad.Customer ? CabBlue : CabWhite;
+        Assets.Place(n, "made/truck_tractor.glb", Vector3.Zero, 1, 0, cab);
+        var tr = new Node3D { Name = "Trailer" }; n.AddChild(tr);
+        Assets.Place(tr, load == TruckLoad.Material ? "made/trailer_flat.glb" : load == TruckLoad.Customer ? "made/trailer_removal.glb" : "made/trailer_box.glb", Vector3.Zero, 1, 0, Vehicle);
+        if (load != TruckLoad.Equipment)
+        {
+            var cargo = new Node3D { Name = "Cargo" }; tr.AddChild(cargo);
+            Assets.Place(cargo, load == TruckLoad.Material ? "made/cargo_pallets.glb" : "made/cargo_racks.glb", Vector3.Zero, 1, 0, Vehicle);
+        }
+        return n;
+    }
+
+    /// <summary>Tracked excavator from its joint parts, posed digging (same pivots as the primitive one).</summary>
+    static Node3D MadeExcavator()
+    {
+        if (!Assets.Has("made/exc_base.glb")) return null;
+        var n = new Node3D();
+        Assets.Place(n, "made/exc_base.glb", Vector3.Zero, 1, 0, Vehicle);
+        var top = new Node3D { Name = "Top", Position = new Vector3(0, 0.88f, 0) }; n.AddChild(top);
+        Assets.Place(top, "made/exc_top.glb", Vector3.Zero, 1, 0, Vehicle);
+        var boom = new Node3D { Name = "Boom", Position = new Vector3(0.2f, 0.55f, 0.95f), RotationDegrees = new Vector3(-48, 0, 0) }; top.AddChild(boom);
+        Assets.Place(boom, "made/exc_boom.glb", Vector3.Zero, 1, 0, Vehicle);
+        var knee = new Node3D { Position = new Vector3(0, 0, 2.4f), RotationDegrees = new Vector3(38, 0, 0) }; boom.AddChild(knee);
+        Assets.Place(knee, "made/exc_knee.glb", Vector3.Zero, 1, 0, Vehicle);
+        // boom cylinder from the deck to the underside of the boom
+        var bc = Cyl(top, new Vector3(0.2f, 0.75f, 1.55f), 0.08f, 1.5f, new Color("#24282d")); bc.RotationDegrees = new Vector3(62, 0, 0);
+        Cyl(top, new Vector3(0.2f, 1.08f, 1.95f), 0.05f, 0.9f, new Color("#c9ced3")).RotationDegrees = new Vector3(62, 0, 0);
+        var stick = new Node3D { Name = "Stick", Position = new Vector3(0, 0, 2.1f), RotationDegrees = new Vector3(78, 0, 0) }; knee.AddChild(stick);
+        Assets.Place(stick, "made/exc_stick.glb", Vector3.Zero, 1, 0, Vehicle);
+        var bucket = new Node3D { Name = "Bucket", Position = new Vector3(0, 0, 2.05f), RotationDegrees = new Vector3(35, 0, 0) }; stick.AddChild(bucket);
+        Assets.Place(bucket, "made/exc_bucket.glb", Vector3.Zero, 1, 0, Vehicle);
+        return n;
+    }
+
+    /// <summary>Mobile self-erecting crane: carrier, and the slewing "Jib" with a stacked lattice mast, cab, jib, ties, trolley and hook.</summary>
+    static Node3D MadeCrane(float height, float reach)
+    {
+        if (!Assets.Has("made/crane_carrier.glb")) return null;
+        var n = new Node3D();
+        var yellow = new Color("#f5c400");
+        Assets.Place(n, "made/crane_carrier.glb", Vector3.Zero, 1, 0, Vehicle);
+        var up = new Node3D { Name = "Jib", Position = new Vector3(0, 1.4f, -2.2f) }; n.AddChild(up);
+        Assets.Place(up, "made/crane_turret.glb", Vector3.Zero, 1, 0, Vehicle);
+        var sections = Mathf.Max(1, Mathf.RoundToInt(height / 1.5f));
+        var mh = sections * 1.5f;
+        var mast = new List<Transform3D>();
+        for (var i = 0; i < sections; i++) mast.Add(new Transform3D(i % 2 == 0 ? Basis.Identity : new Basis(Vector3.Up, Mathf.Pi / 2), new Vector3(0, 0.5f + i * 1.5f, 0)));
+        Assets.Many(up, Assets.Mesh("made/crane_mast.glb", Vehicle), mast);
+        Box(up, new Vector3(0, mh + 0.5f, 0), new Vector3(0.95f, 0.06f, 0.95f), yellow);
+        var cy = Mathf.Max(5f, mh * 0.55f);
+        Assets.Place(up, "made/crane_cab.glb", new Vector3(0.95f, cy, 0.2f), 1, 0, Vehicle);
+        var top = mh + 0.5f;
+        var jsec = Mathf.Max(4, Mathf.RoundToInt(reach / 1.2f));
+        var jl = jsec * 1.2f;
+        var jib = new List<Transform3D>();
+        for (var i = 0; i < jsec; i++) jib.Add(new Transform3D(Basis.Identity, new Vector3(0, top, i * 1.2f)));
+        Assets.Many(up, Assets.Mesh("made/crane_jib.glb", Vehicle), jib);
+        var apex = new Vector3(0, top + 3.2f, -0.6f);
+        void Tie(Vector3 from, Vector3 to, float t)
+        {
+            var mid = (from + to) / 2;
+            var bar = Box(up, mid, new Vector3(t, t, from.DistanceTo(to)), yellow);
+            bar.Transform = new Transform3D(Basis.LookingAt(to - from, Vector3.Up), mid);
+        }
+        Tie(new Vector3(-0.4f, top, 0), apex, 0.08f);
+        Tie(new Vector3(0.4f, top, 0), apex, 0.08f);
+        Tie(new Vector3(0, top, -1.2f), apex, 0.08f);
+        Tie(apex, new Vector3(0, top + 0.55f, jl * 0.45f), 0.05f);
+        Tie(apex, new Vector3(0, top + 0.55f, jl * 0.85f), 0.05f);
+        Tie(apex, new Vector3(0, 0.9f, -1.6f), 0.04f);
+        var tz = jl * 0.6f;
+        Assets.Place(up, "made/crane_trolley.glb", new Vector3(0, top - 0.15f, tz), 1, 0, Vehicle);
+        var drop = Mathf.Max(3f, top - 4f);
+        var cable = Box(up, new Vector3(0, top - 0.3f - drop / 2, tz), new Vector3(0.03f, drop, 0.03f), new Color("#24282d")); cable.Name = "Cable";
+        Assets.Place(up, "made/crane_hook.glb", new Vector3(0, top - 0.3f - drop, tz), 1, 0, Vehicle);
         return n;
     }
 
