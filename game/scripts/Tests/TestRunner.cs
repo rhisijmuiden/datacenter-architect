@@ -466,7 +466,7 @@ public static class TestRunner
                     if (a.Z - Simulation.TruckNose < row && z0 - Simulation.TruckNose >= row && open < 0.98) crashed = true;
                 }
                 // nose (forwards) or tail (backing up) never past the dock wall at z = 36
-                if (a.Z + Math.Cos(a.Heading) * 3.2 < 36 - 0.05 || a.Z - Math.Cos(a.Heading) * 2.7 < 36 - 0.05) poked = true;
+                if (a.Z + Math.Cos(a.Heading) * 3.2 < 36 - 0.05 || a.Z - Math.Cos(a.Heading) * Simulation.TruckRear < 36 - 0.05) poked = true;
             }
             parked = sim.Agents.Any(a => a.Role == Role.Truck && a.Phase == 2 && a.Load == TruckLoad.Equipment);
         }
@@ -474,13 +474,16 @@ public static class TestRunner
         Check(waited, "truck waits for the gate to open");
         Check(!crashed, "truck never drives through a closed gate or barrier");
         var tr = sim.Agents.First(a => a.Role == Role.Truck && a.Phase == 2 && a.Load == TruckLoad.Equipment);
-        Check(!poked && Math.Abs(tr.Z - (36 + 2.75)) < 0.01 && Math.Abs(Math.Cos(tr.Heading) - 1) < 1e-6, $"truck backs up to the dock door, nose away from the building ({tr.X:0.00},{tr.Z:0.00} h{tr.Heading:0.00})");
+        Check(!poked && Math.Abs(tr.Z - (36 + Simulation.TruckRear + 0.1)) < 0.01 && Math.Abs(Math.Cos(tr.Heading) - 1) < 1e-6, $"truck backs up to the dock door, nose away from the building ({tr.X:0.00},{tr.Z:0.00} h{tr.Heading:0.00})");
         Run(sim, 6, () => sim.Agents.All(a => a.Role != Role.Truck));
         Check(sim.GateOpen[gate.Id] < 0.01 && sim.GateOpen[barrier.Id] < 0.01, "gate and barrier close after the trucks have left");
     }
 
     static void PlaytestTests()
     {
+        // a new game starts on empty land: no buildings, rooms, objects or paving (the demo site only sits behind the title screen)
+        var fresh = GameState.New(new NewGameOptions());
+        Check(fresh.Buildings.Count == 0 && fresh.Rooms.Count == 0 && fresh.Objects.Count == 0 && fresh.Surfaces.All(b => b == 0), "a new game starts on empty land");
         // parking bays: 2.5 m wide, 5 m deep, one row on a 6 m deep strip, two rows on a 12 m deep lot
         bool In(int x, int z, int x0, int z0, int w, int d) => x >= x0 && x < x0 + w && z >= z0 && z < z0 + d;
         var one = ParkingLayout.Lines(40, (x, z) => In(x, z, 5, 5, 10, 6));

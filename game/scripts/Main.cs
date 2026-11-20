@@ -114,6 +114,8 @@ public partial class Main : Node3D
         StopWalk();
         _menu?.QueueFree(); _menu = null;
         _hud?.QueueFree();
+        // the title screen shows the demo site in the background: swap it for the game that starts or loads now
+        SetState(s);
         _world.GridVisible = true;
         _world.Roofs = true; _world.ViewFloor = 0;
         _cam.InputEnabled = true;
@@ -1092,18 +1094,30 @@ public partial class Main : Node3D
             g.PaintSurface(46, 10, 5, g.PlotSize - 10, Surface.Asphalt, out _);
             g.PaintSurface(51, 14, 13, 12, Surface.Parking, out _);
             g.PaintSurface(51, 28, 11, 6, Surface.Parking, out _);
-            SetState(g);
             StartGame(g, false);
             var loads = new[] { TruckLoad.Material, TruckLoad.Equipment, TruckLoad.Customer };
             for (var i = 0; i < loads.Length; i++)
             {
                 var t = Models.Truck(loads[i]);
-                t.Position = new Vector3(48.5f, 0, 40 + i * 8);
+                t.Position = new Vector3(48.5f, 0, 26 + i * 14);
                 t.RotationDegrees = new Vector3(0, 180, 0);
                 _world.AddChild(t);
             }
+            // --lineup: one of each kind of person in a row on the parking lot, to judge the figures up close
+            var people = new (Role role, int id, StaffRole staff)[]
+            {
+                (Role.Builder, 1, default), (Role.Fitter, 2, default), (Role.Engineer, 3, default), (Role.Visitor, 4, default), (Role.Visitor, 5, default),
+                (Role.Visitor, 6, default), (Role.Staff, 7, StaffRole.Guard), (Role.Staff, 8, StaffRole.Cooling), (Role.Staff, 9, StaffRole.Canteen),
+            };
+            for (var i = 0; i < people.Length; i++)
+            {
+                var p = Models.Person(people[i].role, people[i].id, people[i].staff);
+                p.Position = new Vector3(54 + i * 1.0f, 0, 20);
+                _world.AddChild(p);
+            }
             _cam.SetView(0.75f, 0.85f, 62, new Vector3(36, 0, 32));
-            if (args.Contains("--close")) _cam.SetView(1.1f, 0.5f, 16, new Vector3(48.5f, 0, 47));
+            if (args.Contains("--close")) _cam.SetView(1.1f, 0.5f, 22, new Vector3(48.5f, 0, 42));
+            if (args.Contains("--lineup")) _cam.SetView(0.05f, 0.22f, 7.5f, new Vector3(58, 0.9f, 20));
             _speed = 0;
         }
         else if (args.Contains("--in-game") || args.Contains("--interior"))
@@ -1211,6 +1225,7 @@ public partial class Main : Node3D
         var sti = Array.IndexOf(args, "--staff");
         if (sti >= 0 && sti + 1 < args.Length) { _playing = true; OpenStaff(int.Parse(args[sti + 1])); }
         if (args.Contains("--new-game")) _ui.AddChild(new NewGameDialog(_ => { }));
+        if (args.Contains("--start-new")) StartNew(new NewGameOptions());
         var ci = Array.IndexOf(args, "--category");
         if (ci >= 0 && ci + 1 < args.Length) _hud?.ShowCategory(args[ci + 1]);
         if (args.Contains("--info")) OpenInfo();

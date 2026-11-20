@@ -273,7 +273,7 @@ public partial class Overlay : Node3D
             // carrier pits in the street, your pits and the ducts into the building
             foreach (var p in n.Pits)
             {
-                var street = new Vector3(s.StreetPit(p.Street) + 0.5f, 0.3f, s.PlotSize + 1.6f);
+                var street = new Vector3(s.StreetPit(p.Street) + 0.5f, 0.3f, s.PlotSize + Catalog.StreetPitOffset);
                 var pit = Top(s, p.Pit, 0.3f);
                 var used = p.Used > 0;
                 Add(street, pit, used ? upRatio : 0, used ? upColor : idle, used);
