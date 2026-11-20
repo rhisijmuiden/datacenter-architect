@@ -38,6 +38,19 @@ def generator():
     o.append(cyl(0.1, 0.9, V((0.95, 0.25, 0.18 + H + 0.75)), 'steel', 16))
     o.append(cyl(0.13, 0.04, V((0.95, 0.25, 0.18 + H + 1.22)), 'dark_steel', 16, (math.radians(25), 0, 0)))
     o.append(box((0.5, 0.05, 0.06), V((0, -D / 2 - 0.02, 0.18 + 2.0)), 'hazard', 0.005))
+    # details: door hinges and seams, lifting eyes, anti-vibration feet, cable conduit, fuel line, nameplate
+    for x in (-0.95, 0.0, 0.95):
+        for z in (0.55, 1.6):
+            o.append(cyl(0.018, 0.08, V((x - 0.41, -D / 2 - 0.03, 0.18 + z)), 'dark_steel', 8))
+        o.append(box((0.006, 0.012, 1.68), V((x + 0.435, -D / 2 - 0.012, 0.18 + 1.0)), 'paint_dark', 0))
+    for x in (-W / 2 + 0.12, W / 2 - 0.12):
+        for y in (-D / 2 + 0.12, D / 2 - 0.12):
+            o.append(torus(0.05, 0.012, V((x, y, 0.18 + H + 0.06)), 'dark_steel', (math.radians(90), 0, 0), 12, 6))
+            o.append(cyl(0.07, 0.06, V((x * 1.02, y * 1.04, 0.03)), 'rubber', 12))
+    o.append(tube_path([V((-1.3, D / 2 + 0.05, 0.3)), V((-1.3, D / 2 + 0.25, 0.12)), V((-1.3, D / 2 + 0.6, 0.04))], 0.045, 'dark_steel', 10))
+    o.append(tube_path([V((1.3, D / 2 + 0.02, 0.5)), V((1.3, D / 2 + 0.2, 0.5)), V((1.3, D / 2 + 0.2, 0.06))], 0.018, 'copper', 8))
+    o.append(box((0.22, 0.012, 0.14), V((0.95, -D / 2 - 0.014, 0.18 + 1.95)), 'steel', 0.004))
+    o.append(box((0.16, 0.014, 0.16), V((-0.6, -D / 2 - 0.015, 0.18 + 1.95)), 'hazard', 0.004, (0, math.radians(45), 0)))
     save(P('generator'), o)
 
 
@@ -61,6 +74,21 @@ def transformer():
     o.append(cyl(0.03, 0.4, V((0.2, 0.3, 1.88)), 'paint_grey', 8))
     o.append(box((0.4, 0.02, 0.3), V((0, -0.51, 1.2)), 'hazard', 0.005))
     o.append(box((0.3, 0.02, 0.06), V((0, -0.52, 1.0)), 'glow_power', 0.004))
+    # details: lid bolts, lifting lugs, oil drain valve, earthing bar, cable trough, nameplate, warning sign
+    for i in range(10):
+        a = i / 10
+        for y in (-0.52, 0.52):
+            o.append(cyl(0.012, 0.02, V((-0.55 + a * 1.1, y, 1.66)), 'dark_steel', 6))
+    for x in (-0.5, 0.5):
+        o.append(torus(0.045, 0.012, V((x, 0, 1.72)), 'paint_grey', (math.radians(90), 0, math.radians(90)), 12, 6))
+    o.append(cyl(0.035, 0.12, V((0.4, -0.55, 0.3)), 'steel', 10, (math.radians(90), 0, 0)))
+    o.append(cyl(0.05, 0.03, V((0.4, -0.62, 0.3)), 'red_paint', 10, (math.radians(90), 0, 0)))
+    o.append(box((0.5, 0.025, 0.05), V((-0.25, -0.53, 0.25)), 'copper', 0.004))
+    o.append(tube_path([V((-0.25, -0.53, 0.25)), V((-0.25, -0.75, 0.2)), V((-0.6, -0.9, 0.13))], 0.008, 'copper', 6))
+    o.append(box((1.9, 0.3, 0.08), V((0, 0.82, 0.16)), 'concrete', 0.01))
+    for x in (-0.3, 0, 0.3):
+        o.append(tube_path([V((x, 0.25, 1.75)), V((x, 0.55, 1.6)), V((x, 0.8, 0.5)), V((x, 0.82, 0.2))], 0.03, 'cable_dark', 8))
+    o.append(box((0.2, 0.012, 0.12), V((-0.3, -0.51, 0.75)), 'steel', 0.003))
     save(P('transformer'), o)
 
 
@@ -138,6 +166,18 @@ def diesel_tank():
     o.append(cyl(0.03, 0.7, V((0.8, 0.15, 1.5)), 'steel', 10))                              # vent
     o.append(cyl(0.05, 0.08, V((0.8, 0.15, 1.88)), 'dark_steel', 10))
     o.append(box((0.2, 0.05, 0.2), V((0, -0.42, 0.85)), 'hazard', 0.005))
+    # details: saddle straps, level gauge, fill pipe with cap, small ladder, feed pipe to the generator
+    for x in (-0.9, 0.9):
+        o.append(torus(0.41, 0.015, V((x, 0, 0.82)), 'dark_steel', (0, math.radians(90), 0), 32, 6))
+    o.append(cyl(0.07, 0.03, V((0.2, -0.38, 1.05)), 'steel', 16, (math.radians(70), 0, 0)))
+    o.append(cyl(0.05, 0.035, V((0.2, -0.395, 1.06)), 'screen', 16, (math.radians(70), 0, 0)))
+    o.append(cyl(0.04, 0.35, V((-1.0, 0.0, 1.38)), 'steel', 10))
+    o.append(cyl(0.055, 0.06, V((-1.0, 0.0, 1.58)), 'red_paint', 12))
+    for x in (0.15, 0.45):
+        o.append(box((0.03, 0.03, 1.0), V((x, -0.48, 0.65)), 'galvanised', 0.005))
+    for k in range(4):
+        o.append(box((0.3, 0.025, 0.025), V((0.3, -0.48, 0.35 + k * 0.22)), 'galvanised', 0.004))
+    o.append(tube_path([V((1.25, 0.2, 0.6)), V((1.42, 0.2, 0.6)), V((1.45, 0.2, 0.3))], 0.02, 'dark_steel', 8))
     save(P('diesel_tank'), o)
 
 
@@ -175,6 +215,18 @@ def chiller():
             o += fan_shroud(0.4, V((x, y, 2.25)))
             o.append(fan(0.38, V((x, y, 2.2)), 'Fan'))
     o.append(box((W + 0.01, 0.02, 0.07), V((0, -D / 2 - 0.01, 0.86)), 'accent_cooling', 0.003))
+    # details: insulated chilled-water pipes with valves, electrical panel door, anti-vibration feet, nameplate
+    for i, y in enumerate((-0.3, 0.3)):
+        pts = [V((W / 2 - 0.2, y, 0.5)), V((W / 2 + 0.12, y, 0.5)), V((W / 2 + 0.2, y, 0.42)), V((W / 2 + 0.2, y, 0.05))]
+        o.append(tube_path(pts, 0.065, 'paint_light', 12))
+        o.append(cyl(0.08, 0.06, V((W / 2 + 0.2, y, 0.3)), 'dark_steel', 12))
+        o.append(cyl(0.012, 0.12, V((W / 2 + 0.2, y - 0.1, 0.3)), 'red_paint' if i else 'accent_cooling', 6, (math.radians(90), 0, 0)))
+    o.append(box((0.5, 0.012, 0.45), V((0.9, -D / 2 - 0.035, 0.55)), 'paint_light', 0.005))
+    o.append(box((0.03, 0.03, 0.1), V((1.1, -D / 2 - 0.05, 0.5)), 'steel', 0.004))
+    for x in (-W / 2 + 0.2, 0, W / 2 - 0.2):
+        for y in (-D / 2 + 0.15, D / 2 - 0.15):
+            o.append(cyl(0.06, 0.05, V((x, y, -0.0)), 'rubber', 10))
+    o.append(box((0.2, 0.012, 0.1), V((-1.15, -D / 2 - 0.012, 0.75)), 'steel', 0.003))
     save(P('chiller'), o)
 
 
@@ -192,6 +244,13 @@ def dry_cooler():
         o += fan_shroud(0.38, V((x, 0, 1.22)), 0.2)
         o.append(fan(0.36, V((x, 0, 1.18)), 'Fan'))
     o.append(box((W + 0.01, 0.02, 0.05), V((0, -D / 2 - 0.012, 0.64)), 'accent_cooling', 0.003))
+    # details: inlet/outlet manifold, isolator box, cross bracing
+    for z in (0.7, 1.0):
+        o.append(tube_path([V((W / 2 - 0.05, 0.1, z)), V((W / 2 + 0.1, 0.1, z)), V((W / 2 + 0.12, 0.1, z - 0.1)), V((W / 2 + 0.12, 0.1, 0.05))], 0.035, 'paint_light', 10))
+    o.append(box((0.18, 0.1, 0.24), V((-0.85, -0.45, 0.45)), 'paint_grey', 0.01))
+    o.append(box((0.05, 0.03, 0.05), V((-0.85, -0.51, 0.47)), 'red_paint', 0.004))
+    for y in (-0.35, 0.35):
+        o.append(box((1.75, 0.02, 0.02), V((0, y, 0.35)), 'galvanised', 0.003, (0, math.radians(14), 0)))
     save(P('dry_cooler'), o)
 
 
@@ -211,6 +270,15 @@ def cooling_tower():
     for x in (0.3, 0.7):
         o.append(box((0.04, 0.04, 2.6), V((x, -0.97, 1.4)), 'galvanised', 0.008))
     o.append(box((1.86, 0.02, 0.08), V((0, -0.94, 2.15)), 'accent_cooling', 0.003))
+    # details: handrail on the deck, water pipes into the basin, make-up valve, nameplate
+    rail = 2.65
+    for (x0, y0), (x1, y1) in (((-0.92, -0.92), (0.92, -0.92)), ((0.92, -0.92), (0.92, 0.92)), ((0.92, 0.92), (-0.92, 0.92)), ((-0.92, 0.92), (-0.92, -0.92))):
+        o.append(tube_path([V((x0, y0, rail)), V((x1, y1, rail))], 0.018, 'galvanised', 6))
+        o.append(box((0.03, 0.03, 0.3), V((x0, y0, rail - 0.15)), 'galvanised', 0.004))
+    for y in (-0.4, 0.4):
+        o.append(tube_path([V((0.97, y, 1.9)), V((1.15, y, 1.9)), V((1.18, y, 1.8)), V((1.18, y, 0.05))], 0.06, 'paint_light', 12))
+    o.append(cyl(0.05, 0.08, V((-0.98, 0.5, 0.2)), 'dark_steel', 10, (0, math.radians(90), 0)))
+    o.append(box((0.2, 0.012, 0.12), V((-0.4, -0.95, 0.4)), 'steel', 0.003))
     save(P('cooling_tower'), o)
 
 
