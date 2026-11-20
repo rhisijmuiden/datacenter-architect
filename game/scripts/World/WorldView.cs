@@ -381,13 +381,14 @@ public partial class WorldView : Node3D
             {
                 var t = _state.SurfaceAt(x, z);
                 if (t == Surface.Grass || _curveCells.Contains(z * s + x)) continue;
-                if (t == Surface.Parking && (x % 3 == 0)) stripes.Add(new Transform3D(Basis.Identity, new Vector3(x + 0.04f, 0.02f, z + 0.5f)));
                 if (t == Surface.Footpath) tiles.Add(new Transform3D(Basis.Identity, new Vector3(x + 0.5f, 0.016f, z + 0.5f)));
             }
         foreach (var k in cols.Keys) SmoothSurface(root, k, cols[k]);
         foreach (var c in _state.Curves) CurveStrip(root, c, cols[c.Surface]);
         Driveways(root, s);
-        Multi(root, new PlaneMesh { Size = new Vector2(0.08f, 1) }, stripes, new Color("#f2f2ee"), false);
+        stripes.AddRange(ParkingStripes(ParkingLayout.Lines(s, (x, z) => _state.SurfaceAt(x, z) == Surface.Parking && !_curveCells.Contains(z * s + x),
+            (x, z) => _state.SurfaceAt(x, z) == Surface.Asphalt || _curveCells.Contains(z * s + x)), 0.02f));
+        Multi(root, new PlaneMesh { Size = new Vector2(1, 1) }, stripes, new Color("#f2f2ee"), false);
         Multi(root, new PlaneMesh { Size = new Vector2(0.46f, 0.46f) }, tiles, new Color("#e4dac5"), false);
     }
 
@@ -866,10 +867,14 @@ public partial class WorldView : Node3D
                 if (rows > 0) Box(root, new Vector3(b.X + b.W / 2f, Slab + total + 0.12f, b.Z + rows / 2f), new Vector3(b.W + 0.3f, 0.24f, rows), new Color("#6f7a83")).MaterialOverride = RoofMat;
             }
         }
-        var crane = Crane(Math.Max(12, b.Floors * FloorH + 8), Math.Max(b.W, b.D) * 0.8f);
-        crane.Position = new Vector3(b.X - 2f, 0, b.Z - 2f);
-        root.AddChild(crane);
-        _cranes.Add(crane);
+        foreach (var (cx, cz, reach) in CranesFor(b, _state.PlotSize))
+        {
+            var crane = Crane(Math.Max(12, b.Floors * FloorH + 8), reach);
+            crane.Position = new Vector3(cx, 0, cz);
+            crane.RotationDegrees = new Vector3(0, (cx * 37 + cz * 11) % 360, 0);
+            root.AddChild(crane);
+            _cranes.Add(crane);
+        }
         // progress label over the site
         var label = new Label3D
         {
@@ -879,6 +884,33 @@ public partial class WorldView : Node3D
             Position = new Vector3(b.X + b.W / 2f, b.Floors * FloorH + 3f, b.Z + b.D / 2f),
         };
         root.AddChild(label);
+    }
+
+    /// <summary>
+    /// Tower cranes for a building site: a small site gets one crane at its corner; a big one gets a grid of cranes inside the footprint,
+    /// each covering its own part with a normal jib (at most 30 m), like a real large build. Always on the plot.
+    /// </summary>
+    public static List<(float x, float z, float reach)> CranesFor(Building b, int plot)
+    {
+        const float MaxReach = 30f, Cover = 28f;
+        var list = new List<(float, float, float)>();
+        if (Math.Max(b.W, b.D) <= 24)
+        {
+            var reach = Math.Min(MaxReach, Mathf.Sqrt(b.W * b.W + b.D * b.D) * 0.85f);
+            float x = b.X - 2f, z = b.Z - 2f;
+            // keep it on the plot: put it inside the corner when the site touches the edge
+            if (x < 1) x = b.X + 1.5f;
+            if (z < 1) z = b.Z + 1.5f;
+            list.Add((x, z, Math.Max(8, reach)));
+            return list;
+        }
+        int nx = Math.Max(1, (int)Math.Ceiling(b.W / Cover)), nz = Math.Max(1, (int)Math.Ceiling(b.D / Cover));
+        float cw = b.W / (float)nx, cd = b.D / (float)nz;
+        var r = Math.Min(MaxReach, Mathf.Sqrt(cw * cw + cd * cd) / 2 + 3);
+        for (var i = 0; i < nx; i++)
+            for (var j = 0; j < nz; j++)
+                list.Add((Math.Clamp(b.X + cw * (i + 0.5f), 1, plot - 1), Math.Clamp(b.Z + cd * (j + 0.5f), 1, plot - 1), r));
+        return list;
     }
 
     void RebuildPallets()
@@ -1153,12 +1185,39 @@ public partial class WorldView : Node3D
     /// <summary>Cell offset in front of an object (the cold aisle side of a rack).</summary>
     public static (int dx, int dz) FrontOffset(int rot) => (rot % 4) switch { 1 => (-1, 0), 2 => (0, -1), 3 => (1, 0), _ => (0, 1) };
 
+    /// <summary>Parking bay lines as stretched unit planes, 10 cm wide.</summary>
+    static IEnumerable<Transform3D> ParkingStripes(IEnumerable<ParkingLayout.Line> lines, float y)
+    {
+        foreach (var l in lines)
+        {
+            var len = (float)l.Length;
+            if (len < 0.1f) continue;
+            var alongX = Math.Abs(l.Bx - l.Ax) > Math.Abs(l.Bz - l.Az);
+            var basis = Basis.FromScale(alongX ? new Vector3(len, 1, 0.1f) : new Vector3(0.1f, 1, len));
+            yield return new Transform3D(basis, new Vector3((float)(l.Ax + l.Bx) / 2, y, (float)(l.Az + l.Bz) / 2));
+        }
+    }
+
+    /// <summary>While dragging parking: the bays as they will be painted, including the parking next to it that joins up.</summary>
+    public void ShowGhostParking(Rect2I r)
+    {
+        var n = _state.PlotSize;
+        bool In(int x, int z) => x >= r.Position.X && x < r.End.X && z >= r.Position.Y && z < r.End.Y;
+        var lines = ParkingLayout.Lines(n, (x, z) => In(x, z) || (_state.SurfaceAt(x, z) == Surface.Parking && !_curveCells.Contains(z * n + x)),
+            (x, z) => !In(x, z) && (_state.SurfaceAt(x, z) == Surface.Asphalt || _curveCells.Contains(z * n + x)),
+            (r.Position.X, r.Position.Y, r.End.X - 1, r.End.Y - 1));
+        var mat = new StandardMaterial3D { AlbedoColor = new Color("#f2f2ee"), ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded };
+        var mesh = new PlaneMesh { Size = new Vector2(1, 1) };
+        foreach (var xf in ParkingStripes(lines, 0.08f))
+            _ghost.AddChild(new MeshInstance3D { Mesh = mesh, Transform = xf, MaterialOverride = mat, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+    }
+
     // ---------------- ghosts ----------------
     public void ClearGhost() { foreach (var c in _ghost.GetChildren()) c.QueueFree(); }
 
     StandardMaterial3D GhostMat(Color c) => new() { AlbedoColor = new Color(c, 0.45f), Transparency = BaseMaterial3D.TransparencyEnum.Alpha, ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded, NoDepthTest = false };
 
-    public void ShowGhostRect(Rect2I r, Color c, float y, string text = null, bool fenceOutline = false)
+    public void ShowGhostRect(Rect2I r, Color c, float y, string text = null, bool fenceOutline = false, bool outline = false)
     {
         ClearGhost();
         if (fenceOutline)
@@ -1169,6 +1228,20 @@ public partial class WorldView : Node3D
         else
         {
             _ghost.AddChild(new MeshInstance3D { Mesh = new PlaneMesh { Size = new Vector2(r.Size.X, r.Size.Y) }, Position = new Vector3(r.Position.X + r.Size.X / 2f, y + 0.06f, r.Position.Y + r.Size.Y / 2f), MaterialOverride = GhostMat(c) });
+            if (outline)
+            {
+                // low walls along the edges show exactly where the room will go, also on a busy floor
+                var wall = new StandardMaterial3D { AlbedoColor = new Color(c.Lightened(0.25f), 0.85f), Transparency = BaseMaterial3D.TransparencyEnum.Alpha, ShadingMode = BaseMaterial3D.ShadingModeEnum.Unshaded };
+                float x0 = r.Position.X, z0 = r.Position.Y, w = r.Size.X, d = r.Size.Y, hgt = 0.5f, t = 0.12f;
+                foreach (var (pos, size) in new[]
+                {
+                    (new Vector3(x0 + w / 2, y + hgt / 2, z0 + t / 2), new Vector3(w, hgt, t)),
+                    (new Vector3(x0 + w / 2, y + hgt / 2, z0 + d - t / 2), new Vector3(w, hgt, t)),
+                    (new Vector3(x0 + t / 2, y + hgt / 2, z0 + d / 2), new Vector3(t, hgt, d)),
+                    (new Vector3(x0 + w - t / 2, y + hgt / 2, z0 + d / 2), new Vector3(t, hgt, d)),
+                })
+                    _ghost.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = size }, Position = pos, MaterialOverride = wall, CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+            }
         }
         if (text != null)
             _ghost.AddChild(new Label3D

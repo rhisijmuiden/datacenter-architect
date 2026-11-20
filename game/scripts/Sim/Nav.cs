@@ -74,6 +74,77 @@ public class Nav
                 if (t && _s.FenceAt(x, z) != FenceType.None) t = _s.ObjectAt(x, z) is { } gate && Catalog.IsVehicleGate(gate.Kind);
                 _truck[i] = t;
             }
+        // trucks prefer the middle of a road: cells next to the edge cost a bit more
+        _truckCost = new float[_n * _n];
+        for (var z = 0; z < _n; z++)
+            for (var x = 0; x < _n; x++)
+            {
+                var i = z * _n + x;
+                if (!_truck[i]) continue;
+                var edge = 3;
+                for (var r = 1; r <= 2 && edge == 3; r++)
+                    foreach (var (dx, dz) in Dirs)
+                        if (!_s.InPlot(x + dx * r, z + dz * r) ? false : !_truck[(z + dz * r) * _n + x + dx * r]) { edge = r; break; }
+                _truckCost[i] = 1f + (3 - edge) * 0.35f;
+            }
+    }
+
+    float[] _truckCost;
+
+    /// <summary>
+    /// Moves the waypoints of a truck route to the middle of the paved strip it drives on, so it no longer scrapes
+    /// along a fence or kerb. Measures across the direction of travel on the same surface, up to 8 m each way.
+    /// </summary>
+    public List<(double x, double z)> CenterLane(IReadOnlyList<Pt> path)
+    {
+        Rebuild();
+        var res = new List<(double x, double z)>();
+        for (var i = 0; i < path.Count; i++)
+        {
+            var p = path[i];
+            var a = i > 0 ? path[i - 1] : p; var b = i < path.Count - 1 ? path[i + 1] : p;
+            int dx = Math.Sign(b.X - a.X), dz = Math.Sign(b.Z - a.Z);
+            double ox = 0, oz = 0;
+            // straight on (not at a corner): measure the width across
+            if ((dx == 0) != (dz == 0))
+            {
+                int px = dz, pz = dx; // perpendicular
+                var surf = _s.SurfaceAt(p.X, p.Z);
+                bool Same(int x, int z) => _s.InPlot(x, z) && _truck[z * _n + x] && _s.SurfaceAt(x, z) == surf;
+                int left = 0, right = 0;
+                while (left < 8 && Same(p.X - px * (left + 1), p.Z - pz * (left + 1))) left++;
+                while (right < 8 && Same(p.X + px * (right + 1), p.Z + pz * (right + 1))) right++;
+                var shift = (right - left) / 2.0;
+                ox = px * shift; oz = pz * shift;
+            }
+            res.Add((p.X + 0.5 + ox, p.Z + 0.5 + oz));
+        }
+        // corners: take the lane offset of the straight parts on both sides, so the truck turns in its lane
+        for (var i = 1; i < res.Count - 1; i++)
+        {
+            var p = path[i];
+            var a = path[i - 1]; var b = path[i + 1];
+            if ((Math.Sign(b.X - a.X) == 0) == (Math.Sign(b.Z - a.Z) == 0))
+            {
+                // the corner sits on the line of the incoming lane and on the line of the outgoing lane
+                var inc = res[i - 1]; var outg = res[i + 1];
+                var horizontalIn = a.Z == p.Z;
+                res[i] = horizontalIn ? (outg.x, inc.z) : (inc.x, outg.z);
+            }
+        }
+        // drop points on a straight line, so small jitter does not show as wobbling
+        var simple = new List<(double x, double z)>();
+        foreach (var q in res)
+        {
+            if (simple.Count >= 2)
+            {
+                var (ax, az) = simple[^2]; var (bx, bz) = simple[^1];
+                var cross = (bx - ax) * (q.z - az) - (bz - az) * (q.x - ax);
+                if (Math.Abs(cross) < 1e-6 && (bx - ax) * (q.x - bx) + (bz - az) * (q.z - bz) >= 0) { simple[^1] = q; continue; }
+            }
+            simple.Add(q);
+        }
+        return simple;
     }
 
     public bool Walkable(int x, int z, int f)
@@ -149,7 +220,7 @@ public class Nav
                 if (!Pass(nx, nz, f, m) && !goal(nx, nz)) continue;
                 if (!Cross(f, EdgeBetween(cx, cz, dx, dz), m)) continue;
                 var ni = nz * _n + nx;
-                var nd = d + (m == NavMode.Truck ? 1f : _cost[ni]);
+                var nd = d + (m == NavMode.Truck ? _truckCost[ni] : _cost[ni]);
                 if (nd >= dist[ni]) continue;
                 dist[ni] = nd; prev[ni] = cur; q.Enqueue(ni, nd);
             }

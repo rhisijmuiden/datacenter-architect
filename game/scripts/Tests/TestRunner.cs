@@ -37,6 +37,7 @@ public static class TestRunner
             ("market and rivals", MarketTests), ("campus land", LandTests), ("locations", SiteTests), ("office tenants", OfficeLeaseTests),
             ("hosting company", HostingTests), ("energy and ESG", EnergyTests), ("risks", RiskTests), ("key people", KeyPeopleTests), ("old saves get growth", GrowthMigrationTests),
             ("seasons, weather and the sun", ClimateTests), ("customer migrations", MigrationTests), ("first-person walking", WalkTests),
+            ("management rail", RailTests), ("playtest batch 1", PlaytestTests),
         };
         foreach (var (name, t) in tests)
         {
@@ -476,6 +477,70 @@ public static class TestRunner
         Check(!poked && Math.Abs(tr.Z - (36 + 2.75)) < 0.01 && Math.Abs(Math.Cos(tr.Heading) - 1) < 1e-6, $"truck backs up to the dock door, nose away from the building ({tr.X:0.00},{tr.Z:0.00} h{tr.Heading:0.00})");
         Run(sim, 6, () => sim.Agents.All(a => a.Role != Role.Truck));
         Check(sim.GateOpen[gate.Id] < 0.01 && sim.GateOpen[barrier.Id] < 0.01, "gate and barrier close after the trucks have left");
+    }
+
+    static void PlaytestTests()
+    {
+        // parking bays: 2.5 m wide, 5 m deep, one row on a 6 m deep strip, two rows on a 12 m deep lot
+        bool In(int x, int z, int x0, int z0, int w, int d) => x >= x0 && x < x0 + w && z >= z0 && z < z0 + d;
+        var one = ParkingLayout.Lines(40, (x, z) => In(x, z, 5, 5, 10, 6));
+        Check(ParkingLayout.Bays(one) == 4 && one.All(l => Math.Abs(l.Ax - l.Bx) < 1e-9 && l.Length > 4 && l.Length < 5.01), "a 10 x 6 m lot gets one row of 4 bays");
+        var two = ParkingLayout.Lines(40, (x, z) => In(x, z, 2, 2, 12, 12));
+        Check(ParkingLayout.Bays(two) == 8, "a 12 x 12 m lot gets two rows of 4 bays");
+        var tall = ParkingLayout.Lines(40, (x, z) => In(x, z, 2, 2, 6, 15));
+        Check(ParkingLayout.Bays(tall) == 6 && tall.All(l => Math.Abs(l.Az - l.Bz) < 1e-9), "bays follow the long side");
+        // the aisle goes next to the road: asphalt at z = 4 above a lot from z = 5 puts the bays on the far side
+        var side = ParkingLayout.Lines(40, (x, z) => In(x, z, 5, 5, 10, 7), (x, z) => z == 4);
+        Check(side.All(l => Math.Min(l.Az, l.Bz) >= 6.9), "bays sit away from the road");
+        Check(ParkingLayout.Lines(40, (x, z) => In(x, z, 0, 0, 10, 6) || In(x, z, 20, 20, 10, 6), null, (20, 20, 21, 21)).All(l => l.Ax >= 20), "the preview only shows the lot being dragged");
+
+        // trucks drive in the middle of a 5 m wide driveway instead of along its edge
+        var g = GameState.New(new NewGameOptions());
+        var mid = g.PlotSize / 2;
+        g.PaintSurface(mid - 2, 10, 5, g.PlotSize - 10, Surface.Asphalt, out _);
+        var nav = new Nav(g);
+        var path = Enumerable.Range(10, g.PlotSize - 10).Reverse().Select(z => new Pt(mid - 2, z, 0)).ToList();
+        var lane = nav.CenterLane(path);
+        Check(lane.Count >= 2 && lane.All(p => Math.Abs(p.x - (mid + 0.5)) < 0.01), "a truck route along the kerb moves to the middle of the road");
+        var found = nav.FindOnFloor(new[] { (mid, g.PlotSize - 1) }, 0, (x, z) => z == 12, NavMode.Truck);
+        Check(found != null && found.All(p => p.X == mid), "trucks prefer the middle lane");
+
+        // a large site gets several cranes with normal jibs, all on the plot
+        var big = new Building { X = 0, Z = 0, W = 90, D = 50, Floors = 1 };
+        var cranes = World.WorldView.CranesFor(big, 120);
+        Check(cranes.Count >= 4 && cranes.All(c => c.reach <= 30 && c.x >= 1 && c.z >= 1), "a big site gets several cranes with jibs of at most 30 m");
+        var small = World.WorldView.CranesFor(new Building { X = 0, Z = 0, W = 12, D = 10, Floors = 1 }, 120);
+        Check(small.Count == 1 && small[0].x >= 1 && small[0].z >= 1, "a small site gets one crane, on the plot");
+    }
+
+    static void RailTests()
+    {
+        // every screen tab is reachable from exactly the section the rail promises
+        Check(Sections.All.Length == 7, "seven sections on the rail");
+        Check(Sections.All.Select(x => x.Hotkey).Distinct().Count() == 7 && Sections.ForKey(Key.F1) == 0 && Sections.ForKey(Key.F7) == 6, "F1 to F7 open the sections");
+        var keys = Sections.All.SelectMany(x => x.Tabs.Select(t => t.Key).Append(x.Key).Append(x.ShortKey)).ToList();
+        Check(keys.All(k => Loc.T(k) != k), "every section and tab has a text: " + string.Join(", ", keys.Where(k => Loc.T(k) == k)));
+        var icons = Sections.All.SelectMany(x => x.Tabs.Select(t => t.Icon).Append(x.Icon)).Distinct().ToList();
+        Check(icons.All(i => ResourceLoader.Exists($"res://assets/icons/{i}.svg")), "every section icon exists");
+        foreach (var (kind, count) in new[] { (PanelKind.Company, 5), (PanelKind.Staff, 4), (PanelKind.Reputation, 5), (PanelKind.Growth, 7), (PanelKind.Overview, 3) })
+            for (var t = 0; t < count; t++)
+            {
+                var (sec, tab) = Sections.Find(kind, t);
+                var e = Sections.All[sec].Tabs[tab];
+                Check(e.Kind == kind && e.Tab == t, $"{kind} tab {t} has a place on the rail");
+            }
+        Check(Sections.Find(PanelKind.Growth, GrowthPanel.TabEnergy).section == Sections.Infra, "energy lives under infrastructure");
+        Check(Sections.Find(PanelKind.Company, CompanyPanel.TabSales).section == Sections.Customers, "sales lives under customers");
+        Check(Sections.Find(PanelKind.Network, 0).section == Sections.Infra, "network lives under infrastructure");
+
+        // the overview dashboard and its advice on the demo campus
+        var s = Demo.Build();
+        var figs = OverviewPanel.Figures(s);
+        Check(figs.Count == 8 && figs.All(f => !string.IsNullOrEmpty(f.value)), "dashboard shows eight figures");
+        s.Deals.Add(new Deal { Id = s.NextId++, State = DealState.Lead, Racks = 2, Name = "Test" });
+        var adv = OverviewPanel.Advice(s, new[] { ("goal_rack", true), ("goal_ceo", false) });
+        Check(adv.Any(a => a.kind == PanelKind.Company && a.tab == CompanyPanel.TabSales), "new leads show up as advice");
+        Check(adv.Any(a => a.kind == PanelKind.Overview && a.text.Contains(Loc.T("goal_ceo"))), "the next goal shows up as advice");
     }
 
     static void DemoTests()

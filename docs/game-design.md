@@ -900,6 +900,33 @@ Bij elke stap horen ook de uitbreidingen uit *Uitbreidingen en ideeën per stap*
 - Hoe heet het spel definitief? *Datacenter Architect* is de werktitel.
 - Is er een campagne met scenario's, of alleen vrij spelen?
 
+## Interface (GUI v2, speeltest batch 1)
+
+Elk ding heeft één vaste plek: **bouwen onderaan, beheren links, kijken rechtsboven.**
+
+- **Beheerbalk links** (F1 t/m F7) met zeven onderdelen, elk met eigen tabbladen:
+  - **Overzicht** (F1): dashboard met kerncijfers en adviezen (elk advies heeft een knop naar het scherm dat het oplost), doelen (de checklist) en alle meldingen van deze sessie.
+  - **Bedrijf** (F2): organisatie, sleutelfiguren, financiën, risico's.
+  - **Klanten** (F3): aanvragen (sales), contracten, aanbestedingen, markt.
+  - **Infrastructuur** (F4): stroom en koeling, netwerk, energie en ESG. Energie staat zo op één plek.
+  - **Personeel** (F5): team (met de bouwploeg: bouwvakkers, monteurs, engineers), beleid, onderhoud, storingen.
+  - **Reputatie en onderzoek** (F6): reputatie, beveiliging, certificaten, onderzoek, voorstellen.
+  - **Groei** (F7): locaties, kantoren, hosting.
+  - Onderaan de balk: opties, info en updates, spelmenu. Rode badges tonen nieuwe aanvragen, open storingen, problemen met de infrastructuur en open voorstellen.
+- **Beheerschermen openen als lade** naast de balk, over de volle hoogte. De wereld blijft rechts zichtbaar en klikbaar. Nog een keer op hetzelfde onderdeel klikken of Esc sluit de lade. Het tabblad Stroom zet de stroomweergave aan en Netwerk de netwerkweergave; bij sluiten komt de vorige weergave terug.
+- **Statusbalk boven**: elk cijfer is klikbaar en opent het passende tabblad.
+- **Rechtsboven** alleen nog weergave: draaien, raster, rondlopen, daken, verdieping en de overlays P/H/N. Daaronder maximaal drie meldingen, de checklist (ingeklapt tot één regel), bouwprojecten en de inspector.
+- **Bouwbalk onderaan** bevat alleen dingen die je in de wereld plaatst. De bouwlade scrolt met het muiswiel en heeft een zichtbare schuifbalk.
+- Snel opslaan is **Ctrl+S** (F5 opent nu Personeel).
+
+### Bouwen: details uit de speeltest
+
+- **Parkeerplaatsen** krijgen echte vakken van 2,5 × 5 m langs de lange kant. Vanaf 10 m diep twee rijen tegenover elkaar met een rijbaan ertussen; 5 tot 9 m diep één rij aan de kant van de weg af. Tijdens het slepen zie je de lijnen al en het aantal vakken.
+- **Ruimtes tekenen** toont tijdens het slepen een gekleurd vlak met lage randen op de vloer van het gebouw.
+- **Vrachtwagens** rijden midden over de weg (ook bij het oprijden van de poort) en schuren niet meer langs het hek. Ze hebben een cabine met voorruit, grille, spiegels en wielen met naven; de materiaalwagen is een open laadbak.
+- **Grote bouwplaatsen** krijgen meerdere torenkranen (één per ongeveer 28 m), elk met een normale giek van hooguit 30 m, altijd op je eigen terrein.
+- **Graafmachine** op rupsbanden met draaibare bovenbouw, cabine, contragewicht en een giek met knik en bak.
+
 ## Opties en bediening
 
 - **Bouwbalk onderaan** het scherm met duidelijke categorieën (icoon, naam en eigen accentkleur). Klik op een categorie om de lade met onderdelen te openen, nog een keer klikken sluit hem. De **bulldozer** (slopen) staat los rechtsonder; nog een keer klikken zet hem weer uit.
