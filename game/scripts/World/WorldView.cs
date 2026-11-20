@@ -96,34 +96,43 @@ public partial class WorldView : Node3D
                 SdfgiMinCellSize = 0.4f,
                 SdfgiEnergy = 0.8f,
                 FogSunScatter = 0.12f,
-                FogAerialPerspective = 0.25f,
-                AmbientLightSource = Godot.Environment.AmbientSource.Color,
+                FogAerialPerspective = 0.3f,
+                // ambient light is part sky (soft blue fill from above, varies over the day) and part flat colour
+                AmbientLightSource = Godot.Environment.AmbientSource.Sky,
+                AmbientLightSkyContribution = 0.35f,
                 AmbientLightColor = new Color("#dfeefa"),
                 AmbientLightEnergy = 0.34f,
-                // filmic tonemapping with a touch more saturation and contrast: livelier colours, softer highlights
-                TonemapMode = Godot.Environment.ToneMapper.Filmic,
-                TonemapExposure = 1.0f,
-                TonemapWhite = 6f,
+                // AgX tonemapping: natural highlight roll-off (sunlit roofs and grass no longer clip), then a gentle
+                // warm grade (Look.Grade) and a little extra saturation for the friendly park-sim look
+                TonemapMode = Godot.Environment.ToneMapper.Agx,
+                TonemapExposure = 1.06f,
                 AdjustmentEnabled = true,
-                AdjustmentSaturation = 1.15f,
+                AdjustmentSaturation = 1.22f,
                 AdjustmentContrast = 1.12f,
+                AdjustmentColorCorrection = Look.Grade(),
                 GlowEnabled = true,
-                GlowIntensity = 0.55f,
-                GlowBloom = 0.02f,
-                GlowHdrThreshold = 1.1f,
-                SsaoIntensity = 2.6f,
-                SsaoRadius = 1.4f,
+                GlowIntensity = 0.45f,
+                GlowBloom = 0.04f,
+                GlowHdrThreshold = 1.0f,
+                GlowBlendMode = Godot.Environment.GlowBlendModeEnum.Softlight,
+                // contact shadows: ambient occlusion also darkens a little in direct sun, so objects sit on the ground
+                SsaoIntensity = 2.2f,
+                SsaoRadius = 1.2f,
+                SsaoPower = 1.6f,
+                SsaoDetail = 0.7f,
+                SsaoLightAffect = 0.22f,
                 FogEnabled = true,
                 FogLightColor = new Color("#bfe0f4"),
                 FogDensity = 0.0016f,
+                FogSkyAffect = 0.2f,
                 SsaoEnabled = true,
             }
         };
         AddChild(_env);
-        Sun = new DirectionalLight3D { ShadowEnabled = true, LightEnergy = 0.95f, LightColor = new Color("#fff0d8"), RotationDegrees = new Vector3(-52, -38, 0) };
+        Sun = new DirectionalLight3D { ShadowEnabled = true, LightEnergy = 0.95f, LightColor = new Color("#fff0d8"), RotationDegrees = new Vector3(-52, -38, 0), LightAngularDistance = 0.8f };
         Sun.DirectionalShadowMaxDistance = 160;
         Sun.DirectionalShadowBlendSplits = true;
-        Sun.ShadowBlur = 1.2f;
+        Sun.ShadowBlur = 1.5f;
         AddChild(Sun);
         _font = GD.Load<FontFile>("res://assets/fonts/BarlowCondensed-SemiBold.ttf");
         Overlay = new Overlay { Name = "Overlay", Visible = false };

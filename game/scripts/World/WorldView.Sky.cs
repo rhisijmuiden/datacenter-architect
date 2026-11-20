@@ -153,7 +153,7 @@ public partial class WorldView
             Sun.RotationDegrees = new Vector3(-lightElev, yaw, 0);
             var low = Mathf.Clamp(elev / 25f, 0, 1); // golden light near the horizon
             Sun.LightColor = new Color("#ffb36b").Lerp(new Color("#ffe9c4"), low); // warm sunlight
-            Sun.LightEnergy = 1.3f * day * (1 - 0.65f * _cloud) * (Indoor ? 0.25f : 1);
+            Sun.LightEnergy = 1.45f * day * (1 - 0.65f * _cloud) * (Indoor ? 0.25f : 1);
             Sun.Visible = Sun.LightEnergy > 0.01f;
         }
         var night = 1 - day;
@@ -186,6 +186,7 @@ public partial class WorldView
             _skyMat.GroundBottomColor = new Color("#4d6b3c").Lerp(new Color("#0b1016"), night);
             var amb = new Color("#3a4f7a").Lerp(new Color("#b9d6f2"), day); // cool sky fill against the warm sun
             env.AmbientLightColor = Indoor ? new Color("#f2f6ff") : amb;
+            env.AmbientLightSkyContribution = Indoor ? 0f : 0.35f * day;
             env.AmbientLightEnergy = Indoor ? 0.85f : 0.16f + 0.1f * day + 0.16f * _cloud * day + _flash * 0.9f;
             env.FogLightColor = new Color("#1b2636").Lerp(new Color("#bfe0f4"), day).Lerp(grey, _cloud * 0.5f);
             env.FogDensity = Indoor ? 0.0006f : 0.0007f + _fogK * 0.022f + night * 0.0012f;
