@@ -102,6 +102,21 @@ def cabinets(name, n, w, d, h, body, door, extra):
         o.append(box((0.025, 0.03, 0.18), V((x + w / 2 - 0.08, -d / 2 - 0.02, 0.08 + h * 0.55)), 'steel', 0.006))
         extra(o, i, x, -d / 2 - 0.012, h)
     o.append(box((n * w + 0.02, d + 0.02, 0.05), V((0, 0, 0.08 + h + 0.025)), 'paint_dark', 0.01))
+    # details: hinge pins, door labels, top cable glands with cables, side vent, kick plate, warning sign
+    for i in range(n):
+        x = -n * w / 2 + w * (i + 0.5)
+        for z in (0.35, h - 0.2):
+            o.append(cyl(0.012, 0.07, V((x - w / 2 + 0.035, -d / 2 - 0.012, 0.08 + z)), 'steel', 6))
+        o.append(box((0.12, 0.008, 0.045), V((x, -d / 2 - 0.015, 0.08 + h - 0.12)), 'paint_white', 0.002))
+        for k in (-1, 1):
+            g = V((x + k * w * 0.2, d * 0.15, 0.08 + h + 0.06))
+            o.append(cyl(0.03, 0.05, g, 'dark_steel', 10))
+            o.append(tube_path([g + V((0, 0, 0.02)), g + V((0, 0.06, 0.06)), g + V((0, d * 0.34, 0.07))], 0.016, 'cable_dark', 6))
+    o.append(box((0.012, 0.35, 0.5), V((n * w / 2 + 0.006, 0, 0.08 + h * 0.75)), 'paint_dark', 0.003))
+    for k in range(6):
+        o.append(box((0.014, 0.3, 0.012), V((n * w / 2 + 0.01, 0, 0.08 + h * 0.75 - 0.2 + k * 0.08)), 'paint_grey', 0))
+    o.append(box((n * w, 0.012, 0.06), V((0, -d / 2 - 0.006, 0.11)), 'dark_steel', 0.003))
+    o.append(box((0.1, 0.012, 0.1), V((-n * w / 2 + w * 0.5, -d / 2 - 0.02, 0.08 + h * 0.8)), 'hazard', 0.002, (0, math.radians(45), 0)))
     save(P(name), o)
 
 
@@ -373,6 +388,22 @@ def battery_container():
     o += fan_shroud(0.16, V((0.9, 0, 0.12 + H + 0.47)), 0.06)
     o.append(box((W, 0.02, 0.12), V((0, -D / 2 - 0.02, 0.12 + H * 0.85)), 'accent_power', 0.004))
     o.append(box((0.25, 0.02, 0.25), V((0.4, -D / 2 - 0.03, 1.2)), 'hazard', 0.004))
+    # details: corner castings, door lock bars and hinges, cable entry box, fire-suppression beacon, vent grilles
+    for x in (-W / 2 + 0.06, W / 2 - 0.06):
+        for y in (-D / 2 + 0.05, D / 2 - 0.05):
+            for z in (0.17, 0.12 + H - 0.05):
+                o.append(box((0.12, 0.1, 0.1), V((x, y, z)), 'dark_steel', 0.01))
+    for x in (-1.1, -0.65):
+        for dx in (-0.08, 0.08):
+            o.append(cyl(0.012, H - 0.3, V((x + dx, -D / 2 - 0.045, 0.12 + H / 2)), 'galvanised', 8))
+        for z in (0.45, 1.65):
+            o.append(cyl(0.015, 0.06, V((x - 0.2, -D / 2 - 0.03, 0.12 + z)), 'dark_steel', 8))
+    o.append(box((0.4, 0.2, 0.3), V((1.2, -D / 2 - 0.1, 0.45)), 'paint_grey', 0.015))
+    o.append(tube_path([V((1.2, -D / 2 - 0.15, 0.3)), V((1.2, -D / 2 - 0.25, 0.14)), V((1.2, -D / 2 - 0.4, 0.06))], 0.035, 'dark_steel', 8))
+    o.append(cyl(0.05, 0.1, V((-1.3, -0.2, 0.12 + H + 0.05)), 'glow_alert', 12))
+    o.append(cyl(0.06, 0.02, V((-1.3, -0.2, 0.12 + H + 0.01)), 'paint_dark', 12))
+    for x in (0.1, 0.55):
+        o += louvres(0.3, 0.25, V((x, -D / 2 - 0.02, 1.5)), '-Y', 5)
     save(P('battery_container'), o)
 
 
