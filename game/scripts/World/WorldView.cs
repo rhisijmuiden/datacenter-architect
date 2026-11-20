@@ -994,7 +994,7 @@ public partial class WorldView : Node3D
         if (b == null) return true;
         if (b.Stage != Stage.Done) return false;
         if (o.Floor == GameState.RoofFloor) return !Open(b);
-        if (o.Kind == ObjKind.Lift) return Open(b);
+        if (Catalog.IsShaft(o.Kind)) return Open(b);
         return Open(b) && o.Floor == _viewFloor;
     }
 
@@ -1020,7 +1020,15 @@ public partial class WorldView : Node3D
                 if (o.Status > ObjStatus.Delivered && o.Status != ObjStatus.Live) AddMarker(o, pos);
                 continue;
             }
-            var n = Models.Object(o.Kind);
+            Node3D n;
+            if (Catalog.IsShaft(o.Kind) && _state.BuildingAt(o.X, o.Z) is { } sb)
+            {
+                // stairs and lifts serve every floor: draw them on the floor in view
+                var f = Math.Clamp(_viewFloor, 0, sb.Floors - 1);
+                n = Models.Shaft(o.Kind, f == sb.Floors - 1 && sb.Floors > 1);
+                pos.Y = Base(f);
+            }
+            else n = Models.Object(o.Kind);
             n.Position = pos;
             n.Basis = basis;
             foreach (var f in n.GetChildren().OfType<Node3D>().Where(c => c.Name.ToString().StartsWith("Fan"))) _fans.Add(f);

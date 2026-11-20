@@ -153,6 +153,8 @@ obj_crah	CRAH unit 120 kW	CRAH-unit 120 kW
 obj_generator	Generator 1 MW	Generator 1 MW
 obj_fiberpit	Fiber pit	Glasvezelput
 obj_lift	Freight lift	Goederenlift
+obj_passenger_lift	Passenger lift	Personenlift
+obj_stairs	Stairs	Trap
 obj_desk	Desk	Bureau
 obj_chair	Office chair	Bureaustoel
 obj_plant	Plant	Plant
@@ -239,7 +241,7 @@ msg_door_upper_outer	Outer doors only on the ground floor.	Buitendeuren alleen o
 msg_needs_asphalt	This goes on asphalt.	Dit hoort op asfalt.
 msg_needs_fence	Place this on a fence.	Zet dit op een hek.
 msg_inside_building	This goes inside a building, on the ground floor.	Dit hoort in een gebouw, op de begane grond.
-msg_lift_floors	A lift only makes sense in a building with more than one floor.	Een lift heeft alleen zin in een gebouw met meer verdiepingen.
+msg_lift_floors	Stairs and lifts only make sense in a building with more than one floor.	Trappen en liften hebben alleen zin in een gebouw met meer verdiepingen.
 msg_needs_room	This goes in a room, not in a data hall.	Dit hoort in een ruimte, niet in een datahal.
 msg_needs_hall	This goes in a data hall.	Dit hoort in een datahal.
 msg_one_room	It has to fit within one room.	Het moet binnen één ruimte passen.
@@ -248,7 +250,7 @@ msg_need_yard	Mark a building materials yard so trucks can deliver material.	Wij
 msg_yard_no_road	Trucks cannot reach the materials yard. Connect it to the road with asphalt.	Vrachtwagens kunnen de materialenplek niet bereiken. Sluit hem met asfalt aan op de weg.
 msg_yard_unreachable	Builders cannot reach the materials yard.	Bouwvakkers kunnen de materialenplek niet bereiken.
 msg_site_unreachable	Builders cannot reach the {0}. Add a door.	Bouwvakkers kunnen de {0} niet bereiken. Plaats een deur.
-msg_site_needs_lift	Builders cannot reach the {0} upstairs. Add a freight lift and a door.	Bouwvakkers kunnen de {0} boven niet bereiken. Plaats een goederenlift en een deur.
+msg_site_needs_lift	Builders cannot reach the {0} upstairs. Add stairs or a lift and a door.	Bouwvakkers kunnen de {0} boven niet bereiken. Plaats een trap of lift en een deur.
 msg_building_done	{0} is finished.	{0} is klaar.
 msg_room_done	{0} is ready.	{0} is klaar.
 msg_need_dock	Racks are waiting: build a loading dock with a roll-up door onto asphalt.	Er wachten racks: bouw een laadperron met een roldeur aan het asfalt.
@@ -1687,7 +1689,7 @@ news_disaster_fire	Fire in a building of {0}.	Brand in een gebouw van {0}.
 news_disaster_site	Disaster at the datacenter in {0}.	Ramp bij het datacenter in {0}.
 hud_walk	Walk around in first person (F)	Rondlopen in first-person (F)
 hud_weather	Weather, temperature and season. Only for looks: the weather never changes how your datacenter works.	Weer, temperatuur en seizoen. Alleen voor de sfeer: het weer verandert niets aan je datacenter.
-walk_hint	WASD walk · Shift run · mouse look · Page Up/Down lift · Esc or F back	WASD lopen · Shift rennen · muis kijken · Page Up/Down lift · Esc of F terug
+walk_hint	WASD walk · Shift run · mouse look · Page Up/Down stairs or lift · Esc or F back	WASD lopen · Shift rennen · muis kijken · Page Up/Down trap of lift · Esc of F terug
 wx_clear	Sunny	Zonnig
 wx_clear_night	Clear	Helder
 wx_cloudy	Cloudy	Bewolkt

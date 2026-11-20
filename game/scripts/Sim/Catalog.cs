@@ -35,6 +35,8 @@ public enum ObjKind
     CameraPole, CameraDome, SecurityWall, GlassLodge, LabBench, Bollard,
     // growth (step 9): own energy, dry coolers, the warehouse and the SOC
     SolarPanel, WindTurbine, BatteryContainer, DryCooler, PalletRack, Workbench, PalletJack, Shredder, SocDesk,
+    // playtest: people move between floors by stairs or a passenger lift
+    PassengerLift, Stairs,
 }
 
 /// <summary>Delivery chain for hall equipment: truck to the dock, fitter places it, engineer connects power and then fiber.</summary>
@@ -80,6 +82,12 @@ public static class Catalog
     /// <summary>Gates in a fence that vehicles drive through.</summary>
     public static bool IsVehicleGate(ObjKind k) => k is ObjKind.SlidingGate or ObjKind.SlidingGateLarge;
     /// <summary>Any gate in a fence, for vehicles or people.</summary>
+    /// <summary>Things that link all floors of a building: the freight lift, the passenger lift and stairs.</summary>
+    public static bool IsShaft(ObjKind k) => k is ObjKind.Lift or ObjKind.PassengerLift or ObjKind.Stairs;
+
+    /// <summary>Whether people moving this way may use a floor link: carried loads need the freight lift.</summary>
+    public static bool ShaftAllows(ObjKind k, NavMode m) => k == ObjKind.Lift || (m == NavMode.Walk && IsShaft(k));
+
     public static bool IsGate(ObjKind k) => IsVehicleGate(k) || k == ObjKind.PedGate;
     /// <summary>Things on the road that a vehicle waits for until they are open.</summary>
     public static bool IsVehicleStop(ObjKind k) => IsVehicleGate(k) || k == ObjKind.Barrier;
@@ -94,6 +102,8 @@ public static class Catalog
         [ObjKind.Generator] = new(ObjKind.Generator, "obj_generator", 3, 2, 410000, Where.Outside, true, GenKw: 1000, FuelLitres: 2000),
         [ObjKind.FiberPit] = new(ObjKind.FiberPit, "obj_fiberpit", 1, 1, 25000, Where.Outside, false, MaxLevel: 3),
         [ObjKind.Lift] = new(ObjKind.Lift, "obj_lift", 2, 2, 85000, Where.Building, false),
+        [ObjKind.PassengerLift] = new(ObjKind.PassengerLift, "obj_passenger_lift", 2, 2, 60000, Where.Building, false),
+        [ObjKind.Stairs] = new(ObjKind.Stairs, "obj_stairs", 2, 5, 18000, Where.Building, false),
         [ObjKind.Desk] = new(ObjKind.Desk, "obj_desk", 2, 1, 900, Where.Room, true),
         [ObjKind.Chair] = new(ObjKind.Chair, "obj_chair", 1, 1, 250, Where.Room, false),
         [ObjKind.Plant] = new(ObjKind.Plant, "obj_plant", 1, 1, 80, Where.Room, true),
