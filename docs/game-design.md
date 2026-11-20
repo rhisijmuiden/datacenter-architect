@@ -85,7 +85,8 @@ Elke locatie toont vooraf de **beschikbare netcapaciteit (MVA)** en de **glasvez
 - **Koelmachines** buiten en **CRAH-units** in de zalen, elk met een capaciteit in kW.
 - Elke rack produceert warmte, afhankelijk van de klant. De koelbalk toont de belasting tegenover de capaciteit.
 - Racks staan **aaneengesloten in rijen**, zonder ruimte tussen de racks in een rij. Je plaatst ze rij voor rij (slepen).
-- **Tussen de rijen zit altijd een gang.** Aan de voorkant is dat de koude gang, aan de achterkant de warme gang. Engineers moeten bij de achterkant van de servers kunnen, dus een rij zonder vrije gang erachter geeft een waarschuwing.
+- **Tussen de rijen zit altijd een gang.** Aan de voorkant is dat de koude gang, aan de achterkant de warme gang. Engineers moeten aan **beide kanten** bij een rack kunnen. Een rack waarvan de voor- of achterkant geblokkeerd is (door een muur, een ander object of een rack dat er tegenaan staat), kun je niet plaatsen; het spookbeeld kleurt rood met de reden erbij (wens van Reinder, 20 november 2026, speelronde).
+- **Voorkant zichtbaar bij plaatsen**: alles met een voorkant (racks, koelunits, UPS-kasten, bureaus, deuren) toont tijdens het plaatsen een pijl of gekleurde rand aan de voorkant, en bij racks ook de vrije gang die voor en achter nodig is.
 - **Zaal-upgrades:** een datazaal kun je upgraden in stappen. Elke stap kost geld en bouwtijd, verhoogt de effectieve koelcapaciteit en verlaagt het energieverbruik (PUE):
 
 | Niveau | Wat je bouwt | Koeling | PUE |
@@ -964,7 +965,7 @@ Elk ding heeft één vaste plek: **bouwen onderaan, beheren links, kijken rechts
 
 ## Opties en bediening
 
-- **Bouwbalk onderaan** het scherm met duidelijke categorieën (icoon, naam en eigen accentkleur). Klik op een categorie om de lade met onderdelen te openen, nog een keer klikken sluit hem. De **bulldozer** (slopen) staat los rechtsonder; nog een keer klikken zet hem weer uit.
+- **Bouwbalk onderaan** het scherm met duidelijke categorieën (icoon, naam en eigen accentkleur). De **plaatjes in het bouwmenu** worden gemoderniseerd: echte, gerenderde afbeeldingen van de 3D-modellen in de huisstijl (wens van Reinder, 20 november 2026, speelronde). Klik op een categorie om de lade met onderdelen te openen, nog een keer klikken sluit hem. De **bulldozer** (slopen) staat los rechtsonder; nog een keer klikken zet hem weer uit.
 - **Optiemenu** vanuit het hoofdmenu, het pauzemenu (Esc) en het tandwiel rechtsboven in het spel. Alles wordt direct toegepast en lokaal bewaard (user://settings.cfg).
   - **Beeld:** venster, randloos volledig scherm of volledig scherm; resolutie (alle gangbare 4:3, 16:9, 16:10, 21:9, 32:9 en 4K-resoluties die op het scherm passen); beeldscherm kiezen bij meerdere schermen; grootte van de interface (75 tot 150%); V-Sync; maximale framerate. In volledig scherm blijft het scherm op zijn eigen resolutie en wordt alleen de 3D-wereld op de gekozen resolutie getekend (met FSR), zodat tekst scherp blijft. Een wijziging van modus, resolutie of scherm moet je binnen 15 seconden bevestigen, anders gaat hij terug. Alt+Enter of F11 wisselt altijd tussen venster en volledig scherm.
   - **Graphics:** snelkeuze Prestaties, Gebalanceerd of Kwaliteit; schaduwen, ambient occlusion, nevel en anti-aliasing los aan en uit; visuele effecten: knipperende statuslampjes, bewegende onderdelen (ventilatoren, kraanarmen), vloeiende camera.
