@@ -244,6 +244,11 @@ public partial class OptionsDialog : Modal
         Row("opt_blinking", Toggle(S.BlinkingLights, on => { S.BlinkingLights = on; SaveOther(); }), "opt_blinking_help");
         Row("opt_moving", Toggle(S.MovingParts, on => { S.MovingParts = on; SaveOther(); }), "opt_moving_help");
         Row("opt_smooth_camera", Toggle(S.SmoothCamera, on => { S.SmoothCamera = on; SaveOther(); }), "opt_smooth_camera_help");
+
+        Section("opt_section_world");
+        Row("opt_day_night", Toggle(S.DayNight, on => { S.DayNight = on; SaveOther(); }), "opt_day_night_help");
+        Row("opt_weather", Toggle(S.Weather, on => { S.Weather = on; SaveOther(); }), "opt_weather_help");
+        Row("opt_seasons", Toggle(S.Seasons, on => { S.Seasons = on; SaveOther(); }), "opt_seasons_help");
     }
 
     /// <summary>0 = performance, 1 = balanced, 2 = quality.</summary>
@@ -292,6 +297,12 @@ public partial class OptionsDialog : Modal
         var steps = AutosaveSteps.Select(m => Loc.T("opt_minutes_n", m));
         var idx = Array.IndexOf(AutosaveSteps, S.AutosaveMinutes);
         Row("opt_autosave", Choice(steps, idx < 0 ? 1 : idx, i => { S.AutosaveMinutes = AutosaveSteps[i]; Save(); }), "opt_autosave_help");
+
+        Section("opt_section_walk");
+        int[] sens = { 50, 75, 100, 150, 200 };
+        var si = Array.IndexOf(sens, S.MouseSensitivity);
+        Row("opt_mouse_sensitivity", Choice(sens.Select(v => v + "%").ToArray(), si < 0 ? 2 : si, i => { S.MouseSensitivity = sens[i]; SaveOther(); }), "opt_mouse_sensitivity_help");
+        Row("opt_invert_mouse", Toggle(S.InvertMouse, on => { S.InvertMouse = on; SaveOther(); }), "opt_invert_mouse_help");
     }
 
     // ---------------- applying ----------------

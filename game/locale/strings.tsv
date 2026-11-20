@@ -1685,3 +1685,41 @@ news_disaster_flood	Flooding at {0}.	Wateroverlast bij {0}.
 news_disaster_substation	Substation fire cuts power at {0}.	Brand in onderstation legt stroom plat bij {0}.
 news_disaster_fire	Fire in a building of {0}.	Brand in een gebouw van {0}.
 news_disaster_site	Disaster at the datacenter in {0}.	Ramp bij het datacenter in {0}.
+hud_walk	Walk around in first person (F)	Rondlopen in first-person (F)
+hud_weather	Weather, temperature and season. Only for looks: the weather never changes how your datacenter works.	Weer, temperatuur en seizoen. Alleen voor de sfeer: het weer verandert niets aan je datacenter.
+walk_hint	WASD walk · Shift run · mouse look · Page Up/Down lift · Esc or F back	WASD lopen · Shift rennen · muis kijken · Page Up/Down lift · Esc of F terug
+wx_clear	Sunny	Zonnig
+wx_clear_night	Clear	Helder
+wx_cloudy	Cloudy	Bewolkt
+wx_rain	Rain	Regen
+wx_storm	Thunderstorm	Onweer
+wx_snow	Snow	Sneeuw
+wx_fog	Fog	Mist
+season_winter	Winter	Winter
+season_spring	Spring	Lente
+season_summer	Summer	Zomer
+season_autumn	Autumn	Herfst
+opt_section_world	Day, night and weather	Dag, nacht en weer
+opt_day_night	Day and night	Dag en nacht
+opt_day_night_help	The sun follows the clock and the time of year; at night windows, lamp posts and truck lights glow. Off: always a sunny afternoon.	De zon volgt de klok en de tijd van het jaar; 's nachts gloeien ramen, lantaarnpalen en koplampen. Uit: altijd een zonnige middag.
+opt_weather	Weather	Weer
+opt_weather_help	Rain, snow, fog and thunderstorms come and go. Only for looks and sound.	Regen, sneeuw, mist en onweer komen en gaan. Alleen voor beeld en geluid.
+opt_seasons	Seasons	Seizoenen
+opt_seasons_help	Blossom in spring, autumn leaves and snow on the ground and roofs in winter.	Bloesem in de lente, herfstbladeren en sneeuw op de grond en daken in de winter.
+opt_section_walk	First-person walking	Rondlopen in first-person
+opt_mouse_sensitivity	Mouse sensitivity	Muisgevoeligheid
+opt_mouse_sensitivity_help	How fast you look around while walking.	Hoe snel je rondkijkt tijdens het lopen.
+opt_invert_mouse	Invert vertical look	Verticaal kijken omkeren
+opt_invert_mouse_help	Move the mouse up to look down.	Beweeg de muis omhoog om omlaag te kijken.
+msg_moving_in	{0} is moving in: {1} moving trucks full of servers are on their way to the loading dock.	{0} verhuist naar je datacenter: {1} verhuiswagens vol servers komen naar het laadperron.
+msg_moving_out	{0} is moving out; a moving truck comes to collect their servers.	{0} vertrekt; een verhuiswagen komt hun servers ophalen.
+new_weather_effects	Weather plays along	Weer speelt mee
+new_weather_effects_help	Cold days give free cooling, hot days cost more cooling, storms cause power cuts more often, snow and fog slow down trucks and clouds dim your solar panels.	Koude dagen geven vrije koeling, warme dagen kosten meer koeling, storm geeft vaker stroomuitval, sneeuw en mist vertragen vrachtwagens en wolken dimmen je zonnepanelen.
+hud_forecast	Weather report	Weerbericht
+wx_effect_cold	Cold: free cooling, cooling energy −35%.	Koud: vrije koeling, koelenergie −35%.
+wx_effect_mild	Mild: partly free cooling, cooling energy −15%.	Mild: deels vrije koeling, koelenergie −15%.
+wx_effect_warm	Warm: the chillers work normally.	Warm: de koelmachines draaien normaal.
+wx_effect_hot	Hot: cooling energy +15%.	Heet: koelenergie +15%.
+wx_effect_storm	Storm: a city-wide power cut is four times as likely.	Storm: stroomuitval in de stad is vier keer zo waarschijnlijk.
+wx_effect_slow	Trucks and visitors are slower in snow and fog.	Vrachtwagens en bezoekers zijn trager in sneeuw en mist.
+wx_effect_off	In this game the weather is only for looks (switch it on in a new game).	In dit spel is het weer alleen voor de sfeer (aan te zetten bij een nieuw spel).

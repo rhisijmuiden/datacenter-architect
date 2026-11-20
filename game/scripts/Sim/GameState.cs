@@ -129,6 +129,11 @@ public class NewGameOptions
     public bool DynamicPrices { get; set; } = true;
     public bool Disasters { get; set; } = true;
     public bool SupplyDelays { get; set; } = true;
+    /// <summary>
+    /// Step 10: the weather plays along (free cooling when cold, storms cause power cuts, snow and fog slow trucks, clouds dim solar).
+    /// Off unless chosen: the new-game dialog ticks it by default, older saves and the demo keep the weather for looks only.
+    /// </summary>
+    public bool WeatherEffects { get; set; }
     public long StartMoney => Difficulty switch { 0 => 25_000_000, 2 => 6_000_000, _ => 12_000_000 };
     [JsonIgnore] public CreativeOptions C => Creative ? CreativeOptions : None;
     static readonly CreativeOptions None = new();
@@ -137,7 +142,7 @@ public class NewGameOptions
 /// <summary>All state that goes into a savegame. Workers and trucks are not saved; they restart from this state.</summary>
 public partial class GameState
 {
-    public const int CurrentFormat = 8;
+    public const int CurrentFormat = 9;
     /// <summary>Floor value for objects that stand on the roof of a building.</summary>
     public const int RoofFloor = -1;
     public const double WorkPerMaterial = 0.15;
@@ -280,6 +285,11 @@ public partial class GameState
             // step 9: growth. Older games keep their settings: no disasters or supply delays they did not choose, prices as before.
             Options.DynamicPrices = false; Options.Disasters = false; Options.SupplyDelays = false;
             Notes.Add(("msg_growth_new", null));
+        }
+        if (SaveFormat < 9)
+        {
+            // step 10: older games get the new looks, but the weather only plays along in new games
+            Options.WeatherEffects = false;
         }
         MigrateGrowth();
         EnsureCompetitors();
@@ -794,7 +804,7 @@ public partial class GameState
         }
     }
 
-    public void InvalidateInfra() { _infra = null; _net = null; }
+    public void InvalidateInfra() { _infra = null; _net = null; _wxAt = double.NaN; }
 
     NetReport _net;
     int _netRev = -1;

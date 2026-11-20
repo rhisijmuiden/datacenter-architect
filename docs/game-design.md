@@ -389,6 +389,8 @@ De tijd loopt door een **jaarcyclus** met lente, zomer, herfst en winter, en wis
 
 Een **weerbericht** in de interface waarschuwt een paar dagen vooruit, zodat je je kunt voorbereiden.
 
+*Zo is het gebouwd in stap 10 (0.9.0):* het weer is altijd te zien en te horen. Of het ook meespeelt kies je bij een nieuw spel met **Weer speelt mee** (standaard aan; oudere savegames houden het weer alleen voor de sfeer). Als het meespeelt: koud (onder 10 °C) koelenergie −35%, mild (10 tot 18 °C) −15%, warm normaal, heet (vanaf 27 °C, zoals bij een hittegolf) +15%; storm maakt stroomuitval in de stad vier keer zo waarschijnlijk; sneeuw en mist maken vrachtwagens en bezoekers trager; zon en wolken bepalen de opbrengst van zonnepanelen. Het weerbericht staat in de tooltip onder de klok (drie dagen vooruit). Gestrooide wegen, winteradditief en verwarmde accuruimtes komen later.
+
 ## Hoogspanning en stroomnet op de campus
 
 - De netbeheerder levert **hoogspanning** (middenspanning, bijvoorbeeld 10 kV) met een vermogen dat je stap voor stap uitbreidt: 2, 10, 20 en 50 MVA. Elke stap heeft een wachttijd en kosten.
@@ -797,6 +799,21 @@ Zo werkt stap 9 (versie 0.8.0) nu echt in de game. Alles staat in het nieuwe **G
 - **Sleutelfiguren**: met HR vindt een headhunter af en toe een bekende naam (architect, topverkoper, energiehandelaar, SOC-lead, duurzaamheidsexpert, country manager, hosting lead) met een blijvende bonus. Concurrenten proberen ze weg te kopen: je evenaart het bod of laat ze gaan.
 - **Oudere savegames**: krijgen concurrenten en het Groei-scherm, maar rampen, leveringsproblemen en dynamische prijzen staan uit (aan te zetten bij een nieuw spel).
 
+## Uiterlijk in het spel
+
+Zo werkt stap 10 (versie 0.9.0) nu echt in de game.
+
+- **Dag en nacht**: de zon volgt de klok en de tijd van het jaar (in juni lange dagen en een hoge zon, in december kort en laag). Bij zonsopkomst en -ondergang kleurt het licht oranje, 's nachts neemt een blauwige maan het over. Ramen van kantoren gloeien warm, lantaarnpalen en gevellampen op het datacenter gaan aan en verlichten de grond, vrachtwagens rijden met koplampen en achterlichten. Het bouwgrid wordt 's nachts zachter.
+- **Seizoenen**: lentebloesem (roze bomen), diepgroene zomer, oranje en gouden herfstbladeren, kale bomen in de winter. Gras en akkers kleuren mee. Na sneeuwval blijft er een paar dagen sneeuw liggen op gras, bomen en daken, daarna smelt het weer.
+- **Weer**: zon, bewolking, regen, onweer met bliksemflitsen en donder, sneeuw en mist, per halve dag en voor elke savegame steeds hetzelfde. Een hittegolf geeft altijd een strakblauwe, hete lucht en wateroverlast komt met storm. Regen en sneeuw vallen rond de camera, zodat het in een enorme campus net zo licht blijft. Regen hoor je buiten hard en binnen zacht op het dak. Linksonder de klok staan het weer, de temperatuur en het seizoen; de tooltip is het weerbericht.
+- **Rondere poppetjes**: iedereen heeft een groot rond hoofd met ogen, blosjes, een mondje en haar (onder de helm of pet), een peervormig lijf, armen met handjes die vanuit de schouder zwaaien en benen met schoenen die vanuit de heup lopen. Kleur, helm en band tonen nog steeds het vak.
+- **Kabelrollen**: engineers lopen met een rol stroomkabel (amber) of glasvezel (oranje) in hun handen naar een nieuw rack. Daar zetten ze de rol op de vloer en rollen de kabel af naar het rack: eerst stroom, dan glasvezel. Elektriciens en netwerkengineers van het eigen personeel nemen ook een rol mee naar een reparatie. Puur sfeer op de achtergrond, de focus blijft bouwen en ontwerpen.
+- **First-person rondlopen**: met **F** of de wandelaar-knop rechtsboven loop je zelf door je datacenter, alleen kijken en luisteren. WASD of pijltjes lopen, Shift rent, de muis kijkt rond, Page Up/Down neemt de goederenlift, Esc of F brengt je terug. Je loopt door deuren en niet door muren, hekken of racks. Binnen zie je volle muren en een plafond, en hoor je de servers harder naarmate je dichterbij staat. In de opties stel je de muisgevoeligheid in en of verticaal kijken omgekeerd is.
+- **Klantmigraties**: een grote klant (vanaf 8 racks) verhuist zichtbaar naar binnen met een konvooi verhuiswagens (één per tien racks, maximaal vier) vol servers. Ze rijden overdag één voor één achteruit naar het laadperron en verhuizers duwen karretjes met servers naar de racks. Een klant die vertrekt stuurt verhuiswagens om zijn servers op te halen. Alleen voor de sfeer: het contract verandert er niet door.
+- **Opties**: in Graphics staan Dag en nacht, Weer en Seizoenen los aan en uit (uit is altijd een zonnige zomermiddag); in Spel de muisgevoeligheid en omgekeerd kijken.
+- **Opgelost**: klanten liepen vaak niet naar hun rack omdat het spel bij het kiezen van een rack per object een nieuw willekeurig getal trok; klantbezoeken en verhuizers kiezen nu echt een rack.
+- **Later** (staat bij *Uitbreidingen en ideeën per stap*, stap 10): gevelbouwer, doorsnede-weergave, bouwanimaties, interieurdetails en sfeerlicht in de gangen, gloeiende flow-lijnen, natuur en water, afdelingen met een eigen sfeer.
+
 ## Grote datahallen
 
 Reinder wil echt grote hallen kunnen bouwen, op hyperscale-formaat met duizenden racks. Wat daarvoor nodig is:
@@ -872,7 +889,7 @@ Goedgekeurd door Reinder op 19 november 2026; ze komen in de genoemde stap.
 7. **Personeel en gebeurtenissen** (testversie 0.6.0): automatisch werven, beleid en serviceplannen, training en budgetten, automatische diensten, onderhoud en slijtage, storingen en reserveonderdelen, willekeurige gebeurtenissen, projectmanager bouw, klantbezoek 24/7. Zie *Personeel en gebeurtenissen in het spel*.
 8. **Beveiliging, research en reputatie** (testversie 0.7.0): camera's, videowall, glazen loge, beveiligingspolicies, research tree, voorstellen van NOC en netwerkarchitect, recensies, certificeringen, overheidsklanten, kantoormanager met kantoorverhuur. Zie *Beveiliging, research en reputatie in het spel*.
 9. **Groei**: campus, warehouse, hostingbedrijf (cloud, dedicated servers met voorraad, grote contracten, dashboard), meerdere locaties en landen, markt en concurrentie (aanbestedingen, overnames, beursgang, marktnieuws), dynamische energieprijzen, ESG-score met waterverbruik, cyberaanvallen en SOC, rampen en verzekering, leveringsproblemen, sleutelpersoneel
-10. **Uiterlijk**: rondere 3D-poppetjes, first-person rondlopen door je datacenter (alleen kijken en luisteren), klantmigraties met vrachtwagens, seizoenen en weer, dag en nacht
+10. **Uiterlijk** (testversie 0.9.0): rondere 3D-poppetjes, first-person rondlopen door je datacenter (alleen kijken en luisteren), klantmigraties met vrachtwagens, seizoenen en weer, dag en nacht
    - *Speelronde na stap 10*: Reinder speelt het spel een tijdje en geeft bugs en verbeteringen door in een aparte thread; die worden opgelost voordat stap 11 begint.
 11. **Afwerking en extra's**: tutorial met een begeleide eerste kavel, scenario's en uitdagingen met medailles ("red een failliet datacenter", "haal binnen 5 jaar 10 MW"), statistieken en grafieken door de tijd (omzet, PUE, uptime, verbruik), fotomodus, timelapse van je campus, achievements en later Steam-ondersteuning, mod-ondersteuning (eigen gebouwen en objecten)
 

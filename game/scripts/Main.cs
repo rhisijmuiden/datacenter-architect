@@ -14,6 +14,10 @@ public partial class Main : Node3D
 {
     WorldView _world;
     CameraRig _cam;
+    FirstPerson _fp;
+    bool _walking;
+    (int floor, bool roofs, bool grid) _beforeWalk;
+    Control _walkHint;
     Ambience _sound;
     UiSounds _uiSounds;
     Control _ui;
@@ -45,6 +49,8 @@ public partial class Main : Node3D
 
         _world = new WorldView(); AddChild(_world);
         _cam = new CameraRig(); AddChild(_cam);
+        _fp = new FirstPerson { Name = "Walker" }; AddChild(_fp);
+        _fp.Exit = StopWalk; _fp.Moved = WalkView;
         _sound = new Ambience(); AddChild(_sound);
         _uiSounds = new UiSounds(); AddChild(_uiSounds);
         AddChild(new Thumbnails());
@@ -64,6 +70,7 @@ public partial class Main : Node3D
     // ---------------- screens ----------------
     void ShowTitle()
     {
+        StopWalk();
         _playing = false;
         _hud?.QueueFree(); _hud = null;
         SetState(Demo.Build());
@@ -104,6 +111,7 @@ public partial class Main : Node3D
 
     void StartGame(GameState s, bool fresh)
     {
+        StopWalk();
         _menu?.QueueFree(); _menu = null;
         _hud?.QueueFree();
         _world.GridVisible = true;
@@ -121,7 +129,7 @@ public partial class Main : Node3D
             FacadeChanged = f => _facade = f,
             CrewChanged = ChangeCrew,
             CyclePriority = CyclePriority,
-            RotateLeft = () => _cam.RotateStep(1), RotateRight = () => _cam.RotateStep(-1),
+            RotateLeft = () => _cam.RotateStep(1), RotateRight = () => _cam.RotateStep(-1), Walk = StartWalk,
             ToggleGrid = () => _world.GridVisible = !_world.GridVisible,
             ToggleRoofs = () => SetView(_world.ViewFloor, !_world.Roofs),
             FloorUp = () => SetView(_world.ViewFloor + 1, false),
@@ -346,6 +354,8 @@ public partial class Main : Node3D
         }
         _swSim.Stop();
         _swWorld.Restart();
+        _world.WeatherCenter = _walking ? _fp.Feet : _cam.TargetPoint;
+        _world.WeatherRadius = _walking ? 24 : _cam.Distance * 0.75f;
         _world.Sync(delta);
         _swWorld.Stop();
         _benchSample?.Add(delta, Bench.Ms(_swSim), Bench.Ms(_swWorld));
@@ -371,7 +381,7 @@ public partial class Main : Node3D
         CheckLand();
         _hud.UpdateStats(_state);
         _goalTimer -= delta;
-        if (_goalTimer <= 0) { _goalTimer = 1; UpdateGoals(); UpdateProjects(); RefreshInspect(); }
+        if (_goalTimer <= 0) { _goalTimer = 1; _hud.SetWeather(_world.Now, AppSettings.Instance.Weather, _state); UpdateGoals(); UpdateProjects(); RefreshInspect(); }
         _autosaveTimer += delta;
         if (_autosaveTimer > AppSettings.Instance.AutosaveMinutes * 60) { _autosaveTimer = 0; Autosave(); _hud.Notify(Loc.T("msg_autosaved"), Brand.Ok); }
     }
@@ -379,11 +389,91 @@ public partial class Main : Node3D
     /// <summary>Server noise grows as the camera zooms in on live racks that are in view.</summary>
     void UpdateSound()
     {
-        var t = _cam.TargetPoint;
-        var near = _state.Objects.Count(o => o.Kind == ObjKind.Rack && o.Status == ObjStatus.Live && Math.Abs(o.X - t.X) < 14 && Math.Abs(o.Z - t.Z) < 14);
-        var zoom = Mathf.Clamp((60 - _cam.Distance) / 45f, 0, 1);
-        var open = _world.Roofs ? 0.35f : 1f;
-        _sound.Level = _playing ? Mathf.Clamp(near / 40f, 0, 1) * zoom * open : 0;
+        var t = _walking ? _fp.Feet : _cam.TargetPoint;
+        var reach = _walking ? 9 : 14;
+        var floor = _walking ? _fp.Floor : _world.Roofs ? -1 : _world.ViewFloor;
+        var near = _state.Objects.Count(o => o.Kind == ObjKind.Rack && o.Status == ObjStatus.Live && Math.Abs(o.X - t.X) < reach && Math.Abs(o.Z - t.Z) < reach && (floor < 0 || o.Floor == floor));
+        var zoom = _walking ? 1 : Mathf.Clamp((60 - _cam.Distance) / 45f, 0, 1);
+        var open = _walking ? (_world.Indoor ? 1f : 0.3f) : _world.Roofs ? 0.35f : 1f;
+        _sound.Level = _playing ? Mathf.Clamp(near / (_walking ? 24f : 40f), 0, 1) * zoom * open : 0;
+        // rain is loud outside, a soft drum on the roof inside; thunder follows a lightning flash
+        var w = _world.Now;
+        var wet = WeatherFxOn && w.Kind is WeatherKind.Rain or WeatherKind.Storm ? (float)(0.45 + 0.55 * w.Intensity) : 0f;
+        _sound.Rain = (_playing || _walking ? wet : wet * 0.4f) * (_world.Indoor ? 0.25f : _walking ? 0.9f : Mathf.Clamp(1.1f - _cam.Distance / 140f, 0.35f, 1f));
+        if (_world.Flashed) _sound.Thunder(_world.Indoor ? 0.5f : 1f);
+    }
+
+    static bool WeatherFxOn => AppSettings.Instance.Weather;
+
+    // ---------------- first-person walking ----------------
+    /// <summary>Walk around in first person (look and listen only). F or the walker button starts it; Esc or F ends it.</summary>
+    void StartWalk()
+    {
+        if (!_playing || _walking || _state == null) return;
+        _walking = true;
+        _beforeWalk = (_world.ViewFloor, _world.Roofs, _world.GridVisible);
+        if (_item.Mode != Mode.Select) _hud.Pick(BuildItem.Select);
+        _world.ClearGhost();
+        _world.GridVisible = false;
+        _inspectCell = null;
+        _fp.Bounds = _cam.Bounds;
+        var floor = _world.Roofs ? 0 : _world.ViewFloor;
+        _fp.Begin(_state, _sim.Nav, _cam.TargetPoint, floor, _cam.Yaw);
+        _cam.InputEnabled = false;
+        _hud.Visible = false;
+        _walkHint = new PanelContainer { MouseFilter = Control.MouseFilterEnum.Ignore };
+        _walkHint.AnchorLeft = _walkHint.AnchorRight = 0.5f; _walkHint.AnchorTop = _walkHint.AnchorBottom = 1;
+        _walkHint.OffsetTop = _walkHint.OffsetBottom = -24;
+        _walkHint.GrowHorizontal = Control.GrowDirection.Both; _walkHint.GrowVertical = Control.GrowDirection.Begin;
+        var hint = Ui.Text(Loc.T("walk_hint"), 15); hint.AutoTranslateMode = Control.AutoTranslateModeEnum.Disabled; hint.AutowrapMode = TextServer.AutowrapMode.Off;
+        _walkHint.AddChild(Ui.Pad(hint, 14, 6, 14, 6));
+        _ui.AddChild(_walkHint);
+        var dot = new ColorRect { Color = new Color(1, 1, 1, 0.55f), CustomMinimumSize = new Vector2(4, 4), MouseFilter = Control.MouseFilterEnum.Ignore, Name = "Dot" };
+        dot.AnchorLeft = dot.AnchorRight = dot.AnchorTop = dot.AnchorBottom = 0.5f;
+        dot.OffsetLeft = dot.OffsetTop = -2; dot.OffsetRight = dot.OffsetBottom = 2;
+        _walkHint.SetMeta("dot", dot);
+        _ui.AddChild(dot);
+        WalkView();
+    }
+
+    /// <summary>Inside a building the walker sees full walls and a ceiling on their floor; outside the roofs are on.</summary>
+    void WalkView()
+    {
+        if (!_walking) return;
+        var inside = _fp.Inside != null || _fp.Floor > 0;
+        _world.Indoor = inside;
+        _world.FullWalls = inside;
+        if (inside)
+        {
+            if (_world.Roofs) _world.Roofs = false;
+            if (_world.ViewFloor != _fp.Floor) _world.ViewFloor = _fp.Floor;
+        }
+        else
+        {
+            if (!_world.Roofs) _world.Roofs = true;
+            if (_world.ViewFloor != 0) _world.ViewFloor = 0;
+        }
+    }
+
+    void StopWalk()
+    {
+        if (!_walking) return;
+        _walking = false;
+        _fp.End();
+        _world.Indoor = false;
+        _world.FullWalls = false;
+        var p = _fp.Feet;
+        _cam.SetView(_fp.Yaw, 0.85f, 24, new Vector3(p.X, 0, p.Z));
+        _cam.InputEnabled = true;
+        var inside = _fp.Floor > 0 || _fp.Inside != null;
+        SetView(inside ? _fp.Floor : _beforeWalk.floor, !inside && _beforeWalk.roofs);
+        _world.GridVisible = _beforeWalk.grid;
+        _hud.Visible = true;
+        if (_walkHint != null)
+        {
+            if (_walkHint.GetMeta("dot").AsGodotObject() is Node d) d.QueueFree();
+            _walkHint.QueueFree(); _walkHint = null;
+        }
     }
 
     /// <summary>Message arguments are keys, plain names, or "@key|arg" for translated customer names.</summary>
@@ -456,7 +546,7 @@ public partial class Main : Node3D
 
     public override void _UnhandledInput(InputEvent e)
     {
-        if (!_playing || _state == null) return;
+        if (!_playing || _state == null || _walking) return;
         if (e.IsActionPressed("ui_cancel"))
         {
             if (_curveA != null) { _curveA = _curveB = null; UpdateGhost(); }
@@ -468,6 +558,7 @@ public partial class Main : Node3D
         if (e is InputEventKey { Pressed: true, Echo: false } k)
         {
             if (k.Keycode == Key.R) { _rot = (_rot + 1) % 4; UpdateGhost(); }
+            if (k.Keycode == Key.F) { StartWalk(); GetViewport().SetInputAsHandled(); return; }
             if (_item.Mode == Mode.Curve && k.Keycode is Key.Bracketleft or Key.Bracketright)
             {
                 _curveWidth = Math.Clamp(_curveWidth + (k.Keycode == Key.Bracketright ? 1 : -1), CurvePath.MinWidth, CurvePath.MaxWidth);
@@ -1001,6 +1092,25 @@ public partial class Main : Node3D
             var v = args[cami + 1].Split(',').Select(x => float.Parse(x, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
             _cam.SetView(v[0], v[1], v[2], new Vector3(v[3], 0, v[4]));
         }
+        // step 10: --time 2027-12-20T21:00 --weather snow|rain|storm|fog|cloudy|clear --snow 0..1 --walk x,z,floor,yaw,pitch --migration
+        var tmi = Array.IndexOf(args, "--time");
+        if (tmi >= 0 && tmi + 1 < args.Length) _state.Hours = (DateTime.Parse(args[tmi + 1], System.Globalization.CultureInfo.InvariantCulture) - GameState.Epoch).TotalHours;
+        var wxi = Array.IndexOf(args, "--weather");
+        if (wxi >= 0 && wxi + 1 < args.Length) _world.ForceWeather = Enum.Parse<WeatherKind>(args[wxi + 1], true);
+        var sni = Array.IndexOf(args, "--snow");
+        if (sni >= 0 && sni + 1 < args.Length) _world.ForceSnow = double.Parse(args[sni + 1], System.Globalization.CultureInfo.InvariantCulture);
+        _world.SnapFrames = 100000;
+        if (args.Contains("--migration")) MigrationDemo(args.Contains("--movers"));
+        if (args.Contains("--cables")) CableDemo(args.Contains("--at-work"));
+        var wki = Array.IndexOf(args, "--walk");
+        if (wki >= 0 && wki + 1 < args.Length)
+        {
+            var v = args[wki + 1].Split(',').Select(x => float.Parse(x, System.Globalization.CultureInfo.InvariantCulture)).ToArray();
+            SetView((int)v[2], v[2] < 0.5f);
+            _cam.SetView(v[3], 0.8f, 20, new Vector3(v[0], 0, v[1]));
+            StartWalk();
+            _fp.Yaw = v[3]; _fp.Pitch = v.Length > 4 ? v[4] : -0.1f;
+        }
         if (args.Contains("--staff-demo"))
         {
             // a few days of automatic hiring, then a broken CRAH with a technician on the way and a city power cut
@@ -1045,6 +1155,55 @@ public partial class Main : Node3D
         }
         GetViewport().GetTexture().GetImage().SavePng(path);
         GetTree().Quit();
+    }
+
+    /// <summary>Screenshot setup for step 10: a big customer moves in; run until the moving truck is at the dock and movers push trolleys.</summary>
+    void MigrationDemo(bool movers)
+    {
+        var s = _state;
+        s.Hours = Math.Floor(s.Hours / 24) * 24 + 10;
+        var racks = s.Objects.Where(o => o.Kind == ObjKind.Rack && o.Status == ObjStatus.Live).Take(20).Select(o => o.Id).ToList();
+        var d = new Deal { Id = s.NextId++, Product = Product.Rack, State = DealState.Active, Racks = 20, RackIds = racks, Monthly = 20000, StartDay = s.Day, EndDay = s.Day + 900, Months = 30, Name = "Nordwind Cloud" };
+        s.Deals.Add(d);
+        _sim.TrackMigrations();
+        _sim.MoveQueue.RemoveAll(j => j.DealId != d.Id);
+        for (var i = 0; i < 3000; i++)
+        {
+            _sim.Tick(0.01); s.Hours += 0.01;
+            if (_sim.Agents.Any(a => a.Role == Role.Truck && a.Load == TruckLoad.Customer && a.Phase == 2) && _sim.Agents.Count(a => a.Role == Role.Visitor && a.Carry > 0 && a.Loaded) >= 2
+                && _sim.Agents.Where(a => a.Role == Role.Visitor && a.Loaded).Average(a => a.WayI) > 4) break;
+        }
+        var t = _sim.Agents.FirstOrDefault(a => a.Role == Role.Truck && a.Load == TruckLoad.Customer);
+        SetView(0, false);
+        var m = _sim.Agents.FirstOrDefault(a => a.Role == Role.Visitor && a.Carry > 0);
+        if (movers && m != null) _cam.SetView((float)m.Heading + 0.5f, 0.45f, 7, new Vector3((float)m.X, 0.8f, (float)m.Z));
+        else if (t != null) _cam.SetView(0.3f, 0.95f, 30, new Vector3((float)t.X - 2, 0, (float)t.Z - 1));
+    }
+
+    /// <summary>Screenshot: new racks waiting for cabling, engineers walking up with reels (or, with --at-work, unrolling them).</summary>
+    void CableDemo(bool atWork)
+    {
+        var s = _state;
+        s.Hours = Math.Floor(s.Hours / 24) * 24 + 11;
+        foreach (var o in s.Objects.Where(o => o.Kind == ObjKind.Rack && o.Status == ObjStatus.Live).Take(12)) o.Status = ObjStatus.Placed;
+        s.Touch();
+        Agent e = null;
+        for (var i = 0; i < 4000; i++)
+        {
+            _sim.Tick(0.01); s.Hours += 0.01;
+            e = _sim.Agents.FirstOrDefault(a => a.Role == Role.Engineer && a.Cable != CableKind.None && (atWork ? a.Working : a.Moving && a.WayI > 3));
+            if (e != null && (!atWork || _sim.Agents.Count(a => a.Role == Role.Engineer && a.Working) >= 2)) break;
+        }
+        SetView(0, false);
+        if (e == null) return;
+        if (!atWork) { _cam.SetView((float)e.Heading + 0.6f, 0.5f, 6, new Vector3((float)e.X, 0.8f, (float)e.Z)); return; }
+        // walk up the aisle and look at the engineer from the side
+        var h = e.Heading;
+        var at = new Vector3((float)(e.X + Math.Cos(h) * 3.6), 0, (float)(e.Z - Math.Sin(h) * 3.6));
+        SetView(e.Floor, e.Floor == 0);
+        _cam.SetView(0, 0.8f, 20, at);
+        StartWalk();
+        _fp.Yaw = (float)Math.Atan2(Math.Cos(h), -Math.Sin(h)); _fp.Pitch = -0.32f;
     }
 
     /// <summary>Screenshots of step 8: managers in place, policies on, a certificate, research running, reviews and a proposal.</summary>

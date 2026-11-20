@@ -36,6 +36,7 @@ public static class TestRunner
             ("research", ResearchTests), ("security", SecurityTests), ("certificates", CertTests), ("reputation", ReputationTests), ("old saves get research", ResearchMigrationTests),
             ("market and rivals", MarketTests), ("campus land", LandTests), ("locations", SiteTests), ("office tenants", OfficeLeaseTests),
             ("hosting company", HostingTests), ("energy and ESG", EnergyTests), ("risks", RiskTests), ("key people", KeyPeopleTests), ("old saves get growth", GrowthMigrationTests),
+            ("seasons, weather and the sun", ClimateTests), ("customer migrations", MigrationTests), ("first-person walking", WalkTests),
         };
         foreach (var (name, t) in tests)
         {
@@ -125,12 +126,13 @@ public static class TestRunner
         foreach (var l in GameState.New(new NewGameOptions()).SecurityLines()) used.AddRange(new[] { l.Key, l.Key + "_tip" });
         used.AddRange(new[] { "pol_id_check", "pol_escort", "pol_office_hours" }.SelectMany(k => new[] { k, k + "_desc" }));
         used.AddRange(Staffing.Roles.Values.SelectMany(r => new[] { r.Key, r.Key + "_desc" }));
+        used.AddRange(Enum.GetNames<Season>().Select(n => "season_" + n.ToLowerInvariant()));
         used.AddRange(new[] { "min_digital", "min_infrastructure", "min_finance", "min_health", "cust_name_municipality", "cust_legacy" });
         // every msg_/hint_/goal_ key mentioned in the scripts must exist
-        foreach (var file in new[] { "res://scripts/Main.cs", "res://scripts/Sim/GameState.cs", "res://scripts/Sim/Simulation.cs", "res://scripts/UI/Hud.cs", "res://scripts/UI/Menus.cs", "res://scripts/UI/PowerPanel.cs", "res://scripts/UI/NetworkPanel.cs", "res://scripts/Sim/GameState.Network.cs", "res://scripts/Sim/Network.cs", "res://scripts/World/WorldView.cs", "res://scripts/UI/OptionsDialog.cs", "res://scripts/UI/CompanyPanel.cs", "res://scripts/Sim/Org.cs", "res://scripts/Sim/Research.cs", "res://scripts/Sim/Security.cs", "res://scripts/Sim/Reputation.cs", "res://scripts/UI/ReputationPanel.cs" })
+        foreach (var file in new[] { "res://scripts/Main.cs", "res://scripts/Sim/GameState.cs", "res://scripts/Sim/Simulation.cs", "res://scripts/UI/Hud.cs", "res://scripts/UI/Menus.cs", "res://scripts/UI/PowerPanel.cs", "res://scripts/UI/NetworkPanel.cs", "res://scripts/Sim/GameState.Network.cs", "res://scripts/Sim/Network.cs", "res://scripts/World/WorldView.cs", "res://scripts/UI/OptionsDialog.cs", "res://scripts/UI/CompanyPanel.cs", "res://scripts/Sim/Org.cs", "res://scripts/Sim/Research.cs", "res://scripts/Sim/Security.cs", "res://scripts/Sim/Reputation.cs", "res://scripts/UI/ReputationPanel.cs", "res://scripts/Sim/Migrations.cs", "res://scripts/World/WorldView.Sky.cs" })
         {
             var text = FileAccess.GetFileAsString(file);
-            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(text, "\"((msg|hint|goal|cr|crew|hud|new|inspect|projects|prio|cat|power|grid|supplier|backup|chain|link|cool|halls?|advice|action|res|opt|menu|tool|net|spof|carrier|co|org|sales|zones?|leads|prod|deal|req|contracts|tenders?|fin|book|cust|bankrupt|customers|rp|rs|sec|cert|prop|pol|rev|ev|exec|staff|gr|loc|off|host|mk|en|esg|risk|key|news|cyber|supply|camp|country|size)_[a-z0-9_]+)\""))
+            foreach (System.Text.RegularExpressions.Match m in System.Text.RegularExpressions.Regex.Matches(text, "\"((msg|hint|goal|cr|crew|hud|new|inspect|projects|prio|cat|power|grid|supplier|backup|chain|link|cool|halls?|advice|action|res|opt|menu|tool|net|spof|carrier|co|org|sales|zones?|leads|prod|deal|req|contracts|tenders?|fin|book|cust|bankrupt|customers|rp|rs|sec|cert|prop|pol|rev|ev|exec|staff|gr|loc|off|host|mk|en|esg|risk|key|news|cyber|supply|camp|country|size|wx|walk|season)_[a-z0-9_]+)\""))
                 if (!ResearchTree.ById.ContainsKey(m.Groups[1].Value) && !m.Groups[1].Value.EndsWith('_')) used.Add(m.Groups[1].Value);
         }
         var absent = used.Distinct().Where(k => !en.ContainsKey(k)).ToList();
@@ -173,6 +175,7 @@ public static class TestRunner
             Shadows = false, AmbientOcclusion = false, Fog = false, Msaa = 4, BlinkingLights = false, MovingParts = false, SmoothCamera = false,
             MasterVolume = 55, AmbienceVolume = 10, InterfaceVolume = 0, AmbienceSound = false, ClickSounds = false, NotificationSounds = false, MuteInBackground = false,
             Language = "nl", AutosaveMinutes = 15,
+            DayNight = false, Weather = false, Seasons = false, MouseSensitivity = 150, InvertMouse = true,
         };
         a.Save(path);
         var b = AppSettings.Load(path);
@@ -181,6 +184,7 @@ public static class TestRunner
         Check(!b.Shadows && !b.AmbientOcclusion && !b.Fog && b.Msaa == 4 && !b.BlinkingLights && !b.MovingParts && !b.SmoothCamera, "effect switches round-trip");
         Check(b.MasterVolume == 55 && b.AmbienceVolume == 10 && b.InterfaceVolume == 0 && !b.AmbienceSound && !b.ClickSounds && !b.NotificationSounds && !b.MuteInBackground, "audio round-trip");
         Check(b.Language == "nl" && b.AutosaveMinutes == 15, "general settings round-trip");
+        Check(!b.DayNight && !b.Weather && !b.Seasons && b.MouseSensitivity == 150 && b.InvertMouse, "day/night, weather and walking settings round-trip");
 
         // broken values fall back to something safe
         var cfg = new ConfigFile();
@@ -1137,7 +1141,7 @@ public static class TestRunner
         var s = Demo.Build();
         s.Options.Creative = false; s.Options.CreativeOptions = new CreativeOptions();
         s.Options.Events = false;
-        s.Options.Disasters = false; s.Options.SupplyDelays = false;
+        s.Options.Disasters = false; s.Options.SupplyDelays = false; s.Options.WeatherEffects = false;
         s.Seed = 4242;
         return s;
     }
@@ -1698,5 +1702,111 @@ public static class TestRunner
         SaveSystem.Save(t, "unit-test-growth");
         var l = SaveSystem.Load("unit-test-growth");
         Check(l != null && l.Sites.Count == 1 && l.Hosting.Started && l.Insurance == 1 && l.Competitors.Count == t.Competitors.Count, "save roundtrip growth");
+    }
+
+    static void ClimateTests()
+    {
+        Check(Climate.SeasonOf(new DateTime(2027, 1, 15)) == Season.Winter && Climate.SeasonOf(new DateTime(2027, 7, 1)) == Season.Summer
+            && Climate.SeasonOf(new DateTime(2027, 4, 1)) == Season.Spring && Climate.SeasonOf(new DateTime(2027, 10, 1)) == Season.Autumn, "months map to seasons");
+        Check(Climate.DayLength(172) > 16 && Climate.DayLength(355) < 8.5, $"long summer days, short winter days ({Climate.DayLength(172):0.0} h / {Climate.DayLength(355):0.0} h)");
+        Check(Climate.Daylight(new DateTime(2027, 6, 21, 13, 0, 0)) > 0.99 && Climate.Daylight(new DateTime(2027, 6, 21, 2, 0, 0)) < 0.01, "noon is light, the night is dark");
+        Check(Climate.Daylight(new DateTime(2027, 12, 21, 7, 0, 0)) < 0.05 && Climate.Daylight(new DateTime(2027, 6, 21, 7, 0, 0)) > 0.9, "7 o'clock is dark in December and light in June");
+        Check(Climate.SunElevation(new DateTime(2027, 6, 21, 13, 0, 0)) > Climate.SunElevation(new DateTime(2027, 12, 21, 13, 0, 0)) + 30, "the summer sun stands higher");
+        var d = new DateTime(2027, 3, 3, 15, 30, 0);
+        Check(Climate.At(d, 77) == Climate.At(d, 77), "the weather is the same when you look again (loading a save)");
+        var kinds = new Dictionary<WeatherKind, int>();
+        int snowOutside = 0, clearSummer = 0, clearWinter = 0;
+        for (var h = 0; h < 24 * 365 * 2; h += 6)
+        {
+            var t = GameState.Epoch.AddHours(h);
+            var w = Climate.At(t, 1234);
+            kinds[w.Kind] = kinds.GetValueOrDefault(w.Kind) + 1;
+            if (w.Kind == WeatherKind.Snow && t.Month is >= 5 and <= 9) snowOutside++;
+            if (w.Kind == WeatherKind.Clear && w.Season == Season.Summer) clearSummer++;
+            if (w.Kind == WeatherKind.Clear && w.Season == Season.Winter) clearWinter++;
+            if (w.SnowCover > 0 && t.Month is >= 5 and <= 9) snowOutside++;
+        }
+        Check(Enum.GetValues<WeatherKind>().All(k => kinds.GetValueOrDefault(k) > 0), "two years bring every kind of weather: " + string.Join(", ", kinds.Select(k => $"{k.Key} {k.Value}")));
+        Check(snowOutside == 0, "no snow and no snow cover in summer");
+        Check(clearSummer > clearWinter, $"summer is sunnier than winter ({clearSummer} vs {clearWinter})");
+        var cold = Climate.At(new DateTime(2027, 1, 20, 14, 0, 0), 5);
+        var hot = Climate.At(new DateTime(2027, 1, 20, 14, 0, 0), 5, heatwave: true);
+        Check(hot.Kind == WeatherKind.Clear && hot.TempC > cold.TempC + 10 && hot.SnowCover == 0, "a heatwave shows as a hot clear sky");
+        Check(Climate.At(d, 5, flood: true).Kind == WeatherKind.Storm, "a flood comes with a storm");
+        var s = Quiet();
+        var before = s.Money; var rep = s.Reputation;
+        var now = s.Weather;
+        s.Advance(24 * 3);
+        Check(now.Season == Climate.SeasonOf(s.Date.AddDays(-3)) && s.Weather.Daylight >= 0, "the game knows its weather");
+        Check(Climate.SeedOf("A") != Climate.SeedOf("B") && Climate.SeedOf("A") == Climate.SeedOf("A"), "stable weather seeds");
+        // weather effects (new-game switch)
+        Check(GameState.CoolingFactorAt(2) < GameState.CoolingFactorAt(14) && GameState.CoolingFactorAt(14) < GameState.CoolingFactorAt(22) && GameState.CoolingFactorAt(22) < GameState.CoolingFactorAt(30), "colder weather means cheaper cooling");
+        var e = Quiet();
+        Check(e.CoolingWeatherFactor == 1 && e.SunFactor == 1 && e.TravelFactor == 1 && e.OutageWeatherFactor == 1, "without weather effects nothing changes");
+        var pueOff = e.Infra.Pue;
+        e.Options.WeatherEffects = true;
+        e.Hours = (new DateTime(2027, 1, 20, 6, 0, 0) - GameState.Epoch).TotalHours; e.InvalidateInfra();
+        var pueWinter = e.Infra.Pue;
+        Check(e.Weather.TempC < 10 && pueWinter < pueOff, $"a cold winter morning lowers the PUE ({pueWinter:0.00} < {pueOff:0.00})");
+        e.StartEvent(EventKind.Heatwave, 48); e.InvalidateInfra();
+        Check(e.Infra.Pue > pueWinter && e.CoolingWeatherFactor > 1, "a heatwave makes cooling harder");
+        Check(e.Forecast(3).Count == 3 && e.Forecast(3)[0].day.Date == e.Date.Date.AddDays(1), "a three-day weather report");
+        var old = Quiet(); old.Options.WeatherEffects = true; old.SaveFormat = 8; old.Migrate();
+        Check(!old.Options.WeatherEffects && old.SaveFormat == GameState.CurrentFormat, "older saves keep the weather for looks only");
+        Check(!new NewGameOptions().WeatherEffects, "the weather plays along only when chosen in the new-game dialog");
+    }
+
+    static void MigrationTests()
+    {
+        var s = Quiet();
+        var sim = new Simulation(s);
+        sim.TrackMigrations();
+        Check(Simulation.ConvoySize(4) == 1 && Simulation.ConvoySize(25) == 3 && Simulation.ConvoySize(200) == 4, "one moving truck per ten racks, at most four");
+        var racks = s.Objects.Where(o => o.Kind == ObjKind.Rack && o.Status == ObjStatus.Live).Take(12).Select(o => o.Id).ToList();
+        var d = new Deal { Id = s.NextId++, Product = Product.Rack, State = DealState.Active, Racks = 12, RackIds = racks.ToList(), Monthly = 1000, StartDay = s.Day, EndDay = s.Day + 900, Months = 30, Name = "Test Movers" };
+        s.Deals.Add(d);
+        sim.TrackMigrations();
+        Check(sim.MoveQueue.Count(j => j.DealId == d.Id && !j.Out) == 2, "a big customer moves in with a convoy of two trucks");
+        Check(sim.Messages.Any(m => m.key == "msg_moving_in"), "and you hear about it");
+        sim.TrackMigrations();
+        Check(sim.MoveQueue.Count(j => j.DealId == d.Id && !j.Out) == 2, "the convoy is planned only once");
+        d.State = DealState.Ended; d.RackIds.Clear();
+        sim.TrackMigrations();
+        Check(sim.MoveQueue.Count(j => j.DealId == d.Id && j.Out) == 2 && sim.MoveQueue.Where(j => j.Out).All(j => j.Racks.Count == 12), "a leaving customer sends trucks to collect their servers");
+        Check(sim.Messages.Any(m => m.key == "msg_moving_out"), "and you hear about that too");
+        // run in daylight until a moving truck has arrived and its movers carry servers
+        s.Hours = Math.Floor(s.Hours / 24) * 24 + 9;
+        sim.MoveQueue.RemoveAll(j => j.DealId != d.Id);
+        var sawTruck = false; var sawMover = false;
+        for (var i = 0; i < 400 && !(sawTruck && sawMover); i++)
+        {
+            sim.Tick(0.05); s.Hours += 0.05;
+            sawTruck |= sim.Agents.Any(a => a.Role == Role.Truck && a.Load == TruckLoad.Customer);
+            sawMover |= sim.Agents.Any(a => a.Role == Role.Visitor && a.Carry > 0);
+        }
+        Check(sawTruck, "a moving truck drives to the dock");
+        Check(sawMover, "movers walk between the truck and the racks");
+        Check(d.State == DealState.Ended && s.Deals.Contains(d), "migrations are only for looks: the contract is unchanged");
+    }
+
+    static void WalkTests()
+    {
+        var s = Quiet();
+        var nav = new Nav(s);
+        var walls = s.WallEdges(0, true);
+        var doorEdges = s.Doors.Where(x => x.Floor == 0).SelectMany(x => x.Edges()).ToHashSet();
+        var wall = walls.Where(e => e.Item3 == 0 && !doorEdges.Contains(e)).FirstOrDefault(e => nav.Walkable(e.Item1 - 1, e.Item2, 0) && nav.Walkable(e.Item1, e.Item2, 0));
+        Check(wall != default && !nav.CanStep(wall.Item1 - 1, wall.Item2, wall.Item1, wall.Item2, 0), "the walker cannot walk through a wall");
+        var door = doorEdges.FirstOrDefault(e => e.dir == 0 && nav.Walkable(e.x - 1, e.z, 0) && nav.Walkable(e.x, e.z, 0));
+        if (door == default)
+        {
+            var dz = doorEdges.First(e => e.dir == 1 && nav.Walkable(e.x, e.z - 1, 0) && nav.Walkable(e.x, e.z, 0));
+            Check(nav.CanStep(dz.x, dz.z - 1, dz.x, dz.z, 0), "but walks through a door");
+        }
+        else Check(nav.CanStep(door.x - 1, door.z, door.x, door.z, 0), "but walks through a door");
+        var rack = s.Objects.First(o => o.Kind == ObjKind.Rack && o.Status == ObjStatus.Live);
+        Check(!nav.CanStep(rack.X, rack.Z - 1, rack.X, rack.Z, rack.Floor) && !nav.CanStep(rack.X, rack.Z + 1, rack.X, rack.Z, rack.Floor), "racks are solid");
+        Check(nav.CanStep(-5, -5, -4, -5, 0) && !nav.CanStep(-5, -5, -4, -5, 1), "outside the plot you can roam the grass, but not on an upper floor");
+        Check(!nav.CanStep(0, 0, 2, 0, 0), "one cell at a time");
     }
 }

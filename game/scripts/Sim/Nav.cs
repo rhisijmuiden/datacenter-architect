@@ -82,6 +82,25 @@ public class Nav
         return _s.InPlot(x, z) && f >= 0 && f < _walk.Length && _walk[f][z * _n + x];
     }
 
+    /// <summary>
+    /// One step for the first-person walker from a cell to a neighbouring one (also diagonal): the target must be walkable
+    /// and a wall may only be crossed through a door. Outside the plot the walker may roam the grass on the ground floor.
+    /// </summary>
+    public bool CanStep(int x, int z, int nx, int nz, int f)
+    {
+        Rebuild();
+        if (x == nx && z == nz) return true;
+        bool Open(int cx, int cz) => _s.InPlot(cx, cz) ? _walk[f][cz * _n + cx] : f == 0;
+        bool Edge(int ax, int az, int dx, int dz) => Cross(f, EdgeBetween(ax, az, dx, dz), NavMode.Walk);
+        if (f < 0 || f >= _walk.Length || !Open(nx, nz)) return false;
+        int sx = Math.Sign(nx - x), sz = Math.Sign(nz - z);
+        if (Math.Abs(nx - x) > 1 || Math.Abs(nz - z) > 1) return false;
+        if (sx != 0 && sz != 0)
+            // diagonal: one of the two L-shaped routes must be open
+            return Open(x + sx, z) && Edge(x, z, sx, 0) && Edge(x + sx, z, 0, sz) || Open(x, z + sz) && Edge(x, z, 0, sz) && Edge(x, z + sz, sx, 0);
+        return Edge(x, z, sx, sz);
+    }
+
     public bool TruckCell(int x, int z) { Rebuild(); return _s.InPlot(x, z) && _truck[z * _n + x]; }
 
     bool Pass(int x, int z, int f, NavMode m) => m == NavMode.Truck ? _truck[z * _n + x] : _walk[f][z * _n + x];

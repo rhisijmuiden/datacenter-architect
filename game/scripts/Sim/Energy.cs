@@ -60,7 +60,7 @@ public partial class GameState
 
     /// <summary>Sun hours per day by month (Dutch climate) and wind capacity factor (more in winter).</summary>
     static readonly double[] SunHours = { 0.7, 1.3, 2.4, 3.6, 4.6, 5.0, 4.8, 4.2, 3.0, 1.9, 0.9, 0.6 };
-    public double SolarKwh(int month) => SolarPanels * SolarKwp * SunHours[Math.Clamp(month - 1, 0, 11)] * 0.85;
+    public double SolarKwh(int month) => SolarPanels * SolarKwp * SunHours[Math.Clamp(month - 1, 0, 11)] * 0.85 * SunFactor;
     public double WindKwh(int month) => WindTurbines * WindKw * 24 * (0.24 + 0.1 * Math.Cos(2 * Math.PI * (month - 1) / 12.0));
 
     /// <summary>Share of the energy you use that is green: a green supplier is 100%, else your own solar and wind.</summary>

@@ -140,7 +140,8 @@ public partial class NewGameDialog : Modal
         var prices = new CheckBox { Text = "new_prices", ButtonPressed = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "new_prices_help" };
         var disasters = new CheckBox { Text = "new_disasters", ButtonPressed = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "new_disasters_help" };
         var supply = new CheckBox { Text = "new_supply", ButtonPressed = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "new_supply_help" };
-        world.AddChild(news); world.AddChild(prices); world.AddChild(disasters); world.AddChild(supply);
+        var weather = new CheckBox { Text = "new_weather_effects", ButtonPressed = true, SizeFlagsHorizontal = SizeFlags.ExpandFill, TooltipText = "new_weather_effects_help" };
+        world.AddChild(news); world.AddChild(prices); world.AddChild(disasters); world.AddChild(supply); world.AddChild(weather);
         Body.AddChild(Ui.Heading("new_world"));
         Body.AddChild(world);
         Body.AddChild(Ui.Text("new_world_help", 13, Brand.InkDim));
@@ -150,7 +151,7 @@ public partial class NewGameDialog : Modal
             o.Company = string.IsNullOrWhiteSpace(name.Text) ? Loc.T("new_company_default") : name.Text.Trim();
             o.Difficulty = diff.Selected; o.AiCompetitors = ai.ButtonPressed; o.Events = events.ButtonPressed;
             o.Competitors = (int)count.Value; o.Aggression = aggr.Selected;
-            o.News = news.ButtonPressed; o.DynamicPrices = prices.ButtonPressed; o.Disasters = disasters.ButtonPressed; o.SupplyDelays = supply.ButtonPressed;
+            o.News = news.ButtonPressed; o.DynamicPrices = prices.ButtonPressed; o.Disasters = disasters.ButtonPressed; o.SupplyDelays = supply.ButtonPressed; o.WeatherEffects = weather.ButtonPressed;
             o.Creative = creative.ButtonPressed;
             o.CreativeOptions = o.Creative ? c : new CreativeOptions();
             if (o.Creative && c.UnlimitedMoney) o.Difficulty = 0;

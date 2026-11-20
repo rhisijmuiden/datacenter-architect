@@ -40,6 +40,11 @@ public class AppSettings
     public bool BlinkingLights = true;
     public bool MovingParts = true;
     public bool SmoothCamera = true;
+    /// <summary>Step 10 looks: day/night cycle, weather (rain, snow, fog, storms) and seasonal colours.</summary>
+    public bool DayNight = true, Weather = true, Seasons = true;
+    /// <summary>First-person walking: mouse sensitivity (percent) and invert the vertical look.</summary>
+    public int MouseSensitivity = 100;
+    public bool InvertMouse;
 
     // audio, volumes 0..100
     public int MasterVolume = 80;
@@ -83,6 +88,11 @@ public class AppSettings
         s.Msaa = Get("graphics", "msaa", s.Msaa) switch { 0 => 0, 2 => 2, 4 => 4, 8 => 8, _ => 2 };
         s.BlinkingLights = Get("graphics", "blinking_lights", s.BlinkingLights);
         s.MovingParts = Get("graphics", "moving_parts", s.MovingParts);
+        s.DayNight = Get("graphics", "day_night", s.DayNight);
+        s.Weather = Get("graphics", "weather", s.Weather);
+        s.Seasons = Get("graphics", "seasons", s.Seasons);
+        s.MouseSensitivity = Mathf.Clamp(Get("game", "mouse_sensitivity", s.MouseSensitivity), 25, 300);
+        s.InvertMouse = Get("game", "invert_mouse", s.InvertMouse);
         s.SmoothCamera = Get("graphics", "smooth_camera", s.SmoothCamera);
 
         s.MasterVolume = Mathf.Clamp(Get("audio", "master", s.MasterVolume), 0, 100);
@@ -118,6 +128,11 @@ public class AppSettings
         cfg.SetValue("graphics", "msaa", Msaa);
         cfg.SetValue("graphics", "blinking_lights", BlinkingLights);
         cfg.SetValue("graphics", "moving_parts", MovingParts);
+        cfg.SetValue("graphics", "day_night", DayNight);
+        cfg.SetValue("graphics", "weather", Weather);
+        cfg.SetValue("graphics", "seasons", Seasons);
+        cfg.SetValue("game", "mouse_sensitivity", MouseSensitivity);
+        cfg.SetValue("game", "invert_mouse", InvertMouse);
         cfg.SetValue("graphics", "smooth_camera", SmoothCamera);
 
         cfg.SetValue("audio", "master", MasterVolume);
@@ -137,6 +152,7 @@ public class AppSettings
         WindowMode = d.WindowMode; Resolution = d.Resolution; Monitor = d.Monitor; VSync = d.VSync; MaxFps = d.MaxFps; UiScale = d.UiScale;
         Shadows = d.Shadows; AmbientOcclusion = d.AmbientOcclusion; Fog = d.Fog; Msaa = d.Msaa;
         BlinkingLights = d.BlinkingLights; MovingParts = d.MovingParts; SmoothCamera = d.SmoothCamera;
+        DayNight = d.DayNight; Weather = d.Weather; Seasons = d.Seasons; MouseSensitivity = d.MouseSensitivity; InvertMouse = d.InvertMouse;
         MasterVolume = d.MasterVolume; AmbienceVolume = d.AmbienceVolume; InterfaceVolume = d.InterfaceVolume;
         AmbienceSound = d.AmbienceSound; ClickSounds = d.ClickSounds; NotificationSounds = d.NotificationSounds; MuteInBackground = d.MuteInBackground;
         AutosaveMinutes = d.AutosaveMinutes;
