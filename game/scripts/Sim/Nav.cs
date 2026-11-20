@@ -228,25 +228,33 @@ public class Nav
         return null;
     }
 
-    /// <summary>Path that may change floors through a freight lift.</summary>
+    /// <summary>Path that may change floors through stairs or a lift. Walkers take whichever link gives the shortest
+    /// trip (stairs win for a floor or two, a lift for more); carried loads need the freight lift.</summary>
     public List<Pt> Find(Pt start, int goalFloor, Func<int, int, bool> goal, NavMode m)
     {
         var starts = new[] { (start.X, start.Z) };
         if (start.F == goalFloor) return FindOnFloor(starts, start.F, goal, m);
-        foreach (var lift in _s.Objects.Where(o => o.Kind == ObjKind.Lift))
+        List<Pt> best = null; var bestCost = double.MaxValue;
+        var floors = Math.Abs(goalFloor - start.F);
+        foreach (var link in _s.Objects.Where(o => Catalog.ShaftAllows(o.Kind, m)))
         {
-            var b = _s.BuildingAt(lift.X, lift.Z);
+            var b = _s.BuildingAt(link.X, link.Z);
             if (b == null || b.Stage != Stage.Done || b.Floors <= Math.Max(start.F, goalFloor)) continue;
-            var cells = GameState.Cells(lift).ToHashSet();
+            var cells = GameState.Cells(link).ToHashSet();
             var a = FindOnFloor(starts, start.F, (x, z) => cells.Contains((x, z)), m);
             if (a == null) continue;
             var at = a.Count > 0 ? a[^1] : start;
             var c = FindOnFloor(new[] { (at.X, at.Z) }, goalFloor, goal, m);
             if (c == null) continue;
+            var cost = a.Count + c.Count + LinkCost(link.Kind, floors);
+            if (cost >= bestCost) continue;
             a.Add(new Pt(at.X, at.Z, goalFloor));
             a.AddRange(c);
-            return a;
+            best = a; bestCost = cost;
         }
-        return null;
+        return best;
     }
+
+    /// <summary>Extra steps a floor link is worth: waiting for a lift, or climbing stairs floor by floor.</summary>
+    public static double LinkCost(ObjKind k, int floors) => k == ObjKind.Stairs ? 7 * floors : 12 + 2 * floors;
 }

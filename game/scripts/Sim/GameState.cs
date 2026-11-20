@@ -346,11 +346,11 @@ public partial class GameState
     }
 
     /// <summary>Objects the building and fence layout depends on: gates in fences, lifts and plant on roofs.</summary>
-    public static bool ShapesLayout(PlacedObject o) => Catalog.IsGate(o.Kind) || o.Kind == ObjKind.Lift || o.Floor == RoofFloor;
+    public static bool ShapesLayout(PlacedObject o) => Catalog.IsGate(o.Kind) || Catalog.IsShaft(o.Kind) || o.Floor == RoofFloor;
 
     static bool Covers(PlacedObject o, int x, int z, int floor)
     {
-        if (o.Floor != floor && (o.Kind != ObjKind.Lift || floor < 0)) return false;
+        if (o.Floor != floor && (!Catalog.IsShaft(o.Kind) || floor < 0)) return false;
         var (w, d) = Footprint(o);
         return x >= o.X && x < o.X + w && z >= o.Z && z < o.Z + d;
     }
@@ -377,7 +377,7 @@ public partial class GameState
     void IndexAdd(int i)
     {
         var o = Objects[i];
-        if (o.Kind == ObjKind.Lift) { _liftIndex.Add(i); return; }
+        if (Catalog.IsShaft(o.Kind)) { _liftIndex.Add(i); return; }
         var (w, d) = Footprint(o);
         for (var x = o.X; x < o.X + w; x++)
             for (var z = o.Z; z < o.Z + d; z++)
@@ -723,7 +723,7 @@ public partial class GameState
         bool In(int x, int z) => x >= x0 && z >= z0 && x < x0 + w && z < z0 + d;
         var changed = false;
         var layout = false;
-        foreach (var o in Objects.Where(o => (o.Floor == floor || (o.Kind == ObjKind.Lift && floor == 0) || (roof && o.Floor == RoofFloor)) && Cells(o).Any(c => In(c.x, c.z))).ToList())
+        foreach (var o in Objects.Where(o => (o.Floor == floor || (Catalog.IsShaft(o.Kind) && floor == 0) || (roof && o.Floor == RoofFloor)) && Cells(o).Any(c => In(c.x, c.z))).ToList())
         {
             Objects.Remove(o); Refund(o.Def.Cost / 2); changed = true; layout |= ShapesLayout(o);
         }
@@ -758,7 +758,7 @@ public partial class GameState
 
     void RemoveRoom(Room r)
     {
-        Objects.RemoveAll(o => o.Floor == r.Floor && o.Kind != ObjKind.Lift && r.Contains(o.X, o.Z));
+        Objects.RemoveAll(o => o.Floor == r.Floor && !Catalog.IsShaft(o.Kind) && r.Contains(o.X, o.Z));
         var edges = Perimeter(r.X, r.Z, r.W, r.D).ToHashSet();
         Doors.RemoveAll(o => o.Floor == r.Floor && o.Edges().Any(edges.Contains) && !o.Edges().Any(IsOuterEdge));
         Rooms.Remove(r);

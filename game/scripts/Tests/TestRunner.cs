@@ -26,7 +26,7 @@ public static class TestRunner
         {
             ("semver", SemVerTests), ("updates", UpdateTests), ("translations", TranslationTests),
             ("saves", SaveTests), ("building", BuildTests), ("construction", ConstructionTests),
-            ("rack chain", RackChainTests), ("gates", GateTests), ("curves", CurveTests), ("navigation", NavTests), ("creative", CreativeTests), ("demo", DemoTests),
+            ("rack chain", RackChainTests), ("gates", GateTests), ("curves", CurveTests), ("navigation", NavTests), ("stairs and lifts", StairsTests), ("creative", CreativeTests), ("demo", DemoTests),
             ("power chain", PowerTests), ("backup power", BackupTests), ("grid and suppliers", GridTests),
             ("cooling", CoolingTests), ("roof and underground", RoofTests), ("overlay rows", OverlayTests),
             ("options", OptionsTests), ("thumbnails", ThumbnailTests), ("network", NetworkTests), ("network money", NetworkMoneyTests), ("peering", PeeringTests),
@@ -387,6 +387,31 @@ public static class TestRunner
         Check(nav.Find(new Pt(5, 35, 0), 0, (x, z) => z == 25, NavMode.Walk) == null, "a closed fence blocks");
         s.AddObject(ObjKind.PedGate, 6, 30, 0, 0);
         Check(nav.Find(new Pt(5, 35, 0), 0, (x, z) => z == 25, NavMode.Walk) != null, "a gate lets people through");
+    }
+
+    static void StairsTests()
+    {
+        var s = GameState.New(new NewGameOptions());
+        var b = s.AddBuilding(BuildingKind.Office, 10, 10, 12, 12, 3);
+        b.Stage = Stage.Done;
+        s.AddDoor(DoorType.Single, 12, 22, 1, 0);
+        var nav = new Nav(s);
+        Check(s.CanPlace(new PlacedObject { Kind = ObjKind.Stairs, X = 11, Z = 11 }) == null, "stairs can be placed in a building");
+        var stairs = s.AddObject(ObjKind.Stairs, 11, 11, 0, 0);
+        var stairCells = GameState.Cells(stairs).ToHashSet();
+        Check(stairCells.Count == 10, "stairs take 2 x 5 cells");
+        var up = nav.Find(new Pt(15, 18, 0), 1, (x, z) => x == 18 && z == 18, NavMode.Walk);
+        Check(up != null && up[^1].F == 1, "people take the stairs to the next floor");
+        Check(up != null && up.Zip(up.Skip(1)).Any(p => p.First.F == 0 && p.Second.F == 1 && stairCells.Contains((p.First.X, p.First.Z))), "the floor change happens on the stairs");
+        Check(nav.Find(new Pt(15, 18, 0), 1, (x, z) => x == 18 && z == 18, NavMode.Carry) == null, "loads cannot be carried up the stairs");
+        var lift = s.AddObject(ObjKind.PassengerLift, 19, 11, 0, 0);
+        var liftCells = GameState.Cells(lift).ToHashSet();
+        var high = nav.Find(new Pt(19, 14, 0), 2, (x, z) => x == 20 && z == 14, NavMode.Walk);
+        Check(high != null && high.Zip(high.Skip(1)).Any(p => p.First.F != p.Second.F && liftCells.Contains((p.First.X, p.First.Z))), "people next to a passenger lift ride it two floors up");
+        var near = nav.Find(new Pt(13, 17, 0), 1, (x, z) => x == 13 && z == 17, NavMode.Walk);
+        Check(near != null && near.Zip(near.Skip(1)).Any(p => p.First.F != p.Second.F && stairCells.Contains((p.First.X, p.First.Z))), "for one floor next to the stairs people walk up");
+        Check(nav.Find(new Pt(19, 14, 0), 1, (x, z) => x == 20 && z == 14, NavMode.Carry) == null, "a passenger lift does not take racks");
+        Check(s.ObjectAt(12, 12, 2) == stairs, "stairs serve every floor");
     }
 
     static void CreativeTests()
