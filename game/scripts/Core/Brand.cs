@@ -19,8 +19,8 @@ public static class Brand
     public static readonly Color Warning = Amber;
     public static readonly Color Critical = new("#FF6B5E");
 
-    public static readonly Color Grass = new("#6A9A4C");
-    public static readonly Color PlotGrass = new("#78A855");
+    public static readonly Color Grass = new("#5A8E3C");
+    public static readonly Color PlotGrass = new("#679E45");
     public static readonly Color Asphalt = new("#4A4F57");
     public static readonly Color Concrete = new("#A9ADB1");
     public static readonly Color Wall = new("#C9D0D6");

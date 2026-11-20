@@ -565,6 +565,8 @@ public static class Models
     static readonly Color[] Casual = { new("#6c5aa8"), new("#3f8f6b"), new("#b0473f"), new("#5d6b78"), new("#c48a3a"), new("#2f6f9a") };
     static readonly Color[] Skins = { new("#f1c7a5"), new("#d9a27c"), new("#a8714d"), new("#7a4e32"), new("#e8b48f") };
 
+    static readonly Color[] Trousers = { new("#3d5a80"), new("#6f8fb5"), new("#2b2f36"), new("#a8916a"), new("#4b6a8f"), new("#56606b") };
+
     static readonly Color[] Hair = { new("#2b211c"), new("#6b4a2f"), new("#c99a5b"), new("#9a3f2a"), new("#d9d2c6"), new("#3a2f2a") };
 
     /// <summary>A joint the walk animation turns: shoulders and hips, so arms and legs swing from the top.</summary>
@@ -576,8 +578,9 @@ public static class Models
     }
 
     /// <summary>
-    /// A round, friendly figure (step 10): a big round head with eyes, cheeks and hair, a soft pear-shaped body,
-    /// arms with hands that swing from the shoulder and legs with shoes that swing from the hip.
+    /// A person with human proportions (playtest batch 2): about 1.75 m tall, head about an eighth of the height,
+    /// neck, a torso that narrows from chest to waist, shoulders, long arms with hands that swing from the shoulder
+    /// and long legs with shoes that swing from the hip. Hair styles, short sleeves and shorts vary per person.
     /// Colour, hat and a coloured band show the role. Node names Fig, L1, L2, A1, A2, Crate, Cart, Rack and Tool are animated.
     /// </summary>
     public static Node3D Person(Role role, int id, StaffRole staff = StaffRole.Support)
@@ -593,24 +596,43 @@ public static class Models
             Role.Visitor => Casual[id % Casual.Length],
             _ => White,
         };
-        var legs = role == Role.Builder ? new Color("#3f4a57") : role == Role.Visitor ? new Color("#3b4a63") : new Color("#2f3a46");
-        var skin = Skins[Math.Abs(id) % Skins.Length];
+        var v = Math.Abs(id);
+        // visitors wear jeans in different washes, black or khaki trousers
+        var legs = role == Role.Builder ? new Color("#3f4a57") : role == Role.Visitor ? Trousers[v * 3 % Trousers.Length] : new Color("#2f3a46");
+        // about half the people are built slimmer, with narrower shoulders and longer hair
+        var slim = (v * 7 + 2) % 2 == 0;
+        var sw = slim ? 0.86f : 1f;
+        var skin = Skins[v % Skins.Length];
+        // visitors dress casually: some in short sleeves, some in shorts
+        var shortSleeves = role == Role.Visitor && v % 3 == 1;
+        var shorts = role == Role.Visitor && v % 4 == 2;
         var fig = new Node3D { Name = "Fig" }; n.AddChild(fig);
-        // legs swing from the hip; short and round, with chunky shoes
-        foreach (var (name, x) in new[] { ("L1", -0.11f), ("L2", 0.11f) })
+
+        // legs swing from the hip: trousers (or shorts with bare shins) and a shoe that points forward
+        const float hipY = 0.9f;
+        foreach (var (name, x) in new[] { ("L1", -0.085f * sw), ("L2", 0.085f * sw) })
         {
-            var hip = Joint(fig, name, new Vector3(x, 0.5f, 0));
-            Capsule(hip, new Vector3(0, -0.22f, 0), 0.095f, 0.5f, legs);
-            var shoe = Ball(hip, new Vector3(0, -0.45f, 0.05f), 0.1f, Dark, 0.6f);
-            shoe.Scale = new Vector3(1, 0.6f, 1.45f);
+            var hip = Joint(fig, name, new Vector3(x, hipY, 0));
+            if (shorts)
+            {
+                Capsule(hip, new Vector3(0, -0.2f, 0), 0.078f, 0.42f, legs);
+                Capsule(hip, new Vector3(0, -0.58f, 0), 0.058f, 0.5f, skin);
+            }
+            else Capsule(hip, new Vector3(0, -0.42f, 0), 0.07f, 0.86f, legs);
+            var shoe = Ball(hip, new Vector3(0, -0.855f, 0.045f), 0.065f, Dark, 0.6f);
+            shoe.Scale = new Vector3(1, 0.62f, 1.75f);
         }
-        // pear-shaped body: wide at the hips, narrower at the shoulders
-        var torso = Ball(fig, new Vector3(0, 0.78f, 0), 0.3f, body);
-        torso.Scale = new Vector3(1, 1.18f, 0.88f);
-        Ball(fig, new Vector3(0, 1.0f, 0), 0.23f, body).Scale = new Vector3(1, 0.8f, 0.85f);
-        if (role == Role.Builder) Box(fig, new Vector3(0, 0.88f, 0.24f), new Vector3(0.34f, 0.06f, 0.05f), new Color("#e8f0f4"), glow: false);
-        if (role == Role.Engineer) Box(fig, new Vector3(0, 0.95f, 0.245f), new Vector3(0.36f, 0.05f, 0.05f), Brand.Power);
-        if (role == Role.Visitor) Box(fig, new Vector3(0.11f, 0.98f, 0.255f), new Vector3(0.1f, 0.13f, 0.02f), Brand.Cooling);
+        // pelvis, then a torso that narrows from the chest to the waist, slightly flattened front to back
+        Ball(fig, new Vector3(0, hipY + 0.04f, 0), 0.155f, legs).Scale = new Vector3(1.12f, 0.62f, 0.78f);
+        var torso = Cyl(fig, new Vector3(0, 1.2f, 0), 0.15f, 0.48f, body, 0.185f);
+        torso.Scale = new Vector3(sw, 1, 0.68f);
+        var shoulders = Capsule(fig, new Vector3(0, 1.42f, 0), 0.075f, 0.5f * sw, body);
+        shoulders.RotationDegrees = new Vector3(0, 0, 90); shoulders.Scale = new Vector3(1, 1, 0.85f);
+        // role marks on the chest
+        if (role == Role.Builder)
+            foreach (var y in new[] { 1.12f, 1.28f }) Box(fig, new Vector3(0, y, 0), new Vector3(0.34f, 0.035f, 0.27f), new Color("#e8f0f4"));
+        if (role == Role.Engineer) Box(fig, new Vector3(0, 1.3f, 0), new Vector3(0.355f, 0.04f, 0.26f), Brand.Power);
+        if (role == Role.Visitor) Box(fig, new Vector3(0.08f, 1.32f, 0.125f), new Vector3(0.07f, 0.09f, 0.015f), Brand.Cooling);
         if (role == Role.Staff && id > 0)
         {
             // a coloured band shows the trade: amber power, cyan cooling, orange fiber (the brand colours)
@@ -620,29 +642,56 @@ public static class Models
                 StaffRole.Noc => Brand.Cooling, StaffRole.Guard => new Color("#c9d3dc"), StaffRole.Canteen => new Color("#2f3a46"), StaffRole.RemoteHands => Brand.Power,
                 _ => null,
             };
-            if (band is Color b) Box(fig, new Vector3(0, 0.95f, 0.245f), new Vector3(0.36f, 0.05f, 0.05f), b);
+            if (band is Color b) Box(fig, new Vector3(0, 1.3f, 0), new Vector3(0.355f, 0.04f, 0.26f), b);
         }
-        // arms swing from the shoulder and end in a round hand
-        foreach (var (name, x) in new[] { ("A1", -0.31f), ("A2", 0.31f) })
+        // clothing details: visitors and office staff in a jacket with shirt and tie, others with a round collar
+        var office = role == Role.Staff && id > 0 && staff is StaffRole.Support or StaffRole.Noc or StaffRole.Receptionist or StaffRole.Helpdesk;
+        if (role == Role.Visitor && v % 3 == 0 || office)
         {
-            var sh = Joint(fig, name, new Vector3(x, 1.06f, 0));
-            Capsule(sh, new Vector3(0, -0.2f, 0), 0.075f, 0.42f, body);
-            Ball(sh, new Vector3(0, -0.42f, 0.01f), 0.075f, skin);
+            Box(fig, new Vector3(0, 1.33f, 0.121f), new Vector3(0.085f, 0.18f, 0.012f), White);
+            Box(fig, new Vector3(0, 1.3f, 0.13f), new Vector3(0.028f, 0.2f, 0.01f), v % 2 == 0 ? new Color("#b0473f") : new Color("#24466f"));
+            foreach (var x in new[] { -0.05f, 0.05f })
+                Box(fig, new Vector3(x, 1.31f, 0.127f), new Vector3(0.022f, 0.22f, 0.012f), body.Darkened(0.25f)).RotationDegrees = new Vector3(0, 0, x < 0 ? -12 : 12);
         }
-        // the big round head
-        const float hy = 1.42f;
-        Ball(fig, new Vector3(0, hy, 0), 0.27f, skin);
-        foreach (var x in new[] { -0.09f, 0.09f })
+        else Cyl(fig, new Vector3(0, 1.45f, 0), 0.07f, 0.035f, body.Darkened(0.15f));
+        // a belt between shirt and trousers
+        Cyl(fig, new Vector3(0, 0.97f, 0), 0.152f, 0.04f, Dark).Scale = new Vector3(sw, 1, 0.7f);
+
+        // arms swing from the shoulder: sleeve, forearm and hand
+        foreach (var (name, x) in new[] { ("A1", -0.235f * sw), ("A2", 0.235f * sw) })
         {
-            Ball(fig, new Vector3(x, hy + 0.03f, 0.235f), 0.045f, White);
-            Ball(fig, new Vector3(x, hy + 0.03f, 0.27f), 0.026f, Dark);
-            Ball(fig, new Vector3(x * 1.55f, hy - 0.06f, 0.215f), 0.04f, new Color("#f09a8a"), 0.6f);
+            var sh = Joint(fig, name, new Vector3(x, 1.42f, 0));
+            if (shortSleeves)
+            {
+                Capsule(sh, new Vector3(0, -0.12f, 0), 0.058f, 0.26f, body);
+                Capsule(sh, new Vector3(0, -0.37f, 0), 0.045f, 0.46f, skin);
+            }
+            else Capsule(sh, new Vector3(0, -0.29f, 0), 0.052f, 0.6f, body);
+            Ball(sh, new Vector3(0, -0.62f, 0.01f), 0.048f, skin).Scale = new Vector3(0.85f, 1.15f, 0.9f);
         }
-        Box(fig, new Vector3(0, hy - 0.1f, 0.255f), new Vector3(0.08f, 0.018f, 0.02f), new Color("#7a3b32"));
-        // hair under the hats; visitors and office staff show it
-        var hair = Ball(fig, new Vector3(0, hy + 0.07f, -0.03f), 0.275f, Hair[Math.Abs(id * 7 + 3) % Hair.Length], 0.82f);
-        hair.Scale = new Vector3(1.02f, 0.82f, 1.0f);
-        Color? hat = null; var hatSquash = 0.62f; var hatY = hy + 0.12f; var hatR = 0.285f;
+
+        // neck and head: an oval head with small eyes, a nose, ears and a mouth
+        Cyl(fig, new Vector3(0, 1.5f, 0), 0.045f, 0.12f, skin);
+        const float hy = 1.62f;
+        Ball(fig, new Vector3(0, hy, 0), 0.115f, skin).Scale = new Vector3(0.92f, 1.08f, 1f);
+        foreach (var x in new[] { -0.042f, 0.042f })
+        {
+            Ball(fig, new Vector3(x, hy + 0.015f, 0.098f), 0.02f, White);
+            Ball(fig, new Vector3(x, hy + 0.015f, 0.112f), 0.011f, Dark);
+            Ball(fig, new Vector3(x * 2.45f, hy, 0), 0.022f, skin).Scale = new Vector3(0.6f, 1.2f, 1);
+        }
+        Ball(fig, new Vector3(0, hy - 0.02f, 0.11f), 0.018f, skin.Darkened(0.06f));
+        Box(fig, new Vector3(0, hy - 0.06f, 0.1f), new Vector3(0.04f, 0.008f, 0.01f), new Color("#7a3b32"));
+        // hair under the hats; visitors and office staff show it. Short, long or a ponytail.
+        var hairColor = Hair[Math.Abs(id * 7 + 3) % Hair.Length];
+        var hair = Ball(fig, new Vector3(0, hy + 0.035f, -0.012f), 0.118f, hairColor);
+        hair.Scale = new Vector3(0.98f, 0.82f, 1.02f);
+        switch (slim && role == Role.Visitor ? 1 + v % 2 : Math.Abs(id * 5 + 1) % 4)
+        {
+            case 1: Capsule(fig, new Vector3(0, hy - 0.06f, -0.075f), 0.085f, 0.3f, hairColor).Scale = new Vector3(1.15f, 1, 0.6f); break; // long hair
+            case 2: Ball(fig, new Vector3(0, hy + 0.01f, -0.135f), 0.045f, hairColor).Scale = new Vector3(0.9f, 1.4f, 0.9f); break;          // ponytail
+        }
+        Color? hat = null; var hatSquash = 0.62f; var hatY = hy + 0.06f; var hatR = 0.128f;
         switch (role)
         {
             case Role.Builder: hat = new Color("#ffd23e"); break;
@@ -652,11 +701,11 @@ public static class Models
             case Role.Staff:
                 switch (staff)
                 {
-                    case StaffRole.Guard: hat = new Color("#1a2a44"); hatSquash = 0.45f; hatY += 0.05f; break;
-                    case StaffRole.Gardener: hat = new Color("#c9a85a"); hatSquash = 0.3f; hatR = 0.36f; break;
+                    case StaffRole.Guard: hat = new Color("#1a2a44"); hatSquash = 0.45f; hatY += 0.025f; break;
+                    case StaffRole.Gardener: hat = new Color("#c9a85a"); hatSquash = 0.3f; hatR = 0.17f; break;
                     case StaffRole.FireSafety: hat = new Color("#d23c32"); break;
                     case StaffRole.Electrical or StaffRole.Cooling or StaffRole.GeneratorTech or StaffRole.NetworkEng: hat = White; break;
-                    case StaffRole.Canteen: hat = White; hatSquash = 1.1f; hatR = 0.2f; hatY += 0.1f; break;
+                    case StaffRole.Canteen: hat = White; hatSquash = 1.1f; hatR = 0.095f; hatY += 0.05f; break;
                 }
                 break;
         }
@@ -664,9 +713,9 @@ public static class Models
         {
             Ball(fig, new Vector3(0, hatY, 0), hatR, hc, hatSquash);
             if (role == Role.Builder || role == Role.Staff && staff == StaffRole.Guard)
-                Box(fig, new Vector3(0, hatY - 0.04f, 0.22f), new Vector3(0.32f, 0.03f, 0.14f), hc);
+                Box(fig, new Vector3(0, hatY - 0.02f, 0.1f), new Vector3(0.15f, 0.015f, 0.07f), hc);
         }
-        var crate = Box(n, new Vector3(0, 0.95f, 0.36f), new Vector3(0.4f, 0.3f, 0.3f), new Color("#c79a5b")); crate.Name = "Crate"; crate.Visible = false;
+        var crate = Box(n, new Vector3(0, 1.05f, 0.34f), new Vector3(0.4f, 0.3f, 0.3f), new Color("#c79a5b")); crate.Name = "Crate"; crate.Visible = false;
         // movers push a small trolley with a stack of servers (customer migrations)
         var cart = new Node3D { Name = "Cart", Position = new Vector3(0, 0, 0.75f), Visible = false }; n.AddChild(cart);
         Box(cart, new Vector3(0, 0.18f, 0), new Vector3(0.6f, 0.05f, 0.75f), Steel, 0.5f, 0.5f);
@@ -685,7 +734,7 @@ public static class Models
             if (role == Role.Engineer || staff != StaffRole.NetworkEng) CableReel(n, "ReelP", Brand.Power, 0.3f);
             if (role == Role.Engineer || staff == StaffRole.NetworkEng) CableReel(n, "ReelF", Brand.Fiber, 0.22f);
         }
-        var tool = Box(fig, new Vector3(0.33f, 0.66f, 0.12f), new Vector3(0.12f, 0.2f, 0.06f), role == Role.Engineer ? Brand.Fiber : role == Role.Visitor ? Dark : Steel); tool.Name = "Tool";
+        var tool = Box(fig, new Vector3(0.26f, 0.8f, 0.1f), new Vector3(0.1f, 0.17f, 0.05f), role == Role.Engineer ? Brand.Fiber : role == Role.Visitor ? Dark : Steel); tool.Name = "Tool";
         return n;
     }
 
@@ -731,81 +780,113 @@ public static class Models
         Box(leaf, new Vector3(0, h - 0.1f, 0.12f), new Vector3(span, 0.06f, 0.09f), Brand.Power);
     }
 
+    /// <summary>Length of the trailer behind the kingpin, in metres (the truck's own position is the kingpin over the drive axle).</summary>
+    public const float TrailerLength = (float)Sim.Simulation.TruckRear;
+
+    /// <summary>
+    /// An articulated lorry: a cab-over tractor with a high roof, black grille, side skirts and a fifth wheel, pulling a
+    /// semi-trailer on three axles. The node "Trailer" pivots at the kingpin (the origin) so the trailer follows the
+    /// tractor through bends. Material: flatbed with pallets; equipment: white box; customer: removal box with open doors.
+    /// </summary>
     public static Node3D Truck(TruckLoad load)
     {
         var n = new Node3D();
         var cab = load == TruckLoad.Material ? new Color("#f2a33a") : load == TruckLoad.Customer ? new Color("#3b4f66") : new Color("#e9edf0");
         var glass = new Color("#2c4359");
-        var trim = new Color("#2a2f35");
-        // chassis rails under the whole truck
-        Box(n, new Vector3(0, 0.6f, -0.3f), new Vector3(1.5f, 0.22f, 5.6f), Dark);
-        // cab-over tractor: a tall cab with a sloped sleeper roof, big windscreen, grille, bumper and mirrors
-        Box(n, new Vector3(0, 1.3f, 2.4f), new Vector3(2.2f, 1.5f, 1.5f), cab, 0.45f);
-        Box(n, new Vector3(0, 2.25f, 2.3f), new Vector3(2.16f, 0.42f, 1.3f), cab, 0.45f);
-        var visor = Box(n, new Vector3(0, 2.55f, 2.05f), new Vector3(2.0f, 0.2f, 0.9f), cab.Darkened(0.12f), 0.45f);
-        visor.RotationDegrees = new Vector3(-8, 0, 0);
-        Box(n, new Vector3(0, 1.8f, 3.155f), new Vector3(1.96f, 0.7f, 0.03f), glass, 0.15f, 0.2f);
-        foreach (var x in new[] { -1.105f, 1.105f })
+        var trim = new Color("#23272c");
+        var tyre = new Color("#1e2226");
+        void Wheel(Node3D p, float x, float z, float r = 0.5f)
         {
-            Box(n, new Vector3(x, 1.8f, 2.6f), new Vector3(0.02f, 0.55f, 0.75f), glass, 0.15f, 0.2f);
-            Box(n, new Vector3(x * 1.13f, 1.75f, 3.0f), new Vector3(0.06f, 0.42f, 0.12f), trim);   // mirror
-            Box(n, new Vector3(x * 0.95f, 0.98f, 2.35f), new Vector3(0.32f, 0.12f, 1.15f), trim);  // mudguard
-            Box(n, new Vector3(x * 0.98f, 0.95f, 1.7f), new Vector3(0.12f, 0.6f, 0.18f), trim);    // step
+            var w = Cyl(p, new Vector3(x, r, z), r, 0.36f, tyre); w.RotationDegrees = new Vector3(0, 0, 90);
+            var hub = Cyl(p, new Vector3(x * 1.02f, r, z), r * 0.45f, 0.38f, new Color("#b9c2c8")); hub.RotationDegrees = new Vector3(0, 0, 90);
         }
-        Box(n, new Vector3(0, 1.0f, 3.155f), new Vector3(1.3f, 0.5f, 0.03f), new Color("#3a4148"), 0.4f, 0.4f);
-        for (var i = 0; i < 4; i++) Box(n, new Vector3(0, 0.82f + i * 0.12f, 3.17f), new Vector3(1.24f, 0.03f, 0.02f), new Color("#59626b"), 0.4f, 0.5f);
-        Box(n, new Vector3(0, 0.55f, 3.2f), new Vector3(2.24f, 0.26f, 0.16f), trim, 0.5f, 0.3f);
-        // headlights and tail lights; they glow brighter at night and in fog
-        foreach (var x in new[] { -0.8f, 0.8f })
+
+        // ---- tractor ----
+        Box(n, new Vector3(0, 0.62f, 0.9f), new Vector3(1.1f, 0.24f, 4.6f), trim);                       // chassis rails
+        Cyl(n, new Vector3(0, 0.8f, 0), 0.55f, 0.1f, trim);                                               // fifth wheel
+        Box(n, new Vector3(0, 1.55f, 2.6f), new Vector3(2.4f, 1.9f, 1.5f), cab, 0.4f);                   // cab
+        Box(n, new Vector3(0, 2.75f, 2.5f), new Vector3(2.36f, 0.5f, 1.7f), cab, 0.4f);                  // high roof
+        var spoiler = Box(n, new Vector3(0, 3.2f, 2.0f), new Vector3(2.3f, 0.5f, 0.9f), cab, 0.4f);      // roof spoiler towards the trailer
+        spoiler.RotationDegrees = new Vector3(14, 0, 0);
+        Box(n, new Vector3(0, 2.9f, 3.36f), new Vector3(2.3f, 0.16f, 0.12f), cab.Darkened(0.1f), 0.4f);  // sun visor
+        Box(n, new Vector3(0, 2.2f, 3.36f), new Vector3(2.1f, 0.85f, 0.03f), glass, 0.15f, 0.2f);        // windscreen
+        Box(n, new Vector3(0, 1.2f, 3.36f), new Vector3(1.7f, 1.0f, 0.04f), trim, 0.5f, 0.3f);           // black grille
+        for (var i = 0; i < 4; i++) Box(n, new Vector3(0, 0.85f + i * 0.2f, 3.385f), new Vector3(1.55f, 0.05f, 0.02f), new Color("#4a525a"), 0.4f, 0.5f);
+        Box(n, new Vector3(0, 0.55f, 3.33f), new Vector3(2.42f, 0.42f, 0.16f), cab, 0.45f);              // bumper
+        foreach (var x in new[] { -1.21f, 1.21f })
         {
-            Box(n, new Vector3(x, 0.78f, 3.24f), new Vector3(0.34f, 0.14f, 0.03f), new Color("#fff6d8")).MaterialOverride = World.WorldView.HeadlightMat;
-            Box(n, new Vector3(x * 1.2f, 0.75f, -2.75f), new Vector3(0.2f, 0.14f, 0.03f), Brand.Critical, glow: true);
+            Box(n, new Vector3(x, 2.1f, 2.75f), new Vector3(0.02f, 0.75f, 0.85f), glass, 0.15f, 0.2f);   // side window
+            Box(n, new Vector3(x * 1.12f, 2.05f, 3.15f), new Vector3(0.07f, 0.5f, 0.14f), trim);         // mirror
+            Box(n, new Vector3(x * 0.93f, 1.08f, 2.5f), new Vector3(0.4f, 0.14f, 1.2f), trim);           // front mudguard
+            Box(n, new Vector3(x * 0.96f, 0.82f, 0.95f), new Vector3(0.12f, 0.6f, 1.5f), cab, 0.45f);    // side skirt over the tanks
+            Box(n, new Vector3(x * 0.93f, 1.08f, 0f), new Vector3(0.4f, 0.1f, 1.1f), trim);              // rear mudguard
+            Box(n, new Vector3(x * 0.98f, 0.62f, 1.85f), new Vector3(0.14f, 0.5f, 0.3f), trim);          // step
+            Box(n, new Vector3(x * 0.82f, 0.62f, 3.42f), new Vector3(0.36f, 0.14f, 0.03f), new Color("#fff6d8")).MaterialOverride = World.WorldView.HeadlightMat;
+            Wheel(n, x * 0.88f, 2.45f);
+            Wheel(n, x * 0.88f, 0f);
         }
-        Box(n, new Vector3(0, 0.62f, -2.78f), new Vector3(2.1f, 0.12f, 0.08f), trim);  // rear under-run bar
-        // wheels with a hub: one steered axle up front, a tandem at the back
-        foreach (var z in new[] { 2.3f, -1.25f, -2.2f })
-            foreach (var x in new[] { -0.98f, 0.98f })
+        Box(n, new Vector3(0, 2.62f, 3.38f), new Vector3(1.2f, 0.06f, 0.02f), Brand.Cooling, glow: true); // light strip above the screen
+
+        // ---- semi-trailer, pivoting at the kingpin ----
+        var tr = new Node3D { Name = "Trailer" }; n.AddChild(tr);
+        float front = 0.9f, rear = -TrailerLength, len = front - rear, mid = (front + rear) / 2;
+        Box(tr, new Vector3(0, 1.08f, mid), new Vector3(1.0f, 0.22f, len), trim);                         // trailer frame
+        foreach (var z in new[] { rear + 2.1f, rear + 1.3f, rear + 0.5f + 0.0f })
+            foreach (var x in new[] { -0.92f, 0.92f }) Wheel(tr, x, z + 0.0f);
+        foreach (var x in new[] { -1.05f, 1.05f })
+        {
+            Box(tr, new Vector3(x, 0.72f, rear + 4.2f), new Vector3(0.05f, 0.4f, 3.0f), new Color("#9aa4ab"), 0.5f, 0.5f); // side guard
+            Box(tr, new Vector3(x, 1.0f, rear + 1.3f), new Vector3(0.36f, 0.1f, 2.5f), trim);            // mudguards over the axles
+            Box(tr, new Vector3(x * 0.75f, 0.45f, rear + 5.6f), new Vector3(0.08f, 0.8f, 0.08f), new Color("#9aa4ab")); // landing legs
+            Box(tr, new Vector3(x * 1.1f, 0.88f, rear + 0.05f), new Vector3(0.22f, 0.14f, 0.03f), Brand.Critical, glow: true);
+        }
+        Box(tr, new Vector3(0, 0.62f, rear - 0.02f), new Vector3(2.2f, 0.12f, 0.08f), trim);              // rear under-run bar
+
+        if (load == TruckLoad.Material)
+        {
+            // flatbed with a headboard and pallets of building material
+            Box(tr, new Vector3(0, 1.28f, mid), new Vector3(2.5f, 0.18f, len), new Color("#59626b"), 0.6f, 0.3f);
+            foreach (var x in new[] { -1.24f, 1.24f }) Box(tr, new Vector3(x, 1.5f, mid), new Vector3(0.05f, 0.3f, len), cab.Darkened(0.2f));
+            Box(tr, new Vector3(0, 1.95f, front - 0.06f), new Vector3(2.5f, 1.2f, 0.1f), new Color("#59626b"), 0.6f, 0.3f);
+            var cargo = new Node3D { Name = "Cargo" }; tr.AddChild(cargo);
+            for (var i = 0; i < 6; i++)
             {
-                var w = Cyl(n, new Vector3(x, 0.47f, z), 0.47f, 0.34f, new Color("#1e2226"));
-                w.RotationDegrees = new Vector3(0, 0, 90);
-                var hub = Cyl(n, new Vector3(x * 1.02f, 0.47f, z), 0.2f, 0.36f, new Color("#9aa4ab"), -1);
-                hub.RotationDegrees = new Vector3(0, 0, 90);
+                var z = rear + 0.9f + i * 1.4f;
+                Box(cargo, new Vector3(0, 1.43f, z), new Vector3(2.1f, 0.14f, 1.15f), Wood);
+                Box(cargo, new Vector3(0, 1.85f, z), new Vector3(1.9f, 0.7f, 1.05f), i % 2 == 0 ? new Color("#c9c3b8") : new Color("#b5785a"));
             }
-        if (load == TruckLoad.Customer)
-        {
-            // a moving truck: a long box trailer in the customer colour band, rear doors open on a load of servers
-            Box(n, new Vector3(0, 1.85f, -0.5f), new Vector3(2.3f, 2.3f, 4.4f), new Color("#f4f6f8"), 0.6f);
-            Box(n, new Vector3(0, 1.3f, -0.5f), new Vector3(2.32f, 0.35f, 4.42f), Brand.Cooling);
-            Box(n, new Vector3(0, 2.6f, -0.5f), new Vector3(2.32f, 0.18f, 4.42f), Brand.Fiber);
-            Box(n, new Vector3(0, 1.9f, -2.71f), new Vector3(2.0f, 2.0f, 0.02f), new Color("#20262c"));
-            foreach (var x in new[] { -1.16f, 1.16f })
-            {
-                var door = new Node3D { Position = new Vector3(x, 0, -2.72f), RotationDegrees = new Vector3(0, x < 0 ? 100 : -100, 0) }; n.AddChild(door);
-                Box(door, new Vector3(x < 0 ? 0.55f : -0.55f, 1.85f, 0), new Vector3(1.1f, 2.2f, 0.04f), new Color("#e3e7ea"));
-            }
-            var cargo = new Node3D { Name = "Cargo" }; n.AddChild(cargo);
-            for (var i = 0; i < 3; i++)
-                foreach (var x in new[] { -0.5f, 0.5f })
-                {
-                    Box(cargo, new Vector3(x, 1.75f, -2.0f + i * 1.0f), new Vector3(0.8f, 1.9f, 0.8f), Brand.Rack, 0.5f, 0.3f);
-                    for (var u = 0; u < 5; u++) Box(cargo, new Vector3(x + 0.2f, 1.0f + u * 0.35f, -2.41f + i * 1.0f), new Vector3(0.06f, 0.025f, 0.01f), u % 2 == 0 ? Brand.Ok : Brand.Cooling, glow: true);
-                }
-        }
-        else if (load == TruckLoad.Equipment)
-        {
-            Box(n, new Vector3(0, 1.85f, -0.5f), new Vector3(2.3f, 2.3f, 4.4f), White, 0.6f);
-            Box(n, new Vector3(0, 2.6f, -0.5f), new Vector3(2.32f, 0.3f, 4.42f), Brand.Power);
         }
         else
         {
-            Box(n, new Vector3(0, 0.78f, -0.5f), new Vector3(2.3f, 0.16f, 4.4f), new Color("#59626b"), 0.6f, 0.3f);
-            foreach (var x in new[] { -1.12f, 1.12f }) Box(n, new Vector3(x, 1.0f, -0.5f), new Vector3(0.06f, 0.3f, 4.4f), cab.Darkened(0.2f));
-            Box(n, new Vector3(0, 1.3f, 1.62f), new Vector3(2.2f, 1.0f, 0.1f), new Color("#59626b"), 0.6f, 0.3f);  // headboard
-            var cargo = new Node3D { Name = "Cargo" }; n.AddChild(cargo);
-            for (var i = 0; i < 4; i++)
+            // a long box: white for equipment with an amber line, a removal box with open rear doors for customers
+            var white = new Color("#f2f4f6");
+            Box(tr, new Vector3(0, 2.6f, mid), new Vector3(2.5f, 2.8f, len), white, 0.55f);
+            Box(tr, new Vector3(0, 1.22f, mid), new Vector3(2.52f, 0.08f, len), new Color("#8d969d"), 0.4f, 0.5f); // bottom rail
+            Box(tr, new Vector3(0, 4.0f, mid), new Vector3(2.52f, 0.06f, len), new Color("#d8dde1"));               // top rail
+            for (var z = rear + 1.2f; z < front - 0.5f; z += 1.2f)
+                foreach (var x in new[] { -1.26f, 1.26f }) Box(tr, new Vector3(x, 2.6f, z), new Vector3(0.015f, 2.7f, 0.04f), new Color("#dfe3e6"));
+            if (load == TruckLoad.Equipment)
+                foreach (var x in new[] { -1.262f, 1.262f }) Box(tr, new Vector3(x, 1.5f, mid), new Vector3(0.01f, 0.18f, len - 0.4f), Brand.Power);
+            else
             {
-                Box(cargo, new Vector3(0, 0.82f, -2.0f + i * 1.1f), new Vector3(1.9f, 0.14f, 0.95f), Wood);
-                Box(cargo, new Vector3(0, 1.2f, -2.0f + i * 1.1f), new Vector3(1.7f, 0.6f, 0.85f), i % 2 == 0 ? new Color("#c9c3b8") : new Color("#b5785a"));
+                foreach (var x in new[] { -1.262f, 1.262f })
+                {
+                    Box(tr, new Vector3(x, 1.7f, mid), new Vector3(0.01f, 0.35f, len - 0.4f), Brand.Cooling);
+                    Box(tr, new Vector3(x, 3.6f, mid), new Vector3(0.01f, 0.2f, len - 0.4f), Brand.Fiber);
+                }
+                Box(tr, new Vector3(0, 2.6f, rear - 0.01f), new Vector3(2.3f, 2.6f, 0.02f), new Color("#20262c"));
+                foreach (var x in new[] { -1.25f, 1.25f })
+                {
+                    var door = new Node3D { Position = new Vector3(x, 0, rear - 0.02f), RotationDegrees = new Vector3(0, x < 0 ? 100 : -100, 0) }; tr.AddChild(door);
+                    Box(door, new Vector3(x < 0 ? 0.62f : -0.62f, 2.6f, 0), new Vector3(1.24f, 2.7f, 0.04f), new Color("#e3e7ea"));
+                }
+                var cargo = new Node3D { Name = "Cargo" }; tr.AddChild(cargo);
+                for (var i = 0; i < 3; i++)
+                    foreach (var x in new[] { -0.55f, 0.55f })
+                    {
+                        Box(cargo, new Vector3(x, 2.25f, rear + 0.8f + i * 1.0f), new Vector3(0.8f, 1.9f, 0.8f), Brand.Rack, 0.5f, 0.3f);
+                        for (var u = 0; u < 5; u++) Box(cargo, new Vector3(x + 0.2f, 1.5f + u * 0.35f, rear + 0.39f + i * 1.0f), new Vector3(0.06f, 0.025f, 0.01f), u % 2 == 0 ? Brand.Ok : Brand.Cooling, glow: true);
+                    }
             }
         }
         return n;
@@ -823,26 +904,93 @@ public static class Models
     /// <summary>Tower crane: Mast stays, "Jib" rotates.</summary>
     public static Node3D Crane(float height, float reach)
     {
+        // a mobile self-erecting tower crane: a three-axle carrier on outriggers, a lattice mast with the cab halfway up,
+        // and a lattice jib held by tie bars from the mast top, with a trolley and hook. "Jib" (mast and jib) slews.
         var n = new Node3D();
-        Box(n, new Vector3(0, 0.2f, 0), new Vector3(2f, 0.4f, 2f), Brand.Concrete);
-        for (var i = 0; i < 4; i++)
+        var yellow = new Color("#f5c400");
+        var black = new Color("#24282d");
+        // ---- carrier ----
+        Box(n, new Vector3(0, 1.05f, 0), new Vector3(2.5f, 0.6f, 9.0f), yellow, 0.5f);
+        Box(n, new Vector3(0, 0.8f, 0), new Vector3(1.2f, 0.3f, 9.0f), black);
+        Box(n, new Vector3(0, 1.75f, 3.9f), new Vector3(2.5f, 1.3f, 1.4f), yellow, 0.5f);               // driver's cab
+        Box(n, new Vector3(0, 1.95f, 4.61f), new Vector3(2.2f, 0.7f, 0.02f), new Color("#2c4359"), 0.15f, 0.2f);
+        for (var i = 0; i < 6; i++)                                                                    // hazard stripes on the bumpers
+            foreach (var z in new[] { -4.52f, 4.62f })
+                Box(n, new Vector3(-1.05f + i * 0.42f, 0.75f, z), new Vector3(0.2f, 0.3f, 0.02f), i % 2 == 0 ? black : yellow).RotationDegrees = new Vector3(0, 0, 35);
+        foreach (var z in new[] { 3.4f, -1.6f, -3.2f })
+            foreach (var x in new[] { -1.1f, 1.1f })
+            {
+                var wh = Cyl(n, new Vector3(x, 0.62f, z), 0.62f, 0.5f, new Color("#1e2226")); wh.RotationDegrees = new Vector3(0, 0, 90);
+                Cyl(n, new Vector3(x * 1.03f, 0.62f, z), 0.28f, 0.52f, new Color("#9aa4ab")).RotationDegrees = new Vector3(0, 0, 90);
+            }
+        // outriggers swung out to pads on the ground
+        foreach (var (x, z) in new[] { (-1f, 1f), (1f, 1f), (-1f, -1f), (1f, -1f) })
         {
-            var x = i % 2 == 0 ? -0.45f : 0.45f; var z = i < 2 ? -0.45f : 0.45f;
-            Box(n, new Vector3(x, height / 2, z), new Vector3(0.1f, height, 0.1f), Brand.Power);
+            Box(n, new Vector3(x * 2.0f, 1.0f, z * 3.0f), new Vector3(2.0f, 0.22f, 0.25f), yellow, 0.5f);
+            Box(n, new Vector3(x * 2.9f, 0.55f, z * 3.0f), new Vector3(0.18f, 0.9f, 0.18f), black);
+            Box(n, new Vector3(x * 2.9f, 0.06f, z * 3.0f), new Vector3(0.8f, 0.12f, 0.8f), new Color("#c79a5b"));
         }
-        for (var y = 1f; y < height; y += 1.5f) Box(n, new Vector3(0, y, 0), new Vector3(1f, 0.08f, 1f), Brand.Power);
-        var jib = new Node3D { Name = "Jib", Position = new Vector3(0, height, 0) }; n.AddChild(jib);
-        Box(jib, new Vector3(0, 0.6f, 0), new Vector3(1.2f, 1.2f, 1.2f), new Color("#f4f6f8"));
-        Box(jib, new Vector3(0.45f, 0.75f, 0.62f), new Vector3(0.5f, 0.6f, 0.04f), new Color("#2c4359"), 0.2f);
-        // jib as a lattice: two chords with cross members, ending in a short counter-jib with its weights
-        foreach (var x in new[] { -0.25f, 0.25f }) Box(jib, new Vector3(x, 1.3f, reach / 2), new Vector3(0.08f, 0.08f, reach), Brand.Power);
-        Box(jib, new Vector3(0, 1.75f, reach / 2), new Vector3(0.08f, 0.08f, reach), Brand.Power);
-        for (var z = 1f; z < reach; z += 1.5f) Box(jib, new Vector3(0, 1.3f, z), new Vector3(0.55f, 0.06f, 0.06f), Brand.Power);
-        Box(jib, new Vector3(0, 1.3f, -2.6f), new Vector3(0.6f, 0.15f, 5.2f), Brand.Power);
-        Box(jib, new Vector3(0, 0.9f, -4.6f), new Vector3(1.2f, 1.0f, 1.2f), Brand.Concrete);
-        Box(jib, new Vector3(0, 2.6f, 0), new Vector3(0.3f, 2.6f, 0.3f), Brand.Power);
-        var hook = Box(jib, new Vector3(0, -height * 0.4f, reach * 0.7f), new Vector3(0.05f, height * 0.8f, 0.05f), Dark); hook.Name = "Cable";
-        Box(jib, new Vector3(0, -height * 0.8f, reach * 0.7f), new Vector3(0.9f, 0.5f, 0.9f), new Color("#b5785a"));
+        // ---- slewing part: turntable, counterweight, mast, cab, jib ----
+        var up = new Node3D { Name = "Jib", Position = new Vector3(0, 1.4f, -2.2f) }; n.AddChild(up);
+        Cyl(up, new Vector3(0, 0.1f, 0), 1.1f, 0.2f, black);
+        Box(up, new Vector3(0, 0.6f, -1.2f), new Vector3(2.2f, 0.9f, 1.4f), new Color("#59626b"), 0.7f); // ballast blocks
+        Box(up, new Vector3(0, 0.35f, 0.3f), new Vector3(1.6f, 0.4f, 1.6f), yellow, 0.5f);
+        const float w = 0.9f;                     // mast width
+        var mh = height;
+        foreach (var (x, z) in new[] { (-1, -1), (1, -1), (-1, 1), (1, 1) })
+            Box(up, new Vector3(x * w / 2, mh / 2 + 0.5f, z * w / 2), new Vector3(0.09f, mh, 0.09f), yellow);
+        var seg = 1.5f; var diag = Mathf.Sqrt(seg * seg + w * w); var ang = Mathf.RadToDeg(Mathf.Atan2(seg, w));
+        for (var y = 0.5f; y < mh + 0.4f; y += seg)
+        {
+            foreach (var z in new[] { -w / 2, w / 2 }) Box(up, new Vector3(0, y, z), new Vector3(w, 0.05f, 0.05f), yellow);
+            foreach (var x in new[] { -w / 2, w / 2 }) Box(up, new Vector3(x, y, 0), new Vector3(0.05f, 0.05f, w), yellow);
+            if (y + seg > mh + 0.5f) break;
+            var k = (int)(y / seg) % 2 == 0 ? 1 : -1;
+            foreach (var z in new[] { -w / 2, w / 2 }) Box(up, new Vector3(0, y + seg / 2, z), new Vector3(diag, 0.04f, 0.04f), yellow).RotationDegrees = new Vector3(0, 0, k * ang);
+            foreach (var x in new[] { -w / 2, w / 2 }) Box(up, new Vector3(x, y + seg / 2, 0), new Vector3(0.04f, 0.04f, diag), yellow).RotationDegrees = new Vector3(-k * ang, 0, 0);
+        }
+        // the operator's cab hangs on the side of the mast, about halfway
+        var cy = Mathf.Max(5f, mh * 0.55f);
+        Box(up, new Vector3(0.95f, cy, 0.2f), new Vector3(1.0f, 1.3f, 1.1f), yellow, 0.5f);
+        Box(up, new Vector3(0.95f, cy + 0.1f, 0.76f), new Vector3(0.85f, 0.85f, 0.02f), new Color("#2c4359"), 0.15f, 0.2f);
+        Box(up, new Vector3(1.46f, cy + 0.1f, 0.2f), new Vector3(0.02f, 0.85f, 0.9f), new Color("#2c4359"), 0.15f, 0.2f);
+        // ---- jib: a triangular lattice running out from the mast top ----
+        var top = mh + 0.5f;
+        var jl = reach;
+        foreach (var x in new[] { -0.3f, 0.3f }) Box(up, new Vector3(x, top, jl / 2), new Vector3(0.07f, 0.07f, jl + 0.6f), yellow);
+        Box(up, new Vector3(0, top + 0.55f, jl / 2), new Vector3(0.07f, 0.07f, jl + 0.6f), yellow);
+        var jseg = 1.2f; var jd = Mathf.Sqrt(jseg * jseg / 4 + 0.55f * 0.55f + 0.09f); var ja = Mathf.RadToDeg(Mathf.Atan2(0.55f, jseg / 2));
+        for (var z = 0f; z < jl; z += jseg)
+        {
+            Box(up, new Vector3(0, top, z), new Vector3(0.6f, 0.05f, 0.05f), yellow);
+            foreach (var (x, s2) in new[] { (-0.15f, 1), (0.15f, -1) })
+            {
+                Box(up, new Vector3(x, top + 0.27f, z + jseg / 4), new Vector3(0.04f, 0.04f, jd), yellow).RotationDegrees = new Vector3(-ja, 0, s2 * 15);
+                Box(up, new Vector3(x, top + 0.27f, z + jseg * 3 / 4), new Vector3(0.04f, 0.04f, jd), yellow).RotationDegrees = new Vector3(ja, 0, s2 * 15);
+            }
+        }
+        // mast-top A-frame and tie bars down to the jib
+        var apex = new Vector3(0, top + 3.2f, -0.6f);
+        void Tie(Node3D p, Vector3 from, Vector3 to, float t)
+        {
+            var mid = (from + to) / 2; var len = from.DistanceTo(to);
+            var bar = Box(p, mid, new Vector3(t, t, len), yellow);
+            bar.Transform = new Transform3D(Basis.LookingAt(to - from, Vector3.Up), mid);
+        }
+        Tie(up, new Vector3(-0.4f, top, 0), apex, 0.08f);
+        Tie(up, new Vector3(0.4f, top, 0), apex, 0.08f);
+        Tie(up, new Vector3(0, top, -1.2f), apex, 0.08f);
+        Tie(up, apex, new Vector3(0, top + 0.6f, jl * 0.45f), 0.05f);
+        Tie(up, apex, new Vector3(0, top + 0.6f, jl * 0.85f), 0.05f);
+        Tie(up, apex, new Vector3(0, 0.9f, -1.6f), 0.04f);                                            // back stay to the ballast
+        // trolley, hoist rope and hook block with a load
+        var tz = jl * 0.6f;
+        Box(up, new Vector3(0, top - 0.15f, tz), new Vector3(0.7f, 0.25f, 0.6f), black);
+        var drop = Mathf.Max(3f, top - 4f);
+        var cable = Box(up, new Vector3(0, top - 0.3f - drop / 2, tz), new Vector3(0.04f, drop, 0.04f), black); cable.Name = "Cable";
+        Box(up, new Vector3(0, top - 0.5f - drop, tz), new Vector3(0.4f, 0.5f, 0.3f), yellow);
+        Box(up, new Vector3(0, top - 0.5f - drop, tz + 0.16f), new Vector3(0.4f, 0.1f, 0.02f), black);
+        Box(up, new Vector3(0, top - 1.4f - drop, tz), new Vector3(1.4f, 0.9f, 1.0f), new Color("#b5785a"));
         return n;
     }
 
@@ -850,46 +998,74 @@ public static class Models
     public static Node3D Excavator()
     {
         var n = new Node3D();
-        var yellow = new Color("#ffc02e");
-        var track = new Color("#25292e");
-        // undercarriage: two tracks with rounded ends and road wheels
-        foreach (var x in new[] { -0.75f, 0.75f })
+        var paint = new Color("#f08a24");          // construction orange
+        var black = new Color("#24282d");
+        var steel = new Color("#c9ced3");
+        var shoe = new Color("#2f3439");
+        // ---- undercarriage: track frames with segmented shoes, sprocket, idler and rollers ----
+        foreach (var x in new[] { -0.95f, 0.95f })
         {
-            Box(n, new Vector3(x, 0.32f, 0), new Vector3(0.5f, 0.5f, 2.4f), track, 0.9f);
-            foreach (var z in new[] { -1.2f, 1.2f })
+            Box(n, new Vector3(x, 0.42f, 0), new Vector3(0.36f, 0.42f, 3.0f), black, 0.8f);            // track frame
+            for (var i = 0; i < 18; i++)
             {
-                var end = Cyl(n, new Vector3(x, 0.32f, z), 0.25f, 0.5f, track);
-                end.RotationDegrees = new Vector3(0, 0, 90);
+                var z = -1.6f + i * 0.19f;
+                Box(n, new Vector3(x, 0.07f, z), new Vector3(0.6f, 0.1f, 0.15f), shoe, 0.9f);         // bottom shoes
+                if (i > 1 && i < 16) Box(n, new Vector3(x, 0.79f, z), new Vector3(0.6f, 0.08f, 0.15f), shoe, 0.9f); // top run
             }
-            for (var i = 0; i < 4; i++)
+            foreach (var z in new[] { -1.62f, 1.62f })
             {
-                var w = Cyl(n, new Vector3(x * 1.32f, 0.3f, -0.9f + i * 0.6f), 0.13f, 0.06f, new Color("#59626b"));
-                w.RotationDegrees = new Vector3(0, 0, 90);
+                var end = Cyl(n, new Vector3(x, 0.43f, z), 0.38f, 0.6f, shoe); end.RotationDegrees = new Vector3(0, 0, 90);
+                var hub = Cyl(n, new Vector3(x, 0.43f, z), 0.27f, 0.64f, black); hub.RotationDegrees = new Vector3(0, 0, 90);
+            }
+            for (var i = 0; i < 5; i++)
+            {
+                var r = Cyl(n, new Vector3(x * 1.17f, 0.24f, -1.1f + i * 0.55f), 0.12f, 0.05f, new Color("#59626b")); r.RotationDegrees = new Vector3(0, 0, 90);
             }
         }
-        Box(n, new Vector3(0, 0.45f, 0), new Vector3(1.0f, 0.3f, 1.6f), track);
-        var top = new Node3D { Name = "Top", Position = new Vector3(0, 0.75f, 0) }; n.AddChild(top);
-        Cyl(top, new Vector3(0, 0.05f, 0), 0.6f, 0.12f, Dark);
-        // body with a rounded counterweight at the back
-        Box(top, new Vector3(0.15f, 0.45f, -0.25f), new Vector3(1.5f, 0.7f, 1.8f), yellow, 0.5f);
-        var cw = Cyl(top, new Vector3(0.15f, 0.45f, -1.1f), 0.75f, 0.7f, yellow.Darkened(0.1f));
-        cw.Scale = new Vector3(1f, 1f, 0.45f);
-        Box(top, new Vector3(0.55f, 0.88f, -0.6f), new Vector3(0.5f, 0.14f, 0.8f), Dark);                 // engine cover grille
-        Cyl(top, new Vector3(0.7f, 1.1f, -0.75f), 0.05f, 0.5f, Dark);                                       // exhaust
-        // cab on the left, with glass all round
-        Box(top, new Vector3(-0.42f, 1.1f, 0.35f), new Vector3(0.75f, 1.05f, 0.9f), yellow, 0.5f);
-        Box(top, new Vector3(-0.42f, 1.2f, 0.81f), new Vector3(0.62f, 0.75f, 0.02f), new Color("#2c4359"), 0.15f, 0.2f);
-        Box(top, new Vector3(-0.8f, 1.2f, 0.35f), new Vector3(0.02f, 0.7f, 0.72f), new Color("#2c4359"), 0.15f, 0.2f);
-        Box(top, new Vector3(-0.42f, 1.65f, 0.35f), new Vector3(0.8f, 0.06f, 0.95f), Dark);
-        // boom and stick as a chain of pivots, so the arm can be posed
-        var boom = new Node3D { Name = "Boom", Position = new Vector3(0.35f, 0.75f, 0.55f), RotationDegrees = new Vector3(-38, 0, 0) }; top.AddChild(boom);
-        Box(boom, new Vector3(0, 0, 1.15f), new Vector3(0.3f, 0.36f, 2.3f), yellow, 0.5f);
-        Cyl(boom, new Vector3(0, 0.25f, 0.9f), 0.06f, 1.2f, new Color("#c9ced3"), -1).RotationDegrees = new Vector3(90, 0, 0); // hydraulic ram
-        var stick = new Node3D { Name = "Stick", Position = new Vector3(0, 0, 2.3f), RotationDegrees = new Vector3(95, 0, 0) }; boom.AddChild(stick);
-        Box(stick, new Vector3(0, 0, 0.8f), new Vector3(0.24f, 0.28f, 1.6f), yellow, 0.5f);
-        var bucket = new Node3D { Name = "Bucket", Position = new Vector3(0, 0, 1.6f), RotationDegrees = new Vector3(30, 0, 0) }; stick.AddChild(bucket);
-        Box(bucket, new Vector3(0, -0.12f, 0.25f), new Vector3(0.7f, 0.4f, 0.5f), Dark, 0.7f, 0.3f);
-        for (var i = 0; i < 4; i++) Box(bucket, new Vector3(-0.27f + i * 0.18f, -0.34f, 0.5f), new Vector3(0.08f, 0.1f, 0.12f), new Color("#9aa4ab"), 0.5f, 0.6f);
+        Box(n, new Vector3(0, 0.55f, 0), new Vector3(1.6f, 0.3f, 1.2f), black);                          // car body between the tracks
+
+        // ---- upper structure, slews on the turntable ----
+        var top = new Node3D { Name = "Top", Position = new Vector3(0, 0.88f, 0) }; n.AddChild(top);
+        Cyl(top, new Vector3(0, 0.06f, 0), 0.8f, 0.14f, black);
+        Box(top, new Vector3(0, 0.22f, -0.35f), new Vector3(2.4f, 0.16f, 2.9f), black);                  // deck
+        Box(top, new Vector3(0.35f, 0.62f, -0.75f), new Vector3(1.7f, 0.66f, 1.9f), paint, 0.45f);       // engine housing
+        var cw = Cyl(top, new Vector3(0, 0.6f, -1.75f), 1.2f, 0.75f, paint);                              // rounded counterweight
+        cw.Scale = new Vector3(1f, 1f, 0.42f);
+        Box(top, new Vector3(0, 0.6f, -1.42f), new Vector3(2.38f, 0.75f, 0.5f), paint, 0.45f);
+        Box(top, new Vector3(0, 0.27f, -1.8f), new Vector3(2.3f, 0.06f, 0.5f), black);                  // black band under the counterweight
+        for (var i = 0; i < 6; i++) Box(top, new Vector3(1.21f, 0.75f, -0.2f - i * 0.12f), new Vector3(0.02f, 0.05f, 0.08f), black); // side grille
+        Box(top, new Vector3(0.35f, 1.06f, -1.05f), new Vector3(1.6f, 0.22f, 1.1f), black);              // black hood box on top
+        Cyl(top, new Vector3(0.85f, 1.35f, -0.55f), 0.06f, 0.5f, black);                                 // exhaust
+        // hand rails on the deck
+        foreach (var z in new[] { -0.2f, -1.4f })
+            Box(top, new Vector3(1.15f, 1.25f, z), new Vector3(0.04f, 0.6f, 0.04f), black);
+        Box(top, new Vector3(1.15f, 1.55f, -0.8f), new Vector3(0.04f, 0.04f, 1.25f), black);
+        Box(top, new Vector3(-0.15f, 1.25f, -0.2f), new Vector3(0.04f, 0.6f, 0.04f), black);
+        // cab front-left with tinted glass, a roof and a front guard
+        Box(top, new Vector3(-0.68f, 0.95f, 0.65f), new Vector3(0.95f, 1.3f, 1.2f), paint, 0.45f);
+        Box(top, new Vector3(-0.68f, 1.05f, 1.26f), new Vector3(0.82f, 0.95f, 0.02f), new Color("#2c4359"), 0.15f, 0.2f);
+        Box(top, new Vector3(-1.16f, 1.1f, 0.65f), new Vector3(0.02f, 0.85f, 1.0f), new Color("#2c4359"), 0.15f, 0.2f);
+        Box(top, new Vector3(-0.68f, 1.62f, 0.62f), new Vector3(1.0f, 0.06f, 1.3f), black);
+        Box(top, new Vector3(-0.68f, 0.38f, 1.22f), new Vector3(0.9f, 0.2f, 0.06f), black);
+        // ---- boom with a bend, stick and bucket, each with its hydraulic cylinder ----
+        var boom = new Node3D { Name = "Boom", Position = new Vector3(0.2f, 0.55f, 0.95f), RotationDegrees = new Vector3(-48, 0, 0) }; top.AddChild(boom);
+        Box(boom, new Vector3(0, 0, 1.2f), new Vector3(0.42f, 0.5f, 2.5f), paint, 0.45f);
+        var knee = new Node3D { Position = new Vector3(0, 0, 2.4f), RotationDegrees = new Vector3(38, 0, 0) }; boom.AddChild(knee);
+        Box(knee, new Vector3(0, 0, 1.0f), new Vector3(0.38f, 0.44f, 2.1f), paint, 0.45f);
+        Box(knee, new Vector3(0.215f, 0, 0.9f), new Vector3(0.01f, 0.22f, 1.0f), black);                  // panel on the side of the boom
+        // boom cylinders from the deck to the underside of the boom, stick cylinder along the top
+        var bc = Cyl(top, new Vector3(0.2f, 0.75f, 1.55f), 0.08f, 1.5f, black); bc.RotationDegrees = new Vector3(62, 0, 0);
+        Cyl(top, new Vector3(0.2f, 1.08f, 1.95f), 0.05f, 0.9f, steel).RotationDegrees = new Vector3(62, 0, 0);
+        Cyl(knee, new Vector3(0, 0.36f, 0.6f), 0.07f, 1.4f, black).RotationDegrees = new Vector3(90, 0, 0);
+        Cyl(knee, new Vector3(0, 0.36f, 1.5f), 0.045f, 0.7f, steel).RotationDegrees = new Vector3(90, 0, 0);
+        var stick = new Node3D { Name = "Stick", Position = new Vector3(0, 0, 2.1f), RotationDegrees = new Vector3(78, 0, 0) }; knee.AddChild(stick);
+        Box(stick, new Vector3(0, 0, 1.0f), new Vector3(0.32f, 0.38f, 2.1f), paint, 0.45f);
+        Cyl(stick, new Vector3(0, 0.3f, 0.9f), 0.06f, 1.2f, black).RotationDegrees = new Vector3(90, 0, 0); // bucket cylinder
+        var bucket = new Node3D { Name = "Bucket", Position = new Vector3(0, 0, 2.05f), RotationDegrees = new Vector3(35, 0, 0) }; stick.AddChild(bucket);
+        Box(bucket, new Vector3(0, -0.05f, 0.05f), new Vector3(0.36f, 0.3f, 0.3f), black);                // quick coupler
+        Box(bucket, new Vector3(0, -0.25f, 0.4f), new Vector3(0.95f, 0.55f, 0.6f), new Color("#8f8476"), 0.8f, 0.2f);
+        Box(bucket, new Vector3(0, -0.02f, 0.45f), new Vector3(0.9f, 0.08f, 0.52f), new Color("#6b5a44"), 1f); // soil in the bucket
+        for (var i = 0; i < 5; i++) Box(bucket, new Vector3(-0.36f + i * 0.18f, -0.55f, 0.72f), new Vector3(0.09f, 0.1f, 0.16f), new Color("#9aa4ab"), 0.5f, 0.6f);
         return n;
     }
 

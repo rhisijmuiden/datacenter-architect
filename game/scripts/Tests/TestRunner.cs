@@ -466,7 +466,7 @@ public static class TestRunner
                     if (a.Z - Simulation.TruckNose < row && z0 - Simulation.TruckNose >= row && open < 0.98) crashed = true;
                 }
                 // nose (forwards) or tail (backing up) never past the dock wall at z = 36
-                if (a.Z + Math.Cos(a.Heading) * 3.2 < 36 - 0.05 || a.Z - Math.Cos(a.Heading) * 2.7 < 36 - 0.05) poked = true;
+                if (a.Z + Math.Cos(a.Heading) * 3.2 < 36 - 0.05 || a.Z - Math.Cos(a.Heading) * Simulation.TruckRear < 36 - 0.05) poked = true;
             }
             parked = sim.Agents.Any(a => a.Role == Role.Truck && a.Phase == 2 && a.Load == TruckLoad.Equipment);
         }
@@ -474,7 +474,7 @@ public static class TestRunner
         Check(waited, "truck waits for the gate to open");
         Check(!crashed, "truck never drives through a closed gate or barrier");
         var tr = sim.Agents.First(a => a.Role == Role.Truck && a.Phase == 2 && a.Load == TruckLoad.Equipment);
-        Check(!poked && Math.Abs(tr.Z - (36 + 2.75)) < 0.01 && Math.Abs(Math.Cos(tr.Heading) - 1) < 1e-6, $"truck backs up to the dock door, nose away from the building ({tr.X:0.00},{tr.Z:0.00} h{tr.Heading:0.00})");
+        Check(!poked && Math.Abs(tr.Z - (36 + Simulation.TruckRear + 0.1)) < 0.01 && Math.Abs(Math.Cos(tr.Heading) - 1) < 1e-6, $"truck backs up to the dock door, nose away from the building ({tr.X:0.00},{tr.Z:0.00} h{tr.Heading:0.00})");
         Run(sim, 6, () => sim.Agents.All(a => a.Role != Role.Truck));
         Check(sim.GateOpen[gate.Id] < 0.01 && sim.GateOpen[barrier.Id] < 0.01, "gate and barrier close after the trucks have left");
     }

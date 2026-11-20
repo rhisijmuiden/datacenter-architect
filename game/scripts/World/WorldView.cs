@@ -73,7 +73,19 @@ public partial class WorldView : Node3D
                 AmbientLightSource = Godot.Environment.AmbientSource.Color,
                 AmbientLightColor = new Color("#dfeefa"),
                 AmbientLightEnergy = 0.34f,
-                TonemapMode = Godot.Environment.ToneMapper.Linear,
+                // filmic tonemapping with a touch more saturation and contrast: livelier colours, softer highlights
+                TonemapMode = Godot.Environment.ToneMapper.Filmic,
+                TonemapExposure = 1.0f,
+                TonemapWhite = 6f,
+                AdjustmentEnabled = true,
+                AdjustmentSaturation = 1.15f,
+                AdjustmentContrast = 1.12f,
+                GlowEnabled = true,
+                GlowIntensity = 0.55f,
+                GlowBloom = 0.02f,
+                GlowHdrThreshold = 1.1f,
+                SsaoIntensity = 2.6f,
+                SsaoRadius = 1.4f,
                 FogEnabled = true,
                 FogLightColor = new Color("#bfe0f4"),
                 FogDensity = 0.0016f,
@@ -125,16 +137,16 @@ public partial class WorldView : Node3D
     void Surroundings(Node3D root, int s)
     {
         var rng = new Random(42);
-        var grass = new StandardMaterial3D { AlbedoColor = Brand.Grass, Roughness = 1f };
-        var plotGrass = new StandardMaterial3D { AlbedoColor = Brand.PlotGrass, Roughness = 1f };
+        var grass = Grained(new StandardMaterial3D { AlbedoColor = Brand.Grass, Roughness = 1f }, 40);
+        var plotGrass = Grained(new StandardMaterial3D { AlbedoColor = Brand.PlotGrass, Roughness = 1f }, 24);
         Plane(root, new Vector3(s / 2f, -0.03f, s / 2f), new Vector2(900, 900), Brand.Grass).MaterialOverride = grass;
         Plane(root, new Vector3(s / 2f, -0.02f, s / 2f), new Vector2(s, s), Brand.PlotGrass).MaterialOverride = plotGrass;
         // public road with markings and pavement
-        Plane(root, new Vector3(s / 2f, -0.015f, s + 4), new Vector2(900, 6), Brand.Asphalt);
+        Plane(root, new Vector3(s / 2f, -0.015f, s + 4), new Vector2(900, 6), Brand.Asphalt).MaterialOverride = GrainMat(Brand.Asphalt, 14);
         for (var x = -420; x < 480; x += 6) Plane(root, new Vector3(s / 2f + x, -0.01f, s + 4), new Vector2(3, 0.18f), new Color("#ece6cc"));
         Plane(root, new Vector3(s / 2f, -0.012f, s + 7.8f), new Vector2(900, 1.6f), new Color("#c9c1b2"));
         // side road heading north along the west of the plot
-        Plane(root, new Vector3(-9, -0.014f, s / 2f - 60), new Vector2(6, 2 * s + 120), Brand.Asphalt);
+        Plane(root, new Vector3(-9, -0.014f, s / 2f - 60), new Vector2(6, 2 * s + 120), Brand.Asphalt).MaterialOverride = GrainMat(Brand.Asphalt, 14);
         // fibre pits of carriers along the road (orange = fiber)
         foreach (var x in Catalog.StreetPits.Select((_, i) => _state.StreetPit(i)))
         {
@@ -223,6 +235,35 @@ public partial class WorldView : Node3D
         var mi = new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = Mat(c, 0.9f), CastShadow = shadow ? GeometryInstance3D.ShadowCastingSetting.On : GeometryInstance3D.ShadowCastingSetting.Off };
         root.AddChild(mi);
         return mi;
+    }
+
+    static NoiseTexture2D _grain;
+    static readonly Dictionary<(Color, float), StandardMaterial3D> GrainMats = new();
+
+    /// <summary>
+    /// A soft, seamless mottle (light and dark patches) so big flat areas such as grass and asphalt are not one flat colour.
+    /// Projected in world space, so the pattern has the same size everywhere. The colour still comes from AlbedoColor (seasons tint it).
+    /// </summary>
+    public static NoiseTexture2D Grain => _grain ??= new NoiseTexture2D
+    {
+        Width = 256, Height = 256, Seamless = true, GenerateMipmaps = true,
+        Noise = new FastNoiseLite { NoiseType = FastNoiseLite.NoiseTypeEnum.SimplexSmooth, Frequency = 0.012f, FractalOctaves = 4, Seed = 7 },
+        ColorRamp = new Gradient { Colors = new[] { new Color(0.72f, 0.75f, 0.7f), new Color(1.1f, 1.1f, 1.05f) }, Offsets = new[] { 0f, 1f } },
+    };
+
+    /// <summary>Apply the mottle to a material: one pattern repeat every <paramref name="metres"/>.</summary>
+    public static StandardMaterial3D Grained(StandardMaterial3D m, float metres)
+    {
+        m.AlbedoTexture = Grain;
+        m.Uv1Triplanar = true; m.Uv1WorldTriplanar = true;
+        m.Uv1Scale = Vector3.One / metres;
+        return m;
+    }
+
+    static StandardMaterial3D GrainMat(Color c, float metres, float rough = 0.95f)
+    {
+        if (GrainMats.TryGetValue((c, metres), out var m)) return m;
+        return GrainMats[(c, metres)] = Grained(new StandardMaterial3D { AlbedoColor = c, Roughness = rough }, metres);
     }
 
     static MeshInstance3D Plane(Node3D parent, Vector3 pos, Vector2 size, Color c)
@@ -449,7 +490,7 @@ public partial class WorldView : Node3D
                 }
             }
         if (!any) return;
-        root.AddChild(new MeshInstance3D { Mesh = st.Commit(), MaterialOverride = Mat(c, 0.9f), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+        root.AddChild(new MeshInstance3D { Mesh = st.Commit(), MaterialOverride = GrainMat(c, 14, 0.9f), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
 
         bool Is(int x, int z) => _state.InPlot(x, z) && _state.SurfaceAt(x, z) == t && !_curveCells.Contains(z * n + x);
         // grass with nothing on it; outside the plot counts as closed so edges stay straight
@@ -470,7 +511,7 @@ public partial class WorldView : Node3D
             return _state.InPlot(x, z) && _state.SurfaceAt(x, z) == c.Surface;
         });
         if (mesh == null) return;
-        root.AddChild(new MeshInstance3D { Mesh = mesh, MaterialOverride = Mat(col, 0.9f), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+        root.AddChild(new MeshInstance3D { Mesh = mesh, MaterialOverride = GrainMat(col, 14, 0.9f), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
         if (c.Surface == Surface.Asphalt && c.Width >= 3)
         {
             // dashed centre line on wider roads
@@ -1028,8 +1069,9 @@ public partial class WorldView : Node3D
             n.Rotation = new Vector3(0, Mathf.LerpAngle(n.Rotation.Y, yaw, Mathf.Min(1, (float)delta * 10)), 0);
             if (a.Role == Role.Truck)
             {
-                var cargo = n.GetNodeOrNull<Node3D>("Cargo");
+                var cargo = n.GetNodeOrNull<Node3D>("Trailer/Cargo");
                 if (cargo != null) cargo.Visible = a.Carry > 0;
+                FollowTrailer(n, a, delta);
                 continue;
             }
             var fig = n.GetNode<Node3D>("Fig");
@@ -1051,8 +1093,53 @@ public partial class WorldView : Node3D
         }
         foreach (var id in _agentNodes.Keys.Where(id => !alive.Contains(id)).ToList())
         {
-            _agentNodes[id].QueueFree(); _agentNodes.Remove(id);
+            _agentNodes[id].QueueFree(); _agentNodes.Remove(id); _trails.Remove(id);
         }
+    }
+
+    /// <summary>Where each truck has been (newest last), so its trailer can follow the same line through bends.</summary>
+    readonly Dictionary<int, List<Vector2>> _trails = new();
+
+    /// <summary>
+    /// The semi-trailer pivots at the kingpin and points at the spot on the truck's own track one axle-group length back,
+    /// so it swings wide of nothing and cuts the bend a little, like a real one. Backing up to a dock it straightens out.
+    /// </summary>
+    void FollowTrailer(Node3D n, Agent a, double delta)
+    {
+        var tr = n.GetNodeOrNull<Node3D>("Trailer");
+        if (tr == null) return;
+        if (!_trails.TryGetValue(a.Id, out var trail)) _trails[a.Id] = trail = new List<Vector2>();
+        var kp = new Vector2(n.Position.X, n.Position.Z);
+        var reversing = a.ReverseFrom >= 0 && a.WayI >= a.ReverseFrom;
+        var rel = tr.Rotation.Y;
+        if (reversing || !a.Moving && trail.Count < 2)
+        {
+            trail.Clear();
+            tr.Rotation = new Vector3(0, Mathf.LerpAngle(rel, 0, Mathf.Min(1, (float)delta * 2)), 0);
+            return;
+        }
+        if (trail.Count == 0 || trail[^1].DistanceTo(kp) > 0.3f) trail.Add(kp);
+        if (trail.Count > 80) trail.RemoveRange(0, trail.Count - 80);
+        // walk back along the track to the point one axle-group length behind the kingpin
+        const float reach = Models.TrailerLength - 1.3f;
+        float left = reach; var from = kp; Vector2? hit = null;
+        for (var i = trail.Count - 1; i >= 0; i--)
+        {
+            var d = from.DistanceTo(trail[i]);
+            if (d >= left) { hit = from + (trail[i] - from) * (left / d); break; }
+            left -= d; from = trail[i];
+        }
+        var want = 0f;
+        if (hit is Vector2 h)
+        {
+            var dir = kp - h;
+            var yaw = Mathf.Atan2(dir.X, dir.Y);
+            want = Mathf.Wrap(yaw - n.Rotation.Y, -Mathf.Pi, Mathf.Pi);
+            // turning round on the spot (start of the way back): start straight again
+            if (Mathf.Abs(want) > Mathf.DegToRad(100)) { trail.Clear(); trail.Add(kp); want = 0; }
+            want = Mathf.Clamp(want, -1.2f, 1.2f);
+        }
+        tr.Rotation = new Vector3(0, Mathf.LerpAngle(rel, want, Mathf.Min(1, (float)delta * 8)), 0);
     }
 
     /// <summary>
@@ -1118,7 +1205,8 @@ public partial class WorldView : Node3D
         if (MovingParts)
         {
             foreach (var m in _markers) m.RotateY((float)delta * 2f);
-            foreach (var f in _fans) if (IsInstanceValid(f)) f.RotateY((float)delta * 9f);
+            // spin round their own axis (a tilted wind turbine hub too), turbines slower than fans
+            foreach (var f in _fans) if (IsInstanceValid(f)) f.RotateObjectLocal(Vector3.Up, (float)delta * (f.Name == "FanRotor" ? 1.6f : 9f));
         }
         // gates are gameplay (vehicles wait for them), so they always move
         AnimateGates();

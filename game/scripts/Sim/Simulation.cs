@@ -614,14 +614,14 @@ public partial class Simulation
             {
                 // drop the last cells that lie between the parking spot and the door
                 double ox = Math.Sin(spot.heading), oz = Math.Cos(spot.heading);
-                double ex = spot.x - ox * 2.75, ez = spot.z - oz * 2.75;
+                double ex = spot.x - ox * (TruckRear + 0.1), ez = spot.z - oz * (TruckRear + 0.1);
                 t.Way.RemoveAt(t.Way.Count - 1);
                 while (t.Way.Count > 3)
                 {
                     var (wx, wz, _) = t.Way[^1];
                     var along = (wx - ex) * ox + (wz - ez) * oz;
                     var side = Math.Abs((wx - ex) * oz - (wz - ez) * ox);
-                    if (along < 2.75 && side < 1.5) t.Way.RemoveAt(t.Way.Count - 1); else break;
+                    if (along < TruckRear + 0.1 && side < 1.5) t.Way.RemoveAt(t.Way.Count - 1); else break;
                 }
                 // turn round a few metres out and back up to the door
                 t.Way.Add((spot.x + ox * 3, spot.z + oz * 3, 0));
@@ -698,6 +698,8 @@ public partial class Simulation
     /// <summary>How far each sliding gate or barrier is open, 0 (closed) to 1 (open), by object id.</summary>
     public readonly Dictionary<int, double> GateOpen = new();
     public const double GateHours = 0.06, GateReach = 9, TruckNose = 3.6;
+    /// <summary>From the truck's position (the kingpin) back to the rear of its semi-trailer, in metres.</summary>
+    public const double TruckRear = 8.6;
 
     void UpdateGates(double dt)
     {
@@ -762,7 +764,7 @@ public partial class Simulation
             if (apron != cell) continue;
             double ox = apron.x - inside.x, oz = apron.z - inside.z;
             var ex = (apron.x + inside.x) / 2.0 + 0.5; var ez = (apron.z + inside.z) / 2.0 + 0.5;
-            return (ex + ox * 2.75, ez + oz * 2.75, Math.Atan2(ox, oz));
+            return (ex + ox * (TruckRear + 0.1), ez + oz * (TruckRear + 0.1), Math.Atan2(ox, oz));
         }
         return null;
     }
