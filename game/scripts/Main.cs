@@ -114,6 +114,8 @@ public partial class Main : Node3D
         StopWalk();
         _menu?.QueueFree(); _menu = null;
         _hud?.QueueFree();
+        // the title screen shows the demo site in the background: swap it for the game that starts or loads now
+        SetState(s);
         _world.GridVisible = true;
         _world.Roofs = true; _world.ViewFloor = 0;
         _cam.InputEnabled = true;
@@ -1092,7 +1094,6 @@ public partial class Main : Node3D
             g.PaintSurface(46, 10, 5, g.PlotSize - 10, Surface.Asphalt, out _);
             g.PaintSurface(51, 14, 13, 12, Surface.Parking, out _);
             g.PaintSurface(51, 28, 11, 6, Surface.Parking, out _);
-            SetState(g);
             StartGame(g, false);
             var loads = new[] { TruckLoad.Material, TruckLoad.Equipment, TruckLoad.Customer };
             for (var i = 0; i < loads.Length; i++)
@@ -1211,6 +1212,7 @@ public partial class Main : Node3D
         var sti = Array.IndexOf(args, "--staff");
         if (sti >= 0 && sti + 1 < args.Length) { _playing = true; OpenStaff(int.Parse(args[sti + 1])); }
         if (args.Contains("--new-game")) _ui.AddChild(new NewGameDialog(_ => { }));
+        if (args.Contains("--start-new")) StartNew(new NewGameOptions());
         var ci = Array.IndexOf(args, "--category");
         if (ci >= 0 && ci + 1 < args.Length) _hud?.ShowCategory(args[ci + 1]);
         if (args.Contains("--info")) OpenInfo();

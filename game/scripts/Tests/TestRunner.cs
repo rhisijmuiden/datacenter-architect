@@ -481,6 +481,9 @@ public static class TestRunner
 
     static void PlaytestTests()
     {
+        // a new game starts on empty land: no buildings, rooms, objects or paving (the demo site only sits behind the title screen)
+        var fresh = GameState.New(new NewGameOptions());
+        Check(fresh.Buildings.Count == 0 && fresh.Rooms.Count == 0 && fresh.Objects.Count == 0 && fresh.Surfaces.All(b => b == 0), "a new game starts on empty land");
         // parking bays: 2.5 m wide, 5 m deep, one row on a 6 m deep strip, two rows on a 12 m deep lot
         bool In(int x, int z, int x0, int z0, int w, int d) => x >= x0 && x < x0 + w && z >= z0 && z < z0 + d;
         var one = ParkingLayout.Lines(40, (x, z) => In(x, z, 5, 5, 10, 6));
