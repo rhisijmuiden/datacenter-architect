@@ -1101,6 +1101,7 @@ public partial class Main : Node3D
         if (sni >= 0 && sni + 1 < args.Length) _world.ForceSnow = double.Parse(args[sni + 1], System.Globalization.CultureInfo.InvariantCulture);
         _world.SnapFrames = 100000;
         if (args.Contains("--migration")) MigrationDemo(args.Contains("--movers"));
+        if (args.Contains("--cables")) CableDemo(args.Contains("--at-work"));
         var wki = Array.IndexOf(args, "--walk");
         if (wki >= 0 && wki + 1 < args.Length)
         {
@@ -1177,6 +1178,32 @@ public partial class Main : Node3D
         var m = _sim.Agents.FirstOrDefault(a => a.Role == Role.Visitor && a.Carry > 0);
         if (movers && m != null) _cam.SetView((float)m.Heading + 0.5f, 0.45f, 7, new Vector3((float)m.X, 0.8f, (float)m.Z));
         else if (t != null) _cam.SetView(0.3f, 0.95f, 30, new Vector3((float)t.X - 2, 0, (float)t.Z - 1));
+    }
+
+    /// <summary>Screenshot: new racks waiting for cabling, engineers walking up with reels (or, with --at-work, unrolling them).</summary>
+    void CableDemo(bool atWork)
+    {
+        var s = _state;
+        s.Hours = Math.Floor(s.Hours / 24) * 24 + 11;
+        foreach (var o in s.Objects.Where(o => o.Kind == ObjKind.Rack && o.Status == ObjStatus.Live).Take(12)) o.Status = ObjStatus.Placed;
+        s.Touch();
+        Agent e = null;
+        for (var i = 0; i < 4000; i++)
+        {
+            _sim.Tick(0.01); s.Hours += 0.01;
+            e = _sim.Agents.FirstOrDefault(a => a.Role == Role.Engineer && a.Cable != CableKind.None && (atWork ? a.Working : a.Moving && a.WayI > 3));
+            if (e != null && (!atWork || _sim.Agents.Count(a => a.Role == Role.Engineer && a.Working) >= 2)) break;
+        }
+        SetView(0, false);
+        if (e == null) return;
+        if (!atWork) { _cam.SetView((float)e.Heading + 0.6f, 0.5f, 6, new Vector3((float)e.X, 0.8f, (float)e.Z)); return; }
+        // walk up the aisle and look at the engineer from the side
+        var h = e.Heading;
+        var at = new Vector3((float)(e.X + Math.Cos(h) * 3.6), 0, (float)(e.Z - Math.Sin(h) * 3.6));
+        SetView(e.Floor, e.Floor == 0);
+        _cam.SetView(0, 0.8f, 20, at);
+        StartWalk();
+        _fp.Yaw = (float)Math.Atan2(Math.Cos(h), -Math.Sin(h)); _fp.Pitch = -0.32f;
     }
 
     /// <summary>Screenshots of step 8: managers in place, policies on, a certificate, research running, reviews and a proposal.</summary>

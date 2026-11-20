@@ -41,8 +41,12 @@ public class Agent
     public StaffRole Staff;
     /// <summary>A customer migration moving out: the truck arrives empty and the movers bring servers back from the racks.</summary>
     public bool Out;
+    /// <summary>The cable an engineer is pulling, for the reel they carry: power (amber) or fiber (orange).</summary>
+    public CableKind Cable;
     public bool Moving => WayI < Way.Count;
 }
+
+public enum CableKind { None, Power, Fiber }
 
 /// <summary>A construction job: a building stage or a room's inner walls.</summary>
 public sealed class Site
@@ -246,7 +250,7 @@ public partial class Simulation
     void Reset(Agent a)
     {
         if (a.Role == Role.Builder && a.Carry > 0) S.MaterialStock += a.Carry;
-        a.Carry = 0; a.Loaded = false; a.CarryObj = 0; a.Target = 0; a.Phase = 0; a.Working = false; a.Xc = false;
+        a.Carry = 0; a.Loaded = false; a.CarryObj = 0; a.Target = 0; a.Phase = 0; a.Working = false; a.Xc = false; a.Cable = CableKind.None;
         a.Way.Clear(); a.WayI = 0; a.Goal = (-1, -1);
     }
 
@@ -846,6 +850,7 @@ public partial class Simulation
                 bool Next(int x, int z) => Nav.Walkable(x, z, item.Floor) && !cells.Contains((x, z)) &&
                     (cells.Contains((x + 1, z)) || cells.Contains((x - 1, z)) || cells.Contains((x, z + 1)) || cells.Contains((x, z - 1)));
                 a.Target = item.Id;
+                a.Cable = !a.Xc && item.Status == ObjStatus.Placed ? CableKind.Power : CableKind.Fiber;
                 if (!Go(a, item.Floor, Next, NavMode.Walk)) { Say("msg_rack_unreachable", null, 12); Cool(item.Id, 3); Reset(a); return; }
                 a.Phase = 1;
                 return;
@@ -873,7 +878,7 @@ public partial class Simulation
                 if (a.Timer > 0) return;
                 o.Status = o.Status == ObjStatus.Placed && o.Def.NeedsFiber ? ObjStatus.Powered : ObjStatus.Live;
                 S.Touch(false);
-                if (o.Status == ObjStatus.Live) Reset(a); else a.Timer = ConnectHours;
+                if (o.Status == ObjStatus.Live) Reset(a); else { a.Timer = ConnectHours; a.Cable = CableKind.Fiber; }
                 return;
         }
     }

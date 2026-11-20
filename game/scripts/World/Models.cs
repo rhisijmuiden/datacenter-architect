@@ -679,8 +679,31 @@ public static class Models
         }
         foreach (var (x, z) in new[] { (-0.25f, -0.3f), (0.25f, -0.3f), (-0.25f, 0.3f), (0.25f, 0.3f) }) Ball(cart, new Vector3(x, 0.07f, z), 0.06f, Dark);
         var rack = Box(n, new Vector3(0, 1.05f, 0.62f), new Vector3(0.9f, 2.1f, 0.85f), Brand.Rack, 0.5f, 0.4f); rack.Name = "Rack"; rack.Visible = false;
+        // engineers carry a cable reel: amber power cable or orange fiber, unrolling it at the job
+        if (role == Role.Engineer || role == Role.Staff && staff is StaffRole.Electrical or StaffRole.GeneratorTech or StaffRole.NetworkEng)
+        {
+            if (role == Role.Engineer || staff != StaffRole.NetworkEng) CableReel(n, "ReelP", Brand.Power, 0.3f);
+            if (role == Role.Engineer || staff == StaffRole.NetworkEng) CableReel(n, "ReelF", Brand.Fiber, 0.22f);
+        }
         var tool = Box(fig, new Vector3(0.33f, 0.66f, 0.12f), new Vector3(0.12f, 0.2f, 0.06f), role == Role.Engineer ? Brand.Fiber : role == Role.Visitor ? Dark : Steel); tool.Name = "Tool";
         return n;
+    }
+
+    /// <summary>
+    /// A small cable reel held in both hands: wooden flanges, the wound cable in its brand colour and a loose end.
+    /// "Drum" turns while the cable unrolls and "Lead" is the cable run to the job, shown while working.
+    /// </summary>
+    static void CableReel(Node3D person, string name, Color cable, float size)
+    {
+        var reel = new Node3D { Name = name, Position = new Vector3(0, 0.76f, 0.4f), Visible = false }; person.AddChild(reel);
+        var drum = new Node3D { Name = "Drum" }; reel.AddChild(drum);
+        var w = size * 0.75f;
+        foreach (var x in new[] { -w / 2, w / 2 })
+            Cyl(drum, new Vector3(x, 0, 0), size / 2, 0.025f, new Color("#c79a5b")).RotationDegrees = new Vector3(0, 0, 90);
+        Cyl(drum, Vector3.Zero, size * 0.4f, w, cable).RotationDegrees = new Vector3(0, 0, 90);
+        Cyl(drum, Vector3.Zero, size * 0.12f, w + 0.06f, Dark).RotationDegrees = new Vector3(0, 0, 90);
+        var lead = Box(reel, new Vector3(0, -0.02f, 0.32f), new Vector3(0.022f, 0.022f, 0.6f), cable);
+        lead.Name = "Lead"; lead.RotationDegrees = new Vector3(-22, 0, 0); lead.Visible = false;
     }
 
     /// <summary>

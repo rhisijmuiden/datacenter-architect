@@ -1010,10 +1010,42 @@ public partial class WorldView : Node3D
             cart.Visible = a.Role == Role.Visitor && a.Carry > 0;
             if (cart.Visible) fig.GetNode<Node3D>("A1").RotationDegrees = fig.GetNode<Node3D>("A2").RotationDegrees = new Vector3(-62, 0, 0);
             n.GetNode<Node3D>("Rack").Visible = a.Role == Role.Fitter && a.CarryObj != 0 && a.Phase == 2;
+            AnimateReels(n, fig, a, t);
         }
         foreach (var id in _agentNodes.Keys.Where(id => !alive.Contains(id)).ToList())
         {
             _agentNodes[id].QueueFree(); _agentNodes.Remove(id);
+        }
+    }
+
+    /// <summary>
+    /// Engineers walk with a reel of amber power cable or orange fiber in both hands; at the job the reel
+    /// goes on the floor beside them and a cable run leads to the rack while the drum slowly unrolls.
+    /// Electricians and network engineers on a repair carry one too.
+    /// </summary>
+    static void AnimateReels(Node3D n, Node3D fig, Agent a, float t)
+    {
+        var p = n.GetNodeOrNull<Node3D>("ReelP");
+        var f = n.GetNodeOrNull<Node3D>("ReelF");
+        if (p == null && f == null) return;
+        var kind = a.Role == Role.Engineer ? a.Cable
+            : a.Target == 0 ? CableKind.None
+            : a.Staff == StaffRole.NetworkEng ? CableKind.Fiber : CableKind.Power;
+        if (a.Role == Role.Engineer && a.Phase == 0) kind = CableKind.None;
+        var tool = fig.GetNodeOrNull<Node3D>("Tool");
+        if (tool != null) tool.Visible = kind == CableKind.None;
+        foreach (var (reel, k) in new[] { (p, CableKind.Power), (f, CableKind.Fiber) })
+        {
+            if (reel == null) continue;
+            reel.Visible = kind == k;
+            if (!reel.Visible) continue;
+            var down = a.Working;
+            reel.Position = down ? new Vector3(0.42f, 0.16f, 0.22f) : new Vector3(0, 0.76f, 0.4f);
+            reel.GetNode<Node3D>("Lead").Visible = down;
+            var drum = reel.GetNode<Node3D>("Drum");
+            drum.RotationDegrees = new Vector3(down ? t * 40 % 360 : a.Moving ? t * 90 % 360 : drum.RotationDegrees.X, 0, 0);
+            if (!down)
+                fig.GetNode<Node3D>("A1").RotationDegrees = fig.GetNode<Node3D>("A2").RotationDegrees = new Vector3(-48, 0, 0);
         }
     }
 
