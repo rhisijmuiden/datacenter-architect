@@ -556,9 +556,7 @@ public partial class WorldView : Node3D
             (x, z) => _state.SurfaceAt(x, z) == Surface.Asphalt || _curveCells.Contains(z * s + x)), 0.02f));
         stripes.AddRange(RoadCentreLines(s, 0.02f));
         Multi(root, new PlaneMesh { Size = new Vector2(1, 1) }, stripes, new Color("#f2f2ee"), false);
-        ParkedCars(root, ParkingLayout.Lines(s, (x, z) => _state.SurfaceAt(x, z) == Surface.Parking && !_curveCells.Contains(z * s + x),
-            (x, z) => _state.SurfaceAt(x, z) == Surface.Asphalt || _curveCells.Contains(z * s + x)),
-            Commute.Chargers(_state).Select(o => new Vector3(o.X + 0.5f, 0, o.Z + 0.5f)).ToList());
+        EvBays(root, ParkingLayout.SiteBays(_state));
     }
 
     /// <summary>
@@ -1395,6 +1393,9 @@ public partial class WorldView : Node3D
             n.Position = n.Position.DistanceTo(target) > 3 ? target : n.Position.Lerp(target, Mathf.Min(1, (float)delta * 12));
             var yaw = (float)a.Heading;
             n.Rotation = new Vector3(0, Mathf.LerpAngle(n.Rotation.Y, yaw, Mathf.Min(1, (float)delta * 10)), 0);
+            // a commuter driving in or off is drawn as their car
+            if (a.Car || _carNodes.ContainsKey(a.Id)) DriveCar(a, n, delta);
+            if (a.Car) { n.Visible = false; continue; }
             if (a.Role == Role.Truck)
             {
                 var cargo = n.GetNodeOrNull<Node3D>("Trailer/Cargo");
@@ -1435,6 +1436,58 @@ public partial class WorldView : Node3D
         {
             _agentNodes[id].QueueFree(); _agentNodes.Remove(id); _trails.Remove(id);
         }
+        foreach (var id in _carNodes.Keys.Where(id => !alive.Contains(id)).ToList()) { _carNodes[id].QueueFree(); _carNodes.Remove(id); }
+        SyncParked();
+    }
+
+    /// <summary>Kenney car models point along +z; turn them by this much to match an agent's heading.</summary>
+    const float CarYaw = 0;
+    readonly Dictionary<int, Node3D> _carNodes = new();
+    readonly Dictionary<int, Node3D> _parkedNodes = new();
+
+    static Node3D CarNode(int empId, bool electric)
+    {
+        var car = new Node3D();
+        Assets.Place(car, "vehicles/" + CarModel(empId, electric) + ".glb", Vector3.Zero, 1.3f, Mathf.RadToDeg(CarYaw));
+        return car;
+    }
+
+    /// <summary>The car a commuter is driving: follows the agent, gone again once they have parked (the parked car takes over).</summary>
+    void DriveCar(Agent a, Node3D person, double delta)
+    {
+        if (!a.Car)
+        {
+            if (_carNodes.Remove(a.Id, out var old)) old.QueueFree();
+            return;
+        }
+        if (!_carNodes.TryGetValue(a.Id, out var car))
+        {
+            car = CarNode(a.EmpId, _sim.ModeOf(a.EmpId) == CommuteMode.ElectricCar);
+            _agentsRoot.AddChild(car);
+            _carNodes[a.Id] = car;
+            car.Position = new Vector3((float)a.X, 0, (float)a.Z);
+            car.Rotation = new Vector3(0, (float)a.Heading, 0);
+        }
+        car.Visible = !Underground;
+        var target = new Vector3((float)a.X, 0, (float)a.Z);
+        car.Position = car.Position.DistanceTo(target) > 4 ? target : car.Position.Lerp(target, Mathf.Min(1, (float)delta * 12));
+        car.Rotation = new Vector3(0, Mathf.LerpAngle(car.Rotation.Y, (float)a.Heading, Mathf.Min(1, (float)delta * 6)), 0);
+    }
+
+    /// <summary>Cars standing in the bays: one node per parked car, added and removed as people come and go.</summary>
+    void SyncParked()
+    {
+        foreach (var (key, p) in _sim.Parked)
+        {
+            if (_parkedNodes.ContainsKey(key)) continue;
+            var car = CarNode(p.Emp, p.Electric);
+            car.Position = new Vector3((float)p.X, 0, (float)p.Z);
+            car.Rotation = new Vector3(0, (float)p.Heading, 0);
+            _agentsRoot.AddChild(car);
+            _parkedNodes[key] = car;
+        }
+        foreach (var key in _parkedNodes.Keys.Where(k => !_sim.Parked.ContainsKey(k)).ToList()) { _parkedNodes[key].QueueFree(); _parkedNodes.Remove(key); }
+        foreach (var car in _parkedNodes.Values) car.Visible = !Underground;
     }
 
     /// <summary>Where each truck has been (newest last), so its trailer can follow the same line through bends.</summary>

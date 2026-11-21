@@ -32,6 +32,8 @@ public class Agent
     public bool Gone;
     /// <summary>From this waypoint on the agent drives backwards (a truck backing up to a dock); -1 for never.</summary>
     public int ReverseFrom = -1;
+    /// <summary>Up to (not including) this waypoint the agent drives backwards (a car backing out of a bay).</summary>
+    public int ReverseTo;
     /// <summary>Truck route on the plot (cells, starting at the entry), so the way back can keep to the right lane too.</summary>
     public List<Pt> Route;
     /// <summary>Engineer patching a cross-connect at the ODF in Target.</summary>
@@ -47,6 +49,11 @@ public class Agent
     public CableKind Cable;
     /// <summary>On a bicycle (staff riding in or home).</summary>
     public bool Ride;
+    /// <summary>Driving a car to or from a parking bay (drawn as the car); <see cref="Bay"/> is the bay's key.</summary>
+    public bool Car;
+    public int Bay;
+    /// <summary>Office worker (director, manager or sales rep): the desk they work at.</summary>
+    public int Desk;
     public bool Moving => WayI < Way.Count;
 }
 
@@ -239,7 +246,7 @@ public partial class Simulation
                 case Role.Engineer: Engineer(a, dt); break;
                 case Role.Truck: Truck(a, dt); break;
                 case Role.Visitor: Visitor(a, dt); break;
-                case Role.Staff: if (a.Escort) EscortWalk(a, dt); else StaffWalk(a, dt); break;
+                case Role.Staff: if (a.Escort) EscortWalk(a, dt); else if (a.Desk != 0) OfficeWalk(a, dt); else StaffWalk(a, dt); break;
             }
         }
         PlanVisits(dt);
@@ -323,7 +330,7 @@ public partial class Simulation
             }
             var dx = tx - a.X; var dz = tz - a.Z;
             var dist = Math.Sqrt(dx * dx + dz * dz);
-            if (dist > 1e-6) a.Heading = Math.Atan2(dx, dz) + (a.ReverseFrom >= 0 && a.WayI >= a.ReverseFrom ? Math.PI : 0);
+            if (dist > 1e-6) a.Heading = Math.Atan2(dx, dz) + (a.ReverseFrom >= 0 && a.WayI >= a.ReverseFrom || a.WayI < a.ReverseTo ? Math.PI : 0);
             if (dist <= budget) { a.X = tx; a.Z = tz; budget -= dist; a.WayI++; }
             else { a.X += dx / dist * budget; a.Z += dz / dist * budget; budget = 0; }
         }
@@ -778,7 +785,7 @@ public partial class Simulation
 
     void UpdateGates(double dt)
     {
-        var trucks = Agents.Where(a => a.Role == Role.Truck).ToList();
+        var trucks = Agents.Where(a => a.Role == Role.Truck || a.Car).ToList();
         foreach (var o in S.Objects.Where(o => Catalog.IsVehicleStop(o.Kind)))
         {
             var (w, d) = GameState.Footprint(o);
@@ -798,9 +805,9 @@ public partial class Simulation
     }
 
     /// <summary>Drives a truck along its way, stopping with its nose before a gate or barrier until it is open.</summary>
-    bool Drive(Agent a, double dt)
+    bool Drive(Agent a, double dt, double cellsPerHour = TruckSpeed)
     {
-        var speed = TruckSpeed * S.TravelFactor;
+        var speed = cellsPerHour * S.TravelFactor;
         var budget = dt * speed;
         var look = budget + TruckNose;
         // walk the remaining way and find the first closed gate within reach of the nose
@@ -813,8 +820,23 @@ public partial class Simulation
                 if (Closed(px + (tx - px) * d / seg, pz + (tz - pz) * d / seg)) { stop = travelled + d; break; }
             travelled += seg; px = tx; pz = tz;
         }
-        if (stop == double.MaxValue) return Move(a, dt, speed);
-        var allowed = Math.Max(0, stop - TruckNose);
+        var allowed = stop == double.MaxValue ? double.MaxValue : Math.Max(0, stop - TruckNose);
+        // cars keep their distance to the car or truck in front going the same way (queueing at a gate, say)
+        if (a.Car && a.WayI >= a.ReverseTo)
+        {
+            double hx = Math.Sin(a.Heading), hz = Math.Cos(a.Heading);
+            foreach (var o in Agents)
+            {
+                if (o == a || !(o.Car || o.Role == Role.Truck)) continue;
+                double dx = o.X - a.X, dz = o.Z - a.Z;
+                var ahead = dx * hx + dz * hz;
+                if (ahead <= 0.3 || ahead > 7 || Math.Abs(dx * hz - dz * hx) > 2.1) continue;
+                // oncoming traffic does not hold you up (it keeps to its own lane); a car turning in front of you does
+                if (Math.Cos(o.Heading - a.Heading) < -0.3 && (-dx * Math.Sin(o.Heading) - dz * Math.Cos(o.Heading)) > 0) continue;
+                allowed = Math.Min(allowed, Math.Max(0, ahead - (o.Role == Role.Truck ? 3.5 : 5.6)));
+            }
+        }
+        if (allowed == double.MaxValue) return Move(a, dt, speed);
         if (allowed <= 1e-6) return false;
         return Move(a, dt, Math.Min(speed, allowed / dt));
     }

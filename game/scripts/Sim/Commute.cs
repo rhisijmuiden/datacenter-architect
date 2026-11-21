@@ -66,7 +66,7 @@ public static class Commute
 public partial class Simulation
 {
     int _commuteRev = -1;
-    List<(int x, int z)> _bikeCells = new(), _evCells = new();
+    List<(int x, int z)> _bikeCells = new();
 
     void CommuteCells()
     {
@@ -80,11 +80,6 @@ public partial class Simulation
                 for (var x = o.X - 1; x <= o.X + w; x++)
                     if (S.ObjectAt(x, z, 0) == null && S.BuildingAt(x, z) == null && Nav.Walkable(x, z, 0)) _bikeCells.Add((x, z));
         }
-        _evCells = new();
-        foreach (var o in Commute.Chargers(S))
-            for (var z = o.Z - 2; z <= o.Z + 2; z++)
-                for (var x = o.X - 2; x <= o.X + 2; x++)
-                    if (S.SurfaceAt(x, z) == Surface.Parking && Nav.Walkable(x, z, 0)) _evCells.Add((x, z));
     }
 
     /// <summary>How this employee comes to work (contractors, with id &lt; 0, always drive).</summary>
@@ -97,14 +92,14 @@ public partial class Simulation
         return m;
     }
 
-    /// <summary>Where a person leaves their bike or car: a cell by a bike rack or shed, an EV bay, or any parking cell.</summary>
+    /// <summary>Where a cyclist leaves their bike (a cell by a bike rack or shed); drivers without a parked car come in on foot from the street.</summary>
     (int x, int z) ArrivalCell(int empId)
     {
         CommuteCells();
         var m = ModeOf(empId);
         if (m == CommuteMode.Bike && _bikeCells.Count > 0) return _bikeCells[Math.Abs(empId) % _bikeCells.Count];
-        if (m == CommuteMode.ElectricCar && _evCells.Count > 0) return _evCells[Math.Abs(empId) % _evCells.Count];
-        return StaffEntryCar();
+        // drivers without a car in a bay (car park full, or none): they walk in from the street, from the bus stop
+        return empId > 0 ? RoadEdge() : StaffEntryCar();
     }
 
     /// <summary>Where cyclists ride in from: the plot edge by the public road.</summary>
