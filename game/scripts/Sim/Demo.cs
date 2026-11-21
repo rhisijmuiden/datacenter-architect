@@ -47,6 +47,10 @@ public static class Demo
         s.AddObject(ObjKind.CoreRouter, 33, 24, 3, 0);
         // the distribution switch: every hall switch hangs on it, it takes one port on the core
         s.AddObject(ObjKind.DistSwitch, 32, 25, 0, 0);
+        // a carrier rack per carrier and internet exchange
+        s.AddObject(ObjKind.CarrierRack, 30, 23, 0, 0);
+        s.AddObject(ObjKind.CarrierRack, 32, 23, 0, 0);
+        s.AddObject(ObjKind.CarrierRack, 32, 24, 0, 0);
         // technical rooms: main switchgear with the ATS, and the UPS room with its batteries
         s.AddRoom(RoomType.Switchgear, 26, 14, 4, 4, 0);
         s.AddRoom(RoomType.UpsRoom, 30, 14, 4, 4, 0);
@@ -143,9 +147,9 @@ public static class Demo
         // carriers, the internet exchange and peering with a rival
         s.Contracts.Add(new CarrierContract { Carrier = 1, PortGbps = 100, Commit = 10 });
         s.Contracts.Add(new CarrierContract { Carrier = 3, PortGbps = 10, Commit = 5 });
-        s.Contracts.Add(new CarrierContract { Carrier = 4, PortGbps = 10, Commit = 0 });
-        s.Peers.Add(new PeeringDeal { Rival = 0, State = PeerState.Active });
-        s.Peers.Add(new PeeringDeal { Rival = 1, State = PeerState.Requested });
+        s.Contracts.Add(new CarrierContract { Carrier = 4, PortGbps = 10, Ports = 2, Commit = 0 });
+        s.Peers.Add(new PeeringDeal { Rival = 0, State = PeerState.Active, PortGbps = 10, Granted = 5 });
+        s.Peers.Add(new PeeringDeal { Rival = 1, State = PeerState.Requested, PortGbps = 10, Granted = 2 });
         s.CrossConnects = 14; s.XcPending = 2;
         // the organisation, customers on contract, open requests and a tender
         foreach (var e in new[] { Exec.Ceo, Exec.Cfo, Exec.Hr, Exec.Sales, Exec.Legal, Exec.Operations, Exec.Facility, Exec.Network })

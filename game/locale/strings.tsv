@@ -497,7 +497,7 @@ carrier_tier1	Large international transit network. Reliable, middle of the road 
 carrier_budget	The cheapest per Mbit, popular with hosting customers.	Het goedkoopst per Mbit, populair bij hostingklanten.
 carrier_regional	Regional carrier with a dense fiber network in the area.	Regionale carrier met een fijnmazig glasvezelnet in de buurt.
 carrier_premium	Premium low-latency routes to the rest of Europe. Expensive.	Premium routes met lage latency naar de rest van Europa. Duur.
-carrier_ix	The regional internet exchange. You only pay for the port; every network on the IX swaps traffic with you for free.	De regionale internet exchange. Je betaalt alleen de poort; elk netwerk op de IX wisselt gratis verkeer met je uit.
+carrier_ix	The biggest internet exchange in the region. You pay only for your ports; traffic with every network on the IX is free.	De grootste internet exchange in de regio. Je betaalt alleen voor je poorten; verkeer met elk netwerk op de IX is gratis.
 net_order	{0} port · {1}	{0}-poort · {1}
 net_delivering	{0} port is being delivered: {1} days	{0}-poort wordt opgeleverd: nog {1} dagen
 net_no_route	No free subduct towards this street pit. Upgrade the pit or add one.	Geen vrije subduct naar deze straatput. Upgrade de put of leg er een bij.
@@ -537,7 +537,58 @@ net_peer_building	Dark fiber being laid: {0} days	Dark fiber wordt aangelegd: no
 net_peer_active	Peering · {0}	Peering · {0}
 net_peer_end	End	Stoppen
 net_peer_propose	Propose peering	Peering voorstellen
-net_peering_help	Peering moves traffic off your paid transit. A rival only accepts your proposal once your network is big enough for them.	Peering haalt verkeer van je betaalde transit af. Een concurrent accepteert je voorstel pas als je netwerk groot genoeg is.
+net_peering_help	Peering moves traffic off your paid transit. Ask a rival for a port and the capacity you want: it answers in a few days with how much it allows, based on the traffic between you and the size of its own network.	Peering haalt verkeer van je betaalde transit af. Vraag een concurrent om een poort en de capaciteit die je wilt: binnen een paar dagen antwoordt hij hoeveel hij toestaat, op basis van het verkeer tussen jullie en de grootte van zijn eigen netwerk.
+obj_carrier_rack	Carrier rack	Carrierrack
+carrier_ix_delta	Internet exchange of the port and logistics region: fewer members, but many content and cloud networks.	Internet exchange van de haven- en logistieke regio: minder leden, maar veel content- en cloudnetwerken.
+carrier_ix_hanze	Small exchange of the northern and eastern networks. Cheap to join and a useful extra route.	Kleine exchange van de netwerken in het noorden en oosten. Goedkoop om aan te sluiten en een handige extra route.
+net_ixes	Internet exchanges (IX)	Internet exchanges (IX)
+net_ixes_help	At an IX you buy ports; the traffic over them costs nothing. More ports = more bandwidth. Each IX reaches its own members, so several exchanges together carry more of your traffic. Every carrier and every IX needs its own carrier rack in the MMR.	Bij een IX koop je poorten; het verkeer eroverheen kost niets. Meer poorten = meer bandbreedte. Elke IX bereikt zijn eigen leden, dus meerdere exchanges samen nemen meer van je verkeer. Elke carrier en elke IX heeft een eigen carrierrack in de MMR nodig.
+net_ix_reach	reaches about {0}% of your traffic	bereikt ongeveer {0}% van je verkeer
+net_ix_ports_line	Ports {0} = {1} · now {2}	Poorten {0} = {1} · nu {2}
+net_cost_ix_ports	{0} per month for the ports, traffic free	{0} per maand voor de poorten, verkeer gratis
+net_ix_add_port	+1 port {0} ({1})	+1 poort {0} ({1})
+net_ix_remove_port	−1 port	−1 poort
+net_carrier_racks	Carrier racks in the MMR: {0} for {1} carriers/IXes	Carrierracks in de MMR: {0} voor {1} carriers/IX'en
+net_no_carrier_rack	No carrier rack in the MMR: place one for this network	Geen carrierrack in de MMR: plaats er een voor dit netwerk
+net_peer_terms_rack2	Setup from {0} · they rent a rack in your MMR: +{1}/month · about {2}% of your traffic goes to them	Aanleg vanaf {0} · zij huren een rack in jouw MMR: +{1}/maand · ongeveer {2}% van je verkeer gaat naar hen
+net_peer_terms_pay2	Setup from {0} · they are bigger: {1}/month per 10 Gbit/s · about {2}% of your traffic goes to them	Aanleg vanaf {0} · zij zijn groter: {1}/maand per 10 Gbit/s · ongeveer {2}% van je verkeer gaat naar hen
+net_peer_requested_cap	Wants to peer: {0} on a {1} port	Wil peeren: {0} op een {1}-poort
+net_peer_asking	Asked {0} on {1} · answer in {2} days	{0} gevraagd op {1} · antwoord over {2} dagen
+net_peer_withdraw	Withdraw	Intrekken
+net_peer_offered	Allows {0} of the {1} you asked ({2} port)	Staat {0} toe van de {1} die je vroeg ({2}-poort)
+net_peer_accept_cost	Accept ({0})	Accepteren ({0})
+net_peer_building_cap	Dark fiber for {0} being laid: {1} days	Dark fiber voor {0} wordt aangelegd: nog {1} dagen
+net_peer_active_cap	Peering · {0} of {1} · {2} port	Peering · {0} van {1} · {2}-poort
+net_peer_more_waiting	Asked for {0}, waiting for the answer	{0} gevraagd, wacht op antwoord
+net_peer_more	More capacity…	Meer capaciteit…
+net_peer_request	Request peering…	Peering aanvragen…
+net_peer_retry	Said no · ask again in {0} days	Zei nee · opnieuw vragen over {0} dagen
+net_advice_carrier_rack	A carrier or IX has no carrier rack in the MMR, so it carries no traffic. Place a carrier rack in the meet-me room.	Een carrier of IX heeft geen carrierrack in de MMR en neemt dus geen verkeer. Plaats een carrierrack in de meet-me room.
+net_advice_ix_full	An IX port is full: add a port or a bigger port there, or join another IX.	Een IX-poort zit vol: neem daar een extra of grotere poort, of sluit aan op een andere IX.
+peer_dlg_title	Request peering	Peering aanvragen
+peer_dlg_more_title	More peering capacity	Meer peeringcapaciteit
+peer_dlg_traffic	At the evening peak about {0} of your traffic goes to their network ({1}% of {2}).	Op de avondpiek gaat ongeveer {0} van je verkeer naar hun netwerk ({1}% van {2}).
+peer_dlg_hint	Ask what you need. They allow about four times the traffic between you, never more than their own network takes; a good reputation helps.	Vraag wat je nodig hebt. Ze staan ongeveer vier keer het verkeer tussen jullie toe, nooit meer dan hun eigen netwerk aankan; een goede reputatie helpt.
+peer_dlg_port	Port	Poort
+peer_dlg_capacity	Capacity you ask for	Gevraagde capaciteit
+peer_dlg_summary	One-off {0} · {1} · answer within {2} days	Eenmalig {0} · {1} · antwoord binnen {2} dagen
+peer_dlg_income	they pay you {0}/month	zij betalen jou {0}/maand
+peer_dlg_cost	you pay {0}/month	jij betaalt {0}/maand
+peer_dlg_send	Send request	Aanvraag versturen
+peer_dlg_cancel	Cancel	Annuleren
+msg_peer_wait	They said no recently; ask again later.	Ze zeiden kort geleden nee; vraag het later opnieuw.
+msg_peer_refused	{0} said no to peering: your network is too small for them.	{0} zegt nee tegen peering: je netwerk is te klein voor ze.
+msg_peer_offer	{0} allows {1} Gbit/s of the {2} Gbit/s you asked. Accept or decline in the network overview.	{0} staat {1} Gbit/s toe van de {2} Gbit/s die je vroeg. Accepteer of wijs af in het overzicht netwerk.
+msg_peer_agreed	{0} agreed to peer at {1} Gbit/s. The dark fiber is being laid.	{0} gaat akkoord met peering op {1} Gbit/s. De dark fiber wordt aangelegd.
+msg_peer_more	{0} raised the peering to {1} Gbit/s.	{0} heeft de peering verhoogd naar {1} Gbit/s.
+msg_peer_more_no	{0} does not allow more peering capacity for now.	{0} staat voorlopig geen extra peeringcapaciteit toe.
+msg_ix_port_added	Extra port at {0}: now {1} ports.	Extra poort bij {0}: nu {1} poorten.
+msg_needs_carrier_rack	Place a free carrier rack in the meet-me room first: every carrier and IX needs its own.	Plaats eerst een vrije carrierrack in de meet-me room: elke carrier en IX heeft een eigen rack nodig.
+msg_carrier_racks_new	New: every new carrier or IX needs its own carrier rack in the MMR. Your current ones keep working.	Nieuw: elke nieuwe carrier of IX heeft een eigen carrierrack in de MMR nodig. Je huidige blijven gewoon werken.
+ntree_no_carrier_rack	no carrier rack	geen carrierrack
+ntree_f_carrier_racks	Carrier racks	Carrierracks
+inspect_carrier_rack	Carrier rack of {0}	Carrierrack van {0}
+inspect_carrier_rack_free	Free carrier rack: the next carrier or IX you order uses it	Vrije carrierrack: de volgende carrier of IX die je bestelt gebruikt hem
 net_noc	NOC and cross-connects	NOC en cross-connects
 net_noc_on	The NOC watches the network: more traffic over peering, cheaper burst and an early warning before transit fills up.	De NOC bewaakt het netwerk: meer verkeer via peering, goedkopere burst en een vroege waarschuwing voordat de transit volloopt.
 net_noc_off	No NOC yet. Build a NOC room with a video wall to watch and optimise the network.	Nog geen NOC. Bouw een NOC-ruimte met een videowall om het netwerk te bewaken en te optimaliseren.

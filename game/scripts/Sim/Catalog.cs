@@ -46,6 +46,8 @@ public enum ObjKind
     // network tree: edge switches in the halls and the distribution switch in the MMR.
     // The values leave room for Pdu75 and Pdu300 of the power tree, so saves keep their kinds whichever lands first.
     EdgeSwitch24 = EvCharger + 3, EdgeSwitch48, DistSwitch,
+    // peering and IX ports: every carrier and every internet exchange needs its own rack in the meet-me room
+    CarrierRack = EvCharger + 12,
 }
 
 /// <summary>Delivery chain for hall equipment: truck to the dock, fitter places it, engineer connects power and then fiber.</summary>
@@ -76,7 +78,8 @@ public record GridLevelDef(int Level, double Mva, long Cost, int LeadDays, strin
 public record SupplierDef(int Id, string Name, double PricePerKwh, bool Green, bool Variable, int Years, string DescKey);
 
 /// <summary>A fictional carrier selling IP transit (or the internet exchange) at one of the street pits.</summary>
-public record CarrierDef(int Id, string Name, int Pit, double PricePerMbit, bool Ix, string DescKey);
+/// <summary>An internet exchange (Ix) charges only its ports: traffic over them is free. Reach = share of your traffic its members take.</summary>
+public record CarrierDef(int Id, string Name, int Pit, double PricePerMbit, bool Ix, string DescKey, double Reach = 0);
 public record PortDef(int Gbps, long MonthlyFee, long SetupFee);
 /// <summary>Rival datacenter: the peak traffic (Gbit/s) you need before it accepts your proposal, the share of your traffic the peering carries,
 /// setup cost, monthly money (+ they rent a rack in your MMR, - you pay them because they are bigger), and the game day it asks to peer.</summary>
@@ -173,6 +176,7 @@ public static class Catalog
         [ObjKind.EdgeSwitch24] = new(ObjKind.EdgeSwitch24, "obj_edge24", 1, 1, 28000, Where.Hall, true, PowerKw: 0.6, Chain: true, Ports: 24, Gbps: 200),
         [ObjKind.EdgeSwitch48] = new(ObjKind.EdgeSwitch48, "obj_edge48", 1, 1, 45000, Where.Hall, true, PowerKw: 1, Chain: true, Ports: 48, Gbps: 400),
         [ObjKind.Spine] = new(ObjKind.Spine, "obj_spine", 1, 1, 65000, Where.Hall, true, PowerKw: 2, Chain: true, Ports: 96, Gbps: 3200),
+        [ObjKind.CarrierRack] = new(ObjKind.CarrierRack, "obj_carrier_rack", 1, 1, 6500, Where.Room, true, PowerKw: 1.5, Chain: true, Rooms: new[] { RoomType.MeetMe }),
         [ObjKind.NocWall] = new(ObjKind.NocWall, "obj_noc_wall", 3, 1, 48000, Where.Room, true, PowerKw: 1.5, Rooms: new[] { RoomType.Noc }),
         // security: cameras on poles outside and in the halls, the video wall and glass lodge in the security room, bollards against vehicles
         [ObjKind.CameraPole] = new(ObjKind.CameraPole, "obj_camera_pole", 1, 1, 6500, Where.Outside, false, PowerKw: 0.05),
@@ -266,8 +270,12 @@ public static class Catalog
         new(1, "NordFiber", 1, 0.26, false, "carrier_budget"),
         new(2, "Kanaal Net", 0, 0.29, false, "carrier_regional"),
         new(3, "Eurolink", 2, 0.38, false, "carrier_premium"),
-        new(4, "Polder-IX", 2, 0, true, "carrier_ix"),
+        new(4, "Polder-IX", 2, 0, true, "carrier_ix", 0.25),
+        new(5, "Delta-IX", 0, 0, true, "carrier_ix_delta", 0.16),
+        new(6, "Hanze-IX", 1, 0, true, "carrier_ix_hanze", 0.10),
     };
+    /// <summary>Most ports you can take at one internet exchange.</summary>
+    public const int MaxIxPorts = 4;
 
     /// <summary>Rival datacenters in the region that want to peer (only with AI competitors switched on).</summary>
     public static readonly RivalDef[] Rivals =
@@ -275,8 +283,17 @@ public static class Catalog
         new(0, "Zuidas Colo", 2, 0.08, 45_000, 900, 5),
         new(1, "Rivierhaven DC", 8, 0.10, 60_000, -1500, 20),
         new(2, "Noordpoort Data", 5, 0.07, 40_000, 600, 40),
+        new(3, "Kustlijn Data", 4, 0.06, 40_000, 500, 60),
+        new(4, "Heuvelrug Compute", 12, 0.09, 70_000, -2000, 90),
     };
     public const int PeeringDays = 10;
+    /// <summary>Days a rival takes to answer a peering request.</summary>
+    public const int PeerAnswerDays = 3;
+    /// <summary>Days before you can ask a rival again after it said no.</summary>
+    public const int PeerRetryDays = 30;
+    /// <summary>Port sizes for private peering, and the capacity steps you can ask for (Gbit/s).</summary>
+    public static readonly int[] PeerPorts = { 10, 100, 400 };
+    public static readonly double[] PeerSteps = { 1, 2, 5, 10, 20, 40, 50, 100, 200, 400 };
 
     /// <summary>Cross-connects: one-off fee and monthly fee; customers order them as more networks sit in the MMR.</summary>
     public const long XcSetupFee = 250, XcMonthlyFee = 60;

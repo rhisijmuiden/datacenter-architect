@@ -1175,8 +1175,8 @@ public partial class Main : Node3D
                     actions.Add((Loc.T("action_duct", Catalog.Subducts(o.Level + 1), Ui.Money(Catalog.UpgradeCost(d, o.Level))), () => Act(_state.UpgradeObject(target)), _state.CanUpgrade(o) == null));
                 }
             }
-            if (Catalog.IsHallSwitch(o.Kind) || o.Kind is ObjKind.DistSwitch or ObjKind.CoreRouter) lines.AddRange(NetworkPanel.InspectLines(_state, o));
-            if (o.Kind is ObjKind.FiberPit or ObjKind.Odf or ObjKind.NocWall)
+            if (Catalog.IsHallSwitch(o.Kind) || o.Kind is ObjKind.DistSwitch or ObjKind.CoreRouter or ObjKind.CarrierRack) lines.AddRange(NetworkPanel.InspectLines(_state, o));
+            if (o.Kind is ObjKind.FiberPit or ObjKind.Odf or ObjKind.NocWall or ObjKind.CarrierRack)
                 actions.Add((Loc.T("net_overview"), OpenNetwork, true));
             if (Catalog.IsHallSwitch(o.Kind) || o.Kind is ObjKind.DistSwitch or ObjKind.CoreRouter)
                 actions.Add((Loc.T("ntree_open"), () => OpenPanel(PanelKind.Network, NetworkPanel.TabTree), true));
@@ -1745,6 +1745,20 @@ public partial class Main : Node3D
             // network tree: without the spine the demo hall runs on two Edge 48s, not every rack gets a B port
             _state.Objects.RemoveAll(o => o.Kind == ObjKind.Spine);
             _state.Touch();
+        }
+        var pdi = Array.IndexOf(args, "--peer-demo");
+        if (pdi >= 0 && _state != null)
+        {
+            // peering: one rival offers less than asked, one answers soon; "dialog" opens a request
+            _state.Peers.Add(new PeeringDeal { Rival = 2, State = PeerState.Asking, Asked = 10, AskPort = 10, AnswerDays = 2 });
+            var p1 = _state.PeerOf(1);
+            if (p1 != null) { p1.State = PeerState.Offered; p1.PortGbps = 100; p1.Granted = 20; p1.Asked = 40; }
+            _state.Touch(false);
+            if (pdi + 1 < args.Length && args[pdi + 1] == "dialog")
+            {
+                _state.Peers.RemoveAll(x => x.Rival == 2);
+                _ui.AddChild(new PeeringDialog(() => _state, 2, false, Fail));
+            }
         }
         var coi = Array.IndexOf(args, "--company");
         if (coi >= 0 && coi + 1 < args.Length) { _playing = true; OpenCompany(int.Parse(args[coi + 1])); }

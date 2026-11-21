@@ -18,7 +18,7 @@ public partial class NetworkPanel
     string TreeSig(NetReport n) =>
         string.Join(",", n.CoreList.Select(c => c.Obj.Id)) + "|" + string.Join(",", n.Dists.Select(d => $"{d.Obj.Id}:{d.Linked}")) + "|" +
         string.Join(",", n.Uplink.OrderBy(x => x.Key).Select(x => $"{x.Key}:{x.Value}")) + "|" +
-        string.Join(",", n.Halls.Select(h => $"{h.Room.Id}:{h.Switches.Count}:{(h.Racks > 0 ? 1 : 0)}")) + $"|{n.External}|{_sel}";
+        string.Join(",", n.Halls.Select(h => $"{h.Room.Id}:{h.Switches.Count}:{(h.Racks > 0 ? 1 : 0)}")) + $"|{n.External}|{n.CarrierRacksUsed}|{_sel}";
 
     static int HallNo(NetReport n, Room room) => n.Halls.FindIndex(h => h.Room == room) + 1;
     public static string HallLabel(NetReport n, Room room) => Loc.T("ntree_hall", HallNo(n, room));
@@ -86,12 +86,15 @@ public partial class NetworkPanel
         chips.AddThemeConstantOverride("h_separation", 6); chips.AddThemeConstantOverride("v_separation", 6);
         foreach (var c in n.Carriers)
         {
-            var state = !c.Contract.Active ? Loc.T("ntree_delivering") : !c.Routed ? Loc.T("ntree_no_route") : $"{c.Contract.PortGbps}G";
+            var ports = Math.Max(1, c.Contract.Ports);
+            var size = c.Def.Ix && ports > 1 ? $"{ports}×{c.Contract.PortGbps}G" : $"{c.Contract.PortGbps}G";
+            var state = !c.Contract.Active ? Loc.T("ntree_delivering") : !c.Racked ? Loc.T("ntree_no_carrier_rack") : !c.Routed ? Loc.T("ntree_no_route") : size;
             var kind = c.Def.Ix ? "IX" : Loc.T("ntree_transit");
-            chips.AddChild(TreeRow.Chip($"{c.Def.Name} · {Loc.T("ntree_one_pair")} · {kind} {state}", null, c.Up ? Brand.Ink : Brand.Warning));
+            var pairs = c.Def.Ix && ports > 1 ? Loc.T("ntree_pairs", ports) : Loc.T("ntree_one_pair");
+            chips.AddChild(TreeRow.Chip($"{c.Def.Name} · {pairs} · {kind} {state}", null, c.Up ? Brand.Ink : Brand.Warning));
         }
         foreach (var p in s.Peers.Where(p => p.State is PeerState.Active or PeerState.Building))
-            chips.AddChild(TreeRow.Chip($"{Catalog.Rivals[p.Rival].Name} · {Loc.T("ntree_one_pair")} · {Loc.T("ntree_peering")} 10G", null, p.State == PeerState.Active ? Brand.Ink : Brand.InkDim));
+            chips.AddChild(TreeRow.Chip($"{Catalog.Rivals[p.Rival].Name} · {Loc.T("ntree_one_pair")} · {Loc.T("ntree_peering")} {p.Capacity:0}/{p.Port}G", null, p.State == PeerState.Active ? Brand.Ink : Brand.InkDim));
         if (chips.GetChildCount() == 0) chips.AddChild(TreeRow.Chip(Loc.T("ntree_no_carriers"), new Color(Brand.Warning, 0.16f), Brand.Warning));
         inner.AddChild(chips);
 
@@ -369,9 +372,18 @@ public partial class NetworkPanel
     {
         card.AddChild(Title(Loc.T("ntree_incoming", n.MmrRooms)));
         card.AddChild(Facts(("ntree_f_pairs", N(n.Pairs)), ("ntree_f_odf", $"{n.OdfUsed} / {n.OdfPorts}"), ("ntree_f_routes", N(n.Routes))));
+        card.AddChild(Facts(("ntree_f_carrier_racks", $"{n.CarrierRacksUsed} / {n.CarrierRacks}")));
         foreach (var c in n.Carriers)
-            card.AddChild(Plain($"• {c.Def.Name} · {c.Contract.PortGbps}G · {G(c.Gbps)}" + (c.Up ? "" : " · " + Loc.T(c.Contract.Active ? "ntree_no_route" : "ntree_delivering")), 13, c.Up ? Brand.Ink : Brand.Warning));
-        foreach (var (rival, f) in n.PeerFlows) card.AddChild(Plain($"• {Catalog.Rivals[rival].Name} · {Loc.T("ntree_peering")} · {G(f)}", 13, Brand.Ink));
+        {
+            var why = !c.Contract.Active ? "ntree_delivering" : !c.Racked ? "ntree_no_carrier_rack" : "ntree_no_route";
+            var size = c.Def.Ix ? $"{Math.Max(1, c.Contract.Ports)} × {c.Contract.PortGbps}G" : $"{c.Contract.PortGbps}G";
+            card.AddChild(Plain($"• {c.Def.Name} · {size} · {G(c.Gbps)}" + (c.Up ? "" : " · " + Loc.T(why)), 13, c.Up ? Brand.Ink : Brand.Warning));
+        }
+        foreach (var (rival, f) in n.PeerFlows)
+        {
+            var p = s.PeerOf(rival);
+            card.AddChild(Plain($"• {Catalog.Rivals[rival].Name} · {Loc.T("ntree_peering")} · {G(f)} / {G(p?.Capacity ?? 10)}", 13, Brand.Ink));
+        }
         card.AddChild(Plain(Loc.T("ntree_pairs_help"), 12, Brand.InkDim));
         var tips = Advice(s, n);
         if (tips.Count > 0) card.AddChild(Tip(Loc.T(tips[0]), true));
@@ -404,6 +416,11 @@ public partial class NetworkPanel
         {
             var d = n.Dists.FirstOrDefault(x => x.Obj == o);
             if (d != null) lines.Add((d.Linked ? "" : "⚠ ") + Loc.T("ntree_dist_sub", d.Used, d.Ports, d.Edges.Count) + $" · {G(d.Load)}");
+        }
+        else if (o.Kind == ObjKind.CarrierRack)
+        {
+            var c = n.Carriers.FirstOrDefault(x => x.Rack == o);
+            lines.Add(c == null ? Loc.T("inspect_carrier_rack_free") : Loc.T("inspect_carrier_rack", c.Def.Name));
         }
         else if (o.Kind == ObjKind.CoreRouter)
         {
