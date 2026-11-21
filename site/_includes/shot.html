@@ -1,0 +1,10 @@
+{%- comment -%}
+  A screenshot with a caption. Usage: {% include shot.html src="hall" caption="..." %}
+  Optional: nl=true uses the Dutch version (assets/shots/nl-<src>.jpg), wide=true spans the full width.
+{%- endcomment -%}
+{%- if include.nl and page.lang == "nl" -%}{%- assign file = "nl-" | append: include.src -%}{%- else -%}{%- assign file = include.src -%}{%- endif -%}
+{%- assign url = "/assets/shots/" | append: file | append: ".jpg" | relative_url -%}
+<figure class="shot{% if include.wide %} wide{% endif %}">
+  <a href="{{ url }}" target="_blank" rel="noopener"><img src="{{ url }}" alt="{{ include.caption | strip_html | escape }}" loading="lazy"></a>
+  {%- if include.caption %}<figcaption>{{ include.caption }}</figcaption>{% endif %}
+</figure>
