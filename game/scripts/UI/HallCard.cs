@@ -78,6 +78,7 @@ public static class HallCard
             var ok = r.AllOnline;
             var verdict = ok ? Loc.T("hall_all_online", r.Racks) : Loc.T("hall_not_online", r.Online, r.Racks);
             v.AddChild(Banner(verdict, ok ? Brand.Ok : Brand.Critical));
+            if (!ok) foreach (var (key, n) in Causes(r)) v.AddChild(Dim("• " + Loc.T(key, n), 12, Brand.Critical.Lightened(0.2f)));
         }
         if (r.Room.Upgrade != 0)
             v.AddChild(Dim("⟳ " + Loc.T(r.Room.Upgrade == 2 ? "hall_busy_busbar" : "hall_busy_containment", Math.Ceiling(r.Room.UpgradeLeft)), 13, Brand.Amber));
@@ -96,6 +97,24 @@ public static class HallCard
         if (Tab == TabCapacity) Capacity(v, s, r);
         else Upgrades(v, s, r, apply);
         return v;
+    }
+
+    /// <summary>Why racks in the hall are off or offline, one line per cause, biggest first.</summary>
+    static System.Collections.Generic.IEnumerable<(string key, int n)> Causes(HallReport r)
+    {
+        foreach (var (why, n) in r.Down.OrderByDescending(x => x.Value))
+            yield return (why switch
+            {
+                DownReason.NoPdu or DownReason.PduFull => "hall_why_pdu",
+                DownReason.Chain => "hall_why_chain",
+                DownReason.Heat => "hall_why_heat",
+                DownReason.Suppressed => "hall_why_suppressed",
+                DownReason.NoHall => "hall_why_power",
+                _ => "hall_why_power",
+            }, n);
+        if (r.Offline > 0) yield return ("hall_why_offline", r.Offline);
+        var waiting = r.Racks - r.LiveRacks;
+        if (waiting > 0) yield return ("hall_why_waiting", waiting);
     }
 
     static void Capacity(VBoxContainer v, GameState s, HallReport r)

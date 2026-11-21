@@ -61,3 +61,10 @@ hall_up_crah_n1	One CRAH may fail and the hall stays cool · {0} each	Eén CRAH 
 hall_hours	{0} h	{0} u
 hall_btn_place	Place	Plaats
 hall_btn_upgrade	Upgrade	Upgrade
+hall_why_pdu	{0} off: no free PDU outlet or kW in this hall	{0} uit: geen vrije PDU-aansluiting of kW in deze hal
+hall_why_chain	{0} off: the site's power chain (grid, MSB, UPS) is full	{0} uit: de stroomketen van het terrein (net, MSB, UPS) is vol
+hall_why_heat	{0} off: the hall is too hot	{0} uit: de hal is te warm
+hall_why_suppressed	{0} off: fire suppression went off	{0} uit: de blusinstallatie is afgegaan
+hall_why_power	{0} off: no power	{0} uit: geen stroom
+hall_why_offline	{0} running but offline: no network path	{0} draaien maar zijn offline: geen netwerkpad
+hall_why_waiting	{0} still being delivered or installed	{0} worden nog geleverd of geïnstalleerd

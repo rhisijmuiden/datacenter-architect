@@ -79,6 +79,12 @@ public class HallReport
 
     public readonly List<HallUpgrade> Upgrades = new();
 
+    /// <summary>Live racks that are off, per reason, and running racks without a network path (from the infra and network reports).</summary>
+    public readonly Dictionary<DownReason, int> Down = new();
+    public int Offline;
+    /// <summary>The most common reason racks in this hall are off, or None.</summary>
+    public DownReason MainReason => Down.Count == 0 ? DownReason.None : Down.OrderByDescending(x => x.Value).First().Key;
+
     public HallSide Side(FeedSide s) => s == FeedSide.A ? A : B;
     public bool AllOnline => Racks > 0 && Online >= Racks;
 
@@ -108,6 +114,10 @@ public class HallReport
         r.Running = r.Power?.RunningRacks ?? 0;
         r.Online = r.Net?.Online ?? 0;
         r.NeedKw = racks.Sum(o => o.Def.PowerKw);
+        if (infra != null)
+            foreach (var o in racks)
+                if (o.Status == ObjStatus.Live && infra.Down.Contains(o.Id)) { var why = infra.Reason(o.Id); r.Down[why] = r.Down.GetValueOrDefault(why) + 1; }
+        if (net != null) r.Offline = racks.Count(o => net.Offline.Contains(o.Id));
         var rackKw = Catalog.Objects[ObjKind.Rack].PowerKw;
 
         // ---- power: both sides of the distribution ----
@@ -228,9 +238,25 @@ public class HallReport
         // ---- network: ports for every rack, then a second switch so one may fail ----
         if (Racks > 0 && NetLevel < HallLevel.NPlus1)
         {
-            var need = NetLevel == HallLevel.Short ? Racks - Ports : Racks - (Ports - (Net?.Switches.Count > 0 ? Net.Switches.Max(o => o.Def.Ports) : 0));
-            var kind = need > Catalog.Objects[ObjKind.EdgeSwitch24].Ports ? ObjKind.EdgeSwitch48 : ObjKind.EdgeSwitch24;
-            var count = Math.Max(1, (int)Math.Ceiling((double)Math.Max(1, need) / Catalog.Objects[kind].Ports));
+            // the fewest switches (then the cheapest) that give every rack a port, or keep every rack on a port when the biggest switch fails
+            var have = Net?.Switches.Where(o => o.Status == ObjStatus.Live && !o.Broken).Select(o => o.Def.Ports).ToList() ?? new List<int>();
+            var goalN1 = NetLevel != HallLevel.Short;
+            (ObjKind kind, int count) best = (ObjKind.EdgeSwitch48, 99);
+            foreach (var k in new[] { ObjKind.EdgeSwitch24, ObjKind.EdgeSwitch48 })
+            {
+                var p = Catalog.Objects[k].Ports;
+                for (var c = 1; c < 99; c++)
+                {
+                    var ports = Ports + p * c;
+                    var biggest = Math.Max(have.Count > 0 ? have.Max() : 0, p);
+                    if (goalN1 ? ports - biggest >= Racks : ports >= Racks)
+                    {
+                        if (c < best.count || (c == best.count && Catalog.Objects[k].Cost < Catalog.Objects[best.kind].Cost)) best = (k, c);
+                        break;
+                    }
+                }
+            }
+            var (kind, count) = best;
             Upgrades.Add(new HallUpgrade { Kind = HallUpgradeKind.EdgeSwitch, Obj = kind, Count = count, Cost = Catalog.Objects[kind].Cost * count, Priority = NetLevel == HallLevel.Short ? 1 : 5,
                 Blocked = s.CanAfford(Catalog.Objects[kind].Cost) ? null : "msg_no_money" });
         }
