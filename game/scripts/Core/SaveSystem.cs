@@ -62,7 +62,8 @@ public static class SaveSystem
     }
 
     /// <summary>Guards against edited or damaged saves that would make the game allocate huge grids.</summary>
-    public static bool Plausible(GameState s) => s.PlotSize is >= 16 and <= 1024 && s.Options != null;
+    public static bool Plausible(GameState s) => s.PlotSize is >= 16 and <= 1024 && s.Options != null
+        && (s.Ducts == null || (s.Ducts.Count <= 4096 && s.Ducts.All(d => d?.Points != null && d.Points.Count <= 512 && d.Points.All(p => p >= -1 && p <= s.PlotSize))));
 
     public static GameState Load(string slot)
     {

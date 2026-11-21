@@ -8,6 +8,15 @@ public partial class GameState
 {
     bool _warnCongested, _warnNoc;
 
+    /// <summary>Why one more connection has no route: no cable entry, no duct from an entry to the MMR, or every route is full.</summary>
+    string NoRouteReason()
+    {
+        var n = Net;
+        if (n.Entries.Count == 0) return "msg_needs_entry";
+        if (!n.Entries.Any(e => e.Connected)) return "msg_needs_duct";
+        return "msg_duct_full";
+    }
+
     public CarrierContract ContractOf(int carrier) => Contracts.FirstOrDefault(k => k.Carrier == carrier);
 
     /// <summary>Free patch ports on the ODFs in the meet-me room.</summary>
@@ -19,8 +28,7 @@ public partial class GameState
         if (ContractOf(carrier) != null) return "msg_carrier_exists";
         if (!Has(Exec.Network)) return "msg_needs_netmgr";
         if (!Network.MmrReady(this)) return "msg_needs_mmr";
-        var def = Catalog.Carriers[carrier];
-        if (!Network.FreeSubduct(this, def.Pit)) return Net.Pits.Any(p => p.Street == def.Pit) ? "msg_duct_full" : "msg_needs_pit";
+        if (!Network.FreeSubduct(this)) return NoRouteReason();
         if (FreeOdfPorts() <= 0) return "msg_odf_full";
         if (!CanAfford(Catalog.Port(portGbps).SetupFee)) return "msg_no_money";
         return null;
@@ -102,7 +110,7 @@ public partial class GameState
         var p = PeerOf(rival);
         if (p != null && p.State is PeerState.Building or PeerState.Active) return "msg_nothing_changed";
         if (!Network.MmrReady(this)) return "msg_needs_mmr";
-        if (!Network.FreeSubduct(this, -1)) return Net.Pits.Count == 0 ? "msg_needs_pit" : "msg_duct_full";
+        if (!Network.FreeSubduct(this)) return NoRouteReason();
         if (FreeOdfPorts() <= 0) return "msg_odf_full";
         if (proposal && Net.OnlineRacks * Catalog.RackGbps * 1.35 < Catalog.Rivals[rival].MinGbps) return "msg_peer_too_small";
         if (!CanAfford(Catalog.Rivals[rival].SetupCost)) return "msg_no_money";

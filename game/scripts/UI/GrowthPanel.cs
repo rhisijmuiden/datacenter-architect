@@ -387,7 +387,7 @@ public partial class GrowthPanel : Modal
             foreach (var r in rooms.Where(r => r.BuildingId == b.Id).OrderBy(r => r.Floor).ThenBy(r => r.Id))
             {
                 var row = Row(10);
-                var n = Plain(Loc.T("off_room", Ui.FloorName(r.Floor), r.W * r.D), 13); n.CustomMinimumSize = new Vector2(220, 0);
+                var n = Plain(Loc.T("off_room", Ui.FloorName(r.Floor), r.Area), 13); n.CustomMinimumSize = new Vector2(220, 0);
                 row.AddChild(n);
                 var l = s.LeaseOf(r);
                 if (l == null) { var f = Plain(Loc.T("off_free"), 13, Brand.InkDim); f.SizeFlagsHorizontal = SizeFlags.ExpandFill; row.AddChild(f); }

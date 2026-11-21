@@ -72,7 +72,7 @@ cat_customers	Customers	Klanten
 hud_coming_soon	Coming in a later update	Komt in een volgende update
 hint_select	Click a building, room or rack for details. Right-drag rotates, wheel zooms, WASD pans, Q and E turn. T shows roofs, Page Up and Down change floor. P shows the power overlay, H the cooling overlay, N the network overlay. Ctrl+Z undoes, Ctrl+Y redoes.	Klik op een gebouw, ruimte of rack voor details. Rechts slepen draait, scrollwiel zoomt, WASD schuift, Q en E draaien. T toont daken, Page Up en Down wisselen van verdieping. P toont de stroomweergave, H de koelweergave, N de netwerkweergave. Ctrl+Z maakt ongedaan, Ctrl+Y doet opnieuw.
 hint_place	Click to place. R rotates. Red means it cannot go there.	Klik om te plaatsen. R draait. Rood betekent dat het daar niet kan.
-hint_erase	Drag over what you want to remove. Objects and doors go first, then rooms, then buildings and paving.	Sleep over wat je wilt weghalen. Eerst objecten en deuren, dan ruimtes, dan gebouwen en bestrating.
+hint_tool_erase	Drag over what you want to remove. Objects and doors go first, then walls and rooms, then buildings and paving.	Sleep over wat je wilt weghalen. Eerst objecten en deuren, dan muren en ruimtes, dan gebouwen en bestrating.
 hud_rotate_left	Rotate left (Q)	Links draaien (Q)
 hud_rotate_right	Rotate right (E)	Rechts draaien (E)
 hud_grid	Show or hide the grid	Grid tonen of verbergen
@@ -98,8 +98,8 @@ msg_start_hint	Start with an asphalt driveway from the road and a building mater
 hint_surface	Drag to pave. Trucks drive on asphalt, parking and the materials yard.	Sleep om te bestraten. Vrachtwagens rijden over asfalt, parkeerplaatsen en de materialenplek.
 hint_fence	Drag a line, or a rectangle to fence it all round. Put a sliding gate where the driveway crosses.	Sleep een lijn, of een rechthoek om alles te omheinen. Zet een schuifpoort waar de oprit het hek kruist.
 hint_building	Drag out the floor plan. Builders lay the foundation, put up the walls and the roof. Material comes by truck to your yard.	Sleep de plattegrond uit. Bouwvakkers storten de fundering en bouwen muren en dak. Materiaal komt per vrachtwagen naar je materialenplek.
-hint_room	Drag a room inside a finished building. Builders put up the inner walls. Lights are added automatically.	Sleep een ruimte binnen een afgebouwd gebouw. Bouwvakkers zetten de binnenmuren. Verlichting komt er vanzelf in.
-hint_door	Point at a wall and click. Racks only fit through double doors and roll-up doors.	Wijs een muur aan en klik. Racks passen alleen door dubbele deuren en roldeuren.
+hint_room	Paint floor tiles inside a building to give a space its function. Paint over another room to change its type. Tick 'room with walls' to drag a whole room with walls at once.	Verf vloertegels binnen een gebouw om een ruimte zijn functie te geven. Verf over een andere ruimte om het soort te wijzigen. Vink 'ruimte met muren' aan om in één keer een hele ruimte met muren te slepen.
+hint_door	Point at a wall and click. Racks fit through every door except a mantrap. Place a door over an existing one to swap it straight away.	Wijs een muur aan en klik. Racks passen door elke deur behalve een mantrap. Plaats een deur over een bestaande deur om hem meteen te wisselen.
 hint_row	Drag a row of up to 24 racks; R turns the fronts. Drag wider to fill a block of rows in one go: pairs face each other across a cold aisle, with hot aisles between the pairs (R starts with the backs).	Sleep een rij van maximaal 24 racks; R draait de voorkanten. Sleep breder om in één keer een blok rijen te vullen: paren kijken elkaar aan over een koude gang, met warme gangen ertussen (R begint met de achterkanten).
 cat_rooms	Rooms	Ruimtes
 cat_interior	Interior	Inrichting
@@ -149,7 +149,7 @@ cr_all_unlocks	Everything unlocked	Alles ontgrendeld
 obj_rack	Rack (42U)	Rack (42U)
 obj_crah	CRAH unit 120 kW	CRAH-unit 120 kW
 obj_generator	Generator 1 MW	Generator 1 MW
-obj_fiberpit	Fiber pit	Glasvezelput
+obj_fiberpit	Cable entry	Kabelinvoer
 obj_lift	Freight lift	Goederenlift
 obj_passenger_lift	Passenger lift	Personenlift
 obj_stairs	Stairs	Trap
@@ -209,9 +209,10 @@ room_storage	Storage	Opslag
 room_corridor	Corridor	Gang
 door_single	Single door	Enkele deur
 door_double	Double door	Dubbele deur
-door_fire	Fire door	Branddeur
-door_badge	Badge door	Badgedeur
+door_fire	Fire door (badge reader)	Branddeur (met paslezer)
+door_badge	Badge door	Deur met paslezer
 door_rollup	Roll-up door	Roldeur
+door_badge_double	Double badge door	Dubbele deur met paslezer
 stage_foundation	Foundation	Fundering
 stage_walls	Walls	Muren
 stage_roof	Roof	Dak
@@ -259,7 +260,7 @@ msg_room_done	{0} is ready.	{0} is klaar.
 msg_need_dock	Racks are waiting: build a loading dock with a roll-up door onto asphalt.	Er wachten racks: bouw een laadperron met een roldeur aan het asfalt.
 msg_dock_no_road	Trucks cannot reach the loading dock. Connect it to the road with asphalt.	Vrachtwagens kunnen het laadperron niet bereiken. Sluit het met asfalt aan op de weg.
 msg_dock_unreachable	Fitters cannot reach the loading dock.	Monteurs kunnen het laadperron niet bereiken.
-msg_hall_needs_wide_door	Fitters cannot get racks into the hall. Racks need double doors or roll-up doors all the way.	Monteurs krijgen de racks de hal niet in. Racks hebben de hele route dubbele deuren of roldeuren nodig.
+msg_hall_needs_wide_door	Fitters cannot get racks into the hall. There must be a route with doors; a rack does not fit through a mantrap.	Monteurs krijgen de racks de hal niet in. Er moet een route met deuren zijn; een rack past niet door een sluisdeur.
 msg_hall_needs_lift	Racks for an upper floor need a freight lift.	Racks voor een hogere verdieping hebben een goederenlift nodig.
 msg_rack_unreachable	An engineer cannot reach a rack. Leave an aisle next to it.	Een engineer kan een rack niet bereiken. Laat er een gang naast.
 msg_first_rack_live	Your first rack is live and ready to sell!	Je eerste rack is live en klaar voor verkoop!
@@ -486,12 +487,52 @@ hud_overlay_network	Network overlay (N)	Netwerkweergave (N)
 net_overview	Network overview	Overzicht netwerk
 net_title	Network	Netwerk
 net_routes	Fiber routes	Glasvezelroutes
-net_no_pits	No fiber pit yet. Place one on your plot near a carrier pit in the street; its duct runs to the nearest one.	Nog geen glasvezelput. Zet er een op je terrein bij een carrierput in de straat; de mantelbuis loopt naar de dichtstbijzijnde.
-net_pit_line	Pit {0} → street pit {1} · {2}/{3} subducts in use · {4} fibers	Put {0} → straatput {1} · {2}/{3} subducts in gebruik · {4} vezels
 net_routes_count	Separate routes in use: {0}	Gescheiden routes in gebruik: {0}
-net_routes_help	Every carrier, IX port and dark fiber needs a subduct in the duct of one of your pits. Upgrade a pit for more subducts. Pits on two different street pits give two separate routes.	Elke carrier, IX-poort en dark fiber heeft een subduct nodig in de mantelbuis van een van je putten. Upgrade een put voor meer subducts. Putten op twee verschillende straatputten geven twee gescheiden routes.
+duct_4way	Main duct 4-way	Hoofdduct 4-way
+duct_7way	Main duct 7-way	Hoofdduct 7-way
+duct_12way	Main duct 12-way	Hoofdduct 12-way
+spec_duct	{0} subducts · 90° corners	{0} subducts · hoeken van 90°
+hint_duct	Drag from a cable entry to the building with the meet-me room. Straight legs with one 90° corner; R puts the corner on the other side. Handholes come by themselves.	Sleep van een kabelinvoer naar het gebouw met de meet-me room. Rechte stukken met één hoek van 90°; R zet de hoek aan de andere kant. Trekputten komen er vanzelf bij.
+hint_entry	Click on the plot border (the outer 2 m) to place a cable entry. Carriers connect here.	Klik op de terreingrens (de buitenste 2 m) om een kabelinvoer te zetten. Hier sluiten carriers aan.
+duct_ghost_start	{0}-way duct: drag to draw	{0}-way duct: sleep om te trekken
+duct_ghost	{0}-way · {1} m · {2} · {3} handholes	{0}-way · {1} m · {2} · {3} trekputten
+duct_ghost_mmr	✓ reaches the meet-me room building	✓ komt bij het gebouw met de meet-me room
+msg_duct_built	{0}-way duct laid: {1} m with {2} handholes.	{0}-way duct gelegd: {1} m met {2} trekputten.
+msg_duct_building	A duct cannot run through a building. Go around it.	Een duct kan niet door een gebouw. Ga eromheen.
+msg_duct_in_way	Your fiber duct runs here. Build next to it, or remove that duct first.	Hier loopt je fiberduct. Bouw ernaast, of haal die duct eerst weg.
+msg_entry_border	A cable entry goes on the plot border (the outer 2 m of your land).	Een kabelinvoer hoort op de terreingrens (de buitenste 2 m van je grond).
+msg_needs_entry	Place a cable entry on the plot border first: that is where carriers connect.	Zet eerst een kabelinvoer op de terreingrens: daar sluiten carriers aan.
+msg_needs_duct	No duct runs from a cable entry to the meet-me room yet. Draw a main duct.	Er loopt nog geen duct van een kabelinvoer naar de meet-me room. Trek een hoofdduct.
+msg_no_duct_route	No free route for a duct from this entry to the meet-me room building.	Geen vrije route voor een duct van deze invoer naar het gebouw met de meet-me room.
+msg_ducts_new	Fiber now comes in at your own cable entries: your old fiber pits are cable entries now, each with a free main duct to the meet-me room.	Glasvezel komt nu binnen bij je eigen kabelinvoeren: je oude glasvezelputten zijn nu kabelinvoeren, elk met een gratis hoofdduct naar de meet-me room.
+msg_ducts_new_missing	Your old fiber pits are cable entries now. Not every one could get a duct to a meet-me room: draw one from the Network build menu.	Je oude glasvezelputten zijn nu kabelinvoeren. Niet elke invoer kon een duct naar een meet-me room krijgen: trek er een vanuit het bouwmenu Netwerk.
+net_no_entries	No cable entry yet. Place one on the plot border and draw a main duct to the meet-me room.	Nog geen kabelinvoer. Zet er een op de terreingrens en trek een hoofdduct naar de meet-me room.
+net_entry_line	Entry {0} · {1} side · {2} connections	Invoer {0} · {1}zijde · {2} aansluitingen
+net_entry_ok	route to the MMR, narrowest duct {0}-way	route naar de MMR, smalste duct {0}-way
+net_entry_no_duct	⚠ no duct to the MMR	⚠ geen duct naar de MMR
+net_entry_cut	⚠ cable cut	⚠ kabel geraakt
+net_duct_line	Duct {0}: {1}-way · {2} m · {3} in use · {4} handholes	Duct {0}: {1}-way · {2} m · {3} in gebruik · {4} trekputten
+net_duct_open	does not reach a meet-me room	komt niet bij een meet-me room
+net_place_entry	Place cable entry	Kabelinvoer plaatsen
+net_draw_duct	Draw main duct	Hoofdduct trekken
+net_advice_entry	Place a cable entry on the plot border: carriers connect there.	Zet een kabelinvoer op de terreingrens: daar sluiten carriers aan.
+net_advice_duct	Draw a main duct from your cable entry to the building with the meet-me room.	Trek een hoofdduct van je kabelinvoer naar het gebouw met de meet-me room.
+side_0	North	Noord
+side_1	East	Oost
+side_2	South	Zuid
+side_3	West	West
+inspect_entry_side	Side of the plot: {0}	Zijde van het terrein: {0}
+inspect_entry_route	Duct route to the MMR (narrowest {0}-way) · {1} connections	Ductroute naar de MMR (smalste {0}-way) · {1} aansluitingen
+inspect_entry_no_duct	No duct to the meet-me room yet: draw a main duct from here to the building with the MMR.	Nog geen duct naar de meet-me room: trek een hoofdduct van hier naar het gebouw met de MMR.
+action_auto_duct	Lay a 4-way duct to the MMR	Leg een 4-way duct naar de MMR
+inspect_duct	{0}-way · {1} m · {2} handholes	{0}-way · {1} m · {2} trekputten
+inspect_duct_mmr	Reaches the meet-me room building	Komt bij het gebouw met de meet-me room
+inspect_duct_no_mmr	Does not reach a building with a meet-me room yet	Komt nog niet bij een gebouw met een meet-me room
+inspect_duct_no_entry	No cable entry on this duct yet	Nog geen kabelinvoer op deze duct
+inspect_duct_full	All subducts in use: upgrade the duct for more	Alle subducts in gebruik: upgrade de duct voor meer
+action_duct_upgrade	Upgrade to {0}-way · {1}	Upgraden naar {0}-way · {1}
+net_routes_help	Carriers come in at a cable entry on the plot border. Your own main duct (4-, 7- or 12-way) runs from there to the building with the meet-me room; every carrier, IX port and dark fiber takes one subduct along the whole route. Two entries whose ducts share nothing give two separate routes.	Carriers komen binnen bij een kabelinvoer op de terreingrens. Je eigen hoofdduct (4-, 7- of 12-way) loopt van daar naar het gebouw met de meet-me room; elke carrier, IX-poort en dark fiber neemt een subduct over de hele route. Twee invoeren met ducts die niets delen geven twee gescheiden routes.
 net_carriers	Carriers and internet exchange	Carriers en internet exchange
-net_pit	street pit {0}	straatput {0}
 net_ix	internet exchange, free peering	internet exchange, gratis peering
 carrier_tier1	Large international transit network. Reliable, middle of the road on price.	Groot internationaal transitnetwerk. Betrouwbaar, gemiddeld in prijs.
 carrier_budget	The cheapest per Mbit, popular with hosting customers.	Het goedkoopst per Mbit, populair bij hostingklanten.
@@ -500,7 +541,7 @@ carrier_premium	Premium low-latency routes to the rest of Europe. Expensive.	Pre
 carrier_ix	The regional internet exchange. You only pay for the port; every network on the IX swaps traffic with you for free.	De regionale internet exchange. Je betaalt alleen de poort; elk netwerk op de IX wisselt gratis verkeer met je uit.
 net_order	{0} port · {1}	{0}-poort · {1}
 net_delivering	{0} port is being delivered: {1} days	{0}-poort wordt opgeleverd: nog {1} dagen
-net_no_route	No free subduct towards this street pit. Upgrade the pit or add one.	Geen vrije subduct naar deze straatput. Upgrade de put of leg er een bij.
+net_no_route	No free subduct on the way to the meet-me room. Upgrade a duct or lay a second route.	Geen vrije subduct op weg naar de meet-me room. Upgrade een duct of leg een tweede route.
 net_ix_line	Port {0} · now {1}	Poort {0} · nu {1}
 net_contract_line	Port {0} · commit {1} · now {2} · 95th percentile {3}	Poort {0} · commit {1} · nu {2} · 95e percentiel {3}
 net_upgrading	Upgrade to {0}: {1} days	Upgrade naar {0}: nog {1} dagen
@@ -513,7 +554,7 @@ net_cancel	Cancel	Opzeggen
 net_carriers_help	You pay the port plus the commit per Mbit every month. Traffic above the commit is burst: at the end of the month the 95th percentile above the commit is billed at a higher price. A bigger commit gets a lower price per Mbit.	Je betaalt elke maand de poort plus de commit per Mbit. Verkeer boven de commit is burst: aan het eind van de maand wordt het 95e percentiel boven de commit tegen een hogere prijs afgerekend. Een grotere commit geeft een lagere prijs per Mbit.
 net_chain	Network chain	Netwerkketen
 netlink_upstream	Carriers, IX and peering	Carriers, IX en peering
-netlink_ducts	Fiber ducts	Mantelbuizen
+netlink_ducts	Fiber ducts	Fiberducts
 netlink_mmr	MMR patch ports	Patchpoorten in de MMR
 netlink_core	Core routers	Core-routers
 netlink_spine	Edge switches (halls)	Edge-switches (hallen)
@@ -543,7 +584,6 @@ net_noc_on	The NOC watches the network: more traffic over peering, cheaper burst
 net_noc_off	No NOC yet. Build a NOC room with a video wall to watch and optimise the network.	Nog geen NOC. Bouw een NOC-ruimte met een videowall om het netwerk te bewaken en te optimaliseren.
 net_xc	Cross-connects: {0} live, {1} ordered · {2} per month · {3} free patch ports	Cross-connects: {0} actief, {1} besteld · {2} per maand · {3} vrije patchpoorten
 net_advice_ok	The network is in order.	Het netwerk is op orde.
-net_advice_pit	Place a fiber pit on your plot, near a carrier pit in the street.	Zet een glasvezelput op je terrein, bij een carrierput in de straat.
 net_advice_mmr	Build a meet-me room (MMR) with an ODF patch frame: this is where the carriers come in.	Bouw een meet-me room (MMR) met een ODF-patchframe: hier komen de carriers binnen.
 net_advice_core	Place a core router in the MMR.	Zet een core-router in de MMR.
 net_advice_carrier	Order a port at a carrier or at the internet exchange.	Bestel een poort bij een carrier of bij de internet exchange.
@@ -551,7 +591,7 @@ net_advice_spine	A hall with racks has no edge switch: those racks are offline. 
 net_advice_spine_ports	Some racks have no free port on an edge switch in their hall: add an Edge 24 or Edge 48 to that hall.	Een deel van de racks heeft geen vrije poort op een edge-switch in hun hal: zet er een Edge 24 of Edge 48 bij in die hal.
 net_advice_congested	Traffic does not fit: upgrade a port, add a carrier or peer more.	Het verkeer past niet: upgrade een poort, neem een extra carrier of peer meer.
 net_advice_transit_tight	Transit is almost full at peak time.	De transit zit in de piek bijna vol.
-net_advice_ducts	All subducts are taken: upgrade a fiber pit or add one.	Alle subducts zijn bezet: upgrade een glasvezelput of leg er een bij.
+net_advice_ducts	All subducts on your duct routes are taken: upgrade a duct (click it) or lay a second route.	Alle subducts op je ductroutes zijn bezet: upgrade een duct (klik erop) of leg een tweede route.
 net_advice_odf	All patch ports are taken: add an ODF in the MMR.	Alle patchpoorten zijn bezet: zet er een ODF bij in de MMR.
 net_advice_noc	A NOC with a video wall makes the network cheaper and safer.	Een NOC met een videowall maakt het netwerk goedkoper en veiliger.
 net_advice_ix	A port on the internet exchange takes part of your traffic for free.	Een poort op de internet exchange neemt gratis een deel van je verkeer.
@@ -562,8 +602,7 @@ spof_core	Single point of failure: one core router.	Enkel punt van falen: één 
 spof_spine	Single point of failure: a hall with only one edge switch (no B side).	Enkel punt van falen: een hal met maar één edge-switch (geen B-kant).
 msg_carrier_exists	You already have a port at this carrier.	Je hebt al een poort bij deze carrier.
 msg_needs_mmr	First build a meet-me room with an ODF patch frame.	Bouw eerst een meet-me room met een ODF-patchframe.
-msg_duct_full	No free subduct towards that street pit. Upgrade the fiber pit.	Geen vrije subduct naar die straatput. Upgrade de glasvezelput.
-msg_needs_pit	You need a fiber pit near that carrier's street pit.	Je hebt een glasvezelput nodig bij de straatput van die carrier.
+msg_duct_full	No free subduct left on any route to the meet-me room. Upgrade a duct or add an entry with its own duct.	Geen vrije subduct meer op een route naar de meet-me room. Upgrade een duct of leg een invoer met een eigen duct.
 msg_odf_full	No free patch port in the MMR: add an ODF.	Geen vrije patchpoort in de MMR: zet er een ODF bij.
 msg_no_rivals	No rival datacenters in this game.	Geen concurrerende datacenters in dit spel.
 msg_peer_too_small	They are not interested yet: your network is too small for them.	Ze hebben nog geen interesse: je netwerk is te klein voor ze.
@@ -577,15 +616,13 @@ msg_net_congested	The network is full: part of the traffic does not get through.
 msg_noc_warning	NOC: transit is over 85% at peak time. Upgrade in time.	NOC: de transit zit in de piek boven 85%. Upgrade op tijd.
 msg_burst_bill	Burst bill from {0} for traffic above the commit.	Burstfactuur van {0} voor verkeer boven de commit.
 msg_network_new	New in 0.4: racks need a network. Open the network category in the build bar.	Nieuw in 0.4: racks hebben een netwerk nodig. Open de categorie netwerk in de bouwbalk.
-goal_fiber	Fiber pit and a meet-me room	Glasvezelput en een meet-me room
+goal_fiber	Cable entry with a duct to the meet-me room	Kabelinvoer met een duct naar de meet-me room
 goal_carrier	Two carriers for redundancy	Twee carriers voor redundantie
 goal_network	First rack online	Eerste rack online
 inspect_offline	Offline: no network	Offline: geen netwerk
 inspect_online	Online	Online
 inspect_ports	{0} ports	{0} poorten
-inspect_pit	Duct to street pit {0}: {1}	Mantelbuis naar straatput {0}: {1}
 inspect_subducts	Subducts {0}/{1} in use	Subducts {0}/{1} in gebruik
-action_duct	Upgrade duct to {0} subducts · {1}	Mantelbuis upgraden naar {0} subducts · {1}
 inspect_hall_net	Network: {0} of {1} racks online · {2} edge switches	Netwerk: {0} van {1} racks online · {2} edge-switches
 inspect_mmr	{0} patch ports, {1} in use · {2} core routers · {3} cross-connects	{0} patchpoorten, {1} in gebruik · {2} core-routers · {3} cross-connects
 inspect_noc_needs_wall	Place a video wall to start the NOC.	Zet een videowall neer om de NOC te starten.
@@ -1147,7 +1184,7 @@ sec_gate_tip	Guard booth, a barrier (number plate recognition after research), a
 sec_cameras	Cameras	Camera's
 sec_cameras_tip	Cameras on poles outside, and a dome camera in every hall and meet-me room. AI video analysis (research) adds more.	Camera's op palen buiten, en een dome-camera in elke hal en meet-me room. AI-videoanalyse (research) voegt meer toe.
 sec_access	Access control	Toegangscontrole
-sec_access_tip	Only badge doors (or fire doors) into halls and meet-me rooms, biometric readers (research) and a mantrap at the entrance (research).	Alleen badgedeuren (of branddeuren) naar hallen en meet-me rooms, biometrische lezers (research) en een sluisdeur bij de ingang (research).
+sec_access_tip	Only doors with a badge reader (badge doors, double badge doors, fire doors) into halls and meet-me rooms, biometric readers (research) and a mantrap at the entrance (research). Click a door to add a reader on the spot.	Alleen deuren met paslezer (deur met paslezer, dubbele deur met paslezer, branddeur) naar hallen en meet-me rooms, biometrische lezers (research) en een sluisdeur bij de ingang (research). Klik op een deur om er direct een lezer op te zetten.
 sec_room	Security room	Beveiligingsruimte
 sec_room_tip	A security video wall in the security room and a glass lodge where the guard sits.	Een videowall in de beveiligingsruimte en een glazen loge waar de beveiliger zit.
 sec_people	Guards and management	Beveiligers en leiding
@@ -1831,8 +1868,8 @@ hud_day_night_off	Always daylight. Click to let the sun follow the clock again.	
 hud_weather	Weather	Weer
 hud_weather_on	Weather: on (rain, fog, snow, storms). Click to always have clear skies.	Weer: aan (regen, mist, sneeuw, onweer). Klik voor altijd helder weer.
 hud_weather_off	Weather: off, always clear. Click to turn rain, fog and snow back on.	Weer: uit, altijd helder. Klik om regen, mist en sneeuw weer aan te zetten.
-net_pit_show	Show this fiber pit on the site	Toon deze glasvezelput op het terrein
-net_pit_goto_full	Go to the full fiber pit	Ga naar de volle glasvezelput
+net_pit_show	Show this cable entry on the site	Toon deze kabelinvoer op het terrein
+net_pit_goto_full	Go to the cable entry that needs a duct	Ga naar de kabelinvoer die een duct nodig heeft
 msg_needs_manager_desk	Managers work at a desk in an office room: put another desk in an office room.	Managers werken aan een bureau in een kantoorruimte: zet nog een bureau in een kantoorruimte.
 org_manager_desks	Managers and sales reps: {0} + {1} at {2} office desks	Managers en verkopers: {0} + {1} aan {2} kantoorbureaus
 spec_pdu	{0} kW · {1} racks	{0} kW · {1} racks
@@ -1987,3 +2024,50 @@ ntree_advice_uplink	An edge switch has no free uplink port: add a distribution s
 ntree_advice_dist	Many edge switches hang straight on the core: a distribution switch in the meet-me room keeps core ports free.	Veel edge-switches hangen rechtstreeks op de core: een distributieswitch in de meet-me room houdt corepoorten vrij.
 spof_dist	Single point of failure: only one distribution switch.	Enkel punt van falen: maar één distributieswitch.
 msg_nettree_new	New: the network tree (Infrastructure › Network tree) shows every switch with its ports. Spine switches now have 96 ports; Edge 24 and Edge 48 are cheaper switches for a hall.	Nieuw: de netwerkboom (Infrastructuur › Netwerkboom) toont elke switch met zijn poorten. Spine-switches hebben nu 96 poorten; Edge 24 en Edge 48 zijn goedkopere switches voor een hal.
+msg_door_swap_width	A door can only change into a type of the same width or narrower.	Een deur kan alleen veranderen in een type met dezelfde breedte of smaller.
+action_door_swap	Change to {0} · {1}	Wijzig naar {0} · {1}
+action_door_swap_back	Change to {0} · {1} back	Wijzig naar {0} · {1} terug
+inspect_door_width	{0} m wide · {1}	{0} m breed · {1}
+inspect_door_secure	Badge reader: counts for access control	Paslezer: telt mee voor toegangscontrole
+inspect_door_open	No badge reader	Geen paslezer
+inspect_door_racks	Racks fit through	Racks kunnen erdoor
+inspect_door_no_racks	Racks do not fit through	Racks kunnen er niet door
+inspect_door_rooms	Between: {0}	Tussen: {0}
+room_none	corridor / outside	gang / buiten
+msg_door_swapped	Door changed into {0}.	Deur gewijzigd in {0}.
+sec_secure_doors	Badge readers on all hall and MMR doors ({0}) · {1}	Paslezers op alle hal- en MMR-deuren ({0}) · {1}
+sec_doors_ok	All hall and MMR doors have a badge reader.	Alle hal- en MMR-deuren hebben een paslezer.
+msg_doors_secured	{0} doors got a badge reader.	{0} deuren hebben een paslezer gekregen.
+wall_inner	Inner wall	Binnenmuur
+wall_glass	Glass wall	Glazen wand
+hint_wall	Drag along the grid lines inside a building to put up a wall. Close a space with walls and a door, then paint it with a room type.	Sleep langs de rasterlijnen binnen een gebouw om een muur te zetten. Sluit een ruimte af met muren en een deur en verf hem daarna met een ruimtesoort.
+msg_wall_done	Wall finished.	Muur klaar.
+msg_wall_in_building	Walls go inside a finished building.	Muren horen binnen een afgebouwd gebouw.
+msg_wall_through_object	A wall cannot go through equipment.	Een muur kan niet door apparatuur heen.
+tool_unpaint	Remove room type	Ruimtesoort wissen
+hint_unpaint	Drag over painted tiles to remove the room type. Walls, doors and equipment stay.	Sleep over geverfde tegels om de ruimtesoort te wissen. Muren, deuren en apparatuur blijven staan.
+erase_all	Everything	Alles
+erase_room	Room	Ruimte
+erase_wall	Walls	Muren
+erase_door	Doors	Deuren
+erase_interior	Interior	Inrichting
+hint_erase_room	Drag over a room to remove it with its walls, doors and equipment.	Sleep over een ruimte om hem met muren, deuren en apparatuur te slopen.
+hint_erase_wall	Drag along walls to take them down. Doors in those walls go too.	Sleep langs muren om ze af te breken. Deuren in die muren gaan mee.
+hint_erase_door	Drag over doors to remove only the doors.	Sleep over deuren om alleen de deuren weg te halen.
+hint_erase_interior	Drag over a room to clear the equipment and furniture, the room stays.	Sleep over een ruimte om apparatuur en meubels weg te halen, de ruimte blijft.
+hud_room_fill	Fill space	Hele ruimte
+hud_room_fill_tip	One click paints the whole enclosed space.	Eén klik verft de hele afgesloten ruimte.
+hud_room_walls	Room with walls	Ruimte met muren
+hud_room_walls_tip	Drag a rectangle and get the room with walls at once (the old way).	Sleep een rechthoek en krijg de ruimte meteen met muren (de oude manier).
+paint_changes	Changes: {0}	Wijzigt: {0}
+msg_room_has_tenants	Customers rent racks here. Move them first.	Klanten huren hier racks. Verplaats ze eerst.
+room_issue_building	Not finished: the walls around this space are still being built.	Nog niet klaar: de muren rond deze ruimte worden nog gebouwd.
+room_issue_two_types	Not finished: two room types share this space. Add a wall.	Nog niet klaar: twee ruimtesoorten delen deze ruimte. Zet er een muur tussen.
+room_issue_no_door	Not finished: close the space with walls and add a door.	Nog niet klaar: sluit de ruimte af met muren en zet er een deur in.
+inspect_room_needs	Needs at least:	Heeft minimaal nodig:
+inspect_room_badges	Badge readers on {0} of {1} doors (advice)	Paslezer op {0} van {1} deuren (advies)
+need_closed	Closed space with a door	Afgesloten ruimte met deur
+need_door	A door	Een deur
+need_pdu	PDU or busbar	PDU of busbar
+need_hall_switch	Hall switch	Halswitch
+need_kitchen	Coffee machine, vending machine or microwave	Koffieautomaat, snoepautomaat of magnetron

@@ -45,7 +45,7 @@ public static partial class TestRunner
         o = Outages.For(n).FirstOrDefault(x => x.Hall == nh);
         Check(o != null && o.Offline && o.Cause == OutageCause.NoCarrier && o.Fix == FixKind.Network, $"no carrier: the racks are offline, fix opens the network screen ({o?.Cause})");
         var odf = Live(n, ObjKind.Odf, 25, 10);
-        Live(n, ObjKind.FiberPit, 30, 62); n.OrderCarrier(1, 10);
+        Entry(n, 30, 62); n.OrderCarrier(1, 10);
         n.Objects.Remove(odf); n.Touch();
         o = Outages.For(n).First(x => x.Hall == nh);
         Check(o.Cause == OutageCause.NoMmr && o.Place == ObjKind.Odf && o.FixRoom == mmr, $"no ODF: place one in the meet-me room ({o.Cause})");
