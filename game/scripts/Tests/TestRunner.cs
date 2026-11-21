@@ -46,6 +46,8 @@ public static partial class TestRunner
             ("customers per hall", HallClientTests),
             ("add a floor", AddLevelTests),
             ("office life", OfficeLifeTests),
+            ("power tree", PowerTreeTests),
+            ("network tree", NetTreeTests),
         };
         // DCA_TESTS=basement,stairs runs only the groups whose name contains one of the words
         var only = System.Environment.GetEnvironmentVariable("DCA_TESTS")?.Split(',', StringSplitOptions.RemoveEmptyEntries);
@@ -778,11 +780,11 @@ public static partial class TestRunner
         n = s.Net;
         Check(n.Upstream && n.OnlineRacks == 0, "no core router and no spine: still offline");
         Live(s, ObjKind.CoreRouter, 27, 10);
-        var sp = Live(s, ObjKind.Spine, 5, 20);
+        var sp = Live(s, ObjKind.EdgeSwitch48, 5, 20);
         n = s.Net;
-        Check(n.OnlineRacks == 48 && n.OfflineRacks == 2, $"one spine has 48 ports: 48 online ({n.OnlineRacks})");
+        Check(n.OnlineRacks == 48 && n.OfflineRacks == 2, $"one Edge 48 has 48 ports: 48 online ({n.OnlineRacks})");
         Check(n.Halls[0].Spines == 1 && n.Spofs.Contains("spof_spine") && n.Spofs.Contains("spof_core"), "single spine and core are flagged");
-        Live(s, ObjKind.Spine, 6, 20);
+        Live(s, ObjKind.EdgeSwitch48, 6, 20);
         n = s.Net;
         Check(n.OnlineRacks == 50 && n.Link(NetLink.Spine).Redundancy == "N" && !n.Spofs.Contains("spof_spine"), "a second spine brings all racks online");
         // traffic: 50 racks × 0.25 Gbit/s × time of day
@@ -1235,10 +1237,10 @@ public static partial class TestRunner
         Live(s, ObjKind.Ups, 31, 4);
         r = Infra.Analyze(s);
         Check(r.Halls[0].AB && r.Link(PowerLink.Ups).Redundancy == "2N", "two PDUs and two UPS units: A/B and 2N");
-        // overload: 40 racks = 240 kW on 2 × 150 kW PDUs is fine, 60 racks = 360 kW is not
+        // overload: two PDU 150s have 24 rack connections each, so 60 racks is too many (48 run, each on one feed)
         for (var i = 0; i < 40; i++) Live(s, ObjKind.Rack, 6 + i % 10, 12 + i / 10 * 2);
         r = Infra.Analyze(s);
-        Check(r.LiveRacks == 60 && r.RunningRacks == 50 && r.DownForPower == 10, $"PDUs limit the hall to 300 kW ({r.RunningRacks})");
+        Check(r.LiveRacks == 60 && r.RunningRacks == 48 && r.DownForPower == 12, $"PDU outlets limit the hall to 48 racks ({r.RunningRacks})");
         Check(r.Down.Contains(s.Objects.Where(o => o.Kind == ObjKind.Rack).Max(o => o.Id)) && !r.Down.Contains(racks[0].Id), "the newest racks go off first");
         hall.Busbar = true; s.Touch();
         r = Infra.Analyze(s);

@@ -423,7 +423,7 @@ public partial class GameState
 
     bool HallFits(Deal d, HallInfo h)
     {
-        if ((d.AB || d.Amp32 || d.TwoN) && !(Creative.NoPowerLimit || h.AB || (h.Feeds >= 2 && h.ItKw <= 0))) return false;
+        if ((d.AB || d.Amp32 || d.TwoN) && !(Creative.NoPowerLimit || h.AB || (h.Sides >= 2 && h.ItKw <= 0))) return false;
         if (d.Amp32 && h.Room.Containment == Containment.Open) return false;
         return true;
     }

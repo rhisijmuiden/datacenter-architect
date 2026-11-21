@@ -14,9 +14,15 @@ namespace DatacenterArchitect.UI;
 /// </summary>
 public partial class NetworkPanel : Modal
 {
+    public const int TabOverview = 0, TabTree = 1;
     readonly Func<GameState> _state;
     readonly Action<string> _fail;
     readonly Action<PlacedObject> _show;
+    readonly Action<BuildItem> _pick;
+    readonly ScrollContainer _scroll;
+    int _tab;
+    /// <summary>Selected row of the network tree: "in", "core:id", "dist:id", "hall:roomId", "nohall:roomId".</summary>
+    string _sel;
     readonly List<Action<GameState, NetReport>> _updaters = new();
     readonly VBoxContainer _content;
     string _sig;
@@ -27,15 +33,22 @@ public partial class NetworkPanel : Modal
     static string G(double v) => N(v, v >= 100 ? "N0" : "0.0") + " Gbit/s";
     static string Port(int gbps) => gbps + "G";
 
-    public NetworkPanel(Func<GameState> state, Action<string> fail, Action<PlacedObject> show = null) : base("net_title", 1000)
+    public NetworkPanel(Func<GameState> state, Action<string> fail, int tab = TabOverview, Action<BuildItem> pick = null, Action<PlacedObject> show = null) : base("net_title", 1100)
     {
-        _state = state; _fail = fail; _show = show;
-        var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 640), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        _state = state; _fail = fail; _pick = pick; _show = show; _tab = Math.Clamp(tab, TabOverview, TabTree);
+        var scroll = _scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 640), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         _content = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _content.AddThemeConstantOverride("separation", 8);
         scroll.AddChild(_content);
         Body.AddChild(scroll);
         FillHeight(scroll);
+        Refresh();
+    }
+
+    public override void SelectTab(int tab)
+    {
+        _tab = Math.Clamp(tab, TabOverview, TabTree); _sig = null;
+        _scroll.ScrollVertical = 0;
         Refresh();
     }
 
@@ -53,7 +66,8 @@ public partial class NetworkPanel : Modal
         if (s == null) return;
         var n = s.Net;
         var sig = string.Join(",", s.Contracts.Select(k => $"{k.Carrier}:{k.PortGbps}:{k.UpgradeTo}:{k.Active}")) + "|" +
-                  string.Join(",", s.Peers.Select(p => $"{p.Rival}:{p.State}")) + $"|{n.Pits.Count}|{Loc.Language}|{s.Options.AiCompetitors}";
+                  string.Join(",", s.Peers.Select(p => $"{p.Rival}:{p.State}")) + $"|{n.Pits.Count}|{Loc.Language}|{s.Options.AiCompetitors}|{_tab}" +
+                  (_tab == TabTree ? "|" + TreeSig(n) : "");
         if (sig != _sig) { _sig = sig; Build(s); }
         foreach (var u in _updaters) u(s, n);
     }
@@ -102,6 +116,7 @@ public partial class NetworkPanel : Modal
     {
         foreach (var c in _content.GetChildren()) c.QueueFree();
         _updaters.Clear();
+        if (_tab == TabTree) { BuildTree(s); return; }
         var n = s.Net;
         var cols = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         cols.AddThemeConstantOverride("separation", 28);
@@ -313,6 +328,8 @@ public partial class NetworkPanel : Modal
             if (s.Contracts.Count == 0) list.Add("net_advice_carrier");
             if (r.Halls.Any(h => h.Racks > 0 && h.Spines == 0)) list.Add("net_advice_spine");
             else if (r.Halls.Any(h => h.Online < h.Racks)) list.Add("net_advice_spine_ports");
+            if (r.Uplink.Values.Any(u => u < 0)) list.Add("ntree_advice_uplink");
+            else if (r.Dists.Count == 0 && r.DirectEdges.Count >= 6) list.Add("ntree_advice_dist");
             if (r.Served < 0.999) list.Add("net_advice_congested");
             else if (r.TransitCapacity > 0 && r.TransitRatio > 0.85) list.Add("net_advice_transit_tight");
             if (r.Pits.Count > 0 && r.Pits.All(p => p.Used >= p.Subducts)) list.Add("net_advice_ducts");
