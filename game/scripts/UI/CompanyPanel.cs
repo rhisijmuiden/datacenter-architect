@@ -98,6 +98,8 @@ public partial class CompanyPanel : Modal
         var s = _state();
         if (s == null) return;
         foreach (var (l, f) in _dyn) l.Text = f(s);
+        // keep the list while the player types a hall name
+        if (!force && GetViewport()?.GuiGetFocusOwner() is LineEdit le && _content.IsAncestorOf(le)) return;
         var sig = Signature(s);
         if (!force && sig == _sig) return;
         _sig = sig;
@@ -129,7 +131,7 @@ public partial class CompanyPanel : Modal
 
     string Signature(GameState s) => _tab == TabBrand ? $"{_tab}|{Loc.Language}|{s.Logo.Version}|{s.Options.Company}" :
         $"{_tab}|{Loc.Language}|{(int)s.Day}|{s.Money / 1000}|{s.Execs.Count}:{string.Join(",", s.Execs.Select(x => $"{x.Role}{x.Training}{x.TrainingDaysLeft > 0}"))}|{s.Offices}|{s.Workplaces}|{s.SalesReps}|" +
-        string.Join(",", s.Deals.Select(d => $"{d.Id}{d.State}")) + $"|{s.Loans.Count}|{s.InvestorShare}|{s.Rooms.Count}|{s.Supplier}|{s.Revision / 50}";
+        string.Join(",", s.Deals.Select(d => $"{d.Id}{d.State}{string.Join("+", d.HallIds)}")) + "|" + string.Join(",", s.Rooms.Where(r => r.Type == RoomType.DataHall).Select(r => $"{r.Name}{r.Band}{r.Zone}{r.ShowLogo}{r.Stage}{r.Clients.Count}")) + $"|{s.Loans.Count}|{s.InvestorShare}|{s.Rooms.Count}|{s.Supplier}|{s.Revision / 50}";
 
     static void Mark(Button b, bool on)
     {
@@ -256,29 +258,12 @@ public partial class CompanyPanel : Modal
         }
         _content.AddChild(new HSeparator());
 
-        // hall zones
-        _content.AddChild(Ui.Heading("zones_title", 16, Brand.Ok));
-        _content.AddChild(Plain(Loc.T("zones_help"), 13, Brand.InkDim));
-        var halls = s.Rooms.Where(r => r.Type == RoomType.DataHall).ToList();
-        if (halls.Count == 0) _content.AddChild(Plain(Loc.T("zones_none"), 14, Brand.Warning));
-        var owners = s.RackOwners();
-        var working = s.WorkingRacks();
-        for (var i = 0; i < halls.Count; i++)
-        {
-            var hall = halls[i];
-            var racks = s.Objects.Where(o => o.Kind == ObjKind.Rack && o.Floor == hall.Floor && hall.Contains(o.X, o.Z)).ToList();
-            var row = Row();
-            row.AddChild(Plain(Loc.T("zones_hall", i + 1, racks.Count, racks.Count(o => owners.ContainsKey(o.Id)), racks.Count(o => working.Contains(o.Id) && !owners.ContainsKey(o.Id))), 14));
-            row.GetChild<Label>(0).SizeFlagsHorizontal = SizeFlags.ExpandFill;
-            var opt = new OptionButton { CustomMinimumSize = new Vector2(220, 0), AutoTranslateMode = AutoTranslateModeEnum.Disabled };
-            foreach (var z in Enum.GetValues<HallZone>()) opt.AddItem(Loc.T("zone_" + z.ToString().ToLowerInvariant()), (int)z);
-            opt.Selected = (int)hall.Zone;
-            var room = hall;
-            opt.ItemSelected += idx => { _state().SetZone(room, (HallZone)(int)idx); _sig = null; };
-            row.AddChild(opt);
-            row.AddChild(ClientPicker(_state, room));
-            _content.AddChild(row);
-        }
+        // what each hall is sold as lives under Contracts (sketch board 7: one place for it)
+        var pointer = Row();
+        var pl = Plain(Loc.T("zones_moved"), 13, Brand.InkDim); pl.SizeFlagsHorizontal = SizeFlags.ExpandFill; pl.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        pointer.AddChild(pl);
+        pointer.AddChild(Act(Loc.T("co_tab_contracts"), st => { _tab = TabContracts; return null; }));
+        _content.AddChild(pointer);
         _content.AddChild(new HSeparator());
 
         // leads
@@ -384,9 +369,17 @@ public partial class CompanyPanel : Modal
         v.AddChild(head);
         v.AddChild(Plain(Product(d) + "  ·  " + Needs(d), 14));
         v.AddChild(Plain(Loc.T("deal_price", Ui.Money(d.Monthly), d.Months, N(Math.Max(0, Math.Ceiling(d.ExpiresDay - s.Day)))), 14, Brand.Ok));
+        if (d.Product != Sim.Product.PerU) v.AddChild(PlaceRow(s, d));
         Reqs(s, d, v);
         var acts = Row();
         acts.AddChild(Act(Loc.T("deal_sign"), st => st.Sign(d), s.CanSign(d) == null, true));
+        if (d.Product is Sim.Product.Cage or Sim.Product.Hall && !s.Meets(d))
+        {
+            var why = s.CanSignAndBuild(d);
+            var b = Act(Loc.T("deal_sign_build", GameState.BuildDays(d)), st => st.SignAndBuild(d), why == null);
+            b.TooltipText = why == null ? Loc.T("deal_sign_build_tip", GameState.BuildDays(d)) : Loc.T(why);
+            acts.AddChild(b);
+        }
         acts.AddChild(Act(Loc.T("deal_decline"), st => { st.Decline(d); return null; }));
         v.AddChild(acts);
         return card;
@@ -395,6 +388,7 @@ public partial class CompanyPanel : Modal
     // ---------------- contracts ----------------
     void ContractsTab(GameState s)
     {
+        HallsSection(s);
         var building = s.Deals.Where(d => d.State == DealState.Building).ToList();
         if (building.Count > 0)
         {
@@ -404,6 +398,7 @@ public partial class CompanyPanel : Modal
                 var card = Card(Brand.Warning, out var v);
                 v.AddChild(Plain(DealName(d) + "  ·  " + Product(d), 16));
                 v.AddChild(Plain(Loc.T("contracts_deadline", N(Math.Max(0, Math.Ceiling(d.DeadlineDay - s.Day))), Ui.Money(d.Monthly)), 14, Brand.Warning));
+                if (d.Product != Sim.Product.PerU) v.AddChild(PlaceRow(s, d));
                 Reqs(s, d, v);
                 _content.AddChild(card);
             }
@@ -423,6 +418,8 @@ public partial class CompanyPanel : Modal
             head.AddChild(Plain(d.Legacy ? "" : Loc.T(Org.Customers[d.Type].Key), 13, Brand.InkDim));
             v.AddChild(head);
             v.AddChild(Plain(Product(d) + (d.Legacy ? "" : "  ·  " + Needs(d)), 13, Brand.InkDim));
+            var where = s.DealHalls(d);
+            if (where.Count > 0) v.AddChild(Plain(Loc.T("contracts_in", string.Join(", ", where.Select(s.HallTitle))), 13, Brand.Cooling));
             var stats = Row(18);
             stats.AddChild(Plain(Loc.T("contracts_monthly", Ui.Money(d.Monthly)), 14, Brand.Ok));
             stats.AddChild(Plain(Loc.T("contracts_served", N(d.Served * 100, "0")), 14, d.Served >= 0.999 ? Brand.Ink : Brand.Critical));
