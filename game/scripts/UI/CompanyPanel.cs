@@ -131,7 +131,7 @@ public partial class CompanyPanel : Modal
 
     string Signature(GameState s) => _tab == TabBrand ? $"{_tab}|{Loc.Language}|{s.Logo.Version}|{s.Options.Company}" :
         $"{_tab}|{Loc.Language}|{(int)s.Day}|{s.Money / 1000}|{s.Execs.Count}:{string.Join(",", s.Execs.Select(x => $"{x.Role}{x.Training}{x.TrainingDaysLeft > 0}"))}|{s.Offices}|{s.Workplaces}|{s.SalesReps}|" +
-        string.Join(",", s.Deals.Select(d => $"{d.Id}{d.State}{d.HallId}")) + "|" + string.Join(",", s.Rooms.Where(r => r.Type == RoomType.DataHall).Select(r => $"{r.Name}{r.Band}{r.Zone}{r.ShowLogo}{r.Stage}{r.Clients.Count}")) + $"|{s.Loans.Count}|{s.InvestorShare}|{s.Rooms.Count}|{s.Supplier}|{s.Revision / 50}";
+        string.Join(",", s.Deals.Select(d => $"{d.Id}{d.State}{string.Join("+", d.HallIds)}")) + "|" + string.Join(",", s.Rooms.Where(r => r.Type == RoomType.DataHall).Select(r => $"{r.Name}{r.Band}{r.Zone}{r.ShowLogo}{r.Stage}{r.Clients.Count}")) + $"|{s.Loans.Count}|{s.InvestorShare}|{s.Rooms.Count}|{s.Supplier}|{s.Revision / 50}";
 
     static void Mark(Button b, bool on)
     {
@@ -182,7 +182,8 @@ public partial class CompanyPanel : Modal
     {
         _content.AddChild(Ui.Heading("co_tab_org", 16, Brand.Amber));
         _content.AddChild(Plain(Loc.T("org_help"), 13, Brand.InkDim));
-        var offices = Plain(Loc.T("org_offices", s.Execs.Count, s.Offices), 14, s.Offices > s.Execs.Count ? Brand.Ok : Brand.Warning);
+        var offices = Plain(Loc.T("org_offices", s.BoardCount, s.Offices) + "\n" + Loc.T("org_manager_desks", s.ManagerCount, s.SalesReps, s.Workplaces), 14,
+            s.Offices > s.BoardCount && s.Workplaces > s.ManagerCount + s.SalesReps ? Brand.Ok : Brand.Warning);
         _content.AddChild(offices);
         if (s.Creative.AllUnlocks) _content.AddChild(Plain(Loc.T("org_all_unlocked"), 14, Brand.Cooling));
         foreach (var e in Org.Chart)

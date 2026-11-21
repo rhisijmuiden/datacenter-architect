@@ -42,19 +42,11 @@ public class NetLinkInfo
     public double Ratio => Capacity <= 0 ? (Load > 0 ? 9 : 0) : Load / Capacity;
 }
 
-/// <summary>Your own fiber pit with its duct to the nearest carrier pit in the street.</summary>
-public class PitInfo
-{
-    public PlacedObject Pit;
-    public int Street;
-    public int Subducts, Used;
-}
-
 public class CarrierInfo
 {
     public CarrierContract Contract;
     public CarrierDef Def;
-    /// <summary>In service and with a subduct to its street pit.</summary>
+    /// <summary>In service and with a subduct from a cable entry to the meet-me room.</summary>
     public bool Up;
     public bool Routed;
     public double Gbps;
@@ -102,7 +94,11 @@ public class NetReport
 {
     public readonly List<NetLinkInfo> Links = new();
     public NetLinkInfo Bottleneck;
-    public readonly List<PitInfo> Pits = new();
+    /// <summary>Cable entries on the plot border and your own ducts to the meet-me rooms.</summary>
+    public readonly List<EntryInfo> Entries = new();
+    public readonly List<DuctInfo> Ducts = new();
+    public EntryInfo EntryOf(PlacedObject o) => Entries.FirstOrDefault(e => e.Entry == o);
+    public DuctInfo DuctOf(FiberDuct d) => Ducts.FirstOrDefault(x => x.Duct == d);
     public readonly List<CarrierInfo> Carriers = new();
     public readonly List<HallNet> Halls = new();
     public readonly HashSet<int> Offline = new();
@@ -134,7 +130,7 @@ public class NetReport
 }
 
 /// <summary>
-/// Works out the network: own fiber pits and their ducts to the carrier pits in the street, carrier ports, the internet
+/// Works out the network: cable entries on the plot border and your own main ducts to the meet-me rooms, carrier ports, the internet
 /// exchange and private peering, patch ports (ODFs) in the meet-me room, core routers and the spine switches in each hall.
 /// Racks without a path to the internet are offline; when the traffic does not fit, part of it is dropped (congestion).
 /// </summary>
@@ -149,38 +145,13 @@ public static class Network
 
     static bool Live(PlacedObject o) => o.Status == ObjStatus.Live && !o.Broken;
 
-    public static int NearestStreetPit(GameState s, PlacedObject pit)
+    /// <summary>Is there a free subduct for one more connection from a cable entry to a meet-me room?</summary>
+    public static bool FreeSubduct(GameState s)
     {
-        var best = 0; var bd = double.MaxValue;
-        for (var i = 0; i < Catalog.StreetPits.Length; i++)
-        {
-            double dx = s.StreetPit(i) - pit.X, dz = s.PlotSize + Catalog.StreetPitOffset - pit.Z;
-            var d = dx * dx + dz * dz;
-            if (d < bd) { bd = d; best = i; }
-        }
-        return best;
-    }
-
-    /// <summary>Your own pits with their subducts, in placement order.</summary>
-    public static List<PitInfo> Pits(GameState s) => s.Objects.Where(o => o.Kind == ObjKind.FiberPit).OrderBy(o => o.Id)
-        .Select(o => new PitInfo { Pit = o, Street = NearestStreetPit(s, o), Subducts = Catalog.Subducts(o.Level) }).ToList();
-
-    /// <summary>Takes a free subduct towards a street pit (any street pit when street is -1). Returns false when none is free.</summary>
-    static bool Take(List<PitInfo> pits, int street)
-    {
-        var p = pits.FirstOrDefault(x => (street < 0 || x.Street == street) && x.Used < x.Subducts);
-        if (p == null) return false;
-        p.Used++;
-        return true;
-    }
-
-    /// <summary>Is there a free subduct for one more connection at this street pit (any when -1)?</summary>
-    public static bool FreeSubduct(GameState s, int street)
-    {
-        var pits = Pits(s);
-        foreach (var c in s.Contracts) Take(pits, Catalog.Carriers[c.Carrier].Pit);
-        foreach (var p in s.Peers.Where(p => p.State is PeerState.Building or PeerState.Active)) Take(pits, -1);
-        return pits.Any(x => (street < 0 || x.Street == street) && x.Used < x.Subducts);
+        var g = new DuctGraph(s);
+        foreach (var _ in s.Contracts) g.Take();
+        foreach (var _ in s.Peers.Where(p => p.State is PeerState.Building or PeerState.Active)) g.Take();
+        return g.Take();
     }
 
     public static bool MmrReady(GameState s) =>
@@ -196,20 +167,23 @@ public static class Network
         var live = s.Objects.Where(Live).ToList();
         r.Noc = NocReady(s);
 
-        // ---- outside: pits, ducts and who gets a subduct ----
-        var pits = Pits(s);
-        r.Pits.AddRange(pits);
+        // ---- outside: cable entries, your own ducts and who gets a subduct ----
+        var graph = new DuctGraph(s);
         foreach (var k in s.Contracts)
         {
             var def = Catalog.Carriers[k.Carrier];
-            var routed = Take(pits, def.Pit);
+            var routed = graph.Take();
             r.Carriers.Add(new CarrierInfo { Contract = k, Def = def, Routed = routed, Up = routed && k.Active });
         }
         var peers = new List<PeeringDeal>();
         foreach (var p in s.Peers.Where(p => p.State is PeerState.Building or PeerState.Active))
-            if (Take(pits, -1) && p.State == PeerState.Active) peers.Add(p);
+            if (graph.Take() && p.State == PeerState.Active) peers.Add(p);
+        var spare = graph.Spare();
+        r.Entries.AddRange(graph.Entries);
+        r.Ducts.AddRange(graph.Ducts);
         var up = r.Carriers.Where(x => x.Up).ToList();
-        r.Routes = r.Carriers.Where(x => x.Up).Select(x => x.Def.Pit).Distinct().Count();
+        var usedEntries = graph.Entries.Where(e => e.Used > 0).ToList();
+        r.Routes = usedEntries.Count == 0 ? 0 : graph.Diverse() ? Math.Max(2, usedEntries.Count) : 1;
         r.External = up.Count + peers.Count;
 
         // ---- meet-me room, core and spines ----
@@ -286,15 +260,15 @@ public static class Network
         // ---- the chain with redundancy ----
         var transitCaps = up.Select(x => (double)x.Contract.PortGbps).ToList();
         if (r.IxPort > 0) transitCaps.Add(r.IxPort);
-        var subducts = pits.Sum(p => p.Subducts);
-        var usedSub = pits.Sum(p => p.Used);
+        var usedSub = graph.Entries.Sum(e => e.Used);
+        var subducts = usedSub + spare;
         var worstSpine = "-";
         foreach (var hn in r.Halls.Where(h => h.Racks > 0)) worstSpine = Worse(worstSpine, hn.Redundancy);
         var viaDist = r.Dists.Sum(d => d.Load);
         r.Links.Add(new NetLinkInfo { Link = NetLink.Upstream, Capacity = r.TransitCapacity + r.IxPort + peers.Count * 10, Load = r.DemandGbps, Units = up.Count + peers.Count,
             Redundancy = r.DemandGbps <= 0 ? "-" : Infra.Redundancy(transitCaps, r.TransitGbps + r.Overflow + r.IxGbps) });
-        r.Links.Add(new NetLinkInfo { Link = NetLink.Ducts, Capacity = subducts, Load = usedSub, Units = pits.Count,
-            Redundancy = usedSub <= 0 ? "-" : pits.Where(p => p.Used > 0).Select(p => p.Street).Distinct().Count() >= 2 ? "N+1" : "N" });
+        r.Links.Add(new NetLinkInfo { Link = NetLink.Ducts, Capacity = subducts, Load = usedSub, Units = graph.Ducts.Count,
+            Redundancy = usedSub <= 0 ? "-" : graph.Diverse() ? "N+1" : "N" });
         r.Links.Add(new NetLinkInfo { Link = NetLink.Mmr, Capacity = r.OdfPorts, Load = r.OdfUsed, Units = odfs.Count,
             Redundancy = r.OdfUsed <= 0 ? "-" : r.MmrRooms >= 2 ? "2N" : r.OdfUsed > r.OdfPorts ? "N-" : "N" });
         r.Links.Add(new NetLinkInfo { Link = NetLink.Core, Capacity = r.CoreGbps, Load = r.DemandGbps, Units = r.Cores,
@@ -309,7 +283,7 @@ public static class Network
         if (r.OnlineRacks > 0 || running.Count > 0)
         {
             if (up.Count(x => !x.Def.Ix) <= 1) r.Spofs.Add("spof_carrier");
-            if (pits.Count(p => p.Used > 0) <= 1 || pits.Where(p => p.Used > 0).Select(p => p.Street).Distinct().Count() <= 1) r.Spofs.Add("spof_route");
+            if (!graph.Diverse()) r.Spofs.Add("spof_route");
             if (r.MmrRooms <= 1) r.Spofs.Add("spof_mmr");
             if (r.Cores <= 1) r.Spofs.Add("spof_core");
             if (r.Dists.Count(d => d.Linked) == 1 && r.Dists.Any(d => d.Edges.Count > 0)) r.Spofs.Add("spof_dist");

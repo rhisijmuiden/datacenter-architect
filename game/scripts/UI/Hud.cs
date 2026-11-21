@@ -7,7 +7,7 @@ using Godot;
 
 namespace DatacenterArchitect.UI;
 
-public enum Mode { Select, Erase, Surface, Fence, Building, Room, Door, Object, Row, Curve }
+public enum Mode { Select, Erase, Surface, Fence, Building, Room, Door, Object, Row, Curve, Wall, Unpaint, Duct }
 
 /// <summary>What the player is about to build: a mode plus the surface, fence, building, room, door or object kind.</summary>
 public readonly record struct BuildItem(Mode Mode, int Arg = 0)
@@ -22,7 +22,10 @@ public readonly record struct BuildItem(Mode Mode, int Arg = 0)
         Mode.Door => Catalog.Doors[(DoorType)Arg].NameKey,
         Mode.Object or Mode.Row => Catalog.Objects[(ObjKind)Arg].NameKey,
         Mode.Curve => (Surface)Arg switch { Surface.Footpath => "curve_footpath", Surface.BikePath => "curve_bikepath", _ => "curve_asphalt" },
-        Mode.Erase => "tool_erase",
+        Mode.Duct => "duct_" + Arg + "way",
+        Mode.Erase => (EraseKind)Arg switch { EraseKind.Room => "erase_room", EraseKind.Wall => "erase_wall", EraseKind.Door => "erase_door", EraseKind.Interior => "erase_interior", _ => "tool_erase" },
+        Mode.Wall => Arg == 1 ? "wall_glass" : "wall_inner",
+        Mode.Unpaint => "tool_unpaint",
         _ => "tool_select",
     };
 }
@@ -33,7 +36,7 @@ public partial class Hud : Control
     public Action<BuildItem> ToolChanged;
     public Action<int> SpeedChanged, FloorsChanged;
     public Action<Facade> FacadeChanged;
-    public Action<bool> BasementChanged;
+    public Action<bool> BasementChanged, RoomWallsChanged, RoomFillChanged;
     public Action ToggleDayNight, ToggleWeather;
     Button _dayBtn, _weatherBtn;
     public Action<int> CyclePriority;
@@ -74,7 +77,8 @@ public partial class Hud : Control
     readonly Dictionary<string, Button> _catBtns = new();
     Button _selectBtn, _eraseBtn, _undoBtn, _redoBtn, _planBtn;
     HBoxContainer _floorsRow, _facadeRow;
-    CheckBox _basement;
+    CheckBox _basement, _roomWalls, _roomFill;
+    HBoxContainer _roomRow;
     SpinBox _floors;
     OptionButton _facade;
     PanelContainer _projectsPanel;
@@ -112,9 +116,10 @@ public partial class Hud : Control
             new BuildItem(Mode.Building, (int)BuildingKind.Warehouse), O(ObjKind.Stairs), O(ObjKind.PassengerLift), O(ObjKind.Lift),
             new BuildItem(Mode.Door, (int)DoorType.Single), new BuildItem(Mode.Door, (int)DoorType.Double),
             new BuildItem(Mode.Door, (int)DoorType.Fire), new BuildItem(Mode.Door, (int)DoorType.Badge),
-            new BuildItem(Mode.Door, (int)DoorType.RollUp),
+            new BuildItem(Mode.Door, (int)DoorType.BadgeDouble), new BuildItem(Mode.Door, (int)DoorType.RollUp),
         }),
-        ("cat_rooms", Enum.GetValues<RoomType>().Select(t => new BuildItem(Mode.Room, (int)t)).ToArray()),
+        ("cat_rooms", new[] { new BuildItem(Mode.Wall, 0), new BuildItem(Mode.Wall, 1), new BuildItem(Mode.Unpaint) }
+            .Concat(Enum.GetValues<RoomType>().Select(t => new BuildItem(Mode.Room, (int)t))).ToArray()),
         ("cat_interior", new[]
         {
             O(ObjKind.Desk), O(ObjKind.Chair), O(ObjKind.Cabinet), O(ObjKind.Plant), O(ObjKind.MeetingTable),
@@ -129,7 +134,7 @@ public partial class Hud : Control
             O(ObjKind.SolarPanel), O(ObjKind.WindTurbine), O(ObjKind.BatteryContainer),
         }),
         ("cat_cooling", new[] { O(ObjKind.Crah), O(ObjKind.Chiller), O(ObjKind.CoolingTower), O(ObjKind.DryCooler) }),
-        ("cat_network", new[] { O(ObjKind.FiberPit), O(ObjKind.Odf), O(ObjKind.CoreRouter), O(ObjKind.DistSwitch), O(ObjKind.EdgeSwitch24), O(ObjKind.EdgeSwitch48), O(ObjKind.Spine), O(ObjKind.NocWall) }),
+        ("cat_network", new[] { O(ObjKind.FiberPit), new BuildItem(Mode.Duct, 4), new BuildItem(Mode.Duct, 7), new BuildItem(Mode.Duct, 12), O(ObjKind.Odf), O(ObjKind.CoreRouter), O(ObjKind.DistSwitch), O(ObjKind.EdgeSwitch24), O(ObjKind.EdgeSwitch48), O(ObjKind.Spine), O(ObjKind.NocWall) }),
     };
 
     public override void _Ready()
@@ -527,6 +532,15 @@ public partial class Hud : Control
         _basement.Toggled += on => BasementChanged?.Invoke(on);
         _floorsRow.AddChild(_basement);
         head.AddChild(_floorsRow);
+        // paint tool options: draw the room with its own walls (the old way), or fill the whole closed space
+        _roomRow = new HBoxContainer(); _roomRow.AddThemeConstantOverride("separation", 10);
+        _roomFill = new CheckBox { Text = "hud_room_fill", TooltipText = "hud_room_fill_tip", FocusMode = FocusModeEnum.None };
+        _roomFill.Toggled += on => { if (on && _roomWalls.ButtonPressed) _roomWalls.ButtonPressed = false; RoomFillChanged?.Invoke(on); };
+        _roomRow.AddChild(_roomFill);
+        _roomWalls = new CheckBox { Text = "hud_room_walls", TooltipText = "hud_room_walls_tip", FocusMode = FocusModeEnum.None };
+        _roomWalls.Toggled += on => { if (on && _roomFill.ButtonPressed) _roomFill.ButtonPressed = false; RoomWallsChanged?.Invoke(on); };
+        _roomRow.AddChild(_roomWalls);
+        head.AddChild(_roomRow);
         _facadeRow = new HBoxContainer(); _facadeRow.AddThemeConstantOverride("separation", 6);
         var fa = Ui.Heading("hud_facade", 13); fa.VerticalAlignment = VerticalAlignment.Center;
         _facadeRow.AddChild(fa);
@@ -692,6 +706,7 @@ public partial class Hud : Control
     /// <summary>Key numbers of power devices on their card: kW and rack connections (PDU) or outputs (MSB, UPS).</summary>
     static string SpecText(BuildItem i)
     {
+        if (i.Mode == Mode.Duct) return Loc.T("spec_duct", i.Arg);
         if (i.Mode != Mode.Object) return "";
         var d = Catalog.Objects[(ObjKind)i.Arg];
         if (d.Outlets > 0) return Loc.T("spec_pdu", d.CapacityKw, d.Outlets);
@@ -703,8 +718,10 @@ public partial class Hud : Control
     {
         Mode.Surface or Mode.Curve => Ui.Money(Catalog.Surfaces[(Surface)i.Arg].Cost) + " /m²",
         Mode.Fence => Ui.Money(Catalog.Fences[(FenceType)i.Arg].Cost) + " /m",
+        Mode.Duct => Ui.Money(Catalog.DuctCostPerM(i.Arg)) + " /m",
         Mode.Building => Ui.Money(Catalog.Buildings[(BuildingKind)i.Arg].CostPerCellPerFloor) + " /m²",
         Mode.Room => "",
+        Mode.Wall => Ui.Money(i.Arg == 1 ? GameState.GlassCostPerMetre : GameState.WallCostPerMetre) + " /m",
         Mode.Door => Ui.Money(Catalog.Doors[(DoorType)i.Arg].Cost),
         Mode.Object or Mode.Row => Ui.Money(Catalog.Objects[(ObjKind)i.Arg].Cost),
         _ => "",
@@ -714,7 +731,23 @@ public partial class Hud : Control
     {
         foreach (var c in _sub.GetChildren()) c.QueueFree();
         var locked = State?.Invoke()?.Creative.AllUnlocks != true;
-        _tray.Visible = _category != null;
+        var erasing = _item.Mode == Mode.Erase;
+        _tray.Visible = _category != null || erasing;
+        if (erasing && _category == null)
+        {
+            // the bulldozer: choose what goes
+            _trayTitle.Text = Loc.T("tool_erase");
+            _trayTitle.AddThemeColorOverride("font_color", Brand.Critical);
+            foreach (var k in Enum.GetValues<EraseKind>())
+            {
+                var it = new BuildItem(Mode.Erase, (int)k);
+                var b = new Button { Text = Loc.T(k == EraseKind.All ? "erase_all" : it.NameKey), TooltipText = Loc.T("hint_" + it.NameKey), CustomMinimumSize = new Vector2(150, 0), SizeFlagsVertical = SizeFlags.ExpandFill, AutoTranslateMode = AutoTranslateModeEnum.Disabled };
+                b.AddThemeFontOverride("font", Ui.BodySemi);
+                b.AddThemeStyleboxOverride("normal", _item == it ? Ui.Box(new Color(Brand.Critical, 0.25f), 8, Brand.Critical, 2, 8) : Ui.Box(new Color(1, 1, 1, 0.04f), 8, Brand.Line, 1, 8));
+                b.Pressed += () => Pick(it);
+                _sub.AddChild(b);
+            }
+        }
         foreach (var (cat, items) in Categories)
         {
             ActiveTab(_catBtns[cat], cat == _category);
@@ -748,10 +781,10 @@ public partial class Hud : Control
             foreach (var it in items) _sub.AddChild(ItemCard(it, locked));
         }
         ActiveTab(_selectBtn, _item.Mode == Mode.Select);
-        var erasing = _item.Mode == Mode.Erase;
         _eraseBtn.AddThemeStyleboxOverride("normal", erasing ? Ui.Box(new Color(Brand.Critical, 0.35f), 12, Brand.Critical, 2, 10, true) : Ui.Box(Brand.Panel, 12, Brand.Line, 1, 10, true));
         _eraseBtn.AddThemeColorOverride("icon_normal_color", erasing ? Brand.Ink : Brand.InkDim);
         _floorsRow.Visible = _item.Mode == Mode.Building;
+        _roomRow.Visible = _item.Mode == Mode.Room;
         _basement.Visible = _item.Mode == Mode.Building && GameState.BasementAllowed((BuildingKind)_item.Arg);
         if (!_basement.Visible && _basement.ButtonPressed) _basement.ButtonPressed = false;
         _facadeRow.Visible = _item.Mode == Mode.Building && _item.Arg == (int)BuildingKind.Office;
@@ -761,8 +794,9 @@ public partial class Hud : Control
         _facade.Selected = sel;
         _toolHint.Text = Loc.T(_item.Mode switch
         {
-            Mode.Erase => "hint_erase", Mode.Surface => "hint_surface", Mode.Fence => "hint_fence", Mode.Building => "hint_building",
-            Mode.Curve => "hint_curve", Mode.Room => "hint_room", Mode.Door => "hint_door", Mode.Row => "hint_row", Mode.Object => "hint_place", _ => "hint_select",
+            Mode.Erase => "hint_" + _item.NameKey, Mode.Surface => "hint_surface", Mode.Fence => "hint_fence", Mode.Building => "hint_building",
+            Mode.Curve => "hint_curve", Mode.Room => "hint_room", Mode.Door => "hint_door", Mode.Row => "hint_row", Mode.Duct => "hint_duct", Mode.Object => _item.Arg == (int)ObjKind.FiberPit ? "hint_entry" : "hint_place",
+            Mode.Wall => "hint_wall", Mode.Unpaint => "hint_unpaint", _ => "hint_select",
         });
         FitTray();
     }
@@ -805,7 +839,14 @@ public partial class Hud : Control
     public void Pick(BuildItem item)
     {
         _item = item;
-        if (item.Mode is Mode.Room or Mode.Door) ToggleRoofsIfNeeded();
+        // show the tray that holds the item (a fix button can pick a tool from another category); erasing has its own tray
+        if (item.Mode == Mode.Erase) _category = null;
+        else if (item.Mode != Mode.Select && !Categories.Any(c => c.cat == _category && c.items.Contains(item)))
+        {
+            var home = Categories.FirstOrDefault(c => c.items.Contains(item)).cat;
+            if (home != null && (_catBtns?.ContainsKey(home) ?? false)) _category = home;
+        }
+        if (item.Mode is Mode.Room or Mode.Door or Mode.Wall or Mode.Unpaint) ToggleRoofsIfNeeded();
         RefreshCategory();
         ToolChanged?.Invoke(item);
     }
@@ -1086,7 +1127,8 @@ public partial class Hud : Control
         for (var i = 0; i < _speedBtns.Count; i++) Active(_speedBtns[i], i == s);
     }
 
-    public void Notify(string text, Color? accent = null)
+    /// <summary>A message in the top right corner; with <paramref name="go"/> it can be clicked (jump to the spot and fix it).</summary>
+    public void Notify(string text, Color? accent = null, Action go = null)
     {
         var p = new PanelContainer();
         var s = Ui.Box(Brand.Panel, 8, null, 0, 10);
@@ -1096,9 +1138,22 @@ public partial class Hud : Control
         l.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
         p.AddChild(l);
         p.MouseFilter = MouseFilterEnum.Ignore;
+        if (go != null)
+        {
+            l.MouseFilter = MouseFilterEnum.Ignore;
+            p.MouseFilter = MouseFilterEnum.Stop;
+            p.MouseDefaultCursorShape = CursorShape.PointingHand;
+            p.TooltipText = Loc.T("outage_click");
+            p.GuiInput += e =>
+            {
+                if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) return;
+                go();
+                p.Visible = false;
+            };
+        }
         p.SizeFlagsHorizontal = SizeFlags.ShrinkEnd;
         _notes.AddChild(p);
-        History.Insert(0, new HudMessage(_date?.Text ?? "", text, accent ?? Brand.Amber));
+        History.Insert(0, new HudMessage(_date?.Text ?? "", text, accent ?? Brand.Amber, go));
         if (History.Count > 200) History.RemoveAt(History.Count - 1);
         World.UiSounds.Instance?.Chime();
         // remove (not only queue) the oldest, or a burst of messages in one frame never leaves this loop

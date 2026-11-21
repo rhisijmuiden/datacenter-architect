@@ -12,7 +12,7 @@ public static partial class TestRunner
         var (s, hall, _) = NetSite();
         var b2 = s.AddBuilding(BuildingKind.Datacenter, 4, 30, 20, 16, 1); b2.Stage = Stage.Done;
         var hall2 = s.AddRoom(RoomType.DataHall, 4, 30, 20, 16, 0); hall2.Stage = Stage.Done;
-        Live(s, ObjKind.Odf, 25, 10); Live(s, ObjKind.FiberPit, 30, 62);
+        Live(s, ObjKind.Odf, 25, 10); Entry(s, 30, 62);
         s.OrderCarrier(1, 10);
         var core = Live(s, ObjKind.CoreRouter, 27, 10);
         for (var i = 0; i < 10; i++) Live(s, ObjKind.Rack, 6 + i, 6);
@@ -49,7 +49,7 @@ public static partial class TestRunner
 
         // core ports run out without a distribution switch: switches beyond the free core ports get no uplink
         var (c, ch, _) = NetSite();
-        Live(c, ObjKind.Odf, 25, 10); Live(c, ObjKind.FiberPit, 30, 62); c.OrderCarrier(1, 10);
+        Live(c, ObjKind.Odf, 25, 10); Entry(c, 30, 62); c.OrderCarrier(1, 10);
         Live(c, ObjKind.CoreRouter, 27, 10);
         for (var i = 0; i < 40; i++) LiveRaw(c, ObjKind.EdgeSwitch24, 5 + i % 18, 6 + i / 18 * 2);
         n = c.Net;

@@ -72,8 +72,8 @@ public class Deal
     /// <summary>Tenders: the bid as a percentage of the asking price (85, 100 or 115).</summary>
     public int BidPercent { get; set; }
     public List<int> RackIds { get; set; } = new();
-    /// <summary>Data hall the player placed this contract in (0 = sales picks one). Whole halls and cages keep the hall they got.</summary>
-    public int HallId { get; set; }
+    /// <summary>Data halls the player placed this contract in (empty = sales picks). Own halls and cages keep the halls they got.</summary>
+    public List<int> HallIds { get; set; } = new();
     public double Satisfaction { get; set; } = 80;
     public double Served { get; set; } = 1;
     public bool Legacy { get; set; }
@@ -106,6 +106,10 @@ public record Req(string Key, string Have, string Need, ReqStatus Status);
 public static class Org
 {
     static readonly Exec[] None = Array.Empty<Exec>();
+
+    /// <summary>The board: only these directors need an own director's office. The other managers work at a desk in an office room (playtest).</summary>
+    public static readonly HashSet<Exec> Board = new() { Exec.Ceo, Exec.Cfo, Exec.Hr, Exec.Sales, Exec.Operations };
+    public static bool IsBoard(Exec e) => Board.Contains(e);
 
     public static readonly Dictionary<Exec, ExecDef> Execs = new()
     {
@@ -250,7 +254,10 @@ public partial class GameState
 
     /// <summary>Executive rooms with at least a desk and a chair: one per director.</summary>
     public int Offices => Rooms.Count(r => r.Type == RoomType.Executive && Furnished(r));
-    /// <summary>Workplaces for the sales team: desks in finished office rooms.</summary>
+    /// <summary>Board members (each in an own director's office) and the managers who work at a desk in an office room.</summary>
+    [JsonIgnore] public int BoardCount => Execs.Count(x => Org.IsBoard(x.Role));
+    [JsonIgnore] public int ManagerCount => Execs.Count - BoardCount;
+    /// <summary>Workplaces for the sales team and the managers: desks in finished office rooms.</summary>
     public int Workplaces => Rooms.Where(r => r.Type == RoomType.Office && r.Stage == Stage.Done)
         .Sum(r => Objects.Count(o => o.Kind == ObjKind.Desk && o.Floor == r.Floor && r.Contains(o.X, o.Z)));
 
@@ -259,7 +266,8 @@ public partial class GameState
         if (Hire(e) != null) return "msg_nothing_changed";
         foreach (var req in Org.Execs[e].Requires)
             if (!Has(req)) return "msg_needs_exec";
-        if (Offices <= Execs.Count) return e == Exec.Ceo ? "msg_needs_ceo_office" : "msg_needs_office";
+        if (Org.IsBoard(e) && Offices <= BoardCount) return e == Exec.Ceo ? "msg_needs_ceo_office" : "msg_needs_office";
+        if (!Org.IsBoard(e) && ManagerCount + SalesReps >= Workplaces) return "msg_needs_manager_desk";
         if (!CanAfford(Org.Execs[e].HireFee)) return "msg_no_money";
         return null;
     }
@@ -324,7 +332,7 @@ public partial class GameState
     public string CanAddRep(int delta)
     {
         if (!Has(Exec.Sales)) return "msg_needs_exec";
-        if (delta > 0 && SalesReps + delta > Workplaces) return "msg_needs_workplace";
+        if (delta > 0 && SalesReps + ManagerCount + delta > Workplaces) return "msg_needs_workplace";
         if (SalesReps + delta < 0) return "msg_nothing_changed";
         return null;
     }
@@ -438,17 +446,19 @@ public partial class GameState
         var pick = new List<int>();
         foreach (var h in inf.Halls.Where(h => h.Room.Stage == Stage.Done && HallTakes(h.Room, d.Type) && HallFits(d, h)))
         {
-            if (d.HallId != 0 ? h.Room.Id != d.HallId : h.Room.Zone != zone) continue;
+            var picked = d.HallIds.Count > 0;
+            if (picked ? !d.HallIds.Contains(h.Room.Id) : h.Room.Zone != zone) continue;
             if (HeldByOther(h.Room, d, owners)) continue;
             var racks = Objects.Where(o => o.Kind == ObjKind.Rack && o.Floor == h.Room.Floor && h.Room.Contains(o.X, o.Z)).ToList();
             // a picked hall of another zone only works while nobody else rents racks there
             if (h.Room.Zone != zone && racks.Any(o => owners.TryGetValue(o.Id, out var id) && id != d.Id)) continue;
             var free = racks.Where(o => !owners.ContainsKey(o.Id) && working.Contains(o.Id)).OrderBy(o => o.Id).Select(o => o.Id).ToList();
-            if (d.Product is Product.Cage or Product.Hall)
+            // a cage fits in one hall, and so does an own hall that sales picks; picked halls count together
+            if (d.Product == Product.Cage || d.Product == Product.Hall && !picked)
             {
                 if (free.Count > pick.Count) { pick = free; bestHall = h.Room.Id; }
             }
-            else pick.AddRange(free);
+            else { pick.AddRange(free); if (bestHall == 0 && free.Count > 0) bestHall = h.Room.Id; }
         }
         return pick;
     }
@@ -486,12 +496,13 @@ public partial class GameState
             var free = FreeRacksFor(d, out _).Count;
             list.Add(new Req(d.Product switch { Product.Cage => "req_cage", Product.Hall => "req_hall", _ => "req_racks" }, free.ToString(), d.Racks.ToString(), free >= d.Racks ? ReqStatus.Ok : ReqStatus.Fail));
         }
-        var picked = d.HallId != 0 ? Rooms.FirstOrDefault(r => r.Id == d.HallId && r.Type == RoomType.DataHall) : null;
-        bool InScope(Room r) => picked != null ? r == picked : r.Zone == ZoneFor(d.Product);
-        if (picked != null)
+        var picked = Rooms.Where(r => r.Type == RoomType.DataHall && d.HallIds.Contains(r.Id)).OrderBy(r => r.HallNo).ToList();
+        bool InScope(Room r) => picked.Count > 0 ? picked.Contains(r) : r.Zone == ZoneFor(d.Product);
+        if (picked.Count > 0)
         {
-            var problem = HallChoices(d).FirstOrDefault(c => c.Hall == picked)?.Problem;
-            list.Add(new Req("req_place", HallCode(picked), "", problem is null or "place_short" ? ReqStatus.Ok : ReqStatus.Fail));
+            var choices = HallChoices(d);
+            var bad = picked.Any(p => choices.FirstOrDefault(c => c.Hall == p)?.Problem is { } pr && (Blocks(pr) || pr == "place_clients"));
+            list.Add(new Req("req_place", string.Join(" + ", picked.Select(HallCode)), "", bad ? ReqStatus.Fail : ReqStatus.Ok));
         }
         var zoneHalls = Rooms.Where(r => r.Type == RoomType.DataHall && InScope(r)).ToList();
         if (zoneHalls.Count > 0 && !zoneHalls.Any(r => HallTakes(r, d.Type)))
@@ -563,9 +574,9 @@ public partial class GameState
         var best = 0;
         d.RackIds = d.Product == Product.PerU ? new List<int>() : FreeRacksFor(d, out best).Take(d.Racks).ToList();
         // cages and whole halls stay in the hall they got; a picked hall becomes the right zone when nobody else rents there
-        if (d.Product is Product.Cage or Product.Hall && best != 0) d.HallId = best;
-        if (d.HallId != 0 && Rooms.FirstOrDefault(r => r.Id == d.HallId) is { } hall && hall.Zone != ZoneFor(d.Product) && RentedIn(hall, owners) == 0)
-            hall.Zone = ZoneFor(d.Product);
+        if (d.Product is Product.Cage or Product.Hall && d.HallIds.Count == 0 && best != 0) d.HallIds.Add(best);
+        foreach (var hall in Rooms.Where(r => d.HallIds.Contains(r.Id)))
+            if (hall.Zone != ZoneFor(d.Product) && RentedIn(hall, owners) == 0) hall.Zone = ZoneFor(d.Product);
         d.State = DealState.Active;
         d.StartDay = Day;
         d.EndDay = Day + d.Months * 30;

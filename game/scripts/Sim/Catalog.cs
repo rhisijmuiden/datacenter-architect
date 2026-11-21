@@ -17,7 +17,7 @@ public enum Stage { Foundation, Walls, Roof, Done }
 
 public enum RoomType { DataHall, MeetMe, UpsRoom, Office, Executive, Meeting, Canteen, Lounge, Reception, Security, LoadingDock, Storage, Corridor, Transformer, Switchgear, Battery, Noc, Lab, Soc, Warehouse }
 
-public enum DoorType { Single, Double, Fire, Badge, RollUp, Mantrap }
+public enum DoorType { Single, Double, Fire, Badge, RollUp, Mantrap, BadgeDouble }
 
 public enum ObjKind
 {
@@ -88,7 +88,9 @@ public record SurfaceDef(Surface Surface, string NameKey, long Cost, bool Trucks
 public record FenceDef(FenceType Type, string NameKey, long Cost, float Height, int Security, bool NeedsResearch);
 public record BuildingDef(BuildingKind Kind, string NameKey, long CostPerCellPerFloor);
 public record RoomDef(RoomType Type, string NameKey, string Color);
-public record DoorDef(DoorType Type, string NameKey, int Width, long Cost, bool Wide);
+/// <summary>A door type. <paramref name="Carry"/>: a rack on a trolley fits through (every door but the mantrap);
+/// <paramref name="Secure"/>: it has a badge reader and counts for the security level.</summary>
+public record DoorDef(DoorType Type, string NameKey, int Width, long Cost, bool Carry, bool Secure = false);
 
 public static class Catalog
 {
@@ -120,7 +122,7 @@ public static class Catalog
         [ObjKind.Rack] = new(ObjKind.Rack, "obj_rack", 1, 1, 4200, Where.Hall, true, PowerKw: 6, Chain: true, NeedsFiber: true),
         [ObjKind.Crah] = new(ObjKind.Crah, "obj_crah", 1, 2, 38000, Where.Hall, true, PowerKw: 4, CoolingKw: 120, Chain: true, MaxLevel: 3),
         [ObjKind.Generator] = new(ObjKind.Generator, "obj_generator", 3, 2, 410000, Where.Outside, true, GenKw: 1000, FuelLitres: 2000),
-        [ObjKind.FiberPit] = new(ObjKind.FiberPit, "obj_fiberpit", 1, 1, 25000, Where.Outside, false, MaxLevel: 3),
+        [ObjKind.FiberPit] = new(ObjKind.FiberPit, "obj_fiberpit", 1, 1, 25000, Where.Outside, false),
         [ObjKind.Lift] = new(ObjKind.Lift, "obj_lift", 2, 2, 85000, Where.Building, false),
         [ObjKind.PassengerLift] = new(ObjKind.PassengerLift, "obj_passenger_lift", 2, 2, 60000, Where.Building, false),
         [ObjKind.Stairs] = new(ObjKind.Stairs, "obj_stairs", 2, 5, 18000, Where.Building, false),
@@ -235,13 +237,14 @@ public static class Catalog
     public const double BusbarHours = 24;
 
     // ---------------- network ----------------
-    /// <summary>Carrier pits in the pavement of the public road (x positions). Your own fiber pit connects to the nearest one.</summary>
+    /// <summary>Old carrier pits in the pavement (x positions), only kept so old land shifts still add up; ducts now start at your own cable entries.</summary>
     public static readonly int[] StreetPits = { 8, 30, 52 };
     /// <summary>Street pits sit in the pavement across the public road (plot edge + this many metres), never on the carriageway.</summary>
     public const float StreetPitOffset = 7.8f;
     public static string PitName(int pit) => ((char)('A' + pit)).ToString();
-    /// <summary>Subducts in your own fiber pit's duct per level: every carrier, IX port or dark fiber needs one.</summary>
-    public static int Subducts(int level) => level switch { >= 3 => 12, 2 => 8, _ => 4 };
+    /// <summary>Your own main fiber duct comes as a 4-, 7- or 12-way duct: that many subducts, one per carrier, IX port or dark fiber.</summary>
+    public static readonly int[] DuctWays = { 4, 7, 12 };
+    public static long DuctCostPerM(int ways) => ways >= 12 ? 180 : ways >= 7 ? 130 : 90;
     public const int FibersPerCable = 144;
     /// <summary>Port sizes in Gbit/s, with the monthly port fee and the one-off setup fee.</summary>
     public static readonly PortDef[] Ports =
@@ -338,12 +341,13 @@ public static class Catalog
 
     public static readonly Dictionary<DoorType, DoorDef> Doors = new()
     {
-        [DoorType.Single] = new(DoorType.Single, "door_single", 1, 600, false),
+        [DoorType.Single] = new(DoorType.Single, "door_single", 1, 600, true),
         [DoorType.Double] = new(DoorType.Double, "door_double", 2, 1400, true),
-        [DoorType.Fire] = new(DoorType.Fire, "door_fire", 1, 1800, false),
-        [DoorType.Badge] = new(DoorType.Badge, "door_badge", 1, 3200, false),
+        [DoorType.Fire] = new(DoorType.Fire, "door_fire", 1, 1800, true, true),
+        [DoorType.Badge] = new(DoorType.Badge, "door_badge", 1, 3200, true, true),
+        [DoorType.BadgeDouble] = new(DoorType.BadgeDouble, "door_badge_double", 2, 4400, true, true),
         [DoorType.RollUp] = new(DoorType.RollUp, "door_rollup", 3, 5200, true),
-        [DoorType.Mantrap] = new(DoorType.Mantrap, "door_mantrap", 1, 24000, false),
+        [DoorType.Mantrap] = new(DoorType.Mantrap, "door_mantrap", 1, 24000, false, true),
     };
 
     public static readonly Dictionary<Role, long> WagePerDay = new()

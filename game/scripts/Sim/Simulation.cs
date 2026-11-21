@@ -32,6 +32,8 @@ public class Agent
     public bool Gone;
     /// <summary>From this waypoint on the agent drives backwards (a truck backing up to a dock); -1 for never.</summary>
     public int ReverseFrom = -1;
+    /// <summary>Up to (not including) this waypoint the agent drives backwards (a car backing out of a bay).</summary>
+    public int ReverseTo;
     /// <summary>Truck route on the plot (cells, starting at the entry), so the way back can keep to the right lane too.</summary>
     public List<Pt> Route;
     /// <summary>Engineer patching a cross-connect at the ODF in Target.</summary>
@@ -47,29 +49,49 @@ public class Agent
     public CableKind Cable;
     /// <summary>On a bicycle (staff riding in or home).</summary>
     public bool Ride;
+    /// <summary>Driving a car to or from a parking bay (drawn as the car); <see cref="Bay"/> is the bay's key.</summary>
+    public bool Car;
+    public int Bay;
+    /// <summary>Office worker (director, manager or sales rep): the desk they work at.</summary>
+    public int Desk;
     public bool Moving => WayI < Way.Count;
 }
 
 public enum CableKind { None, Power, Fiber }
 
-/// <summary>A construction job: a building stage or a room's inner walls.</summary>
+/// <summary>A construction job: a building stage, a room's inner walls or a separate wall.</summary>
 public sealed class Site
 {
     public Building B;
     public Room R;
-    public int Id => B?.Id ?? R.Id;
-    public int Priority { get => B?.Priority ?? R.Priority; set { if (B != null) B.Priority = value; else R.Priority = value; } }
-    public string NameKey => B != null ? Catalog.Buildings[B.Kind].NameKey : Catalog.Rooms[R.Type].NameKey;
-    public double Progress => B != null ? GameState.Progress(B) : GameState.StageProgress(R);
-    public int Floor => R?.Floor ?? 0;
-    public int Need => B != null ? GameState.MaterialNeed(B) : GameState.MaterialNeed(R);
-    public int Material { get => B?.Material ?? R.Material; set { if (B != null) B.Material = value; else R.Material = value; } }
-    public double Work { get => B?.Work ?? R.Work; set { if (B != null) B.Work = value; else R.Work = value; } }
-    public double WorkNeed => B != null ? GameState.WorkNeed(B) : GameState.WorkNeed(R);
+    public Wall W;
+    public int Id => B?.Id ?? R?.Id ?? W.Id;
+    public int Priority
+    {
+        get => B?.Priority ?? R?.Priority ?? W.Priority;
+        set { if (B != null) B.Priority = value; else if (R != null) R.Priority = value; else W.Priority = value; }
+    }
+    public string NameKey => B != null ? Catalog.Buildings[B.Kind].NameKey : R != null ? Catalog.Rooms[R.Type].NameKey : W.Glass ? "wall_glass" : "wall_inner";
+    public double Progress => B != null ? GameState.Progress(B) : R != null ? GameState.StageProgress(R) : GameState.StageProgress(W);
+    public int Floor => R?.Floor ?? W?.Floor ?? 0;
+    public int Need => B != null ? GameState.MaterialNeed(B) : R != null ? GameState.MaterialNeed(R) : GameState.MaterialNeed(W);
+    public int Material
+    {
+        get => B?.Material ?? R?.Material ?? W.Material;
+        set { if (B != null) B.Material = value; else if (R != null) R.Material = value; else W.Material = value; }
+    }
+    public double Work
+    {
+        get => B?.Work ?? R?.Work ?? W.Work;
+        set { if (B != null) B.Work = value; else if (R != null) R.Work = value; else W.Work = value; }
+    }
+    public double WorkNeed => B != null ? GameState.WorkNeed(B) : R != null ? GameState.WorkNeed(R) : GameState.WorkNeed(W);
     public double WorkAvailable => Math.Min(WorkNeed, Material * GameState.WorkPerMaterial) - Work;
-    public (int x, int z, int w, int d) Rect => B != null ? (B.X, B.Z, B.W, B.D) : (R.X, R.Z, R.W, R.D);
+    /// <summary>Where the crew stands: a wall is worked on from the cells on both sides of it.</summary>
+    public (int x, int z, int w, int d) Rect => B != null ? (B.X, B.Z, B.W, B.D) : R != null ? (R.X, R.Z, R.W, R.D)
+        : W.Dir == 0 ? (W.X - 1, W.Z, 2, W.Len) : (W.X, W.Z - 1, W.Len, 2);
     /// <summary>Foundation and roof are worked on from everywhere inside; walls from the inside edge.</summary>
-    public bool Ring => R != null || B.Stage == Stage.Walls;
+    public bool Ring => R != null || (B != null && B.Stage == Stage.Walls);
 }
 
 /// <summary>
@@ -113,8 +135,10 @@ public partial class Simulation
     {
         var list = new List<Site>();
         foreach (var b in S.Buildings.Where(b => b.Stage != Stage.Done && !S.IsPlanned(b))) list.Add(new Site { B = b });
-        foreach (var r in S.Rooms.Where(r => r.Stage != Stage.Done && !S.IsPlanned(r)))
+        foreach (var r in S.Rooms.Where(r => r.Walled && r.Stage != Stage.Done && !S.IsPlanned(r)))
             if (S.BuildingOf(r)?.Stage == Stage.Done) list.Add(new Site { R = r });
+        foreach (var w in S.Walls.Where(w => w.Stage != Stage.Done && !S.IsPlanned(w.Id)))
+            if (S.Buildings.FirstOrDefault(b => b.Id == w.BuildingId)?.Stage == Stage.Done) list.Add(new Site { W = w });
         return list.OrderByDescending(s => s.Priority).ThenBy(s => s.Id);
     }
 
@@ -123,7 +147,9 @@ public partial class Simulation
         var b = S.Buildings.FirstOrDefault(x => x.Id == id);
         if (b != null) return b.Stage == Stage.Done ? null : new Site { B = b };
         var r = S.Rooms.FirstOrDefault(x => x.Id == id);
-        return r == null || r.Stage == Stage.Done ? null : new Site { R = r };
+        if (r != null) return r.Stage == Stage.Done || !r.Walled ? null : new Site { R = r };
+        var w = S.Walls.FirstOrDefault(x => x.Id == id);
+        return w == null || w.Stage == Stage.Done ? null : new Site { W = w };
     }
 
     public IEnumerable<(int x, int z)> YardCells()
@@ -149,7 +175,7 @@ public partial class Simulation
         foreach (var r in S.Rooms.Where(r => r.Type == RoomType.LoadingDock && r.Floor == 0 && r.Stage == Stage.Done))
         {
             if (S.BuildingOf(r)?.Stage != Stage.Done) continue;
-            var edges = GameState.Perimeter(r.X, r.Z, r.W, r.D).ToHashSet();
+            var edges = GameState.Boundary(r);
             foreach (var d in S.Doors.Where(d => d.Floor == 0 && d.Type == DoorType.RollUp))
                 foreach (var e in d.Edges().Skip((Catalog.Doors[d.Type].Width - 1) / 2).Take(1))
                 {
@@ -220,7 +246,7 @@ public partial class Simulation
                 case Role.Engineer: Engineer(a, dt); break;
                 case Role.Truck: Truck(a, dt); break;
                 case Role.Visitor: Visitor(a, dt); break;
-                case Role.Staff: if (a.Escort) EscortWalk(a, dt); else StaffWalk(a, dt); break;
+                case Role.Staff: if (a.Escort) EscortWalk(a, dt); else if (a.Desk != 0) OfficeWalk(a, dt); else StaffWalk(a, dt); break;
             }
         }
         PlanVisits(dt);
@@ -233,7 +259,8 @@ public partial class Simulation
     {
         var changed = false;
         foreach (var b in S.Buildings.Where(b => b.Stage != Stage.Done && !S.IsPlanned(b))) { b.Stage = Stage.Done; b.Material = 0; b.Work = 0; changed = true; }
-        foreach (var r in S.Rooms.Where(r => r.Stage != Stage.Done && !S.IsPlanned(r)).ToList()) { r.Stage = Stage.Done; r.Material = 0; r.Work = 0; changed = true; S.RoomFinished(r); }
+        foreach (var r in S.Rooms.Where(r => r.Walled && r.Stage != Stage.Done && !S.IsPlanned(r)).ToList()) { r.Stage = Stage.Done; r.Material = 0; r.Work = 0; changed = true; S.RoomFinished(r); }
+        foreach (var w in S.Walls.Where(w => w.Stage != Stage.Done && !S.IsPlanned(w.Id))) { w.Stage = Stage.Done; w.Material = 0; w.Work = 0; changed = true; }
         foreach (var o in S.Objects.Where(o => o.Status != ObjStatus.Live && !S.IsPlanned(o))) { o.Status = ObjStatus.Live; changed = true; }
         foreach (var a in Agents.Where(a => a.Role is not (Role.Visitor or Role.Staff) && (a.Role != Role.Builder || a.Phase != 0))) Reset(a);
         Agents.RemoveAll(a => a.Role == Role.Truck);
@@ -303,7 +330,7 @@ public partial class Simulation
             }
             var dx = tx - a.X; var dz = tz - a.Z;
             var dist = Math.Sqrt(dx * dx + dz * dz);
-            if (dist > 1e-6) a.Heading = Math.Atan2(dx, dz) + (a.ReverseFrom >= 0 && a.WayI >= a.ReverseFrom ? Math.PI : 0);
+            if (dist > 1e-6) a.Heading = Math.Atan2(dx, dz) + (a.ReverseFrom >= 0 && a.WayI >= a.ReverseFrom || a.WayI < a.ReverseTo ? Math.PI : 0);
             if (dist <= budget) { a.X = tx; a.Z = tz; budget -= dist; a.WayI++; }
             else { a.X += dx / dist * budget; a.Z += dz / dist * budget; budget = 0; }
         }
@@ -520,7 +547,7 @@ public partial class Simulation
     void Unreachable(Agent a, Site s)
     {
         var name = s.NameKey;
-        Say(s.R != null && s.R.Floor != 0 ? "msg_site_needs_lift" : "msg_site_unreachable", name);
+        Say(s.Floor != 0 ? "msg_site_needs_lift" : "msg_site_unreachable", name);
         Cool(s.Id, 2);
         Reset(a);
     }
@@ -537,6 +564,12 @@ public partial class Simulation
                 EvictFrom(b.X, b.Z, b.W, b.D, 0, true);
                 Say("msg_building_done", Catalog.Buildings[b.Kind].NameKey, 0);
             }
+        }
+        else if (s.W != null)
+        {
+            var w = s.W;
+            w.Material = 0; w.Work = 0; w.Stage = Stage.Done;
+            Say("msg_wall_done", null, 2);
         }
         else
         {
@@ -752,7 +785,7 @@ public partial class Simulation
 
     void UpdateGates(double dt)
     {
-        var trucks = Agents.Where(a => a.Role == Role.Truck).ToList();
+        var trucks = Agents.Where(a => a.Role == Role.Truck || a.Car).ToList();
         foreach (var o in S.Objects.Where(o => Catalog.IsVehicleStop(o.Kind)))
         {
             var (w, d) = GameState.Footprint(o);
@@ -772,9 +805,9 @@ public partial class Simulation
     }
 
     /// <summary>Drives a truck along its way, stopping with its nose before a gate or barrier until it is open.</summary>
-    bool Drive(Agent a, double dt)
+    bool Drive(Agent a, double dt, double cellsPerHour = TruckSpeed)
     {
-        var speed = TruckSpeed * S.TravelFactor;
+        var speed = cellsPerHour * S.TravelFactor;
         var budget = dt * speed;
         var look = budget + TruckNose;
         // walk the remaining way and find the first closed gate within reach of the nose
@@ -787,8 +820,23 @@ public partial class Simulation
                 if (Closed(px + (tx - px) * d / seg, pz + (tz - pz) * d / seg)) { stop = travelled + d; break; }
             travelled += seg; px = tx; pz = tz;
         }
-        if (stop == double.MaxValue) return Move(a, dt, speed);
-        var allowed = Math.Max(0, stop - TruckNose);
+        var allowed = stop == double.MaxValue ? double.MaxValue : Math.Max(0, stop - TruckNose);
+        // cars keep their distance to the car or truck in front going the same way (queueing at a gate, say)
+        if (a.Car && a.WayI >= a.ReverseTo)
+        {
+            double hx = Math.Sin(a.Heading), hz = Math.Cos(a.Heading);
+            foreach (var o in Agents)
+            {
+                if (o == a || !(o.Car || o.Role == Role.Truck)) continue;
+                double dx = o.X - a.X, dz = o.Z - a.Z;
+                var ahead = dx * hx + dz * hz;
+                if (ahead <= 0.3 || ahead > 7 || Math.Abs(dx * hz - dz * hx) > 2.1) continue;
+                // oncoming traffic does not hold you up (it keeps to its own lane); a car turning in front of you does
+                if (Math.Cos(o.Heading - a.Heading) < -0.3 && (-dx * Math.Sin(o.Heading) - dz * Math.Cos(o.Heading)) > 0) continue;
+                allowed = Math.Min(allowed, Math.Max(0, ahead - (o.Role == Role.Truck ? 3.5 : 5.6)));
+            }
+        }
+        if (allowed == double.MaxValue) return Move(a, dt, speed);
         if (allowed <= 1e-6) return false;
         return Move(a, dt, Math.Min(speed, allowed / dt));
     }

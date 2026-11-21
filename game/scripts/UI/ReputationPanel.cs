@@ -281,6 +281,19 @@ public partial class ReputationPanel : Modal
             r.AddChild(v);
             _content.AddChild(r);
             _content.AddChild(Wrapped(Loc.T(l.Key + "_tip"), 12));
+            if (l.Key == "sec_access")
+            {
+                // every hall and MMR door gets a badge reader on the spot, no demolishing
+                var open = s.UnsecuredHallDoors();
+                if (open.Count > 0)
+                {
+                    var b = Act(Loc.T("sec_secure_doors", open.Count, Ui.Money(s.UnsecuredHallDoorsCost())), g => { g.SecureHallDoors(); return null; }, s.CanAfford(s.UnsecuredHallDoorsCost()));
+                    b.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+                    _content.AddChild(b);
+                }
+                else if (s.Rooms.Any(r => r.Type is RoomType.DataHall or RoomType.MeetMe && r.Stage == Stage.Done))
+                    _content.AddChild(Plain(Loc.T("sec_doors_ok"), 12, Brand.Ok));
+            }
         }
         _content.AddChild(new HSeparator());
         _content.AddChild(Ui.Heading("sec_policies_title", 15, Brand.Ink));

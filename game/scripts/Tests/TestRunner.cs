@@ -46,8 +46,13 @@ public static partial class TestRunner
             ("customers per hall", HallClientTests),
             ("hall names and placing", HallNameTests),
             ("add a floor", AddLevelTests),
+            ("office life", OfficeLifeTests),
             ("power tree", PowerTreeTests),
             ("network tree", NetTreeTests),
+            ("fiber ducts", DuctTests),
+            ("door swaps and badge readers", DoorSwapTests),
+            ("walls and painted rooms", WallPaintTests),
+            ("outages", OutageTests),
         };
         // DCA_TESTS=basement,stairs runs only the groups whose name contains one of the words
         var only = System.Environment.GetEnvironmentVariable("DCA_TESTS")?.Split(',', StringSplitOptions.RemoveEmptyEntries);
@@ -402,16 +407,18 @@ public static partial class TestRunner
         hall.Stage = dock.Stage = Stage.Done;
         s.PaintSurface(30, 36, 3, 4, Surface.Asphalt, out _);
         s.AddDoor(DoorType.RollUp, 30, 36, 1, 0);
-        s.AddDoor(DoorType.Single, 30, 30, 0, 0);
+        // a mantrap is a one-person sluice: no rack fits through it
+        var trap = new Door { Id = s.NextId++, Type = DoorType.Mantrap, X = 30, Z = 30, Dir = 0, Floor = 0 };
+        s.Doors.Add(trap); s.Touch();
         var racks = Enumerable.Range(0, 4).Select(i => s.AddObject(ObjKind.Rack, 24 + i, 28, 0, 0)).ToList();
         Check(sim.Docks().Count == 1, "a roll-up door makes one loading bay");
         Run(sim, 60, () => racks.All(r => r.Status == ObjStatus.Delivered));
         Check(racks.All(r => r.Status == ObjStatus.Delivered), "truck delivers racks to the dock");
         Run(sim, 20);
-        Check(racks.All(r => r.Status == ObjStatus.Delivered), "racks do not fit through a single door");
-        Check(sim.Messages.Any(m => m.key == "msg_hall_needs_wide_door"), "player is told a wide door is needed");
-        s.Erase(30, 30, 1, 1, 0);
-        s.AddDoor(DoorType.Double, 30, 30, 0, 0);
+        Check(racks.All(r => r.Status == ObjStatus.Delivered), "racks do not fit through a mantrap");
+        Check(sim.Messages.Any(m => m.key == "msg_hall_needs_wide_door"), "player is told the racks cannot get in");
+        // a plain single door is enough for a rack trolley now
+        Check(s.SwapDoor(trap, DoorType.Single) == null, "the mantrap is swapped for a single door on the spot");
         Run(sim, 120, () => racks.All(r => r.Status == ObjStatus.Live));
         Check(racks.All(r => r.Status == ObjStatus.Live), "fitters place racks, engineer connects power and fiber");
         Check(s.LiveRacks == 4 && s.PowerDemandKw >= 24, "live racks draw power");
@@ -427,7 +434,7 @@ public static partial class TestRunner
         Check(inside == null, "closed building cannot be entered");
         s.AddDoor(DoorType.Single, 12, 18, 1, 0);
         Check(nav.Find(new Pt(5, 5, 0), 0, (x, z) => x == 12 && z == 12, NavMode.Walk) != null, "door lets people in");
-        Check(nav.Find(new Pt(5, 5, 0), 0, (x, z) => x == 12 && z == 12, NavMode.Carry) == null, "single door is too narrow for a rack");
+        Check(nav.Find(new Pt(5, 5, 0), 0, (x, z) => x == 12 && z == 12, NavMode.Carry) != null, "a rack trolley fits through a single door");
         Check(nav.Find(new Pt(5, 5, 0), 1, (x, z) => x == 12 && z == 12, NavMode.Walk) == null, "upper floor needs a lift");
         s.AddObject(ObjKind.Lift, 14, 14, 0, 0);
         var up = nav.Find(new Pt(5, 5, 0), 1, (x, z) => x == 12 && z == 12, NavMode.Walk);
@@ -445,7 +452,7 @@ public static partial class TestRunner
         Check(!nav2.Connected(5, 5, 12, 12, 0, NavMode.Walk) && nav2.Find(new Pt(5, 5, 0), 0, (x, z) => x == 12 && z == 12, NavMode.Walk, (12, 12)) == null, "a closed room is not connected");
         s2.AddDoor(DoorType.Single, 12, 18, 1, 0);
         Check(nav2.Connected(5, 5, 12, 12, 0, NavMode.Walk) && nav2.Find(new Pt(5, 5, 0), 0, (x, z) => x == 12 && z == 12, NavMode.Walk, (12, 12)) != null, "a door joins the areas");
-        Check(!nav2.Connected(5, 5, 12, 12, 0, NavMode.Carry), "a single door does not join them for carried racks");
+        Check(nav2.Connected(5, 5, 12, 12, 0, NavMode.Carry), "a single door joins them for carried racks too");
     }
 
     static void UndoTests()
@@ -771,10 +778,19 @@ public static partial class TestRunner
         Check(s.CanPlace(new PlacedObject { Kind = ObjKind.Spine, X = 25, Z = 10 }) == "msg_needs_hall", "a spine switch goes in a hall");
         Check(s.CanOrderCarrier(1, 10) == "msg_needs_mmr", "a carrier needs the MMR first");
         Live(s, ObjKind.Odf, 25, 10);
-        Check(s.CanOrderCarrier(1, 10) == "msg_needs_pit", "and a fiber pit near its street pit");
+        Check(s.CanOrderCarrier(1, 10) == "msg_needs_entry", "and a cable entry on the plot border");
+        Check(s.CanPlace(new PlacedObject { Kind = ObjKind.FiberPit, X = 30, Z = 40 }) == "msg_entry_border", "a cable entry stands on the plot border");
         var pit = Live(s, ObjKind.FiberPit, 30, 62);
-        Check(Network.NearestStreetPit(s, pit) == 1, "a pit connects to the nearest street pit");
-        Check(s.CanOrderCarrier(0, 10) == "msg_needs_pit", "a carrier at another street pit is out of reach");
+        Check(pit != null && s.Net.Entries.Count == 1 && s.Net.Entries[0].Side == 2, "an entry on the road side faces south");
+        Check(s.CanOrderCarrier(1, 10) == "msg_needs_duct", "without a duct to the MMR there is no route");
+        var stub = FiberDuct.L(30, 61, 30, 50, false, 4);
+        Check(s.AddDuct(stub) == null && stub.Length == 12 && stub.Handholes().Count == 2, "a straight 4-way duct of 12 m with two handholes");
+        Check(s.CanOrderCarrier(1, 10) == "msg_needs_duct", "a duct that stops short of the building is no route");
+        var leg = FiberDuct.L(30, 49, 33, 24, false, 4);
+        Check(leg.Corners == 1 && leg.Handholes().Count == 3 && leg.Length == 29, $"an L-shaped duct has one corner and three handholes ({leg.Length})");
+        Check(s.CanDuct(FiberDuct.L(30, 49, 20, 20, true, 4)) == "msg_duct_building", "a duct never runs through a building");
+        Check(s.AddDuct(leg) == null && s.Net.Entries[0].Connected && s.Net.Entries[0].Ways == 4, "joined ducts reach the building with the MMR");
+        Check(s.CanBuild(BuildingKind.Office, 31, 30, 6, 6, 1) == "msg_duct_in_way", "no building on top of a duct");
         Check(s.OrderCarrier(1, 10) == null && s.ContractOf(1).Active, "order NordFiber with a 10G port (instant build)");
         Check(s.OrderCarrier(1, 10) == "msg_carrier_exists", "one port per carrier");
         n = s.Net;
@@ -798,15 +814,27 @@ public static partial class TestRunner
         Check(NetworkPanel.Advice(s, n).Contains("net_advice_congested"), "advice says the network is full");
         Check(s.CanUpgradePort(s.ContractOf(1)) == null && s.UpgradePort(s.ContractOf(1)) == null && s.ContractOf(1).PortGbps == 10, "port upgrade 1G to 10G");
         // the IX takes a share for free
-        var pitC = Live(s, ObjKind.FiberPit, 52, 62);
-        Check(s.OrderCarrier(4, 10) == null, "order a port on the IX at street pit C");
+        var pitC = Live(s, ObjKind.FiberPit, 62, 40);
+        Check(s.OrderCarrier(4, 10) == null, "order a port on the IX");
         n = s.Net;
-        Check(n.IxGbps > 0 && Math.Abs(n.IxGbps - n.DemandGbps * Network.IxShare(s)) < 1e-6 && n.Routes == 2, "the IX carries its share, two routes now");
-        // ducts: a level 1 pit has 4 subducts, an upgrade gives 8
-        Check(Catalog.Subducts(1) == 4 && Catalog.Subducts(2) == 8 && Catalog.Subducts(3) == 12, "subducts per level");
+        Check(n.IxGbps > 0 && Math.Abs(n.IxGbps - n.DemandGbps * Network.IxShare(s)) < 1e-6 && n.Routes == 1, "the IX carries its share; both share the one duct: one route");
+        Check(n.Spofs.Contains("spof_route"), "one duct route is a single point of failure");
+        // a second entry with its own duct gives a separate route
+        s.AutoDuct(pitC, 7);
+        n = s.Net;
+        Check(n.Routes == 2 && !n.Spofs.Contains("spof_route") && n.Link(NetLink.Ducts).Redundancy == "N+1", $"two entries without a shared duct: two routes ({n.Routes})");
+        // ducts fill up: the 4-way duct takes four connections, upgrading pulls a 7-way through
+        var d0 = s.DuctAt(30, 55);
+        Check(d0.Ways == 4 && s.DuctUpgradeCost(d0) == d0.Length * (Catalog.DuctCostPerM(7) - Catalog.DuctCostPerM(4)) && s.UpgradeDuct(d0) == null && d0.Ways == 7, "upgrade a duct 4 → 7-way");
+        Check(Catalog.DuctWays.SequenceEqual(new[] { 4, 7, 12 }) && Catalog.DuctCostPerM(12) == 180, "4/7/12-way ducts");
         s.Objects.Remove(pitC); s.Touch();
         n = s.Net;
-        Check(n.Carriers.Any(x => x.Def.Ix && !x.Routed) && n.IxGbps == 0, "without its pit the IX has no route");
+        Check(n.Carriers.All(x => x.Routed) && n.Routes == 1, "without the second entry both run over the first again");
+        foreach (var dd in s.Ducts.Where(dd => dd.Cells().Contains((30, 55))).ToList()) s.Ducts.Remove(dd);
+        s.Touch();
+        n = s.Net;
+        Check(n.Carriers.All(x => !x.Routed) && n.OnlineRacks == 0, "without a duct nothing gets out");
+        Check(s.Erase(33, 30, 1, 1, 0) && s.DuctAt(33, 40) == null && s.Ducts.Count == 1, "the bulldozer removes a duct");
         // commit steps never go above the port
         var k = s.ContractOf(1);
         k.Commit = 5; s.StepCommit(k, 1); Check(k.Commit == 10, "commit up one step");
@@ -838,7 +866,7 @@ public static partial class TestRunner
         var b = s.AddBuilding(BuildingKind.Datacenter, 4, 4, 30, 20, 1); b.Stage = Stage.Done;
         s.AddRoom(RoomType.DataHall, 4, 4, 20, 20, 0); s.AddRoom(RoomType.MeetMe, 24, 9, 5, 5, 0);
         foreach (var r in s.Rooms) r.Stage = Stage.Done;
-        Live(s, ObjKind.Odf, 25, 10); Live(s, ObjKind.FiberPit, 30, 62);
+        Live(s, ObjKind.Odf, 25, 10); Entry(s, 30, 62);
         var money = s.Money;
         Check(s.OrderCarrier(1, 10) == null && !s.ContractOf(1).Active && s.ContractOf(1).DaysLeft == Catalog.NewPortDays, "a new port takes 20 days");
         Check(s.Money == money - Catalog.Port(10).SetupFee, "the setup fee is paid");
@@ -859,11 +887,11 @@ public static partial class TestRunner
     static void PeeringTests()
     {
         var (s, _, _) = NetSite(ai: false);
-        Live(s, ObjKind.Odf, 25, 10); Live(s, ObjKind.FiberPit, 30, 62);
+        Live(s, ObjKind.Odf, 25, 10); Entry(s, 30, 62);
         Check(s.CanPeer(0, true) == "msg_no_rivals", "no rivals, no private peering");
         var (a, _, _) = NetSite(ai: true);
         for (var i = 0; i < 20; i++) Live(a, ObjKind.Rack, 6 + i, 6);
-        Live(a, ObjKind.Odf, 25, 10); Live(a, ObjKind.CoreRouter, 27, 10); Live(a, ObjKind.Spine, 5, 20); Live(a, ObjKind.FiberPit, 30, 62);
+        Live(a, ObjKind.Odf, 25, 10); Live(a, ObjKind.CoreRouter, 27, 10); Live(a, ObjKind.Spine, 5, 20); Entry(a, 30, 62);
         a.OrderCarrier(1, 10);
         a.NetworkDay(Catalog.Rivals[0].RequestDay);
         Check(a.PeerOf(0)?.State == PeerState.Requested && a.Notes.Any(x => x.key == "msg_peer_request"), "a rival asks to peer");
@@ -917,6 +945,8 @@ public static partial class TestRunner
         for (var i = 0; i < 6; i++) { var r = s.AddRoom(RoomType.Executive, 4 + i * 5, 30, 5, 4, 0); r.Stage = Stage.Done; Furnish(s, r, 1); }
         Check(s.Offices == 7, "seven offices");
         Check(s.HireExec(Exec.Sales) == null && s.HireExec(Exec.Hr) == null, "sales director and HR");
+        Check(s.CanHire(Exec.Legal) == "msg_needs_manager_desk", "managers work at a desk in an office room, not in a director's office");
+        Furnish(s, office, Math.Min(office.D, 6));
         Check(s.CanHire(Exec.Legal) == null, "legal counsel unlocks after the sales director");
         Check(s.CanHire(Exec.Facility) == "msg_needs_exec", "the facility manager reports to operations");
         Check(s.HireExec(Exec.Operations) == null && s.CanHire(Exec.Facility) == null, "operations unlocks the facility manager");
@@ -937,10 +967,10 @@ public static partial class TestRunner
         // network manager for carriers
         Check(fresh.CanOrderCarrier(1, 10) == "msg_needs_netmgr", "carriers need a network manager");
         // sales reps need workplaces
-        Check(s.CanAddRep(1) == "msg_needs_workplace", "a rep needs a desk in an office room");
-        Furnish(s, office, 2);
-        Check(s.ChangeReps(2) == null && s.CanAddRep(1) == "msg_needs_workplace", "two desks, two reps");
-        Check(s.SalariesPerMonth == Org.Execs.Values.Where(e => s.Hire(e.Role) != null).Sum(e => e.Salary) + 2 * Org.SalesRepSalary, "salaries add up");
+        var freeDesks = s.Workplaces - s.ManagerCount;
+        Check(freeDesks >= 2, "the office desks the managers do not use are free for reps");
+        Check(s.ChangeReps(freeDesks) == null && s.CanAddRep(1) == "msg_needs_workplace", "a rep needs a free desk in an office room: reps and managers share them");
+        Check(s.SalariesPerMonth == Org.Execs.Values.Where(e => s.Hire(e.Role) != null).Sum(e => e.Salary) + s.SalesReps * Org.SalesRepSalary, "salaries add up");
         // creative unlocks everything
         var cr = GameState.New(new NewGameOptions { Creative = true, CreativeOptions = CreativeOptions.All() });
         Check(cr.Has(Exec.Legal) && cr.CanRequestGrid(3) == null, "creative: all unlocked");
@@ -1136,6 +1166,14 @@ public static partial class TestRunner
     {
         var o = new PlacedObject { Id = s.NextId++, Kind = k, X = x, Z = z, Status = ObjStatus.Live };
         s.Objects.Add(o); s.Touch(false);
+        return o;
+    }
+
+    /// <summary>A live cable entry with a 12-way duct to the meet-me room.</summary>
+    internal static PlacedObject Entry(GameState s, int x, int z)
+    {
+        var o = Live(s, ObjKind.FiberPit, x, z);
+        Check(o != null && s.AutoDuct(o, 12, pay: false) != null, $"cable entry at {x},{z} with a duct to the MMR");
         return o;
     }
 

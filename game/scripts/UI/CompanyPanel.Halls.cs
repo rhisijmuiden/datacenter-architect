@@ -103,37 +103,56 @@ public partial class CompanyPanel
         _content.AddChild(new HSeparator());
     }
 
-    /// <summary>"Place in": let sales choose, or put the contract in one hall. Halls that cannot take it say why.</summary>
+    /// <summary>
+    /// "Place in": let sales choose, or put the contract in halls of your choice. Full racks and own halls can be spread over
+    /// several halls (tick more than one); a cage goes in one. Halls that cannot take it say why.
+    /// </summary>
     Control PlaceRow(GameState s, Deal d)
     {
         var row = Row(10);
         row.AddChild(Plain(Loc.T("place_in"), 13, Brand.InkDim));
-        var opt = new OptionButton { CustomMinimumSize = new Vector2(420, 0), AutoTranslateMode = AutoTranslateModeEnum.Disabled, ClipText = true };
-        opt.AddItem(Loc.T("place_auto"), 0);
         var choices = s.HallChoices(d);
-        var sel = 0;
-        for (var i = 0; i < choices.Count; i++)
+        var picked = choices.Where(c => d.HallIds.Contains(c.Hall.Id)).ToList();
+        var btn = new MenuButton
         {
-            var c = choices[i];
-            var text = $"{s.HallTitle(c.Hall)}  ·  " + Loc.T("place_free", c.Free, d.Racks) + (c.Problem != null ? "  ·  " + Loc.T(c.Problem) : "  ·  " + Loc.T("place_fits"));
-            opt.AddItem(text, c.Hall.Id);
-            var idx = opt.ItemCount - 1;
-            opt.SetItemIcon(idx, Swatch(new Color(GameState.HallBand(c.Hall))));
-            if (c.Problem is "place_taken" or "place_other_zone") opt.SetItemDisabled(idx, true);
-            if (c.Hall.Id == d.HallId) sel = idx;
+            Flat = false, Alignment = HorizontalAlignment.Left, ClipText = true, CustomMinimumSize = new Vector2(360, 0), AutoTranslateMode = AutoTranslateModeEnum.Disabled,
+            Text = picked.Count == 0 ? Loc.T("place_auto") : string.Join(" + ", picked.Select(c => s.HallTitle(c.Hall))),
+            TooltipText = Loc.T(GameState.MultiHall(d) ? "place_tip_multi" : "place_tip_one"),
+        };
+        btn.AddThemeStyleboxOverride("normal", Ui.Box(new Color(1, 1, 1, 0.06f), 7, Brand.Line, 1, 9));
+        btn.AddThemeStyleboxOverride("hover", Ui.Box(Brand.PanelHover, 7, Brand.Line, 1, 9));
+        btn.AddThemeStyleboxOverride("pressed", Ui.Box(Brand.PanelHover, 7, Brand.Amber, 1, 9));
+        btn.AddThemeColorOverride("font_color", Brand.Ink);
+        var pop = btn.GetPopup();
+        pop.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
+        pop.AddRadioCheckItem(Loc.T("place_auto"), 0);
+        pop.SetItemChecked(0, d.HallIds.Count == 0);
+        pop.AddSeparator();
+        foreach (var c in choices)
+        {
+            var text = $"{s.HallTitle(c.Hall)}  ·  " + Loc.T("place_free_n", c.Free) + "  ·  " + Loc.T(c.Problem ?? (c.Free >= d.Racks ? "place_fits" : "place_part"));
+            if (GameState.MultiHall(d)) pop.AddCheckItem(text, c.Hall.Id); else pop.AddRadioCheckItem(text, c.Hall.Id);
+            var idx = pop.ItemCount - 1;
+            pop.SetItemIcon(idx, Swatch(new Color(GameState.HallBand(c.Hall))));
+            pop.SetItemChecked(idx, d.HallIds.Contains(c.Hall.Id));
+            if (GameState.Blocks(c.Problem) && !d.HallIds.Contains(c.Hall.Id)) pop.SetItemDisabled(idx, true);
         }
-        opt.Selected = sel;
-        opt.ItemSelected += idx =>
+        pop.IdPressed += id =>
         {
             var st = _state();
             if (st == null) return;
-            var why = st.PlaceDeal(d, opt.GetItemId((int)idx));
+            var why = st.PlaceDeal(d, (int)id);
             if (why != null) _fail(why);
             _sig = null; Refresh(true);
         };
-        row.AddChild(opt);
-        if (d.HallId != 0 && choices.FirstOrDefault(c => c.Hall.Id == d.HallId) is { Problem: not null } bad)
-            row.AddChild(Plain(Loc.T(bad.Problem), 13, bad.Problem == "place_short" || bad.Problem == "place_building" ? Brand.Warning : Brand.Critical));
+        row.AddChild(btn);
+        if (picked.Count > 0)
+        {
+            var free = s.PickedFree(d);
+            var bad = picked.FirstOrDefault(c => c.Problem != null);
+            var text = Loc.T("place_total", free, d.Racks) + (bad != null ? "  ·  " + s.HallCode(bad.Hall) + ": " + Loc.T(bad.Problem) : "");
+            row.AddChild(Plain(text, 13, bad != null && (GameState.Blocks(bad.Problem) || bad.Problem == "place_clients") ? Brand.Critical : free >= d.Racks && bad == null ? Brand.Ok : Brand.Warning));
+        }
         return row;
     }
 

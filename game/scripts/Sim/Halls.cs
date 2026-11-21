@@ -25,6 +25,21 @@ public partial class GameState
         foreach (var r in Rooms.Where(r => r.Type == RoomType.DataHall && r.HallNo <= 0)) r.HallNo = next++;
     }
 
+    /// <summary>
+    /// The wall edges around a room of any shape (rectangle or painted cells), with the side that faces out of the room:
+    /// dir 0 edges lie on the line x = X (out = -1 means the outside is at lower x), dir 1 on z = Z.
+    /// </summary>
+    public static IEnumerable<(int x, int z, int dir, int outSide)> HallEdges(Room r)
+    {
+        foreach (var (x, z) in r.CellList())
+        {
+            if (!r.Contains(x - 1, z)) yield return (x, z, 0, -1);
+            if (!r.Contains(x + 1, z)) yield return (x + 1, z, 0, 1);
+            if (!r.Contains(x, z - 1)) yield return (x, z, 1, -1);
+            if (!r.Contains(x, z + 1)) yield return (x, z + 1, 1, 1);
+        }
+    }
+
     /// <summary>Short code of a data hall: DH-01, DH-02 ... Numbers stay with their hall when another hall is removed.</summary>
     public string HallCode(Room hall)
     {
@@ -68,24 +83,23 @@ public partial class GameState
         Touch();
     }
 
-    /// <summary>The customer that rents this whole hall (signed, or being built for), or null.</summary>
+    /// <summary>The customer that rents this whole hall (signed, or being built for), or null. One customer can rent several halls.</summary>
     public Deal HallTenant(Room hall)
     {
         if (hall == null) return null;
         foreach (var d in Deals)
         {
             if (d.Product != Product.Hall || d.State is not (DealState.Active or DealState.Building)) continue;
-            if (d.HallId == hall.Id) return d;
-            if (d.State == DealState.Active && d.HallId == 0 && d.RackIds.Count > 0 && Objects.FirstOrDefault(o => o.Id == d.RackIds[0]) is { } rack && hall.Floor == rack.Floor && hall.Contains(rack.X, rack.Z)) return d;
+            if (d.HallIds.Contains(hall.Id)) return d;
+            if (d.State == DealState.Active && d.HallIds.Count == 0 && d.RackIds.Count > 0 && Objects.FirstOrDefault(o => o.Id == d.RackIds[0]) is { } rack && hall.Floor == rack.Floor && hall.Contains(rack.X, rack.Z)) return d;
         }
         return null;
     }
 
-    /// <summary>The halls where a contract's racks stand (or the hall it is reserved for).</summary>
+    /// <summary>The halls where a contract's racks stand and the halls it is placed in.</summary>
     public List<Room> DealHalls(Deal d)
     {
-        var list = new List<Room>();
-        if (d.HallId != 0 && Rooms.FirstOrDefault(r => r.Id == d.HallId) is { } picked) list.Add(picked);
+        var list = Rooms.Where(r => d.HallIds.Contains(r.Id)).ToList();
         var ids = d.RackIds.ToHashSet();
         foreach (var o in Objects.Where(o => ids.Contains(o.Id)))
             if (HallOf(o) is { } h && !list.Contains(h)) list.Add(h);
@@ -98,7 +112,7 @@ public partial class GameState
         var tenant = HallTenant(hall);
         if (tenant != null && tenant != d) return true;
         foreach (var o in Deals)
-            if (o != d && o.HallId == hall.Id && o.State is DealState.Building && o.Product is Product.Cage or Product.Hall) return true;
+            if (o != d && o.HallIds.Contains(hall.Id) && o.State is DealState.Building && o.Product is Product.Cage or Product.Hall) return true;
         if (d.Product == Product.Hall)
             foreach (var o in Objects)
                 if (o.Kind == ObjKind.Rack && o.Floor == hall.Floor && hall.Contains(o.X, o.Z) && owners.TryGetValue(o.Id, out var id) && id != d.Id) return true;
@@ -109,9 +123,13 @@ public partial class GameState
     int RentedIn(Room hall, Dictionary<int, int> owners) =>
         Objects.Count(o => o.Kind == ObjKind.Rack && o.Floor == hall.Floor && hall.Contains(o.X, o.Z) && owners.ContainsKey(o.Id));
 
+    /// <summary>Problems that keep a contract out of a hall altogether (the others only mean: not yet).</summary>
+    public static bool Blocks(string problem) => problem is "place_taken" or "place_other_zone";
+
     /// <summary>
-    /// The data halls offered in a contract's "place in" list, each with its free racks and what is missing (null = fits now).
+    /// The data halls offered in a contract's "place in" list, each with its free racks and what is missing (null = it can go there now).
     /// A picked hall may have another zone as long as nobody rents racks there yet: signing then makes it the right zone.
+    /// Whether there are enough racks is counted over all picked halls together.
     /// </summary>
     public List<HallChoice> HallChoices(Deal d)
     {
@@ -132,23 +150,32 @@ public partial class GameState
             else if (!HallTakes(hall, d.Type)) problem = "place_clients";
             else if (hall.Stage != Stage.Done) problem = "place_building";
             else if (info != null && !HallFits(d, info)) problem = d.Amp32 && hall.Containment == Containment.Open ? "place_aisles" : "place_ab";
-            else if (free < d.Racks) problem = "place_short";
             list.Add(new HallChoice(hall, free, problem));
         }
         return list;
     }
 
-    /// <summary>Put a contract in one hall (0 = let sales pick a hall). Only before the customer moves in.</summary>
+    /// <summary>Free working racks in the halls a contract is placed in, counted together.</summary>
+    public int PickedFree(Deal d) => HallChoices(d).Where(c => d.HallIds.Contains(c.Hall.Id) && c.Problem == null).Sum(c => c.Free);
+
+    /// <summary>Several halls can serve one contract (full racks or a customer's own halls); a cage stays in one hall.</summary>
+    public static bool MultiHall(Deal d) => d.Product is Product.Rack or Product.Hall;
+
+    /// <summary>
+    /// Put a contract in a hall. hallId 0 lets sales pick again. For full racks and own halls a second hall is added to the
+    /// first (a customer of 32 racks in two halls of 24, with room to grow); picking a picked hall again takes it off.
+    /// Only before the customer moves in.
+    /// </summary>
     public string PlaceDeal(Deal d, int hallId)
     {
         if (d == null || d.Product == Product.PerU || d.State is not (DealState.Lead or DealState.Tender or DealState.Bid or DealState.Building)) return "msg_nothing_changed";
-        if (hallId != 0)
-        {
-            var c = HallChoices(d).FirstOrDefault(x => x.Hall.Id == hallId);
-            if (c == null) return "msg_nothing_changed";
-            if (c.Problem is "place_taken" or "place_other_zone") return "msg_" + c.Problem;
-        }
-        d.HallId = hallId;
+        if (hallId == 0) { d.HallIds.Clear(); Touch(false); return null; }
+        if (d.HallIds.Contains(hallId)) { d.HallIds.Remove(hallId); Touch(false); return null; }
+        var c = HallChoices(d).FirstOrDefault(x => x.Hall.Id == hallId);
+        if (c == null) return "msg_nothing_changed";
+        if (Blocks(c.Problem)) return "msg_" + c.Problem;
+        if (!MultiHall(d)) d.HallIds.Clear();
+        d.HallIds.Add(hallId);
         Touch(false);
         return null;
     }
@@ -156,15 +183,19 @@ public partial class GameState
     /// <summary>Days a customer waits while you build or finish the hall picked for them.</summary>
     public static int BuildDays(Deal d) => d.Product == Product.Hall ? 60 + d.Racks / 2 : 40 + d.Racks / 2;
 
-    /// <summary>Sign now and build later: only for a cage or a whole hall, placed in a hall that is not ready yet.</summary>
+    /// <summary>Sign now and build later: only for a cage or own halls, placed in halls that are not ready yet.</summary>
     public string CanSignAndBuild(Deal d)
     {
         if (d == null || d.State != DealState.Lead || d.Tender) return "msg_nothing_changed";
         if (d.Product is not (Product.Cage or Product.Hall)) return "msg_nothing_changed";
-        if (d.HallId == 0) return "msg_pick_hall";
-        var c = HallChoices(d).FirstOrDefault(x => x.Hall.Id == d.HallId);
-        if (c == null) return "msg_pick_hall";
-        if (c.Problem is "place_taken" or "place_other_zone" or "place_clients") return "msg_" + c.Problem;
+        if (d.HallIds.Count == 0) return "msg_pick_hall";
+        var choices = HallChoices(d);
+        foreach (var id in d.HallIds)
+        {
+            var c = choices.FirstOrDefault(x => x.Hall.Id == id);
+            if (c == null) return "msg_pick_hall";
+            if (Blocks(c.Problem) || c.Problem == "place_clients") return "msg_" + c.Problem;
+        }
         return null;
     }
 
@@ -175,7 +206,9 @@ public partial class GameState
         if (Meets(d)) { Activate(d); return null; }
         d.State = DealState.Building;
         d.DeadlineDay = Day + BuildDays(d);
-        if (Rooms.FirstOrDefault(r => r.Id == d.HallId) is { } hall && RentedIn(hall, RackOwners()) == 0) hall.Zone = ZoneFor(d.Product);
+        var owners = RackOwners();
+        foreach (var hall in Rooms.Where(r => d.HallIds.Contains(r.Id)))
+            if (RentedIn(hall, owners) == 0) hall.Zone = ZoneFor(d.Product);
         Notes.Add(("msg_signed_build", DisplayArg(d)));
         Touch();
         return null;

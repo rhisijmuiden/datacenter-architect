@@ -9,7 +9,7 @@ using Godot;
 namespace DatacenterArchitect.UI;
 
 /// <summary>One message as it appeared on screen, kept for the message history.</summary>
-public record HudMessage(string When, string Text, Color Accent);
+public record HudMessage(string When, string Text, Color Accent, System.Action Go = null);
 
 /// <summary>
 /// Overview (F1): key figures with advice, the site checklist and the message history.
@@ -24,6 +24,8 @@ public partial class OverviewPanel : Modal
     readonly Func<IReadOnlyList<(string key, bool done)>> _goals;
     readonly Func<IReadOnlyList<HudMessage>> _messages;
     readonly Action<PanelKind, int> _open;
+    /// <summary>Jump to a hall and start the fix of an outage (racks off or offline).</summary>
+    public Action<Outage> Fix;
     readonly VBoxContainer _content;
     readonly ScrollContainer _scroll;
     int _tab;
@@ -134,7 +136,6 @@ public partial class OverviewPanel : Modal
         if (faults > 0) list.Add((Loc.T("ov_adv_faults", faults), Brand.Critical, PanelKind.Staff, StaffPanel.TabIncidents));
         if (!c.NoPowerLimit && inf.UsableItKw > 0 && inf.ItDemandKw / inf.UsableItKw > 0.85) list.Add((Loc.T("ov_adv_power"), Brand.Warning, PanelKind.Power, 0));
         if (!c.NoCoolingLimit && inf.CoolRatio > 0.85) list.Add((Loc.T("ov_adv_cooling"), Brand.Warning, PanelKind.Power, 0));
-        if (!c.NoNetworkLimit && s.Net.OfflineRacks > 0) list.Add((Loc.T("ov_adv_network", s.Net.OfflineRacks), Brand.Warning, PanelKind.Network, 0));
         var leads = s.Deals.Count(d => d.State == DealState.Lead);
         if (leads > 0) list.Add((Loc.T("ov_adv_leads", leads), Brand.Ok, PanelKind.Company, CompanyPanel.TabSales));
         if (s.OpenProposals.Count > 0) list.Add((Loc.T("ov_adv_proposals", s.OpenProposals.Count), Brand.Amber, PanelKind.Reputation, ReputationPanel.TabProposals));
@@ -160,6 +161,7 @@ public partial class OverviewPanel : Modal
         }
         _content.AddChild(grid);
 
+        Outages(s);
         _content.AddChild(Ui.Heading("ov_advice", 16, Brand.Amber));
         var advice = Advice(s, _goals?.Invoke());
         if (advice.Count == 0) _content.AddChild(Plain(Loc.T("ov_advice_none"), 14, Brand.Ok));
@@ -176,6 +178,33 @@ public partial class OverviewPanel : Modal
                 var k = kind; var t = tab;
                 var go = Ui.Secondary("ov_go", () => _open(k, t));
                 go.CustomMinimumSize = new Vector2(96, 32);
+                h.AddChild(go);
+            }
+            v.AddChild(h);
+            _content.AddChild(card);
+        }
+    }
+
+    /// <summary>Racks that are off or offline, per hall and cause, each with its fix.</summary>
+    void Outages(GameState s)
+    {
+        var list = Sim.Outages.For(s);
+        if (list.Count == 0) return;
+        _content.AddChild(Ui.Heading("outage_title", 16, Brand.Critical));
+        foreach (var o in list.Take(8))
+        {
+            var color = o.Offline ? Brand.Warning : Brand.Critical;
+            var card = Card(color, out var v);
+            var h = new HBoxContainer(); h.AddThemeConstantOverride("separation", 10);
+            h.AddChild(new ColorRect { Color = color, CustomMinimumSize = new Vector2(8, 8), SizeFlagsVertical = SizeFlags.ShrinkCenter });
+            var l = Plain(OutageUi.Text(o), 14); l.SizeFlagsHorizontal = SizeFlags.ExpandFill; l.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            h.AddChild(l);
+            if (Fix != null)
+            {
+                var target = o;
+                var go = Ui.Secondary(OutageUi.FixText(o), () => Fix(target));
+                go.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
+                go.CustomMinimumSize = new Vector2(150, 32);
                 h.AddChild(go);
             }
             v.AddChild(h);
@@ -205,6 +234,12 @@ public partial class OverviewPanel : Modal
             h.AddChild(when);
             var t = Plain(m.Text, 14); t.SizeFlagsHorizontal = SizeFlags.ExpandFill; t.AutowrapMode = TextServer.AutowrapMode.WordSmart;
             h.AddChild(t);
+            if (m.Go != null)
+            {
+                var go = Ui.Secondary("outage_show", m.Go);
+                go.CustomMinimumSize = new Vector2(90, 32);
+                h.AddChild(go);
+            }
             v.AddChild(h);
             _content.AddChild(card);
         }

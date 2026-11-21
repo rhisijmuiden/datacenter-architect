@@ -20,7 +20,7 @@ public partial class WorldView
     {
         var key = 17;
         foreach (var d in _state.Deals)
-            if (d.Product == Product.Hall && d.State is DealState.Active or DealState.Building) key = HashCode.Combine(key, d.Id, d.HallId, d.State);
+            if (d.Product == Product.Hall && d.State is DealState.Active or DealState.Building) key = HashCode.Combine(key, d.Id, string.Join("+", d.HallIds), d.State);
         if (key == _tenantKey) return;
         _tenantKey = key;
         _layoutRev = -1;
@@ -32,7 +32,8 @@ public partial class WorldView
         var band = new Color(GameState.HallBand(r));
         var code = _state.HallCode(r);
         var px = Math.Clamp(Math.Min(r.W, r.D) * 0.0016f, 0.008f, 0.03f);
-        var cx = r.X + r.W / 2f; var cz = r.Z + r.D / 2f;
+        var spot = LabelSpot(r, y + 0.04f);
+        float cx = spot.X, cz = spot.Z;
         root.AddChild(new Label3D
         {
             Text = code, Font = _font, FontSize = 128, PixelSize = px, OutlineSize = 0, Modulate = new Color(band, 0.75f),
@@ -45,28 +46,48 @@ public partial class WorldView
                 Position = new Vector3(cx, y + 0.04f, cz + 128 * px * 0.62f), RotationDegrees = new Vector3(-90, 0, 0), DoubleSided = false,
             });
         if (r.Stage != Stage.Done) return;
-        // colour band: a thin painted line just inside the walls
+        // colour band: a thin painted line just inside the walls, merged into runs along each wall line
         const float w = 0.12f, inset = 0.14f;
-        Box(root, new Vector3(cx, y + 0.026f, r.Z + inset), new Vector3(r.W - 2 * inset, 0.004f, w), band, 0.7f);
-        Box(root, new Vector3(cx, y + 0.026f, r.Z + r.D - inset), new Vector3(r.W - 2 * inset, 0.004f, w), band, 0.7f);
-        Box(root, new Vector3(r.X + inset, y + 0.026f, cz), new Vector3(w, 0.004f, r.D - 2 * inset), band, 0.7f);
-        Box(root, new Vector3(r.X + r.W - inset, y + 0.026f, cz), new Vector3(w, 0.004f, r.D - 2 * inset), band, 0.7f);
+        foreach (var g in GameState.HallEdges(r).GroupBy(e => (e.dir, e.outSide, line: e.dir == 0 ? e.x : e.z)))
+        {
+            var along = g.Select(e => e.dir == 0 ? e.z : e.x).OrderBy(v => v).ToList();
+            var start = along[0]; var prev = start;
+            for (var i = 1; i <= along.Count; i++)
+            {
+                if (i < along.Count && along[i] == prev + 1) { prev = along[i]; continue; }
+                var len = prev - start + 1;
+                var off = g.Key.line - g.Key.outSide * inset;
+                if (g.Key.dir == 0) Box(root, new Vector3(off, y + 0.026f, start + len / 2f), new Vector3(w, 0.004f, len), band, 0.7f);
+                else Box(root, new Vector3(start + len / 2f, y + 0.026f, off), new Vector3(len, 0.004f, w), band, 0.7f);
+                if (i < along.Count) { start = along[i]; prev = start; }
+            }
+        }
     }
 
     /// <summary>Signs on the wall beside each door of a finished hall (outside face), or on the inside of the back wall when it has none.</summary>
     void HallSigns(Node3D root, Room r, float y, float wallH)
     {
         if (r.Stage != Stage.Done) return;
-        var edges = GameState.Perimeter(r.X, r.Z, r.W, r.D).ToHashSet();
+        var edges = GameState.Boundary(r);
         var floorDoors = _state.Doors.Where(d => d.Floor == r.Floor).ToList();
         var doorEdges = floorDoors.SelectMany(d => d.Edges()).ToHashSet();
         var doors = floorDoors.Where(d => d.Edges().Any(edges.Contains)).ToList();
         var tenant = r.ShowLogo ? _state.HallTenant(r) : null;
         if (doors.Count == 0)
         {
-            // no door yet: the sign hangs inside on the -Z wall, facing into the hall
-            var half = r.W / 2f - 0.3f;
-            HallSign(root, r, new Vector3(r.X + r.W / 2f, y, r.Z), new Vector3(0, 0, 1), 0.07f, wallH, tenant, -Math.Min(1.3f, half), half, half);
+            // no door yet: the sign hangs inside on the longest wall facing +Z (the back wall in the default view)
+            var back = GameState.HallEdges(r).Where(e => e.dir == 1 && e.outSide < 0).GroupBy(e => e.z).OrderBy(g => g.Key).FirstOrDefault();
+            if (back == null) return;
+            var xs = back.Select(e => e.x).OrderBy(v => v).ToList();
+            int bs = xs[0], be = xs[0], cs = xs[0];
+            for (var i = 1; i <= xs.Count; i++)
+            {
+                if (i < xs.Count && xs[i] == xs[i - 1] + 1) continue;
+                if (xs[i - 1] - cs > be - bs) { bs = cs; be = xs[i - 1]; }
+                if (i < xs.Count) cs = xs[i];
+            }
+            var half = (be - bs + 1) / 2f - 0.3f;
+            HallSign(root, r, new Vector3((bs + be + 1) / 2f, y, back.Key), new Vector3(0, 0, 1), 0.07f, wallH, tenant, -Math.Min(1.3f, half), half, half);
             return;
         }
         foreach (var d in doors.Take(3))

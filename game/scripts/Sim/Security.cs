@@ -54,7 +54,7 @@ public partial class GameState
     public IEnumerable<Door> DoorsOf(Room r) => Doors.Where(d => d.Floor == r.Floor && d.Edges().Any(e =>
         e.dir == 0 ? (r.Contains(e.x, e.z) || r.Contains(e.x - 1, e.z)) : (r.Contains(e.x, e.z) || r.Contains(e.x, e.z - 1))));
 
-    static bool Secure(DoorType t) => t is DoorType.Badge or DoorType.Mantrap or DoorType.Fire;
+    public static bool Secure(DoorType t) => Catalog.Doors[t].Secure;
 
     /// <summary>Each part of the security level. The total is capped at 100.</summary>
     public List<SecLine> SecurityLines()
