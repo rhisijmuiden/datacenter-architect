@@ -146,7 +146,7 @@ public partial class Overlay : Node3D
             var trafos = objs.Where(o => o.Kind == ObjKind.Transformer).ToList();
             var switches = objs.Where(o => o.Kind == ObjKind.Switchgear).ToList();
             var ups = objs.Where(o => o.Kind == ObjKind.Ups).ToList();
-            var pdus = objs.Where(o => o.Kind == ObjKind.Pdu).ToList();
+            var pdus = objs.Where(o => Catalog.IsPdu(o.Kind)).ToList();
             foreach (var t in trafos) Add(station, Top(s, t, 2.4f), R(PowerLink.Grid), C(PowerLink.Grid));
             foreach (var w in switches)
             {
@@ -173,11 +173,19 @@ public partial class Overlay : Node3D
                 var gn = Nearest(gens, p, x => Top(s, x, 0.4f));
                 if (gn != null) Add(p, Top(s, gn, 0.4f), 0, standby, false);
             }
+            // feeders follow the power tree: every UPS to its switchboard, every PDU or busbar run to its UPS (or switchboard)
+            var tree = r.Tree;
+            Vector3? Upstream(PowerNode n, Vector3 p)
+            {
+                var up = n?.Parent?.Obj;
+                if (up != null) return Top(s, up, 2.4f);
+                return null;
+            }
             foreach (var u in ups)
             {
                 var p = Top(s, u, 2.4f);
-                var w = Nearest(switches, p, x => Top(s, x, 2.4f));
-                if (w != null) Add(Top(s, w, 2.4f), p, R(PowerLink.Switchgear), C(PowerLink.Switchgear));
+                var src = Upstream(tree?.Node(u), p);
+                if (src != null) Add(src.Value, p, R(PowerLink.Switchgear), C(PowerLink.Switchgear));
             }
             foreach (var b in objs.Where(o => o.Kind == ObjKind.Battery))
             {
@@ -185,24 +193,20 @@ public partial class Overlay : Node3D
                 var u = Nearest(ups, p, x => Top(s, x, 2.4f));
                 if (u != null) Add(p, Top(s, u, 2.4f), 0, standby, false);
             }
-            Vector3? Feed(Vector3 p)
-            {
-                var u = Nearest(ups, p, x => Top(s, x, 2.4f));
-                if (u != null) return Top(s, u, 2.4f);
-                return null;
-            }
             foreach (var pd in pdus)
             {
                 var p = Top(s, pd, 2.2f);
-                var src = Feed(p);
-                if (src != null) Add(src.Value, p, R(PowerLink.Ups), C(PowerLink.Ups));
+                var node = tree?.Node(pd);
+                var src = Upstream(node, p);
+                if (src != null) Add(src.Value, p, (float)Math.Min(1.5, node.FailoverRatio), node.FailoverShort ? bad : power);
             }
             var busbarAt = new Dictionary<Room, Vector3>();
             foreach (var h in halls.Where(h => h.Busbar))
             {
                 var p = new Vector3(h.X + h.W / 2f, WorldView.Base(h.Floor) + 2.6f, h.Z + 0.6f);
                 busbarAt[h] = p;
-                var src = Feed(p);
+                var run = tree?.SourcesIn(h).FirstOrDefault(n => n.Kind == PowerNodeKind.Busbar);
+                var src = Upstream(run, p);
                 if (src != null) Add(src.Value, p, R(PowerLink.Ups), C(PowerLink.Ups));
             }
             foreach (var row in Rows(racks))

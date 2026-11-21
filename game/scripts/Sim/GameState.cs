@@ -110,6 +110,8 @@ public class PlacedObject
     public double ContractorHour { get; set; }
     /// <summary>Game day the object was installed (UPS units and batteries age).</summary>
     public double Installed { get; set; }
+    /// <summary>Main switchboards, UPS units and PDUs belong to the A or the B side of the power distribution.</summary>
+    public FeedSide Feed { get; set; }
     [JsonIgnore] public ObjDef Def => Catalog.Objects[Kind];
 }
 
@@ -162,7 +164,7 @@ public class NewGameOptions
 /// <summary>All state that goes into a savegame. Workers and trucks are not saved; they restart from this state.</summary>
 public partial class GameState
 {
-    public const int CurrentFormat = 11;
+    public const int CurrentFormat = 12;
     /// <summary>Floor value for objects that stand on the roof of a building.</summary>
     public const int RoofFloor = -1;
     /// <summary>Floor id of a basement. Kept apart from the storey numbers so roof (-1) and storeys (0..) stay as they were.</summary>
@@ -324,6 +326,13 @@ public partial class GameState
             // network tree: spine switches stay where they are (now the big Spine 400 with 96 ports); edges hang straight on the
             // core until a distribution switch stands in the MMR, so nothing that was online goes offline
             if (Objects.Any(o => Catalog.IsHallSwitch(o.Kind))) Notes.Add(("msg_nettree_new", null));
+        }
+        if (SaveFormat < 12)
+        {
+            // power tree: switchboards, UPS units and PDUs now belong to an A or a B side. Older games had no sides,
+            // so they alternate A, B, A ... per hall (PDUs) and over the site (switchboards and UPS units), as a player would.
+            AssignFeedSides();
+            if (Objects.Any(o => Catalog.HasFeed(o.Kind))) Notes.Add(("msg_power_tree_new", null));
         }
         MigrateGrowth();
         EnsureCompetitors();
@@ -769,6 +778,7 @@ public partial class GameState
         o.Installed = Hours / 24;
         Spend(o.Def.Cost);
         o.Status = o.Def.Chain && !Creative.InstantBuild ? ObjStatus.Ordered : ObjStatus.Live;
+        if (Catalog.HasFeed(k)) o.Feed = NextFeed(o);
         var indexed = _objIndexRev == Revision && _objIndexCount == Objects.Count;
         Objects.Add(o);
         // most objects (racks above all) do not change walls, roofs or fences: skip the layout rebuild for them

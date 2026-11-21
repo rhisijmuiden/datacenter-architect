@@ -37,7 +37,7 @@ public partial class GameState
         var hit = SupplyKind switch
         {
             0 => k is ObjKind.Rack or ObjKind.Spine or ObjKind.EdgeSwitch24 or ObjKind.EdgeSwitch48 or ObjKind.DistSwitch or ObjKind.CoreRouter,
-            1 => k is ObjKind.Transformer or ObjKind.Switchgear or ObjKind.Ups or ObjKind.Pdu or ObjKind.Battery,
+            1 => k is ObjKind.Transformer or ObjKind.Switchgear or ObjKind.Ups or ObjKind.Pdu or ObjKind.Pdu75 or ObjKind.Pdu300 or ObjKind.Battery,
             _ => true,
         };
         return hit ? SupplyDays : 0;
