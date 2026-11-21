@@ -162,60 +162,32 @@ public partial class WorldView
     static readonly string[] Cars = { "sedan", "sedan-sports", "suv", "suv-luxury", "hatchback-sports", "van", "sedan", "suv" };
 
     /// <summary>
-    /// Staff and customer cars in the parking bays (CC0 Kenney Car Kit). About two thirds of the bays are taken,
-    /// always the same bays for the same layout so cars do not jump around when something else is built.
+    /// The paint of the EV bays next to charging points (green with an "EV" mark). The cars themselves come and go with
+    /// the staff on site (<see cref="SyncCars"/>), so a new car park starts empty.
     /// </summary>
-    static void ParkedCars(Node3D root, List<ParkingLayout.Line> lines, List<Vector3> chargers = null)
+    static void EvBays(Node3D root, List<ParkingLayout.Bay> bays)
     {
         var evPaint = new List<Transform3D>();
-        var rows = new Dictionary<(bool, double, double), List<ParkingLayout.Line>>();
-        foreach (var l in lines)
+        foreach (var b in bays.Where(b => b.Ev))
         {
-            var vertical = Math.Abs(l.Ax - l.Bx) < 1e-6;
-            var key = vertical ? (true, Math.Round(l.Az, 2), Math.Round(l.Bz, 2)) : (false, Math.Round(l.Ax, 2), Math.Round(l.Bx, 2));
-            if (!rows.TryGetValue(key, out var list)) rows[key] = list = new();
-            list.Add(l);
-        }
-        var xf = new Dictionary<string, List<Transform3D>>();
-        foreach (var (key, row) in rows)
-        {
-            // dividers along z sit side by side in x, and the other way round
-            var sorted = key.Item1 ? row.OrderBy(l => l.Ax).ToList() : row.OrderBy(l => l.Az).ToList();
-            for (var i = 0; i + 1 < sorted.Count; i++)
+            var yaw = (float)b.Yaw;
+            var centre = new Vector3((float)b.X, 0, (float)b.Z);
+            var along = b.Yaw == 0;
+            var size = along ? new Vector3((float)b.Width - 0.15f, 1, (float)b.Depth - 0.1f) : new Vector3((float)b.Depth - 0.1f, 1, (float)b.Width - 0.15f);
+            evPaint.Add(new Transform3D(Basis.FromScale(size), centre + new Vector3(0, 0.022f, 0)));
+            root.AddChild(new Label3D
             {
-                var a = sorted[i]; var b = sorted[i + 1];
-                var cx = (float)(a.Ax + a.Bx + b.Ax + b.Bx) / 4; var cz = (float)(a.Az + a.Bz + b.Az + b.Bz) / 4;
-                var h = (uint)(Mathf.RoundToInt(cx * 10) * 73856093) ^ (uint)(Mathf.RoundToInt(cz * 10) * 19349663);
-                var yaw = (key.Item1 ? 0 : Mathf.Pi / 2) + (h / 7 % 2 == 0 ? 0 : Mathf.Pi);
-                // bays next to a charging point are for electric cars: green paint and an EV mark, and they are nearly always in use
-                var centre = new Vector3(cx, 0, cz);
-                if (chargers != null && chargers.Any(c => c.DistanceTo(centre) < 3.2f))
-                {
-                    var bw = key.Item1 ? Mathf.Abs((float)(b.Ax - a.Ax)) : Mathf.Abs((float)(b.Az - a.Az));
-                    var bd = key.Item1 ? Mathf.Abs((float)(a.Bz - a.Az)) : Mathf.Abs((float)(a.Bx - a.Ax));
-                    var size = key.Item1 ? new Vector3(bw - 0.15f, 1, bd - 0.1f) : new Vector3(bd - 0.1f, 1, bw - 0.15f);
-                    evPaint.Add(new Transform3D(Basis.FromScale(size), centre + new Vector3(0, 0.022f, 0)));
-                    root.AddChild(new Label3D
-                    {
-                        Text = "EV", FontSize = 120, PixelSize = 0.008f, Modulate = new Color("#f4f6f2"), OutlineSize = 0, DoubleSided = true, Shaded = true,
-                        Position = centre + new Vector3(0, 0.03f, 0) + new Basis(Vector3.Up, yaw) * new Vector3(0, 0, -bd * 0.3f),
-                        Rotation = new Vector3(-Mathf.Pi / 2, yaw, 0),
-                    });
-                    if (h % 5 == 0) continue;
-                    var ev = EvCars[h / 3 % (uint)EvCars.Length];
-                    if (!xf.TryGetValue(ev, out var el)) xf[ev] = el = new();
-                    el.Add(new Transform3D(new Basis(Vector3.Up, yaw).Scaled(Vector3.One * 1.3f), centre + new Basis(Vector3.Up, yaw) * new Vector3(0, 0, 0.25f)));
-                    continue;
-                }
-                if (h % 3 == 0) continue;
-                var car = Cars[h / 3 % (uint)Cars.Length];
-                if (!xf.TryGetValue(car, out var list)) xf[car] = list = new();
-                list.Add(new Transform3D(new Basis(Vector3.Up, yaw).Scaled(Vector3.One * 1.3f), new Vector3(cx, 0, cz)));
-            }
+                Text = "EV", FontSize = 120, PixelSize = 0.008f, Modulate = new Color("#f4f6f2"), OutlineSize = 0, DoubleSided = true, Shaded = true,
+                Position = centre + new Vector3(0, 0.03f, 0) + new Basis(Vector3.Up, yaw) * new Vector3(0, 0, -(float)b.Depth * 0.3f),
+                Rotation = new Vector3(-Mathf.Pi / 2, yaw, 0),
+            });
         }
-        foreach (var (car, list) in xf) Assets.Many(root, Assets.Mesh("vehicles/" + car + ".glb"), list);
         if (evPaint.Count > 0) Multi(root, new PlaneMesh { Size = new Vector2(1, 1) }, evPaint, new Color("#2f9e5b"), false);
     }
+
+    /// <summary>Car model for a commuter: electric drivers have a sporty or luxury car, the same one every day.</summary>
+    public static string CarModel(int empId, bool electric) =>
+        electric ? EvCars[(uint)(empId * 2654435761u) % (uint)EvCars.Length] : Cars[(uint)(empId * 2246822519u) % (uint)Cars.Length];
 
     /// <summary>Grass tufts and flowers on the plot's open grass, rebuilt with the layout so paving and buildings clear them.</summary>
     void PlotMeadow(Node3D root)

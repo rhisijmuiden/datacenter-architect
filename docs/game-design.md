@@ -535,7 +535,7 @@ Je begint als eigenaar met een leeg terrein. Functies en mogelijkheden komen vri
 
 - Het eerste wat je bouwt, is een **kantoortje voor de algemeen directeur** (CEO). Dat kan in een tijdelijke unit of in een echt kantoorpand.
 - Kantoren richt je zelf in: een **bureau, stoel, kast, plant, vergadertafel**. Een kantoor werkt zodra er minimaal een bureau en een stoel staan. Een mooiere inrichting geeft een kleine bonus.
-- Elke directeur heeft een eigen kantoor nodig. Een team heeft werkplekken nodig in een afdelingsruimte.
+- Alleen de directie (CEO, CFO, HR, sales en operations) heeft een eigen directiekamer nodig; de andere managers werken aan een bureau in een kantoorruimte (speeltest, 21 november 2026). Een team heeft werkplekken nodig in een afdelingsruimte.
 
 **Unlock-boom**
 
@@ -742,7 +742,7 @@ Zo werkt stap 5 (versie 0.4.0) nu echt in de game:
 
 Zo werkt stap 6 (versie 0.5.0) nu echt in de game:
 
-- **Organisatie**: je begint als eigenaar. Bouw een **directiekamer** met een bureau en een stoel; dan kun je een **CEO** aannemen. Elke directeur en manager heeft een eigen ingerichte directiekamer nodig. Het bedrijfsscherm (tabblad Organisatie) toont de boom: CEO → CFO (→ inkoopmanager), HR-manager, salesdirecteur (→ bedrijfsjurist, customer success manager) en operationeel manager (vereist ook HR; → facility-, netwerk- en securitymanager). Elke functie heeft een aannamebedrag, een maandsalaris en twee trainingen met kosten en dagen. Laten gaan kan, maar niet zolang er iemand onder valt.
+- **Organisatie**: je begint als eigenaar. Bouw een **directiekamer** met een bureau en een stoel; dan kun je een **CEO** aannemen. De directie (CEO, CFO, HR, sales en operations) heeft elk een eigen ingerichte directiekamer nodig; de andere managers delen de bureaus in kantoorruimtes met de verkopers. Het bedrijfsscherm (tabblad Organisatie) toont de boom: CEO → CFO (→ inkoopmanager), HR-manager, salesdirecteur (→ bedrijfsjurist, customer success manager) en operationeel manager (vereist ook HR; → facility-, netwerk- en securitymanager). Elke functie heeft een aannamebedrag, een maandsalaris en twee trainingen met kosten en dagen. Laten gaan kan, maar niet zolang er iemand onder valt.
 - **Wat ze ontgrendelen**: HR werft meer personeel dan de startploeg (4 bouwvakkers, 2 monteurs, 1 engineer); monteurs en engineers vragen ook een operationeel manager, die de ploegen 10% sneller laat werken (+10% per training). De facility manager ontgrendelt 10 MVA, zijn eerste training 20 MVA en de tweede 50 MVA. De netwerkmanager regelt carriers, de IX en peering. De security manager plus een portiersloge is nodig voor gemeentes, ministeries en banken. De CFO regelt leningen en investeerders. De inkoopmanager geeft 5% korting op energie en 10% op carriers (meer met training). De customer success manager laat de tevredenheid minder dalen en meer klanten verlengen. De bedrijfsjurist is nodig om op aanbestedingen te bieden.
 - **Sales**: zonder salesdirecteur komen er geen klanten. Verkopers hebben elk een bureau in een kantoorruimte nodig en kosten € 4.200 per maand. Hoe meer verkopers, training en reputatie, hoe meer en grotere aanvragen (maximaal 8 tegelijk, elk 12 tot 22 dagen geldig).
 - **Klanttypes**: startup, MKB, hostingbedrijf, websitehosting (ook adult), videostreaming, social media, cryptomining, clouddienst, gemeente en ministerie; voor aanbestedingen ook banken en hyperscalers. Elk type heeft eigen producten, omvang, verkeer per rack, aantal carriers, kans op 32 A, 2N, groene stroom en beveiliging, en een minimale reputatie.

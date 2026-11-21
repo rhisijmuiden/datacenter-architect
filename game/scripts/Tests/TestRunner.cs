@@ -45,6 +45,7 @@ public static partial class TestRunner
             ("basement", BasementTests),
             ("customers per hall", HallClientTests),
             ("add a floor", AddLevelTests),
+            ("office life", OfficeLifeTests),
             ("power tree", PowerTreeTests),
             ("network tree", NetTreeTests),
         };
@@ -916,6 +917,8 @@ public static partial class TestRunner
         for (var i = 0; i < 6; i++) { var r = s.AddRoom(RoomType.Executive, 4 + i * 5, 30, 5, 4, 0); r.Stage = Stage.Done; Furnish(s, r, 1); }
         Check(s.Offices == 7, "seven offices");
         Check(s.HireExec(Exec.Sales) == null && s.HireExec(Exec.Hr) == null, "sales director and HR");
+        Check(s.CanHire(Exec.Legal) == "msg_needs_manager_desk", "managers work at a desk in an office room, not in a director's office");
+        Furnish(s, office, Math.Min(office.D, 6));
         Check(s.CanHire(Exec.Legal) == null, "legal counsel unlocks after the sales director");
         Check(s.CanHire(Exec.Facility) == "msg_needs_exec", "the facility manager reports to operations");
         Check(s.HireExec(Exec.Operations) == null && s.CanHire(Exec.Facility) == null, "operations unlocks the facility manager");
@@ -936,10 +939,10 @@ public static partial class TestRunner
         // network manager for carriers
         Check(fresh.CanOrderCarrier(1, 10) == "msg_needs_netmgr", "carriers need a network manager");
         // sales reps need workplaces
-        Check(s.CanAddRep(1) == "msg_needs_workplace", "a rep needs a desk in an office room");
-        Furnish(s, office, 2);
-        Check(s.ChangeReps(2) == null && s.CanAddRep(1) == "msg_needs_workplace", "two desks, two reps");
-        Check(s.SalariesPerMonth == Org.Execs.Values.Where(e => s.Hire(e.Role) != null).Sum(e => e.Salary) + 2 * Org.SalesRepSalary, "salaries add up");
+        var freeDesks = s.Workplaces - s.ManagerCount;
+        Check(freeDesks >= 2, "the office desks the managers do not use are free for reps");
+        Check(s.ChangeReps(freeDesks) == null && s.CanAddRep(1) == "msg_needs_workplace", "a rep needs a free desk in an office room: reps and managers share them");
+        Check(s.SalariesPerMonth == Org.Execs.Values.Where(e => s.Hire(e.Role) != null).Sum(e => e.Salary) + s.SalesReps * Org.SalesRepSalary, "salaries add up");
         // creative unlocks everything
         var cr = GameState.New(new NewGameOptions { Creative = true, CreativeOptions = CreativeOptions.All() });
         Check(cr.Has(Exec.Legal) && cr.CanRequestGrid(3) == null, "creative: all unlocked");
