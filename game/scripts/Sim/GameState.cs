@@ -59,6 +59,8 @@ public class Room
     /// <summary>Upgrade in progress: 1 = next containment level, 2 = busbar. Hours left in UpgradeLeft.</summary>
     public int Upgrade { get; set; }
     public double UpgradeLeft { get; set; }
+    /// <summary>Hall upgrades waiting for the running one (same codes as <see cref="Upgrade"/>), already paid; from the building-management screen.</summary>
+    public List<int> UpgradeQueue { get; set; } = new();
     /// <summary>Data halls: air temperature in °C, and whether racks are shut down to protect them from heat.</summary>
     public double Temp { get; set; } = 21;
     public bool Hot { get; set; }
@@ -115,6 +117,7 @@ public class Room
     {
         var r = (Room)MemberwiseClone();
         r.Clients = new List<CustomerType>(Clients);
+        r.UpgradeQueue = new List<int>(UpgradeQueue);
         r.Cells = new List<int>(Cells);
         r._set = null;
         return r;
@@ -1153,6 +1156,7 @@ public partial class GameState
         if (r.Upgrade == 1) r.Containment++;
         else if (r.Upgrade == 2) r.Busbar = true;
         r.Upgrade = 0; r.UpgradeLeft = 0;
+        NextQueuedUpgrade(r);
         Touch();
     }
 
