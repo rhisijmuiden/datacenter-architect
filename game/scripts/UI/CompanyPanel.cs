@@ -180,7 +180,8 @@ public partial class CompanyPanel : Modal
     {
         _content.AddChild(Ui.Heading("co_tab_org", 16, Brand.Amber));
         _content.AddChild(Plain(Loc.T("org_help"), 13, Brand.InkDim));
-        var offices = Plain(Loc.T("org_offices", s.Execs.Count, s.Offices), 14, s.Offices > s.Execs.Count ? Brand.Ok : Brand.Warning);
+        var offices = Plain(Loc.T("org_offices", s.BoardCount, s.Offices) + "\n" + Loc.T("org_manager_desks", s.ManagerCount, s.SalesReps, s.Workplaces), 14,
+            s.Offices > s.BoardCount && s.Workplaces > s.ManagerCount + s.SalesReps ? Brand.Ok : Brand.Warning);
         _content.AddChild(offices);
         if (s.Creative.AllUnlocks) _content.AddChild(Plain(Loc.T("org_all_unlocked"), 14, Brand.Cooling));
         foreach (var e in Org.Chart)

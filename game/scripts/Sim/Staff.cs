@@ -346,7 +346,7 @@ public partial class GameState
     }
 
     /// <summary>Desks in offices against the people who need one (sales team, support and helpdesk).</summary>
-    [JsonIgnore] public int DeskNeed => SalesReps + Staff.Count(e => e.Def.Desk);
+    [JsonIgnore] public int DeskNeed => SalesReps + ManagerCount + Staff.Count(e => e.Def.Desk);
 
     /// <summary>What makes a workplace pleasant, from -30 to +30; each part is shown in the staff screen.</summary>
     public List<(string key, int points)> Wellbeing()

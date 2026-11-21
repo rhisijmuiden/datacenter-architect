@@ -33,23 +33,35 @@ public partial class Simulation
             if (want.Count >= MaxStaffAgents) break;
             if (Area(e.Role).Count > 0) want[e.Id] = (e.Role, 0);
         }
-        var present = Agents.Where(a => a.Role == Role.Staff && !a.Escort).ToList();
+        var present = Agents.Where(a => a.Role == Role.Staff && !a.Escort && a.Desk == 0).ToList();
         foreach (var a in present)
         {
-            if (a.Phase >= 8) continue;
-            if (!want.TryGetValue(a.EmpId, out var w)) { a.Phase = 8; a.Working = false; continue; }
-            if (w.target != a.Target) { a.Target = w.target; a.Phase = 0; a.Working = false; }
+            if (Leaving(a)) continue;
+            // off duty: finish up and go home a little later, not all at the same moment
+            if (!want.TryGetValue(a.EmpId, out var w)) { a.Phase = 7; a.Timer = _rng.NextDouble() * 0.6; a.Working = false; continue; }
+            if (w.target != a.Target && !Arriving(a)) { a.Target = w.target; a.Phase = 0; a.Working = false; }
         }
-        var have = present.Where(a => a.Phase < 8).Select(a => a.EmpId).ToHashSet();
+        var have = present.Where(a => !Leaving(a)).Select(a => a.EmpId).ToHashSet();
+        var started = 0;
         foreach (var (id, (role, target)) in want)
         {
-            if (have.Contains(id) || Agents.Count(a => a.Role == Role.Staff) >= MaxStaffAgents + 4) continue;
+            if (have.Contains(id) || present.Count(a => !Leaving(a)) + started >= MaxStaffAgents + 4) continue;
+            // people come in a few at a time (urgent repairs straight away)
+            if (_settled && target == 0 && started >= ArrivalsPerTick) continue;
             var start = id < 0 ? SpawnCell() : ArrivalCell(id);
             var ag = new Agent { Id = _nextAgent++, Role = Role.Staff, EmpId = id, Staff = role, Target = target, X = start.x + 0.5, Z = start.z + 0.5 };
-            // repairs are urgent: those start at the bike rack; the others cycle in from the road
-            if (target == 0) StartRide(ag);
+            if (target == 0)
+            {
+                var area = Area(role);
+                var dest = area.Count > 0 ? area[Math.Abs(id) % area.Count] : (start.x, start.z, 0);
+                if (!_settled) Settle(ag, (dest.Item1, dest.Item2), dest.Item3);
+                else SendToWork(ag, (dest.Item1, dest.Item2));
+            }
             Agents.Add(ag);
+            started++;
         }
+        SyncOffice();
+        _settled = true;
     }
 
     (int x, int z) StaffEntry() => StaffEntryCar();
@@ -106,6 +118,7 @@ public partial class Simulation
 
     void StaffWalk(Agent a, double dt)
     {
+        if (Commuting(a, dt)) return;
         a.Working = false;
         switch (a.Phase)
         {
@@ -147,25 +160,6 @@ public partial class Simulation
                 a.Working = a.Staff is StaffRole.Cleaner or StaffRole.Gardener or StaffRole.Noc or StaffRole.Helpdesk or StaffRole.Researcher or StaffRole.SocAnalyst or StaffRole.HostingEngineer or StaffRole.Logistics;
                 a.Timer -= dt;
                 if (a.Timer <= 0) a.Phase = 0;
-                return;
-            case 8: // leave the site: walk back to the car or the bike
-                a.Ride = false;
-                var (hx, hz) = a.EmpId < 0 ? SpawnCell() : ArrivalCell(a.EmpId);
-                if (!GoTo(a, 0, hx, hz, NavMode.Walk)) { a.Gone = true; return; }
-                a.Phase = a.EmpId > 0 && ModeOf(a.EmpId) == CommuteMode.Bike ? 22 : 9;
-                return;
-            case 20: // riding in from the road
-                if (!Move(a, dt, RideSpeed * (a.Floor == 0 ? S.TravelFactor : 1))) return;
-                a.Ride = false; a.Phase = 0; a.Timer = 0.15;
-                return;
-            case 22: // at the bike: get on and ride home
-                if (!Move(a, dt, WalkSpeed)) return;
-                var (ex, ez) = RoadEdge();
-                if (!GoTo(a, 0, ex, ez, NavMode.Walk)) { a.Gone = true; return; }
-                a.Ride = true; a.Phase = 9;
-                return;
-            default:
-                if (Move(a, dt, a.Ride ? RideSpeed : WalkSpeed)) a.Gone = true;
                 return;
         }
     }
