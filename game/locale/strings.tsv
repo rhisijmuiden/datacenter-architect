@@ -1849,7 +1849,7 @@ ptree_up_ats	ATS · {0} generators ({1})	ATS · {0} generatoren ({1})
 ptree_up_no_ats	No ATS	Geen ATS
 ptree_up_msb	MSB × {0}	MSB × {0}
 ptree_side_both	A + B	A + B
-ptree_side	Side {0}	{0}-zijde
+ptree_side	Only {0}	Alleen {0}
 ptree_none	No power distribution yet. Place a main switchboard (MSB) in a switchgear room, a UPS in a UPS room and PDUs in your data halls.	Nog geen stroomverdeling. Zet een hoofdverdeler (MSB) in een schakelruimte, een UPS in een UPS-ruimte en PDU's in je datahallen.
 ptree_unconnected	Not connected	Niet aangesloten
 ptree_pick	Click a device for its details.	Klik op een apparaat voor de details.
