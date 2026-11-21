@@ -36,7 +36,7 @@ public partial class GameState
         if (!SupplyCrunch || Creative.InstantBuild) return 0;
         var hit = SupplyKind switch
         {
-            0 => k is ObjKind.Rack or ObjKind.Spine or ObjKind.CoreRouter,
+            0 => k is ObjKind.Rack or ObjKind.Spine or ObjKind.EdgeSwitch24 or ObjKind.EdgeSwitch48 or ObjKind.DistSwitch or ObjKind.CoreRouter,
             1 => k is ObjKind.Transformer or ObjKind.Switchgear or ObjKind.Ups or ObjKind.Pdu or ObjKind.Battery,
             _ => true,
         };
