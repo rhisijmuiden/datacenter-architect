@@ -55,6 +55,8 @@ Voor elke schakel toont het stroomscherm hoe redundant hij is. De game gebruikt 
 
 ### Zo haal je N+1
 
+De **stroomboom** (Infrastructuur › Stroomboom) heeft bovenaan een kaart **Route naar N+1 en 2N**: voor de generatoren, transformatoren, hoofdverdelers, UPS en elke hal met racks zie je het niveau nu en de volgende stap.
+
 Zet **één unit meer neer dan je nodig hebt** op die schakel. Een IT-last van 900 kW heeft twee UPS'en van 500 kW nodig (N); met een derde is het N+1. Hetzelfde geldt voor schakelkasten en transformatoren. De regel haalt altijd de grootste unit weg, dus maten mengen helpt niet.
 
 ### Zo haal je 2N

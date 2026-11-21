@@ -11,6 +11,7 @@ description: Elke ruimte in Datacenter Architect, wat hij doet, wat erin moet en
 2. Zet een **deur** in een muur (Gebouwen › Deuren). Mensen en racks komen alleen binnen via een deur; racks en grote apparatuur hebben een **dubbele deur** of een **roldeur** nodig.
 3. Richt de ruimte in (Inrichting, Stroom, Koeling, Netwerk). Apparatuur die bij een bepaalde ruimte hoort, kan alleen daar staan: een UPS alleen in een UPS-ruimte, een core-router alleen in de meet-me room.
 4. Klik op de ruimte voor het **infopaneel**: wat de ruimte doet, wat erin staat en wat er nog mist.
+5. Weet je niet waar een ruimte voor is? De knop **?** onderaan de linkerbalk opent de **help** in het spel: elke ruimte met wat hij doet, wanneer je hem nodig hebt en wat erin moet, plus uitleg over redundantie, stroom, koeling en netwerk. De tooltip van elke ruimte in de bouwbalk en de knop **Meer in de help** in het infopaneel brengen je er ook.
 
 Ruimtes zijn verbonden via **gangen**. Houd een gang van het laadperron naar elke hal en technische ruimte, zodat monteurs er apparatuur naartoe kunnen rijden.
 

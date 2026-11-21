@@ -2104,3 +2104,18 @@ place_part	part of it	een deel
 place_total	Together {0} of {1} racks free	Samen {0} van {1} racks vrij
 place_tip_multi	Pick one or more halls. A customer can be spread over several halls, for example 32 racks over two halls of 24 with room to grow. Other customers stay out of those halls.	Kies een of meer hallen. Een klant kan over meerdere hallen verdeeld worden, bijvoorbeeld 32 racks over twee hallen van 24 met ruimte om te groeien. Andere klanten blijven uit die hallen.
 place_tip_one	A cage stands in one hall. Pick the hall, or let sales pick one.	Een kooi staat in één hal. Kies de hal, of laat sales er een kiezen.
+ptree_route_title	Route to N+1 and 2N	Route naar N+1 en 2N
+ptree_route_none	Nothing to show yet: no racks draw power.	Nog niets te zien: er trekken nog geen racks stroom.
+ptree_route_no_ats	Generators cannot take over: there is no main switchboard with an ATS. Place one in a switchgear room.	Generatoren kunnen het niet overnemen: er is geen hoofdverdeler met ATS. Zet er een in een schakelruimte.
+ptree_route_gen	Generators	Generatoren
+ptree_route_trafo	Transformers	Transformatoren
+ptree_route_msb	Switchboards	Hoofdverdelers
+ptree_route_ups	UPS	UPS
+ptree_route_short	{0}: too little capacity for the load. Add at least {1}.	{0}: te weinig capaciteit voor de last. Zet er minstens {1} bij.
+ptree_route_n	{0}: just enough. One more unit gives N+1: then one may fail.	{0}: precies genoeg. Nog één unit erbij geeft N+1: dan mag er één uitvallen.
+ptree_route_n1	{0}: N+1. For 2N add {1} more in total.	{0}: N+1. Voor 2N in totaal {1} erbij.
+ptree_route_2n	{0}: 2N, fully redundant.	{0}: 2N, volledig redundant.
+ptree_route_hall_n	{0}: racks on one feed only. Place a PDU on the other side (or a busbar) for A+B.	{0}: racks op één voeding. Zet een PDU aan de andere zijde (of een busbar) voor A+B.
+ptree_route_hall_partial	{0}: {1} of {2} racks have A and B. Add outlets on the other side for the rest.	{0}: {1} van {2} racks hebben A en B. Zet aan de andere zijde aansluitingen bij voor de rest.
+ptree_route_hall_ab	{0}: A+B, but both sides share a UPS or switchboard. Feed the B side from its own UPS and switchboard for 2N.	{0}: A+B, maar beide zijden delen een UPS of hoofdverdeler. Voed de B-zijde vanuit een eigen UPS en hoofdverdeler voor 2N.
+ptree_route_hall_2n	{0}: 2N, A and B share nothing.	{0}: 2N, A en B delen niets.
