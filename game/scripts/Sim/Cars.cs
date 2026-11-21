@@ -112,7 +112,9 @@ public partial class Simulation
         var lanePath = Nav.CenterLane(path);
         var ex0 = lanePath.Count > 0 && Math.Abs(lanePath[0].x - (entry.x + 0.5)) <= 4 ? lanePath[0].x : entry.x + 0.5;
         a.Way.Clear(); a.WayI = 0; a.ReverseFrom = -1;
-        a.X = -20 - _rng.NextDouble() * 6; a.Z = lane; a.Floor = 0;
+        // join the street behind any car still on its way in there, never on top of it
+        var queue = Agents.Where(o => o.Car && o.Phase == 30 && o.WayI == 0).Select(o => o.X).DefaultIfEmpty(-14).Min();
+        a.X = Math.Min(-20, queue - 7) - _rng.NextDouble() * 3; a.Z = lane; a.Floor = 0;
         a.Way.Add((ex0, lane, 0));
         a.Way.Add((ex0, S.PlotSize + 0.5, 0));
         a.Way.Add((ex0, entry.z + 0.5, 0));
@@ -151,7 +153,7 @@ public partial class Simulation
             if (car.Emp != a.EmpId) continue;
             var (cx, cz) = ((int)Math.Floor(car.X), (int)Math.Floor(car.Z));
             if (!GoTo(a, 0, cx, cz, NavMode.Walk)) return false;
-            a.Bay = key; a.Phase = 31;
+            a.Bay = key; a.Phase = 31; a.Timer = 0;
             return true;
         }
         return false;
@@ -218,6 +220,11 @@ public partial class Simulation
                 return true;
             case 31: // walking to the car
                 if (!Move(a, dt, WalkSpeed)) return true;
+                // at the car: wait for a gap in the traffic along the aisle before backing out (not for ever)
+                if (Parked.TryGetValue(a.Bay, out var mine) && a.Timer < 0.6 &&
+                    Agents.Any(o => (o.Car || o.Role == Role.Truck) && Math.Abs(o.X - mine.X) + Math.Abs(o.Z - mine.Z) < 9))
+                { a.Timer += dt; return true; }
+                a.Timer = 0;
                 DriveOff(a);
                 return true;
             case 33:
