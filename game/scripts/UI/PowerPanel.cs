@@ -223,7 +223,7 @@ public partial class PowerPanel : Modal
         {
             i++;
             var room = hall;
-            hg.AddChild(Plain($"{s.HallCode(hall)} · {hall.W}×{hall.D} m" + (hall.Floor != 0 ? $" · {Ui.FloorName(hall.Floor)}" : ""), 14, null, false));
+            hg.AddChild(Plain($"{s.HallCode(hall)} · {hall.Area} m²" + (hall.Floor != 0 ? $" · {Ui.FloorName(hall.Floor)}" : ""), 14, null, false));
             HallInfo Info(InfraReport r) => r.Halls.FirstOrDefault(x => x.Room == room);
             hg.AddChild(Dyn((l, _, r) => { var x = Info(r); l.Text = x == null ? "-" : $"{x.RunningRacks}/{x.LiveRacks}"; l.AddThemeColorOverride("font_color", x != null && x.RunningRacks < x.LiveRacks ? Brand.Critical : Brand.Ink); }, 14, null, false));
             hg.AddChild(Dyn((l, _, r) => { var x = Info(r); l.Text = x == null ? "-" : $"{N(x.ItKw)}/{N(x.DistributionKw)} kW"; l.AddThemeColorOverride("font_color", x != null && x.PowerLimited ? Brand.Critical : Brand.Ink); }, 14, null, false));

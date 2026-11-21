@@ -10,7 +10,7 @@ public readonly record struct Pt(int X, int Z, int F);
 
 /// <summary>
 /// Grid pathfinding on the site. Walls sit on cell edges and can only be crossed through a door;
-/// carrying a rack needs a wide door. Trucks stay on asphalt, parking and the yard.
+/// a rack on a trolley fits through every door but the mantrap; narrow doors cost a bit more when carrying. Trucks stay on asphalt, parking and the yard.
 /// Floors are joined by freight lifts.
 /// </summary>
 public class Nav
@@ -21,7 +21,7 @@ public class Nav
     bool[] _truck;
     float[] _cost;
     HashSet<(int, int, int)>[] _walls;
-    Dictionary<(int, int, int), bool>[] _doors;
+    Dictionary<(int, int, int), int>[] _doors;
 
     public Nav(GameState s) { _s = s; }
 
@@ -34,7 +34,7 @@ public class Nav
         var floors = GameState.BasementFloor + 1;
         _walk = new bool[floors][];
         _walls = new HashSet<(int, int, int)>[floors];
-        _doors = new Dictionary<(int, int, int), bool>[floors];
+        _doors = new Dictionary<(int, int, int), int>[floors];
         _truck = new bool[_n * _n];
         _cost = new float[_n * _n];
         foreach (var f in GameState.FloorIds)
@@ -56,7 +56,7 @@ public class Nav
             _walls[f] = _s.WallEdges(f, true);
             _doors[f] = new();
             foreach (var d in _s.Doors.Where(d => d.Floor == f))
-                foreach (var e in d.Edges()) _doors[f][e] = Catalog.Doors[d.Type].Wide;
+                foreach (var e in d.Edges()) _doors[f][e] = Catalog.Doors[d.Type].Carry ? Catalog.Doors[d.Type].Width : 0;
             _walk[f] = w;
         }
         foreach (var o in _s.Objects)
@@ -189,8 +189,12 @@ public class Nav
     bool Cross(int f, (int, int, int) edge, NavMode m)
     {
         if (m == NavMode.Truck || !_walls[f].Contains(edge)) return true;
-        return _doors[f].TryGetValue(edge, out var wide) && (m == NavMode.Walk || wide);
+        return _doors[f].TryGetValue(edge, out var width) && (m == NavMode.Walk || width > 0);
     }
+
+    /// <summary>Wheeling a rack through a single door is slower (tilt, one leaf): carriers prefer a double door when there is one.</summary>
+    public const float NarrowDoorCost = 3f;
+    float NarrowCost(int f, (int, int, int) edge) => _doors[f].TryGetValue(edge, out var w) && w == 1 ? NarrowDoorCost : 0f;
 
     static readonly (int dx, int dz)[] Dirs = { (1, 0), (-1, 0), (0, 1), (0, -1) };
 
@@ -292,7 +296,7 @@ public class Nav
                 if (!Pass(nx, nz, f, m) && !goal(nx, nz)) continue;
                 if (!Cross(f, EdgeBetween(cx, cz, dx, dz), m)) continue;
                 var ni = nz * _n + nx;
-                var nd = d + (m == NavMode.Truck ? _truckCost[ni] : _cost[ni]);
+                var nd = d + (m == NavMode.Truck ? _truckCost[ni] : _cost[ni]) + (m == NavMode.Carry ? NarrowCost(f, EdgeBetween(cx, cz, dx, dz)) : 0);
                 if (seen[ni] == stamp && nd >= dist[ni]) continue;
                 seen[ni] = stamp; dist[ni] = nd; prev[ni] = cur; q.Enqueue(ni, nd + H(nx, nz));
             }

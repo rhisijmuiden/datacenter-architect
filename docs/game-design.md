@@ -213,6 +213,16 @@ Volgorde van een bezoek: openbare weg → oprit → meldzuil → poort open (van
 
 Binnen een gebouw **teken je zelf ruimtes**: muren trekken, deuren plaatsen en een ruimtetype kiezen. Elk type heeft eisen (minimale grootte, verplichte objecten, toegangsniveau) en werkt pas als daaraan is voldaan.
 
+**Muren, deuren en de verftool (2026-11-21, Reinder)**
+
+- De volgorde is: eerst een datacentergebouw bouwen, dan met **losse muren** (binnenmuur of glazen wand, prijs per meter) en **deuren** ruimtes afsluiten, en daarna met de **verftool** vloertegels een functie geven.
+- Een geverfde ruimte werkt pas als zijn ruimte helemaal is afgesloten door afgebouwde muren, er een deur (of trap/lift) in zit en er geen tweede ruimtesoort in dezelfde afgesloten ruimte ligt. De inspector zegt wat er nog mist.
+- **Hele ruimte** verft met één klik de hele afgesloten ruimte. Verf je over een ruimte van een ander soort, dan verandert die hele ruimte van soort; apparatuur die daar niet thuishoort gaat weg (de helft terug). **Ruimtesoort wissen** haalt alleen het soort weg, muren en deuren blijven.
+- Een nieuwe muur door een ruimte maakt er twee ruimtes van; haal je de muur weg, dan worden twee ruimtes van hetzelfde soort weer één.
+- **Ruimte met muren** (vinkje) is de oude manier: een rechthoek slepen en de muren komen er vanzelf bij. Raak je een muur van zo'n ruimte aan, dan wordt hij een geverfde ruimte binnen losse muren.
+- **Slopen met keuze**: alles (zoals vroeger), ruimte (met zijn eigen muren, deuren en inhoud; muren naast een andere ruimte blijven), muren, deuren of inrichting. Een datazaal waar klanten racks huren kan niet gesloopt of omgeverfd worden.
+- **Checklist per ruimte**: elke functie vraagt minimale apparatuur (datazaal: rack, CRAH, PDU of busbar, halswitch; MMR: ODF en core router; UPS-ruimte: UPS en accu; NOC: schermwand en bureau; kantine: koffie-, snoep- of magnetronapparaat; enzovoort). De inspector toont ✓ en ○ per regel en voor zalen en MMR's een advies over paslezers op de deuren. De checklist is informatie, geen blokkade.
+
 | Ruimte | Functie | Verplichte objecten |
 |---|---|---|
 | **Datazaal** | Racks van klanten | Racks, CRAH-units, kabelgoten, PDU's |
@@ -242,6 +252,8 @@ Binnen een gebouw **teken je zelf ruimtes**: muren trekken, deuren plaatsen en e
 **Toegang en beveiliging**
 
 - Ruimtes hebben toegangsniveaus. Deuren met een badgelezer laten alleen bevoegde mensen door.
+- **Deuren en racks** (wens van Reinder, 21 november 2026): een rack op een karretje past door **elke deur** behalve de mantrap. Een enkele deur is genoeg; door een dubbele deur of roldeur gaat het iets vlotter, dus monteurs kiezen die als hij er is. Er is een **dubbele deur met paslezer** naast de enkele deur met paslezer en de branddeur (ook met lezer).
+- **Deuren direct wijzigen**: klik op een deur (of plaats een ander deurtype eroverheen) om hem op dezelfde plek te veranderen: paslezer erop, versmallen, branddeur. Geen bouwtijd; je betaalt het prijsverschil, een goedkopere deur geeft een kwart van het verschil terug. Ongedaan maken werkt. In Beveiliging zet één knop paslezers op alle deuren van datazalen en MMR's, zodat de volle punten voor toegangscontrole altijd haalbaar zijn.
 - Een **mantrap** (sluis) tussen de publieke zone en de datazalen is een eis bij veel grote contracten.
 
 ## Meerdere verdiepingen

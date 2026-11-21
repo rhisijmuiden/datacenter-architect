@@ -97,7 +97,7 @@ public partial class Simulation
         foreach (var room in S.Rooms.Where(x => rooms.Contains(x.Type) && x.Stage == Stage.Done && S.BuildingOf(x)?.Stage == Stage.Done && (r != StaffRole.HostingEngineer || x.Type != RoomType.DataHall || x.Zone == HallZone.OwnCloud)))
             for (var z = room.Z; z < room.Z + room.D; z++)
                 for (var x = room.X; x < room.X + room.W; x++)
-                    if (Nav.Walkable(x, z, room.Floor)) list.Add((x, z, room.Floor));
+                    if (room.Contains(x, z) && Nav.Walkable(x, z, room.Floor)) list.Add((x, z, room.Floor));
         if (r is StaffRole.Guard or StaffRole.Gardener or StaffRole.GeneratorTech)
             for (var z = 0; z < S.PlotSize; z++)
                 for (var x = 0; x < S.PlotSize; x++)

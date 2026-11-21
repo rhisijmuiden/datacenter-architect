@@ -435,13 +435,19 @@ public partial class WorldView : Node3D
         if (r.Type == RoomType.DataHall)
         {
             for (var z = r.Z + 1; z < r.Z + r.D - 1; z += 3)
-                xf.Add(new Transform3D(Basis.Identity.Scaled(new Vector3(r.W - 1.2f, 1, 1)), new Vector3(r.X + r.W / 2f, y + 2.9f, z + 0.5f)));
+            {
+                // painted halls of any shape: one strip per run of cells in this row
+                var xs = Enumerable.Range(r.X, r.W).Where(x => r.Contains(x, z)).ToList();
+                if (xs.Count == 0) continue;
+                var x0 = xs.Min(); var x1 = xs.Max();
+                xf.Add(new Transform3D(Basis.Identity.Scaled(new Vector3(Math.Max(0.6f, x1 - x0 + 1 - 1.2f), 1, 1)), new Vector3((x0 + x1 + 1) / 2f, y + 2.9f, z + 0.5f)));
+            }
         }
         else
         {
             for (var x = r.X + 1; x < r.X + r.W; x += 3)
                 for (var z = r.Z + 1; z < r.Z + r.D; z += 3)
-                    xf.Add(new Transform3D(Basis.Identity, new Vector3(x + 0.5f, y + 2.9f, z + 0.5f)));
+                    if (r.Contains(x, z)) xf.Add(new Transform3D(Basis.Identity, new Vector3(x + 0.5f, y + 2.9f, z + 0.5f)));
         }
         if (xf.Count == 0) return;
         var mm = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = new BoxMesh { Size = new Vector3(1, 0.03f, 0.07f) }, InstanceCount = xf.Count };
@@ -833,13 +839,20 @@ public partial class WorldView : Node3D
             if (f != 0) Box(root, new Vector3(b.X + b.W / 2f, Base(f) - 0.1f, b.Z + b.D / 2f), new Vector3(b.W, 0.2f, b.D), Brand.Concrete, 0.95f);
             if (cut) Box(root, new Vector3(b.X + b.W / 2f, Base(f) + 0.005f, b.Z + b.D / 2f), new Vector3(b.W - 0.1f, 0.01f, b.D - 0.1f), new Color("#c4c9cd"), 0.95f);
             var edges = GameState.Perimeter(b.X, b.Z, b.W, b.D).ToHashSet();
+            var glass = new HashSet<(int x, int z, int dir)>();
             if (cut)
-                foreach (var r in _state.Rooms.Where(r => r.BuildingId == b.Id && r.Floor == f && r.Stage == Stage.Done))
+            {
+                foreach (var r in _state.Rooms.Where(r => r.Walled && r.BuildingId == b.Id && r.Floor == f && r.Stage == Stage.Done))
                     foreach (var e in GameState.Perimeter(r.X, r.Z, r.W, r.D)) edges.Add(e);
+                // separate inner walls and glass partitions (free walls)
+                foreach (var w in _state.Walls.Where(w => w.BuildingId == b.Id && w.Floor == f && w.Stage == Stage.Done && !_state.IsPlanned(w.Id)))
+                    foreach (var e in w.Edges()) (w.Glass ? glass : edges).Add(e);
+            }
             var doors = _state.Doors.Where(d => d.Floor == f).ToList();
             var doorEdges = doors.SelectMany(d => d.Edges()).ToHashSet();
             Walls(root, edges.Where(e => !doorEdges.Contains(e)), Base(f), h, f == GameState.BasementFloor ? BasementWall : col, cut ? new Color("#e4e8eb") : col, b);
-            foreach (var d in doors.Where(d => d.Edges().Any(edges.Contains))) DoorModel(root, d, Base(f), h, _doorLeaves);
+            if (glass.Count > 0) GlassWalls(root, glass.Where(e => !doorEdges.Contains(e) && !edges.Contains(e)), Base(f), h);
+            foreach (var d in doors.Where(d => d.Edges().Any(e => edges.Contains(e) || glass.Contains(e)))) DoorModel(root, d, Base(f), h, _doorLeaves);
             if (!cut) FacadeDetail(root, b, f);
             if (cut)
                 foreach (var r in _state.Rooms.Where(r => r.BuildingId == b.Id && r.Floor == f))
@@ -875,6 +888,22 @@ public partial class WorldView : Node3D
             var l = new OmniLight3D { Position = new Vector3(x, y + 2.8f, 0.6f), OmniRange = 6, LightColor = new Color("#ffd9a0"), LightEnergy = 0, ShadowEnabled = false, Visible = false };
             l.AddToGroup(NightLightGroup);
             n.AddChild(l);
+        }
+    }
+
+    static readonly Color GlassTint = new("#a9d8ee", 0.32f);
+
+    /// <summary>Glass partitions: a see-through pane with a slim dark frame on top and at the floor.</summary>
+    void GlassWalls(Node3D root, IEnumerable<(int x, int z, int dir)> edges, float y, float h)
+    {
+        var list = edges.ToList();
+        Walls(root, list, y, h, GlassTint, GlassTint, null);
+        foreach (var (x, z, dir) in list)
+        {
+            var mid = dir == 0 ? new Vector3(x, 0, z + 0.5f) : new Vector3(x + 0.5f, 0, z);
+            var size = dir == 0 ? new Vector3(0.16f, 0.08f, 1f) : new Vector3(1f, 0.08f, 0.16f);
+            Box(root, mid + new Vector3(0, y + h - 0.04f, 0), size, new Color("#3a4652"), 0.5f, 0.4f);
+            Box(root, mid + new Vector3(0, y + 0.04f, 0), size, new Color("#3a4652"), 0.5f, 0.4f);
         }
     }
 
@@ -930,7 +959,7 @@ public partial class WorldView : Node3D
         var leaf = d.Type switch
         {
             DoorType.Fire => new Color("#c0392b"),
-            DoorType.Badge => new Color("#3a4652"),
+            DoorType.Badge or DoorType.BadgeDouble => new Color("#3a4652"),
             DoorType.RollUp => new Color("#9aa4ab"),
             DoorType.Mantrap => new Color("#9fd3ee", 0.45f),
             _ => new Color("#8a6b4f"),
@@ -956,7 +985,7 @@ public partial class WorldView : Node3D
                 reg?.Hinges.Add((hinge, i % 2 == 0 ? -1f : 1f));
                 Box(hinge, new Vector3(i % 2 == 0 ? 0.45f : -0.45f, h / 2, 0), new Vector3(0.88f, h - 0.05f, 0.05f), leaf);
             }
-            if (d.Type is DoorType.Badge or DoorType.Mantrap) Box(n, new Vector3(w / 2f + 0.15f, 1.2f, 0.16f), new Vector3(0.12f, 0.18f, 0.04f), Brand.Ok, glow: true);
+            if (d.Type is DoorType.Badge or DoorType.BadgeDouble or DoorType.Mantrap) Box(n, new Vector3(w / 2f + 0.15f, 1.2f, 0.16f), new Vector3(0.12f, 0.18f, 0.04f), Brand.Ok, glow: true);
             if (d.Type == DoorType.Mantrap)
             {
                 // a round glass booth with two sliding doors: one person at a time
@@ -973,20 +1002,45 @@ public partial class WorldView : Node3D
         // finished offices get the floor of their interior style (oak, dark carpet, walnut)
         if (r.Stage == Stage.Done && GameState.Furnishable(r.Type)) col = StyleColors(_state.StyleOf(r)).floor;
         if (r.Stage != Stage.Done) col = new Color(col, 0.55f);
-        var floor = Box(root, new Vector3(r.X + r.W / 2f, y + 0.015f, r.Z + r.D / 2f), new Vector3(r.W - 0.12f, 0.01f, r.D - 0.12f), col, 0.95f);
+        var floors = new List<MeshInstance3D>();
+        if (r.Cells.Count == 0)
+            floors.Add(Box(root, new Vector3(r.X + r.W / 2f, y + 0.015f, r.Z + r.D / 2f), new Vector3(r.W - 0.12f, 0.01f, r.D - 0.12f), col, 0.95f));
+        else
+            // a painted room of any shape: one strip per run of cells in a row
+            foreach (var row in r.CellList().GroupBy(c => c.z))
+            {
+                var xs = row.Select(c => c.x).OrderBy(v => v).ToList();
+                var start = xs[0]; var prev = start;
+                for (var i = 1; i <= xs.Count; i++)
+                {
+                    if (i < xs.Count && xs[i] == prev + 1) { prev = xs[i]; continue; }
+                    var len = prev - start + 1;
+                    floors.Add(Box(root, new Vector3(start + len / 2f, y + 0.015f, row.Key + 0.5f), new Vector3(len, 0.01f, 1f), col, 0.95f));
+                    if (i < xs.Count) { start = xs[i]; prev = start; }
+                }
+            }
         // a finished data hall gets a light raised floor of 600 mm tiles
-        if (r.Type == RoomType.DataHall && r.Stage == Stage.Done) floor.MaterialOverride = HallLook.Floor;
+        if (r.Type == RoomType.DataHall && r.Stage == Stage.Done) foreach (var fl in floors) fl.MaterialOverride = HallLook.Floor;
         var label = new Label3D
         {
             Text = Loc.T(Catalog.Rooms[r.Type].NameKey).ToUpperInvariant(),
             Font = _font, FontSize = 64, PixelSize = 0.012f, OutlineSize = 0,
             Modulate = new Color("#1d2a36", 0.55f),
-            Position = new Vector3(r.X + r.W / 2f, y + 0.04f, r.Z + r.D / 2f),
+            Position = LabelSpot(r, y + 0.04f),
             RotationDegrees = new Vector3(-90, 0, 0),
             Billboard = BaseMaterial3D.BillboardModeEnum.Disabled,
             DoubleSided = false,
         };
         root.AddChild(label);
+    }
+
+    /// <summary>Where a room's name goes: the middle of its box, or for an odd-shaped painted room the cell of the room closest to that.</summary>
+    static Vector3 LabelSpot(Room r, float y)
+    {
+        var cx = r.X + r.W / 2f; var cz = r.Z + r.D / 2f;
+        if (r.Cells.Count == 0 || r.Contains((int)cx, (int)cz)) return new Vector3(cx, y, cz);
+        var best = r.CellList().OrderBy(c => (c.x + 0.5f - cx) * (c.x + 0.5f - cx) + (c.z + 0.5f - cz) * (c.z + 0.5f - cz)).First();
+        return new Vector3(best.x + 0.5f, y, best.z + 0.5f);
     }
 
     // ---------------- construction sites ----------------
@@ -1032,8 +1086,25 @@ public partial class WorldView : Node3D
             if (b.Stage == Stage.Done && !Open(b)) continue;
             PlanRoom(_sites, r);
         }
+        // separate walls: planned (blueprint blue) or going up
+        foreach (var w in _state.Walls.Where(w => w.Stage != Stage.Done && w.Floor == _viewFloor))
+        {
+            var b = _state.Buildings.FirstOrDefault(x => x.Id == w.BuildingId);
+            if (b == null || (b.Stage == Stage.Done && !Open(b))) continue;
+            var y = Base(w.Floor);
+            if (_state.IsPlanned(w.Id)) { Walls(_sites, w.Edges(), y, 0.4f, new Color(Brand.Cooling, 0.55f), new Color(Brand.Cooling, 0.55f), null); continue; }
+            if (b.Stage != Stage.Done) continue;
+            var p = (float)GameState.StageProgress(w);
+            if (w.Glass) GlassWalls(_sites, w.Edges(), y, Math.Max(0.12f, CutH * p));
+            else Walls(_sites, w.Edges(), y, Math.Max(0.12f, CutH * p), Brand.Wall, new Color("#d5dade"), null);
+            foreach (var e in w.Edges())
+            {
+                var mid = e.dir == 0 ? new Vector3(e.x, y + 0.03f, e.z + 0.5f) : new Vector3(e.x + 0.5f, y + 0.03f, e.z);
+                Box(_sites, mid, e.dir == 0 ? new Vector3(0.5f, 0.02f, 0.9f) : new Vector3(0.9f, 0.02f, 0.5f), new Color(Brand.Amber, 0.8f));
+            }
+        }
         // rooms being built inside finished buildings
-        foreach (var r in _state.Rooms.Where(r => r.Stage != Stage.Done && !_state.IsPlanned(r)))
+        foreach (var r in _state.Rooms.Where(r => r.Walled && r.Stage != Stage.Done && !_state.IsPlanned(r)))
         {
             var b = _state.BuildingOf(r);
             if (b == null || b.Stage != Stage.Done || !Open(b) || r.Floor != _viewFloor) continue;
@@ -1856,5 +1927,50 @@ public partial class WorldView : Node3D
         var pos = d.Dir == 0 ? new Vector3(d.X, y + 1.1f, d.Z + w / 2f) : new Vector3(d.X + w / 2f, y + 1.1f, d.Z);
         var size = d.Dir == 0 ? new Vector3(0.4f, 2.2f, w) : new Vector3(w, 2.2f, 0.4f);
         _ghost.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = size }, Position = pos, MaterialOverride = GhostMat(ok ? Brand.Ok : Brand.Critical) });
+    }
+
+    /// <summary>Wall being dragged: a see-through wall on each edge, green where it goes up, red where it cannot.</summary>
+    public void ShowGhostWalls(IEnumerable<(int x, int z, int dir)> edges, ISet<(int x, int z, int dir)> free, int floor, string text, bool glass)
+    {
+        ClearGhost();
+        var y = Base(floor);
+        Vector3 last = default;
+        foreach (var e in edges)
+        {
+            var ok = free.Contains(e);
+            var pos = e.dir == 0 ? new Vector3(e.x, y + 0.6f, e.z + 0.5f) : new Vector3(e.x + 0.5f, y + 0.6f, e.z);
+            var size = e.dir == 0 ? new Vector3(0.16f, 1.2f, 1f) : new Vector3(1f, 1.2f, 0.16f);
+            _ghost.AddChild(new MeshInstance3D { Mesh = new BoxMesh { Size = size }, Position = pos, MaterialOverride = GhostMat(ok ? (glass ? Brand.Cooling : Brand.Ok) : Brand.Critical), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+            last = pos;
+        }
+        if (text != null)
+            _ghost.AddChild(new Label3D
+            {
+                Text = text, Font = _font, FontSize = 64, PixelSize = 0.014f, OutlineSize = 14, OutlineModulate = new Color("#111D2B"),
+                Modulate = Brand.Ink, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = true,
+                Position = last + new Vector3(0, 1.6f, 0),
+            });
+    }
+
+    /// <summary>Cells being painted with a room type (the paint tool), tinted in the room colour.</summary>
+    public void ShowGhostCells(IEnumerable<(int x, int z)> cells, Color c, int floor, string text)
+    {
+        ClearGhost();
+        var y = Base(floor);
+        var list = cells.ToList();
+        if (list.Count == 0) return;
+        var mm = new MultiMesh { TransformFormat = MultiMesh.TransformFormatEnum.Transform3D, Mesh = new PlaneMesh { Size = new Vector2(0.94f, 0.94f) }, InstanceCount = list.Count };
+        for (var i = 0; i < list.Count; i++) mm.SetInstanceTransform(i, new Transform3D(Basis.Identity, new Vector3(list[i].x + 0.5f, y + 0.07f, list[i].z + 0.5f)));
+        _ghost.AddChild(new MultiMeshInstance3D { Multimesh = mm, MaterialOverride = GhostMat(c), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+        if (text != null)
+        {
+            var cx = (float)list.Average(p => p.x) + 0.5f; var cz = (float)list.Average(p => p.z) + 0.5f;
+            _ghost.AddChild(new Label3D
+            {
+                Text = text, Font = _font, FontSize = 64, PixelSize = 0.014f, OutlineSize = 14, OutlineModulate = new Color("#111D2B"),
+                Modulate = Brand.Ink, Billboard = BaseMaterial3D.BillboardModeEnum.Enabled, NoDepthTest = true,
+                Position = new Vector3(cx, y + 2.2f, cz),
+            });
+        }
     }
 }

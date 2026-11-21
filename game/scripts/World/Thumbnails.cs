@@ -153,6 +153,27 @@ public partial class Thumbnails : Node
                 Tile(n, new Vector3(0, 0, 0.8f), new Vector2(w + 3.4f, 1.6f), Brand.Concrete);
                 break;
             }
+            case Mode.Wall:
+            {
+                // a short stretch of inner wall (or glass partition) standing on a floor tile
+                Tile(n, new Vector3(0, 0, 0), new Vector2(4.4f, 2.6f), Brand.Concrete);
+                if (item.Arg == 1)
+                {
+                    Box(n, new Vector3(0, 1.3f, 0), new Vector3(3.6f, 2.6f, 0.1f), new Color("#a9d8ee", 0.4f));
+                    Box(n, new Vector3(0, 2.58f, 0), new Vector3(3.6f, 0.08f, 0.16f), new Color("#3a4652"));
+                    Box(n, new Vector3(0, 0.04f, 0), new Vector3(3.6f, 0.08f, 0.16f), new Color("#3a4652"));
+                }
+                else Box(n, new Vector3(0, 1.3f, 0), new Vector3(3.6f, 2.6f, 0.18f), new Color("#e4e8eb"));
+                break;
+            }
+            case Mode.Unpaint:
+            {
+                // tiles half painted, half bare: the eraser takes the room colour off
+                Tile(n, new Vector3(-0.9f, 0, 0), new Vector2(1.8f, 3.2f), new Color(Catalog.Rooms[RoomType.UpsRoom].Color));
+                Tile(n, new Vector3(0.9f, 0, 0), new Vector2(1.8f, 3.2f), Brand.Concrete);
+                Box(n, new Vector3(0.2f, 0.35f, 0), new Vector3(1.2f, 0.5f, 0.7f), new Color("#ff9c92"));
+                break;
+            }
             default:
                 n.QueueFree();
                 return null;

@@ -40,6 +40,10 @@ public partial class Main : Node3D
     BuildItem _item = BuildItem.Select;
     int _rot, _floors = 1;
     bool _basement;
+    /// <summary>Paint tool options: draw the room with its own walls (the old way), or fill the whole closed space.</summary>
+    bool _roomWalls, _roomFill;
+    /// <summary>Wall tool: the grid corner where the drag started.</summary>
+    Vector2I? _wallStart;
     Facade _facade = Facade.Brick;
     Vector2I? _dragStart;
     // curve tool: first click sets the start, second the end, the mouse bends it, the third click builds
@@ -153,6 +157,8 @@ public partial class Main : Node3D
             FloorsChanged = f => { _floors = f; UpdateGhost(); },
             FacadeChanged = f => _facade = f,
             BasementChanged = on => { _basement = on; UpdateGhost(); },
+            RoomWallsChanged = on => { _roomWalls = on; UpdateGhost(); },
+            RoomFillChanged = on => { _roomFill = on; UpdateGhost(); },
             CyclePriority = CyclePriority,
             RotateLeft = () => _cam.RotateStep(1), RotateRight = () => _cam.RotateStep(-1), Walk = StartWalk, Photo = StartPhoto,
             ToggleGrid = () => _world.GridVisible = !_world.GridVisible,
@@ -176,7 +182,7 @@ public partial class Main : Node3D
         _ui.AddChild(_planBar);
         _ui.MoveChild(_planBar, 2);
         _playing = true; _speed = 1; _autosaveTimer = 0; _item = BuildItem.Select; _bankruptShown = false;
-        _inspectCell = null; SetOverlay(OverlayMode.None);
+        _inspectCell = null; _inspectDoor = -1; SetOverlay(OverlayMode.None);
         _hud.UpdateStats(_state);
         _history.Clear(); RefreshUndo();
         UpdateGoals();
@@ -539,7 +545,7 @@ public partial class Main : Node3D
             var dx = Math.Max(0, Math.Max(sb.X - t.X, t.X - (sb.X + sb.W))); var dz = Math.Max(0, Math.Max(sb.Z - t.Z, t.Z - (sb.Z + sb.D)));
             site = Math.Max(site, Mathf.Clamp(1 - (float)Math.Sqrt(dx * dx + dz * dz) / 25f, 0, 1));
         }
-        if (_state.Rooms.Any(r => r.Stage != Stage.Done && !_state.IsPlanned(r) && Math.Abs(r.X + r.W / 2f - t.X) < 12 && Math.Abs(r.Z + r.D / 2f - t.Z) < 12)) site = Math.Max(site, 0.5f);
+        if (_state.Rooms.Any(r => r.Walled && r.Stage != Stage.Done && !_state.IsPlanned(r) && Math.Abs(r.X + r.W / 2f - t.X) < 12 && Math.Abs(r.Z + r.D / 2f - t.Z) < 12)) site = Math.Max(site, 0.5f);
         var near = _walking ? 1 : 0.35f + 0.65f * zoom;
         _sound.Outdoor = (inside ? 0.08f : 1f) * near;
         _sound.Office = office ? near : 0;
@@ -560,7 +566,7 @@ public partial class Main : Node3D
         if (_item.Mode != Mode.Select) _hud.Pick(BuildItem.Select);
         _world.ClearGhost();
         _world.GridVisible = false;
-        _inspectCell = null;
+        _inspectCell = null; _inspectDoor = -1;
         _fp.Bounds = _cam.Bounds;
         var floor = _world.Roofs ? 0 : _world.ViewFloor;
         _fp.Begin(_state, _sim.Nav, _cam.TargetPoint, floor, _cam.Yaw);
@@ -608,7 +614,7 @@ public partial class Main : Node3D
         StopWalk();
         CloseDrawer();
         if (_item.Mode != Mode.Select) _hud.Pick(BuildItem.Select);
-        _world.ClearGhost(); _inspectCell = null;
+        _world.ClearGhost(); _inspectCell = null; _inspectDoor = -1;
         _speedBeforePhoto = _speed; _speed = 0; _hud.SetSpeed(0);
         _gridBeforePhoto = _world.GridVisible; _world.GridVisible = false;
         _hud.Visible = false;
@@ -770,7 +776,7 @@ public partial class Main : Node3D
             var cell = RoofItem ? RoofCell(mm.Position) ?? CellOf(p.Value) : CellOf(p.Value);
             var doorMoved = _item.Mode == Mode.Door && DoorAt(p.Value) is var a && DoorAt(_hoverPoint) is var b && (a.X != b.X || a.Z != b.Z || a.Dir != b.Dir);
             _hoverPoint = p.Value;
-            if (_item.Mode == Mode.Curve) { _hoverCell = cell; UpdateGhost(); }
+            if (_item.Mode is Mode.Curve or Mode.Wall) { _hoverCell = cell; UpdateGhost(); }
             else if (cell != _hoverCell || doorMoved) { _hoverCell = cell; UpdateGhost(); }
         }
         if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left } mb)
@@ -784,14 +790,21 @@ public partial class Main : Node3D
                 {
                     case Mode.Select:
                         var roof = _world.Roofs ? RoofCell(mb.Position) : null;
-                        Inspect(roof ?? c, roof != null);
+                        if (roof == null && !_world.Roofs && DoorNear(p.Value) is { } near) InspectDoor(near);
+                        else Inspect(roof ?? c, roof != null);
                         break;
                     case Mode.Object: PlaceObject(RoofItem ? RoofCell(mb.Position) ?? c : c); break;
                     case Mode.Door: PlaceDoor(DoorAt(p.Value)); break;
                     case Mode.Curve: CurveClick(Snap(p.Value)); break;
+                    case Mode.Wall: _wallStart = Corner(p.Value); break;
                     default: _dragStart = c; break;
                 }
                 UpdateGhost();
+            }
+            else if (_wallStart != null)
+            {
+                PlaceWall(_wallStart.Value, Corner(p.Value));
+                _wallStart = null; UpdateGhost();
             }
             else if (_dragStart != null)
             {
@@ -827,6 +840,53 @@ public partial class Main : Node3D
     }
 
     string Dim(Rect2I r) => $"{r.Size.X} × {r.Size.Y} m";
+
+    /// <summary>The grid corner closest to a point: walls are drawn from corner to corner.</summary>
+    static Vector2I Corner(Vector2 p) => new(Mathf.RoundToInt(p.X), Mathf.RoundToInt(p.Y));
+
+    /// <summary>The edges of the wall being dragged, or the one edge under the mouse before the drag starts.</summary>
+    List<(int x, int z, int dir)> WallDrag()
+    {
+        if (_wallStart is { } a) { var b = Corner(_hoverPoint); return GameState.WallLine(a.X, a.Y, b.X, b.Y); }
+        var d = DoorAt(_hoverPoint);
+        return new List<(int x, int z, int dir)> { (d.X, d.Z, d.Dir) };
+    }
+
+    void PlaceWall(Vector2I a, Vector2I b)
+    {
+        var glass = _item.Arg == 1;
+        var line = GameState.WallLine(a.X, a.Y, b.X, b.Y);
+        if (line.Count == 0) return;
+        _state.Planning = _planMode;
+        var why = _state.CanWalls(_world.ViewFloor, line, out _, glass);
+        _state.Planning = false;
+        if (why != null) { if (why != "msg_nothing_changed") Fail(why); return; }
+        var before = UndoHistory.Take(_state);
+        PlanBegin(true);
+        _state.AddWalls(_world.ViewFloor, a.X, a.Y, b.X, b.Y, glass);
+        PlanEnd();
+        Record(before, _item.NameKey);
+        _hud.UpdateStats(_state);
+    }
+
+    /// <summary>The cells the paint tool would colour now: the drag, or with "whole space" every cell of the spaces under it.</summary>
+    List<(int x, int z)> PaintCells(Rect2I r)
+    {
+        var f = _world.ViewFloor;
+        var m = _state.Spaces(f, false);
+        var cells = new List<(int x, int z)>();
+        for (var z = r.Position.Y; z < r.End.Y; z++)
+            for (var x = r.Position.X; x < r.End.X; x++)
+                if (m.At(x, z) != 0) cells.Add((x, z));
+        if (!_roomFill) return cells;
+        var labels = cells.Select(c => m.At(c.x, c.z)).ToHashSet();
+        var all = new List<(int x, int z)>();
+        foreach (var b in _state.Buildings.Where(b => b.HasFloor(f)))
+            for (var z = b.Z; z < b.Z + b.D; z++)
+                for (var x = b.X; x < b.X + b.W; x++)
+                    if (labels.Contains(m.At(x, z))) all.Add((x, z));
+        return all;
+    }
 
     void UpdateGhost()
     {
@@ -881,6 +941,29 @@ public partial class Main : Node3D
                 var text = _dragStart == null ? null : $"{Dim(r)} · {Loc.T("hud_floors_n", _floors)}" + (cellar ? $" + {Loc.T("hud_floor_basement")}" : "") + $" · {Ui.Money(cost)}" + (why != null ? "\n" + Loc.T(why) : "");
                 _world.ShowGhostRect(r, why == null ? Brand.Ok : Brand.Critical, 0, text);
                 break;
+            case Mode.Room when !_roomWalls:
+            {
+                // the paint tool: tint the cells in the room colour; a room of another type under the brush changes as a whole
+                var pt = (RoomType)_item.Arg;
+                var pcells = PaintCells(r);
+                var under = _state.Rooms.Where(x => x.Floor == _world.ViewFloor && x.Type != pt && pcells.Any(c => x.Contains(c.x, c.z))).ToList();
+                var ptext = $"{Loc.T(Catalog.Rooms[pt].NameKey)} · {pcells.Count} m²" + (under.Count > 0 ? "\n" + Loc.T("paint_changes", string.Join(", ", under.Select(x => Loc.T(Catalog.Rooms[x.Type].NameKey)).Distinct())) : "");
+                if (pcells.Count == 0) _world.ShowGhostRect(r, Brand.Critical, WorldView.Base(_world.ViewFloor), _dragStart == null ? null : Loc.T("msg_room_in_building"));
+                else _world.ShowGhostCells(pcells, new Color(Catalog.Rooms[pt].Color), _world.ViewFloor, _dragStart == null && !_roomFill ? null : ptext);
+                break;
+            }
+            case Mode.Unpaint:
+                _world.ShowGhostRect(r, Brand.Critical, WorldView.Base(_world.ViewFloor), _dragStart == null ? null : Loc.T("tool_unpaint") + " · " + Dim(r));
+                break;
+            case Mode.Wall:
+            {
+                var line = WallDrag();
+                var glass = _item.Arg == 1;
+                var wwhy = _state.CanWalls(_world.ViewFloor, line, out var free, glass);
+                var wtext = _wallStart == null ? null : $"{Loc.T(_item.NameKey)} · {free.Count} m · {Ui.Money(GameState.WallCost(free.Count, glass))}" + (wwhy != null && wwhy != "msg_nothing_changed" ? "\n" + Loc.T(wwhy) : "");
+                _world.ShowGhostWalls(line, free.ToHashSet(), _world.ViewFloor, wtext, glass);
+                break;
+            }
             case Mode.Room:
                 var rt = (RoomType)_item.Arg;
                 var rwhy = _dragStart == null ? null : _state.CanRoom(rt, r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, _world.ViewFloor);
@@ -890,7 +973,9 @@ public partial class Main : Node3D
                 break;
             case Mode.Door:
                 var door = DoorAt(_hoverPoint);
-                _world.ShowGhostDoor(door, _state.CanDoor(door) == null);
+                if (SwapTarget(door) is { } swap)
+                    _world.ShowGhostDoor(new Door { Type = door.Type, X = swap.X, Z = swap.Z, Dir = swap.Dir, Floor = swap.Floor }, _state.CanSwapDoor(swap, door.Type) == null);
+                else _world.ShowGhostDoor(door, _state.CanDoor(door) == null);
                 break;
             case Mode.Object:
                 var gk = (ObjKind)_item.Arg;
@@ -1022,7 +1107,17 @@ public partial class Main : Node3D
         switch (_item.Mode)
         {
             case Mode.Erase:
-                if (_state.Erase(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, _world.ViewFloor, _world.Roofs && _world.ViewFloor == 0)) _hud.UpdateStats(_state);
+                var ew = _state.Erase((EraseKind)_item.Arg, r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, _world.ViewFloor, _world.Roofs && _world.ViewFloor == 0);
+                if (ew == null) _hud.UpdateStats(_state);
+                else if (ew != "msg_nothing_changed") Fail(ew);
+                break;
+            case Mode.Unpaint:
+                var uw = _state.UnpaintRoom(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, _world.ViewFloor);
+                if (uw != null && uw != "msg_nothing_changed") Fail(uw);
+                break;
+            case Mode.Room when !_roomWalls:
+                var pw = _state.PaintRoom((RoomType)_item.Arg, r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, _world.ViewFloor, _roomFill);
+                if (pw != null && pw != "msg_nothing_changed") Fail(pw);
                 break;
             case Mode.Surface:
                 var why = _state.PaintSurface(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, (Surface)_item.Arg, out _);
@@ -1081,8 +1176,17 @@ public partial class Main : Node3D
         _hud.UpdateStats(_state);
     }
 
+    /// <summary>An existing door under a new door of another type that it can be changed into on the spot.</summary>
+    Door SwapTarget(Door d)
+    {
+        var existing = _state.Doors.FirstOrDefault(o => o.Floor == d.Floor && o.Edges().Intersect(d.Edges()).Any());
+        return existing != null && existing.Type != d.Type && _state.DoorSwaps(existing).Contains(d.Type) ? existing : null;
+    }
+
     void PlaceDoor(Door d)
     {
+        // a door of another type on top of an existing one: change it on the spot instead of refusing
+        if (SwapTarget(d) is { } existing) { SwapDoor(existing, d.Type); return; }
         _state.Planning = _planMode;
         var why = _state.CanDoor(d);
         _state.Planning = false;
@@ -1117,7 +1221,69 @@ public partial class Main : Node3D
 
     void RefreshInspect()
     {
-        if (_inspectCell != null) Inspect(_inspectCell.Value, _inspectRoof);
+        if (_inspectDoor >= 0) { var d = _state.Doors.FirstOrDefault(x => x.Id == _inspectDoor); if (d != null) InspectDoor(d); else { _inspectDoor = -1; _hud.Inspect(null, null); } }
+        else if (_inspectCell != null) Inspect(_inspectCell.Value, _inspectRoof);
+    }
+
+    /// <summary>The door being shown in the inspector (-1 = none).</summary>
+    int _inspectDoor = -1;
+
+    /// <summary>A door on the view floor whose opening lies close to the mouse, or null.</summary>
+    Door DoorNear(Vector2 p)
+    {
+        const float reach = 0.35f;
+        foreach (var d in _state.Doors.Where(x => x.Floor == _world.ViewFloor))
+            foreach (var (x, z, dir) in d.Edges())
+            {
+                var near = dir == 0 ? Math.Abs(p.X - x) < reach && p.Y >= z && p.Y <= z + 1 : Math.Abs(p.Y - z) < reach && p.X >= x && p.X <= x + 1;
+                if (near) return d;
+            }
+        return null;
+    }
+
+    /// <summary>Door inspector: what the door is, the rooms it joins, and swaps on the spot (badge reader, narrower, fire door).</summary>
+    void InspectDoor(Door d)
+    {
+        _inspectDoor = d.Id; _inspectCell = null;
+        var def = Catalog.Doors[d.Type];
+        var lines = new List<string>
+        {
+            Loc.T("inspect_door_width", def.Width, Ui.FloorName(d.Floor)),
+            def.Secure ? Loc.T("inspect_door_secure") : Loc.T("inspect_door_open"),
+            def.Carry ? Loc.T("inspect_door_racks") : Loc.T("inspect_door_no_racks"),
+        };
+        var (ex, ez, dir) = d.Edges().First();
+        var a = dir == 0 ? _state.RoomAt(ex - 1, ez, d.Floor) : _state.RoomAt(ex, ez - 1, d.Floor);
+        var b = _state.RoomAt(ex, ez, d.Floor);
+        string Name(Room r) => r == null ? Loc.T("room_none") : Loc.T(Catalog.Rooms[r.Type].NameKey);
+        lines.Add(Loc.T("inspect_door_rooms", Name(a) + " ↔ " + Name(b)));
+        var actions = new List<(string, Action, bool)>();
+        // the badge-reader version first: that is what the player usually comes for
+        var swaps = _state.DoorSwaps(d).OrderByDescending(t => GameState.BadgeVersion(d) == t).ThenBy(t => Catalog.Doors[t].Cost).ToList();
+        foreach (var t in swaps)
+        {
+            if (t == DoorType.Mantrap && !_state.Done("sec_mantrap")) continue;
+            var cost = _state.DoorSwapCost(d, t);
+            var to = t; var door = d;
+            var label = cost >= 0 ? Loc.T("action_door_swap", Loc.T(Catalog.Doors[t].NameKey), Ui.Money(cost)) : Loc.T("action_door_swap_back", Loc.T(Catalog.Doors[t].NameKey), Ui.Money(-cost));
+            actions.Add((label, () => SwapDoor(door, to), _state.CanSwapDoor(d, t) == null));
+        }
+        _hud.Inspect(Loc.T(def.NameKey), lines, actions);
+    }
+
+    /// <summary>Change a door on the spot, recorded for undo.</summary>
+    void SwapDoor(Door d, DoorType t)
+    {
+        var before = UndoHistory.Take(_state);
+        var why = _state.SwapDoor(d, t);
+        if (why == null)
+        {
+            Record(before, Catalog.Doors[t].NameKey);
+            _hud.Notify(Loc.T("msg_door_swapped", Loc.T(Catalog.Doors[t].NameKey)), Brand.Ok);
+            var now = _state.Doors.FirstOrDefault(x => x.Id == d.Id);
+            if (now != null && _inspectDoor == d.Id) InspectDoor(now);
+        }
+        Act(why);
     }
 
     static string Kw(double v) => $"{v:0} kW";
@@ -1126,7 +1292,7 @@ public partial class Main : Node3D
 
     void Inspect(Vector2I c, bool roof = false)
     {
-        _inspectCell = c; _inspectRoof = roof;
+        _inspectCell = c; _inspectRoof = roof; _inspectDoor = -1;
         var f = _world.ViewFloor;
         var infra = _state.Infra;
         var o = roof ? _state.ObjectAt(c.X, c.Y, GameState.RoofFloor) : _state.ObjectAt(c.X, c.Y, f);
@@ -1252,9 +1418,21 @@ public partial class Main : Node3D
         var b = _state.BuildingAt(c.X, c.Y);
         if (r != null && !_world.Roofs)
         {
-            var lines = new List<string> { $"{r.W} × {r.D} m · {Ui.FloorName(f)}" };
+            var lines = new List<string> { (r.Walled ? $"{r.W} × {r.D} m" : $"{r.Area} m²") + $" · {Ui.FloorName(f)}" };
             var actions = new List<(string, Action, bool)>();
-            lines.Add(r.Stage == Stage.Done ? Loc.T("inspect_ready") : Loc.T("inspect_building_walls", Mathf.RoundToInt(GameState.StageProgress(r) * 100)));
+            var issue = _state.RoomIssue(r);
+            lines.Add(r.Stage == Stage.Done ? Loc.T("inspect_ready")
+                : issue != null ? "⚠ " + Loc.T(issue)
+                : Loc.T("inspect_building_walls", Mathf.RoundToInt(GameState.StageProgress(r) * 100)));
+            // the room's checklist: what its function needs at least (✓ there, ○ still missing)
+            lines.Add(Loc.T("inspect_room_needs"));
+            foreach (var n in _state.RoomChecklist(r))
+                lines.Add((n.Ok ? "✓ " : "○ ") + Loc.T(n.Key) + (n.Need > 1 || n.Have > 1 ? $" ({n.Have}/{n.Need})" : ""));
+            if (r.Type is RoomType.DataHall or RoomType.MeetMe)
+            {
+                var (sec, doors) = _state.RoomBadges(r);
+                if (doors > 0) lines.Add((sec == doors ? "✓ " : "• ") + Loc.T("inspect_room_badges", sec, doors));
+            }
             if (r.Type == RoomType.DataHall)
             {
                 var hi = infra.Halls.FirstOrDefault(h => h.Room == r);
@@ -1490,6 +1668,60 @@ public partial class Main : Node3D
                 _sim.Agents.Add(new Agent { Id = 990001, Role = Role.Engineer, X = 13.5, Z = 9.2, Heading = 0 });
                 _sim.Agents.Add(new Agent { Id = 990002, Role = Role.Staff, X = 20.5, Z = 8.6, Heading = Math.PI });
                 _cam.SetView(0.45f, 0.62f, 13, new Vector3(16, 0, 9));
+            }
+            if (args.Contains("--door-inspect"))
+            {
+                // doors changed on the spot: the front door gets a badge reader, the inspector shows a single door's swaps
+                var front = g.Doors.First(d => d.Type == DoorType.Double);
+                g.SwapDoor(front, DoorType.BadgeDouble);
+                InspectDoor(g.Doors.First(d => d.X == 13 && d.Z == 9));
+                _cam.SetView(0.45f, 0.75f, 15, new Vector3(16, 0, 11));
+            }
+        }
+        else if (args.Contains("--rooms-demo"))
+        {
+            // rooms by walls and paint: a datacenter split by a solid and a glass wall, painted as hall, UPS room and MMR
+            var g = GameState.New(new NewGameOptions { Company = "Polder Datacenters", Creative = true, CreativeOptions = new CreativeOptions { UnlimitedMoney = true, AllUnlocks = true, InstantBuild = true } });
+            g.AddBuilding(BuildingKind.Datacenter, 4, 4, 24, 14, 1);
+            g.AddWalls(0, 16, 4, 16, 18);
+            g.AddWalls(0, 16, 11, 28, 11, glass: true);
+            g.PaintRoom(RoomType.DataHall, 4, 4, 12, 14, 0, fill: true);
+            g.PaintRoom(RoomType.UpsRoom, 16, 4, 12, 7, 0, fill: true);
+            g.PaintRoom(RoomType.MeetMe, 16, 11, 12, 7, 0, fill: true);
+            g.AddDoor(DoorType.BadgeDouble, 8, 18, 1, 0);
+            g.AddDoor(DoorType.Single, 16, 7, 0, 0);
+            g.AddDoor(DoorType.Badge, 16, 14, 0, 0);
+            g.Touch(); g.RefreshRooms();
+            for (var x = 6; x <= 13; x++) { g.AddObject(ObjKind.Rack, x, 8, 0, 0); g.AddObject(ObjKind.Rack, x, 12, 2, 0); }
+            g.AddObject(ObjKind.Crah, 5, 16, 0, 0);
+            g.AddObject(ObjKind.Ups, 19, 5, 0, 0); g.AddObject(ObjKind.Battery, 24, 6, 0, 0);
+            g.AddObject(ObjKind.Odf, 20, 15, 0, 0);
+            StartGame(g, false);
+            SetView(0, false);
+            _speed = 0;
+            _cam.SetView(0.4f, 0.95f, 24, new Vector3(16, 0, 11));
+            var mode = Array.IndexOf(args, "--rooms-demo") + 1 < args.Length ? args[Array.IndexOf(args, "--rooms-demo") + 1] : "";
+            switch (mode)
+            {
+                case "wall":
+                    _hud.OpenCategory("cat_rooms");
+                    _hud.Pick(new BuildItem(Mode.Wall, 0));
+                    _wallStart = new Vector2I(4, 15); _hoverPoint = new Vector2(16, 15);
+                    UpdateGhost();
+                    break;
+                case "paint":
+                    _hud.OpenCategory("cat_rooms");
+                    _hud.Pick(new BuildItem(Mode.Room, (int)RoomType.Battery));
+                    _dragStart = new Vector2I(22, 5); _hoverCell = new Vector2I(26, 9);
+                    UpdateGhost();
+                    break;
+                case "erase":
+                    _hud.Pick(new BuildItem(Mode.Erase, (int)EraseKind.Wall));
+                    break;
+                case "inspect":
+                    Inspect(new Vector2I(22, 15));
+                    _cam.SetView(0.7f, 0.8f, 15, new Vector3(20, 0, 13));
+                    break;
             }
         }
         else if (args.Contains("--showcase"))
