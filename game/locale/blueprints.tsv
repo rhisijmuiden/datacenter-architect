@@ -1,0 +1,40 @@
+key	en	nl
+# Hall blueprints (infra sketch board 8)
+bp_tool	Blueprint	Blauwdruk
+bp_library	Blueprints	Blauwdrukken
+bp_library_tip	Your saved hall designs: place, rename or delete them	Je opgeslagen halontwerpen: plaatsen, hernoemen of verwijderen
+bp_library_title	Blueprints	Blauwdrukken
+bp_library_note	Hall designs you saved. They belong to your profile, so you can use them in every game. A blueprint keeps what stands in the hall, not who rents it.	Halontwerpen die je hebt opgeslagen. Ze horen bij je profiel, dus je kunt ze in elk spel gebruiken. Een blauwdruk bewaart wat er in de hal staat, niet wie er huurt.
+bp_none	No blueprints yet. Click a data hall and choose Save as blueprint, or design one for free in plan mode (B) first.	Nog geen blauwdrukken. Klik op een datahal en kies Opslaan als blauwdruk, of ontwerp er eerst gratis een in de planmodus (B).
+bp_save_hall	Save as blueprint	Opslaan als blauwdruk
+bp_save_title	Save as blueprint	Opslaan als blauwdruk
+bp_save_note	Saves the walls, doors, racks, PDUs, edge switches, CRAHs, containment and busbar of this hall. Place copies from Build › Data halls; R turns them, M mirrors them.	Bewaart de muren, deuren, racks, PDU's, edge switches, CRAH's, insluiting en busbar van deze hal. Plaats kopieën via Bouwen › Datazalen; R draait, M spiegelt.
+bp_name	Name of the blueprint	Naam van de blauwdruk
+bp_save	Save	Opslaan
+bp_place	Place	Plaatsen
+bp_delete	Delete	Verwijderen
+bp_delete_sure	Click again to delete	Klik nog eens om te verwijderen
+bp_rename_tip	Type a new name and press Enter	Typ een nieuwe naam en druk op Enter
+bp_default_name	Like {0} · {1} racks	Zoals {0} · {1} racks
+bp_spec	{0} racks · {1} × {2} m	{0} racks · {1} × {2} m
+bp_size	{0} × {1} m · {2} m²	{0} × {1} m · {2} m²
+bp_price	About {0} on an empty floor	Ongeveer {0} op een lege vloer
+bp_racks	{0} racks	{0} racks
+bp_pdus	{0} PDU	{0} PDU
+bp_busbar	busbar A+B	busbar A+B
+bp_switches	{0} edge switch	{0} edge switch
+bp_crahs	{0} CRAH	{0} CRAH
+bp_keys	Click to place · R turns · M mirrors · Esc stops	Klik om te plaatsen · R draait · M spiegelt · Esc stopt
+bp_capped_containment	Cold corridor needs research: the copy gets hot/cold aisles	Koude-gang-insluiting vraagt onderzoek: de kopie krijgt warme/koude gangen
+hint_blueprint	Move the copy into an empty part of a building and click. R turns it, M mirrors it. Everything goes on the building list at once; your crews build it.	Schuif de kopie in een leeg stuk van een gebouw en klik. R draait, M spiegelt. Alles gaat in één keer op de bouwlijst; je personeel bouwt het zelf.
+msg_bp_saved	Blueprint saved: {0}	Blauwdruk opgeslagen: {0}
+msg_bp_placed	{0} placed as {1}: {2} items ordered for {3}	{0} geplaatst als {1}: {2} onderdelen besteld voor {3}
+msg_bp_planned	{0} planned as {1}: {2} items in the plan, {3} when built	{0} gepland als {1}: {2} onderdelen in het plan, {3} bij bouwen
+msg_bp_skipped	{0} parts did not fit here and were left out	{0} onderdelen pasten hier niet en zijn weggelaten
+msg_bp_in_building	The whole blueprint must lie inside a building, on a floor it has	De hele blauwdruk moet in een gebouw liggen, op een verdieping die het heeft
+msg_bp_one_building	The blueprint must fit in one building	De blauwdruk moet in één gebouw passen
+msg_bp_room_in_way	Another room is in the way: find an empty part of the floor	Er ligt een andere ruimte in de weg: zoek een leeg stuk vloer
+msg_bp_object_in_way	Something already stands there	Daar staat al iets
+msg_bp_wall_in_way	A wall runs through the spot: the hall would be cut in two	Er loopt een muur door die plek: de hal zou in tweeën worden gedeeld
+msg_bp_invalid	This blueprint cannot be saved	Deze blauwdruk kan niet worden opgeslagen
+msg_bp_full	The library is full (60 blueprints): delete one first	De bibliotheek is vol (60 blauwdrukken): verwijder er eerst een

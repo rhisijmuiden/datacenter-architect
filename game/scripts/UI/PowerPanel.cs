@@ -24,12 +24,12 @@ public partial class PowerPanel : Modal
     static string N(double v, string f = "N0") => v.ToString(f, Loc.Language == "nl" ? new CultureInfo("nl-NL") : new CultureInfo("en-GB"));
     static string Kw(double v) => v >= 10000 ? N(v / 1000, "0.0") + " MW" : N(v) + " kW";
 
-    public const int TabOverview = 0, TabTree = 1;
+    public const int TabOverview = 0, TabTree = 1, TabEnergy = 2;
     int _tab;
 
     public PowerPanel(Func<GameState> state, Action<string> fail, int tab = 0) : base("power_title", 980)
     {
-        _state = state; _fail = fail; _tab = Math.Clamp(tab, 0, 1);
+        _state = state; _fail = fail; _tab = Math.Clamp(tab, 0, 2);
         var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 640), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         _content = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _content.AddThemeConstantOverride("separation", 8);
@@ -41,7 +41,7 @@ public partial class PowerPanel : Modal
 
     public override void SelectTab(int tab)
     {
-        _tab = Math.Clamp(tab, 0, 1); _sig = null;
+        _tab = Math.Clamp(tab, 0, 2); _sig = null;
         Refresh();
     }
 
@@ -58,7 +58,7 @@ public partial class PowerPanel : Modal
         var s = _state();
         if (s == null) return;
         var r = s.Infra;
-        var sig = _tab == TabTree ? TreeSig(s, r) : $"{s.GridLevel}:{s.GridRequest}:{s.GridQueuePlace}:{s.Supplier}:{s.Rooms.Count(x => x.Type == RoomType.DataHall)}:{Loc.Language}:{s.Rooms.Sum(x => (int)x.Containment + (x.Busbar ? 10 : 0) + x.Upgrade * 100)}";
+        var sig = _tab == TabEnergy ? EnergySig(s) : _tab == TabTree ? TreeSig(s, r) : $"{s.GridLevel}:{s.GridRequest}:{s.GridQueuePlace}:{s.Supplier}:{s.Rooms.Count(x => x.Type == RoomType.DataHall)}:{Loc.Language}:{s.Rooms.Sum(x => (int)x.Containment + (x.Busbar ? 10 : 0) + x.Upgrade * 100)}";
         if (sig != _sig) { _sig = sig; Build(s); }
         foreach (var u in _updaters) u(s, r);
     }
@@ -85,6 +85,7 @@ public partial class PowerPanel : Modal
         foreach (var c in _content.GetChildren()) c.QueueFree();
         _updaters.Clear();
         if (_tab == TabTree) { BuildTree(s, s.Infra); return; }
+        if (_tab == TabEnergy) { BuildEnergy(s); return; }
         var cols = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         cols.AddThemeConstantOverride("separation", 28);
         _content.AddChild(cols);

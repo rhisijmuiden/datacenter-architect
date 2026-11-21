@@ -331,6 +331,7 @@ public partial class ReputationPanel : Modal
             var n = Plain(Loc.T(def.Key), 17); n.AddThemeFontOverride("font", Ui.BodySemi); n.SizeFlagsHorizontal = SizeFlags.ExpandFill;
             head.AddChild(n);
             string status = c == null ? Loc.T("cert_none")
+                : c.Suspended ? Loc.T("cert_suspended")
                 : c.AuditEnds > 0 ? Loc.T("cert_auditing", N(Math.Max(0, c.AuditEnds - s.Day), "0"))
                 : Loc.T("cert_valid_until", When(c.ExpiresDay));
             head.AddChild(Plain(status, 13, c?.Valid == true ? Brand.Ok : c?.AuditEnds > 0 ? Brand.Amber : Brand.InkDim));

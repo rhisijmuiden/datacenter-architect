@@ -15,7 +15,7 @@ public partial class GameState
     public double EnergyDrift { get; set; }
     public double SpikeFactor { get; set; } = 1;
     public double SpikeUntil { get; set; }
-    /// <summary>The battery container trades on the energy market: charge when cheap, sell back when expensive.</summary>
+    /// <summary>Old switch (before save format 14) for battery trading; read once by MigrateOwnEnergy, now BatteryUse.</summary>
     public bool BatteryTrading { get; set; } = true;
     /// <summary>Yesterday's results, for the screens.</summary>
     public double SolarKwhDay { get; set; }
@@ -63,42 +63,34 @@ public partial class GameState
     public double SolarKwh(int month) => SolarPanels * SolarKwp * SunHours[Math.Clamp(month - 1, 0, 11)] * 0.85 * SunFactor;
     public double WindKwh(int month) => WindTurbines * WindKw * 24 * (0.24 + 0.1 * Math.Cos(2 * Math.PI * (month - 1) / 12.0));
 
-    /// <summary>Share of the energy you use that is green: a green supplier is 100%, else your own solar and wind.</summary>
-    [JsonIgnore]
-    public double RenewableShare
-    {
-        get
-        {
-            if (Catalog.Suppliers[Supplier].Green) return 1;
-            var use = Infra.FacilityKw * 24;
-            if (use <= 0) return SolarPanels + WindTurbines > 0 ? 1 : 0;
-            return Math.Min(1, (SolarKwh(Date.Month) + WindKwh(Date.Month)) / use);
-        }
-    }
+    /// <summary>Share of the energy you use that is your own (solar, wind and battery), over 30 days. A green supplier no longer counts.</summary>
+    [JsonIgnore] public double RenewableShare => OwnShare30;
 
-    [JsonIgnore] public bool GreenPower => Catalog.Suppliers[Supplier].Green || RenewableShare >= 0.5;
+    /// <summary>Green energy for the ESG score: your own power, or a green supplier contract.</summary>
+    [JsonIgnore] public double EsgRenewable => Catalog.Suppliers[Supplier].Green ? 1 : RenewableShare;
+
+    /// <summary>Holds the green datacenter label (customers that want green energy look at the label).</summary>
+    [JsonIgnore] public bool GreenPower => GreenLabel;
 
     /// <summary>Battery trading per day: buy the cheapest hours, sell the dearest, with 90% round-trip efficiency.</summary>
     public double BatteryProfit()
     {
-        if (!BatteryTrading || TradeKwh <= 0) return 0;
+        if (BatteryUse == BatteryMode.Own || TradeKwh <= 0) return 0;
         var prices = Enumerable.Range(0, 24).Select(SpotPrice).OrderBy(p => p).ToList();
         var cheap = prices.Take(4).Average(); var dear = prices.Skip(20).Average();
         var spread = Math.Max(0, dear * 0.9 - cheap);
         if (!Options.DynamicPrices) spread = SpotBase * 0.08;
-        return TradeKwh * spread * (Done("pwr_peak") ? 1.3 : 1) * (Has(KeyRole.EnergyTrader) ? 1.25 : 1);
+        // smart: only the part of the battery your own surplus did not need goes to the market
+        var free = BatteryUse == BatteryMode.Smart ? Math.Clamp(1 - (LastEnergy?.Charged ?? 0) / TradeKwh, 0, 1) : 1;
+        return TradeKwh * free * spread * (Done("pwr_peak") ? 1.3 : 1) * (Has(KeyRole.EnergyTrader) ? 1.25 : 1);
     }
 
-    /// <summary>Grid energy cost for a day, after your own solar and wind. Extra own power is sold at 60% of the market price.</summary>
-    double EnergyCostDay(InfraReport infra)
+    /// <summary>Energy cost of the day: grid power bought minus surplus sold, from the hourly balance (SimulateEnergyDay).</summary>
+    double EnergyCostDay(int day)
     {
-        var use = infra.FacilityKw * 24;
-        var own = SolarKwh(Date.Month) + WindKwh(Date.Month);
-        SolarKwhDay = SolarKwh(Date.Month); WindKwhDay = WindKwh(Date.Month);
-        var price = EnergyPrice() * (1 - EnergyDiscount);
-        var grid = Math.Max(0, use - own);
-        var sold = Math.Max(0, own - use) * SpotBase * EnergyIndex * 0.6;
-        return grid * price - sold;
+        var rec = LastEnergy;
+        if (rec == null || rec.Day != day) rec = SimulateEnergyDay(day);
+        return rec.GridEur - rec.SoldEur;
     }
 
     /// <summary>Cooling towers evaporate water (about 1.8 litres per kWh of heat they reject); chillers and dry coolers use none.</summary>
@@ -128,7 +120,7 @@ public partial class GameState
         var pue = inf.Pue > 0 ? inf.Pue : 1.6;
         var list = new List<EsgLine>
         {
-            new("esg_renewable", Math.Round(30 * RenewableShare), 30),
+            new("esg_renewable", Math.Round(30 * EsgRenewable), 30),
             new("esg_pue", Math.Round(Math.Clamp((2.0 - pue) / 0.8, 0, 1) * 25), 25),
             new("esg_water", Math.Round(Math.Clamp(1 - Wue / 1.8, 0, 1) * 15), 15),
             new("esg_heat", Done("cool_heat") ? 10 : 0, 10),
@@ -156,6 +148,8 @@ public partial class GameState
                 Notes.Add((cheap ? "msg_energy_cheap" : "msg_energy_spike", null));
             }
         }
+        if (LastEnergy?.Day != day) SimulateEnergyDay(day);
+        GreenDay(day);
         EnergyHistory.Add(Math.Round(SpotBase * EnergyIndex * 1000) / 1000);
         if (EnergyHistory.Count > 60) EnergyHistory.RemoveAt(0);
         WaterM3Day = WaterM3PerDay;

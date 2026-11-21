@@ -131,7 +131,7 @@ public partial class GrowthPanel : Modal
     string Signature(GameState s) =>
         $"{_tab}|{_country}|{Loc.Language}|{(int)s.Day}|{s.Money / 10000}|{s.PlotSize}|{s.Sites.Count}:{string.Join(",", s.Sites.Select(x => $"{x.Occupied}{x.Built}{x.Linked}{x.UpgradeTo}"))}|{string.Join(",", s.OpenCountries)}|" +
         $"{s.Offers.Count}|{s.Leases.Count}|{s.TenantPolicy}|{s.Hosting.Started}{s.Hosting.TotalCustomers}{s.Hosting.Stock}{s.Hosting.BigDeals.Count}{s.Hosting.Campaign}|{string.Join(",", s.Hosting.PriceLevel.Values)}|" +
-        $"{s.Listed}|{s.News.Count}:{s.News.FirstOrDefault()?.Day}|{s.Insurance}{s.Soc247}{s.BatteryTrading}|{s.KeyPeople.Count}:{string.Join(",", s.KeyPeople.Select(k => $"{k.Candidate}{k.PoachedBy}"))}|{s.Execs.Count}|{s.Revision / 50}";
+        $"{s.Listed}|{s.News.Count}:{s.News.FirstOrDefault()?.Day}|{s.Insurance}{s.Soc247}{s.BatteryUse}|{s.KeyPeople.Count}:{string.Join(",", s.KeyPeople.Select(k => $"{k.Candidate}{k.PoachedBy}"))}|{s.Execs.Count}|{s.Revision / 50}";
 
     static void Mark(Button b, bool on)
     {
@@ -601,8 +601,8 @@ public partial class GrowthPanel : Modal
         var flow = Stats();
         Stat(flow, "en_now", "€ " + N(s.SpotNow, "0.000"), Brand.Power);
         Stat(flow, "en_index", Pct(s.EnergyIndex), s.EnergyIndex > 1.2 ? Brand.Critical : Brand.Ink);
-        Stat(flow, "en_solar", N(s.SolarKwh(s.Date.Month), "0") + " kWh", Brand.Amber);
-        Stat(flow, "en_wind", N(s.WindKwh(s.Date.Month), "0") + " kWh", Brand.Cooling);
+        Stat(flow, "en_solar", N(s.SolarKwhDay, "0") + " kWh", Brand.Amber);
+        Stat(flow, "en_wind", N(s.WindKwhDay, "0") + " kWh", Brand.Cooling);
         Stat(flow, "en_battery", Ui.Money((long)Math.Round(s.BatteryProfit() * 30)), Brand.Ok);
         Stat(flow, "en_renewable", Pct(s.RenewableShare), s.GreenPower ? Brand.Ok : Brand.Ink);
         _content.AddChild(flow);
@@ -613,9 +613,7 @@ public partial class GrowthPanel : Modal
             _content.AddChild(Ui.Heading("en_history", 12));
             _content.AddChild(new MiniChart(s.EnergyHistory, Brand.Amber, true) { CustomMinimumSize = new Vector2(0, 70), SizeFlagsHorizontal = SizeFlags.ExpandFill });
         }
-        var cb = new CheckButton { Text = Loc.T("en_trading"), ButtonPressed = s.BatteryTrading, AutoTranslateMode = AutoTranslateModeEnum.Disabled };
-        cb.Toggled += b => { _state().BatteryTrading = b; _sig = null; };
-        _content.AddChild(cb);
+        _content.AddChild(Wrapped(Loc.T("en_battery_mode", Loc.T("own_mode_" + s.BatteryUse.ToString().ToLowerInvariant()))));
         _content.AddChild(Wrapped(Loc.T("en_trading_help", N(s.TradeKwh, "0"))));
         _content.AddChild(Plain(Loc.T("en_objects", s.SolarPanels, s.WindTurbines, s.Objects.Count(o => o.Kind == ObjKind.BatteryContainer)), 13, Brand.InkDim));
 

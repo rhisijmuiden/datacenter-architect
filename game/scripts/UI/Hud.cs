@@ -7,7 +7,7 @@ using Godot;
 
 namespace DatacenterArchitect.UI;
 
-public enum Mode { Select, Erase, Surface, Fence, Building, Room, Door, Object, Row, Curve, Wall, Unpaint, Duct }
+public enum Mode { Select, Erase, Surface, Fence, Building, Room, Door, Object, Row, Curve, Wall, Unpaint, Duct, Blueprint }
 
 /// <summary>What the player is about to build: a mode plus the surface, fence, building, room, door or object kind.</summary>
 public readonly record struct BuildItem(Mode Mode, int Arg = 0)
@@ -26,6 +26,7 @@ public readonly record struct BuildItem(Mode Mode, int Arg = 0)
         Mode.Erase => (EraseKind)Arg switch { EraseKind.Room => "erase_room", EraseKind.Wall => "erase_wall", EraseKind.Door => "erase_door", EraseKind.Interior => "erase_interior", _ => "tool_erase" },
         Mode.Wall => Arg == 1 ? "wall_glass" : "wall_inner",
         Mode.Unpaint => "tool_unpaint",
+        Mode.Blueprint => "bp_tool",
         _ => "tool_select",
     };
 }
@@ -46,6 +47,8 @@ public partial class Hud : Control
     public Action Undo, Redo;
     /// <summary>Step 11: plan mode on/off (button above the bulldozer, key B).</summary>
     public Action TogglePlan;
+    /// <summary>Infra sketch board 8: open the blueprint library.</summary>
+    public Action OpenBlueprints;
     public Action RotateLeft, RotateRight, ToggleGrid, ToggleRoofs, FloorUp, FloorDown, OpenInfo, OpenOptions, OpenMenu, ToggleLanguage, OpenPower, OpenNetwork;
     public Action<int> ToggleOverlay, OpenCompany, OpenStaff, OpenReputation, OpenGrowth;
     public Func<GameState> State;
@@ -66,7 +69,8 @@ public partial class Hud : Control
     readonly Dictionary<string, (Label value, ProgressBar bar)> _bars = new();
     Label _weather;
     Label _money, _date, _company, _toolHint, _floorLabel, _creative;
-    Label _staffStat, _repStat;
+    Label _staffStat, _repStat, _greenStat;
+    Control _greenBox;
     bool _alert;
     Button _langBtn, _roofBtn, _powerBtn, _coolBtn, _netBtn;
     Label _pue;
@@ -287,6 +291,14 @@ public partial class Hud : Control
         _repStat = Ui.Number("30", 18); _repStat.AutoTranslateMode = AutoTranslateModeEnum.Disabled; _repStat.AutowrapMode = TextServer.AutowrapMode.Off;
         rv.AddChild(_repStat);
         sh.AddChild(rv);
+        // own energy: share of own power over 30 days, green when you hold the green datacenter label
+        var gv = new VBoxContainer { MouseFilter = MouseFilterEnum.Stop, TooltipText = "hud_own_energy_tip", CustomMinimumSize = new Vector2(70, 0) };
+        gv.AddThemeConstantOverride("separation", 2);
+        gv.AddChild(Ui.Heading("res_own_energy", 12));
+        _greenStat = Ui.Number("0%", 18); _greenStat.AutoTranslateMode = AutoTranslateModeEnum.Disabled; _greenStat.AutowrapMode = TextServer.AutowrapMode.Off;
+        gv.AddChild(_greenStat);
+        sh.AddChild(gv);
+        _greenBox = gv;
         var mv = new VBoxContainer { MouseFilter = MouseFilterEnum.Stop, TooltipText = "hud_money_tip", MouseDefaultCursorShape = CursorShape.PointingHand }; mv.AddThemeConstantOverride("separation", 2);
         mv.GuiInput += e => { if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) OpenCompany?.Invoke(CompanyPanel.TabFinance); };
         mv.AddChild(Ui.Heading("res_money", 12));
@@ -439,6 +451,9 @@ public partial class Hud : Control
         _staffStat.AddThemeColorOverride("font_color", faults > 0 || s.GridDown ? Brand.Critical : events > 0 ? Brand.Warning : Brand.Ink);
         _repStat.Text = "★ " + Math.Round(s.Reputation).ToString("0") + (s.OpenProposals.Count > 0 ? " · !" : "");
         _repStat.AddThemeColorOverride("font_color", s.Reputation >= 65 ? Brand.Ok : s.Reputation >= 40 ? Brand.Amber : Brand.Critical);
+        _greenBox.Visible = s.SolarPanels + s.WindTurbines > 0 || s.GreenLabel;
+        _greenStat.Text = Math.Round(s.OwnShare30 * 100).ToString("0") + "%" + (s.GoldLabel ? " · " + Loc.T("hud_gold") : s.GreenLabel ? " · " + Loc.T("hud_green") : "");
+        _greenStat.AddThemeColorOverride("font_color", s.GoldLabel ? PowerPanel.Solar : s.GreenLabel ? Brand.Ok : Brand.Ink);
         _money.Text = c.UnlimitedMoney ? "∞" : Ui.Money(s.Money);
         _money.AddThemeColorOverride("font_color", s.Money < 0 && !c.UnlimitedMoney ? Brand.Critical : Brand.Ok);
         var culture = new System.Globalization.CultureInfo(Loc.Language == "nl" ? "nl-NL" : "en-GB");
@@ -778,6 +793,8 @@ public partial class Hud : Control
                 ov.CustomMinimumSize = new Vector2(150, 0); ov.SizeFlagsVertical = SizeFlags.ExpandFill;
                 _sub.AddChild(ov);
             }
+            // hall blueprints come first: the library button and a card per saved hall design
+            if (cat == "cat_halls") AddBlueprintCards();
             foreach (var it in items) _sub.AddChild(ItemCard(it, locked));
         }
         ActiveTab(_selectBtn, _item.Mode == Mode.Select);
@@ -796,7 +813,7 @@ public partial class Hud : Control
         {
             Mode.Erase => "hint_" + _item.NameKey, Mode.Surface => "hint_surface", Mode.Fence => "hint_fence", Mode.Building => "hint_building",
             Mode.Curve => "hint_curve", Mode.Room => "hint_room", Mode.Door => "hint_door", Mode.Row => "hint_row", Mode.Duct => "hint_duct", Mode.Object => _item.Arg == (int)ObjKind.FiberPit ? "hint_entry" : "hint_place",
-            Mode.Wall => "hint_wall", Mode.Unpaint => "hint_unpaint", _ => "hint_select",
+            Mode.Wall => "hint_wall", Mode.Unpaint => "hint_unpaint", Mode.Blueprint => "hint_blueprint", _ => "hint_select",
         });
         FitTray();
     }
@@ -841,6 +858,7 @@ public partial class Hud : Control
         _item = item;
         // show the tray that holds the item (a fix button can pick a tool from another category); erasing has its own tray
         if (item.Mode == Mode.Erase) _category = null;
+        else if (item.Mode == Mode.Blueprint) _category = "cat_halls";
         else if (item.Mode != Mode.Select && !Categories.Any(c => c.cat == _category && c.items.Contains(item)))
         {
             var home = Categories.FirstOrDefault(c => c.items.Contains(item)).cat;
@@ -852,6 +870,64 @@ public partial class Hud : Control
     }
 
     void ToggleRoofsIfNeeded() { }
+
+    // ---------------- hall blueprints (infra sketch board 8) ----------------
+    int _bpRev = -1;
+
+    /// <summary>The library button and a card per saved blueprint, after the hall items.</summary>
+    void AddBlueprintCards()
+    {
+        var lib = BlueprintLibrary.Instance;
+        _bpRev = lib.Revision;
+        var lb = Ui.Secondary("bp_library", () => OpenBlueprints?.Invoke());
+        lb.Icon = GD.Load<Texture2D>("res://assets/icons/blueprint.svg");
+        lb.AddThemeConstantOverride("icon_max_width", 18);
+        lb.CustomMinimumSize = new Vector2(170, 0); lb.SizeFlagsVertical = SizeFlags.ExpandFill;
+        lb.TooltipText = Loc.T("bp_library_tip");
+        _sub.AddChild(lb);
+        for (var i = 0; i < lib.All.Count; i++) _sub.AddChild(BlueprintCard(lib.All[i], i));
+        _sub.AddChild(new VSeparator());
+    }
+
+    Button BlueprintCard(Blueprint bp, int index)
+    {
+        var it = new BuildItem(Mode.Blueprint, index);
+        var b = new Button { CustomMinimumSize = new Vector2(180, 0), SizeFlagsVertical = SizeFlags.ExpandFill, AutoTranslateMode = AutoTranslateModeEnum.Disabled, ClipText = true };
+        b.TooltipText = bp.Name + "\n" + BlueprintUi.Contents(bp);
+        var sel = _item == it;
+        b.AddThemeStyleboxOverride("normal", sel ? Ui.Box(Brand.PanelHover, 8, Brand.Cooling, 2, 8) : Ui.Box(new Color(Brand.Cooling, 0.06f), 8, new Color(Brand.Cooling, 0.45f), 1, 8));
+        if (sel) b.AddThemeStyleboxOverride("hover", Ui.Box(Brand.PanelHover, 8, Brand.Cooling, 2, 8));
+        var v = new VBoxContainer { MouseFilter = MouseFilterEnum.Ignore };
+        v.SetAnchorsAndOffsetsPreset(LayoutPreset.FullRect);
+        v.OffsetLeft = 6; v.OffsetRight = -6; v.OffsetTop = 4; v.OffsetBottom = -5;
+        v.AddThemeConstantOverride("separation", 0);
+        var pic = new PanelContainer { MouseFilter = MouseFilterEnum.Ignore, SizeFlagsVertical = SizeFlags.ExpandFill };
+        pic.AddThemeStyleboxOverride("panel", Ui.Box(new Color("#12344A"), 6, null, 0, 0));
+        pic.AddChild(new TextureRect { Texture = BlueprintUi.Plan(bp), ExpandMode = TextureRect.ExpandModeEnum.IgnoreSize, StretchMode = TextureRect.StretchModeEnum.KeepAspectCentered, MouseFilter = MouseFilterEnum.Ignore, CustomMinimumSize = new Vector2(0, 70) });
+        v.AddChild(pic);
+        var name = Ui.Text(bp.Name, 14, Brand.Ink, Ui.BodySemi);
+        name.AutowrapMode = TextServer.AutowrapMode.Off; name.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis; name.ClipText = true;
+        name.AutoTranslateMode = AutoTranslateModeEnum.Disabled; name.MouseFilter = MouseFilterEnum.Ignore;
+        v.AddChild(name);
+        var spec = Ui.Text(BlueprintUi.Spec(bp), 12, Brand.InkDim);
+        spec.AutowrapMode = TextServer.AutowrapMode.Off; spec.ClipText = true; spec.AutoTranslateMode = AutoTranslateModeEnum.Disabled; spec.MouseFilter = MouseFilterEnum.Ignore;
+        v.AddChild(spec);
+        var price = Ui.Number(Ui.Money(BlueprintUi.Price(bp)), 14);
+        price.AddThemeColorOverride("font_color", Brand.Cooling);
+        price.AutoTranslateMode = AutoTranslateModeEnum.Disabled; price.MouseFilter = MouseFilterEnum.Ignore;
+        v.AddChild(price);
+        b.AddChild(v);
+        b.Pressed += () => Pick(it);
+        return b;
+    }
+
+    /// <summary>Redraws the hall tray when blueprints were saved, renamed or deleted.</summary>
+    public void RefreshBlueprints()
+    {
+        if (_bpRev == BlueprintLibrary.Instance.Revision) return;
+        if (_category == "cat_halls") RefreshCategory();
+        else _bpRev = BlueprintLibrary.Instance.Revision;
+    }
 
     public void ShowCategory(string cat) { _category = cat; RefreshCategory(); }
 

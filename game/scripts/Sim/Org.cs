@@ -26,7 +26,7 @@ public enum HallZone { FullRacks, PerU, Cage, PrivateHall, OwnCloud }
 /// <summary>What a customer rents.</summary>
 public enum Product { PerU, Rack, Cage, Hall }
 
-public enum CustomerType { Startup, Smb, Hosting, WebHosting, Streaming, Social, Crypto, Cloud, Municipality, Government, Bank, Hyperscaler, Ai }
+public enum CustomerType { Startup, Smb, Hosting, WebHosting, Streaming, Social, Crypto, Cloud, Municipality, Government, Bank, Hyperscaler, Ai, GreenCloud }
 
 /// <summary>
 /// A customer type: products it buys, size range in racks (units for per-U), traffic per rack in Gbit/s, carriers it wants,
@@ -57,6 +57,8 @@ public class Deal
     public double Gbps { get; set; }
     public int Carriers { get; set; }
     public bool Green { get; set; }
+    /// <summary>Wants the Green Gold label (80% own energy), not only the green label.</summary>
+    public bool GreenGold { get; set; }
     /// <summary>Lost tenders: the rival that won.</summary>
     public string LostTo { get; set; }
     public bool Security { get; set; }
@@ -72,6 +74,8 @@ public class Deal
     /// <summary>Tenders: the bid as a percentage of the asking price (85, 100 or 115).</summary>
     public int BidPercent { get; set; }
     public List<int> RackIds { get; set; } = new();
+    /// <summary>Data halls the player placed this contract in (empty = sales picks). Own halls and cages keep the halls they got.</summary>
+    public List<int> HallIds { get; set; } = new();
     public double Satisfaction { get; set; } = 80;
     public double Served { get; set; } = 1;
     public bool Legacy { get; set; }
@@ -158,6 +162,8 @@ public static class Org
         [CustomerType.Hyperscaler] = new(CustomerType.Hyperscaler, "cust_hyperscaler", new[] { Product.Hall }, 60, 200, 1.2, 3, 1, true, true, false, 0, 1.0, 1, true),
         // step 8: AI and GPU customers with dense 32 A racks, once liquid cooling is researched
         [CustomerType.Ai] = new(CustomerType.Ai, "cust_ai", new[] { Product.Rack, Product.Cage }, 8, 30, 0.6, 2, 1, false, false, false, 25, 1.3, 1.4),
+        // own energy: sustainable clouds only host with a green datacenter (they show up once you have the label) and pay 12% more
+        [CustomerType.GreenCloud] = new(CustomerType.GreenCloud, "cust_greencloud", new[] { Product.Rack, Product.Cage }, 6, 30, 0.6, 2, 0.5, false, true, false, 15, 1.12, 1.5),
     };
 
     /// <summary>List prices per month: per U, per 16 A rack and per 32 A rack. Cages and halls add a premium for the space.</summary>
@@ -183,6 +189,7 @@ public static class Org
         [CustomerType.Bank] = new[] { "Bank", "Finance", "Capital" },
         [CustomerType.Hyperscaler] = new[] { "Scale", "Global", "Cloud" },
         [CustomerType.Ai] = new[] { "AI", "Neural", "Tensor", "GPU" },
+        [CustomerType.GreenCloud] = new[] { "Green", "Leaf", "Solar", "Verdant" },
     };
     static readonly string[] Cities = { "Lindedam", "Vlietstad", "Eikenburg", "Waalhoven", "Duinwijk", "Molendorp" };
     static readonly string[] Ministries = { "min_digital", "min_infrastructure", "min_finance", "min_health" };
@@ -428,9 +435,12 @@ public partial class GameState
         return true;
     }
 
-    static HallZone ZoneFor(Product p) => p switch { Product.PerU => HallZone.PerU, Product.Cage => HallZone.Cage, Product.Hall => HallZone.PrivateHall, _ => HallZone.FullRacks };
+    public static HallZone ZoneFor(Product p) => p switch { Product.PerU => HallZone.PerU, Product.Cage => HallZone.Cage, Product.Hall => HallZone.PrivateHall, _ => HallZone.FullRacks };
 
-    /// <summary>Free racks that could go to this deal, grouped by hall (cages and halls must fit in one hall).</summary>
+    /// <summary>
+    /// Free racks that could go to this deal, grouped by hall (cages and halls must fit in one hall). A deal placed in a hall
+    /// by the player only looks there; halls rented whole or reserved for another customer are skipped.
+    /// </summary>
     public List<int> FreeRacksFor(Deal d, out int bestHall)
     {
         bestHall = 0;
@@ -439,16 +449,21 @@ public partial class GameState
         var inf = Infra;
         var zone = ZoneFor(d.Product);
         var pick = new List<int>();
-        foreach (var h in inf.Halls.Where(h => h.Room.Zone == zone && h.Room.Stage == Stage.Done && HallTakes(h.Room, d.Type) && HallFits(d, h)))
+        foreach (var h in inf.Halls.Where(h => h.Room.Stage == Stage.Done && HallTakes(h.Room, d.Type) && HallFits(d, h)))
         {
+            var picked = d.HallIds.Count > 0;
+            if (picked ? !d.HallIds.Contains(h.Room.Id) : h.Room.Zone != zone) continue;
+            if (HeldByOther(h.Room, d, owners)) continue;
             var racks = Objects.Where(o => o.Kind == ObjKind.Rack && o.Floor == h.Room.Floor && h.Room.Contains(o.X, o.Z)).ToList();
-            if (d.Product == Product.Hall && racks.Any(o => owners.ContainsKey(o.Id))) continue; // a private hall has one tenant
+            // a picked hall of another zone only works while nobody else rents racks there
+            if (h.Room.Zone != zone && racks.Any(o => owners.TryGetValue(o.Id, out var id) && id != d.Id)) continue;
             var free = racks.Where(o => !owners.ContainsKey(o.Id) && working.Contains(o.Id)).OrderBy(o => o.Id).Select(o => o.Id).ToList();
-            if (d.Product is Product.Cage or Product.Hall)
+            // a cage fits in one hall, and so does an own hall that sales picks; picked halls count together
+            if (d.Product == Product.Cage || d.Product == Product.Hall && !picked)
             {
                 if (free.Count > pick.Count) { pick = free; bestHall = h.Room.Id; }
             }
-            else pick.AddRange(free);
+            else { pick.AddRange(free); if (bestHall == 0 && free.Count > 0) bestHall = h.Room.Id; }
         }
         return pick;
     }
@@ -486,14 +501,22 @@ public partial class GameState
             var free = FreeRacksFor(d, out _).Count;
             list.Add(new Req(d.Product switch { Product.Cage => "req_cage", Product.Hall => "req_hall", _ => "req_racks" }, free.ToString(), d.Racks.ToString(), free >= d.Racks ? ReqStatus.Ok : ReqStatus.Fail));
         }
-        var zoneHalls = Rooms.Where(r => r.Type == RoomType.DataHall && r.Zone == ZoneFor(d.Product)).ToList();
+        var picked = Rooms.Where(r => r.Type == RoomType.DataHall && d.HallIds.Contains(r.Id)).OrderBy(r => r.HallNo).ToList();
+        bool InScope(Room r) => picked.Count > 0 ? picked.Contains(r) : r.Zone == ZoneFor(d.Product);
+        if (picked.Count > 0)
+        {
+            var choices = HallChoices(d);
+            var bad = picked.Any(p => choices.FirstOrDefault(c => c.Hall == p)?.Problem is { } pr && (Blocks(pr) || pr == "place_clients"));
+            list.Add(new Req("req_place", string.Join(" + ", picked.Select(HallCode)), "", bad ? ReqStatus.Fail : ReqStatus.Ok));
+        }
+        var zoneHalls = Rooms.Where(r => r.Type == RoomType.DataHall && InScope(r)).ToList();
         if (zoneHalls.Count > 0 && !zoneHalls.Any(r => HallTakes(r, d.Type)))
         {
             list.Add(new Req("req_hall_clients", "", "", ReqStatus.Fail));
         }
         if (d.Amp32 || d.AB || d.TwoN)
         {
-            var anyAb = Creative.NoPowerLimit || Infra.Halls.Any(h => h.Room.Zone == ZoneFor(d.Product) && HallTakes(h.Room, d.Type) && HallFits(d, h));
+            var anyAb = Creative.NoPowerLimit || Infra.Halls.Any(h => InScope(h.Room) && HallTakes(h.Room, d.Type) && HallFits(d, h));
             list.Add(new Req(d.Amp32 ? "req_amp32" : "req_ab", "", "", anyAb ? ReqStatus.Ok : ReqStatus.Fail));
         }
         if (d.TwoN)
@@ -517,8 +540,10 @@ public partial class GameState
             var n = Creative.NoNetworkLimit ? d.Carriers : Net.Carriers.Count(c => c.Up && !c.Def.Ix);
             list.Add(new Req("req_carriers", n.ToString(), d.Carriers.ToString(), n >= d.Carriers ? ReqStatus.Ok : ReqStatus.Fail));
         }
-        if (d.Green)
-            list.Add(new Req("req_green", Catalog.Suppliers[Supplier].Green ? Catalog.Suppliers[Supplier].Name : $"{RenewableShare * 100:0}%", "", GreenPower ? ReqStatus.Ok : ReqStatus.Fail));
+        if (d.GreenGold)
+            list.Add(new Req("req_green_gold", $"{OwnShare30 * 100:0}%", $"{GoldThreshold * 100:0}%", GoldLabel ? ReqStatus.Ok : ReqStatus.Fail));
+        else if (d.Green)
+            list.Add(new Req("req_green", $"{OwnShare30 * 100:0}%", $"{GreenThreshold * 100:0}%", GreenLabel ? ReqStatus.Ok : ReqStatus.Fail));
         if (d.Security)
         {
             var need = SecurityNeed(d.Type);
@@ -552,7 +577,13 @@ public partial class GameState
 
     void Activate(Deal d)
     {
-        d.RackIds = d.Product == Product.PerU ? new List<int>() : FreeRacksFor(d, out _).Take(d.Racks).ToList();
+        var owners = RackOwners();
+        var best = 0;
+        d.RackIds = d.Product == Product.PerU ? new List<int>() : FreeRacksFor(d, out best).Take(d.Racks).ToList();
+        // cages and whole halls stay in the hall they got; a picked hall becomes the right zone when nobody else rents there
+        if (d.Product is Product.Cage or Product.Hall && d.HallIds.Count == 0 && best != 0) d.HallIds.Add(best);
+        foreach (var hall in Rooms.Where(r => d.HallIds.Contains(r.Id)))
+            if (hall.Zone != ZoneFor(d.Product) && RentedIn(hall, owners) == 0) hall.Zone = ZoneFor(d.Product);
         d.State = DealState.Active;
         d.StartDay = Day;
         d.EndDay = Day + d.Months * 30;
@@ -740,7 +771,7 @@ public partial class GameState
 
     CustomerType PickType(Random rng, bool tender)
     {
-        var pool = Org.Customers.Values.Where(c => c.TenderOnly == tender && (tender || MinReputation(c) <= Reputation) && (c.Type != CustomerType.Ai || Done("cool_liquid"))).ToList();
+        var pool = Org.Customers.Values.Where(c => c.TenderOnly == tender && (tender || MinReputation(c) <= Reputation) && (c.Type != CustomerType.Ai || Done("cool_liquid")) && (c.Type != CustomerType.GreenCloud || GreenLabel)).ToList();
         var total = pool.Sum(Weight);
         var x = rng.NextDouble() * total;
         foreach (var c in pool) { x -= Weight(c); if (x <= 0) return c.Type; }
@@ -771,6 +802,9 @@ public partial class GameState
         d.Gbps = Math.Round(Math.Max(0.1, units * def.GbpsPerRack) * 10) / 10;
         d.Carriers = def.Carriers;
         d.Green = def.Green || rng.NextDouble() < 0.1;
+        // a quarter of the ministries want Green Gold (by id, so the random numbers stay as they were)
+        d.GreenGold = def.Type == CustomerType.Government && d.Id % 4 == 0;
+        if (d.GreenGold) d.Green = true;
         d.Security = def.Security;
         d.Months = d.Product switch { Product.PerU => 12, Product.Rack => rng.Next(2) == 0 ? 12 : 24, _ => 36 };
         d.Monthly = (long)Math.Round(Org.ListPrice(d) * (1 + 0.05 * Training(Exec.Sales)) * (Done("biz_sla") ? 1.05 : 1) / 10) * 10;
@@ -789,6 +823,8 @@ public partial class GameState
         d.TwoN = def.TwoN; d.AB = true;
         d.Gbps = Math.Round(d.Racks * def.GbpsPerRack);
         d.Carriers = def.Carriers; d.Green = def.Green; d.Security = def.Security;
+        d.GreenGold = def.Type == CustomerType.Government && d.Id % 4 == 0;
+        if (d.GreenGold) d.Green = true;
         d.Months = 36 + 12 * rng.Next(3);
         d.Monthly = (long)Math.Round(d.Kw * Org.TenderPerKw * def.PriceFactor / 100) * 100;
         d.ExpiresDay = day + 10;
@@ -803,6 +839,7 @@ public partial class GameState
     {
         var mine = 0.35 + Reputation / 250 + (1 - d.BidPercent / 100.0) * 2.2 + 0.05 * Training(Exec.Legal) + (Meets(d) ? 0.1 : 0) + 0.05 * CertsWanted(d.Type).Count(c => HasCert(c.kind)) + rng.NextDouble() * 0.15;
         mine += Has(KeyRole.StarSales) ? 0.06 : 0;
+        mine += GreenLabel && !d.Green ? 0.05 : 0;
         var best = RivalBid(rng, out var winner);
         if (mine >= best)
         {
@@ -855,7 +892,10 @@ public partial class GameState
             }
             if (day >= d.EndDay)
             {
-                var keep = d.Legacy || d.Satisfaction >= (cs > 0 ? 45 : 60);
+                // green customers only renew while you hold the label they asked for
+                var green = d.Legacy || !d.Green || (d.GreenGold ? GoldLabel : GreenLabel);
+                var keep = d.Legacy || d.Satisfaction >= (cs > 0 ? 45 : 60) && green;
+                if (!green && !keep) Notes.Add(("msg_green_no_renew", DisplayArg(d)));
                 if (keep)
                 {
                     d.EndDay = day + d.Months * 30;
@@ -878,7 +918,7 @@ public partial class GameState
     {
         if (Creative.UnlimitedMoney) { DaysInRed = 0; return; }
         var infra = Infra;
-        var energy = EnergyCostDay(infra);
+        var energy = EnergyCostDay(day);
         var rent = 0.0; var sla = 0.0; var support = 0.0;
         foreach (var d in Deals.Where(d => d.State == DealState.Active))
         {

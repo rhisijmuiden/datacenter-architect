@@ -169,7 +169,7 @@ public partial class Main : Node3D
             FloorDown = () => SetView(StepFloor(-1), StepFloor(-1) == 0 && _world.Roofs),
             OpenInfo = OpenInfo, OpenOptions = OpenOptions, OpenMenu = OpenPause, ToggleLanguage = ToggleLanguage,
             OpenSection = ToggleSection,
-            Undo = DoUndo, Redo = DoRedo, TogglePlan = TogglePlan,
+            Undo = DoUndo, Redo = DoRedo, TogglePlan = TogglePlan, OpenBlueprints = OpenBlueprintLibrary,
             OpenPower = OpenPower, OpenNetwork = OpenNetwork, OpenCompany = OpenCompany, OpenStaff = OpenStaff, OpenReputation = OpenReputation, OpenGrowth = OpenGrowth, ToggleOverlay = m => SetOverlay(_world.Overlay.Mode == (OverlayMode)m ? OverlayMode.None : (OverlayMode)m),
         };
         _ui.AddChild(_hud);
@@ -226,9 +226,9 @@ public partial class Main : Node3D
 
     void OnTool(BuildItem item)
     {
-        _item = item; _rot = 0; _dragStart = null; _curveA = _curveB = null; _world.ClearGhost();
+        _item = item; _rot = 0; _bpMirror = false; _dragStart = null; _curveA = _curveB = null; _world.ClearGhost();
         if (item.Mode == Mode.Curve) _curveWidth = CurvePath.DefaultWidth[(Surface)item.Arg];
-        var inside = item.Mode is Mode.Room or Mode.Door or Mode.Row ||
+        var inside = item.Mode is Mode.Room or Mode.Door or Mode.Row or Mode.Blueprint ||
             (item.Mode == Mode.Object && Catalog.Objects[(ObjKind)item.Arg].Where is Where.Room or Where.Hall or Where.Building);
         if (inside && _world.Roofs) SetView(_world.ViewFloor, false);
         if (item.Mode is Mode.Surface or Mode.Curve or Mode.Fence or Mode.Building or Mode.Duct && _world.ViewFloor != 0) SetView(0, _world.Roofs);
@@ -750,6 +750,7 @@ public partial class Main : Node3D
         if (e is InputEventKey { Pressed: true, Echo: false } k)
         {
             if (k.Keycode == Key.R) { _rot = (_rot + 1) % 4; UpdateGhost(); }
+            if (k.Keycode == Key.M && _item.Mode == Mode.Blueprint) { _bpMirror = !_bpMirror; UpdateGhost(); }
             if (k.Keycode == Key.F) { StartWalk(); GetViewport().SetInputAsHandled(); return; }
             if (k.Keycode == Key.F9) { StartPhoto(); GetViewport().SetInputAsHandled(); return; }
             if (_item.Mode == Mode.Curve && k.Keycode is Key.Bracketleft or Key.Bracketright)
@@ -800,6 +801,7 @@ public partial class Main : Node3D
                     case Mode.Door: PlaceDoor(DoorAt(p.Value)); break;
                     case Mode.Curve: CurveClick(Snap(p.Value)); break;
                     case Mode.Wall: _wallStart = Corner(p.Value); break;
+                    case Mode.Blueprint: _hoverCell = c; PlaceHeldBlueprint(); break;
                     default: _dragStart = c; break;
                 }
                 UpdateGhost();
@@ -906,6 +908,7 @@ public partial class Main : Node3D
         switch (_item.Mode)
         {
             case Mode.Select: _world.ClearGhost(); break;
+            case Mode.Blueprint: GhostBlueprint(); break;
             case Mode.Erase:
                 var gone = _dragStart == null ? 0 : _state.Objects.Count(o => o.Floor == _world.ViewFloor && GameState.Cells(o).Any(c => r.HasPoint(new Vector2I(c.x, c.z))));
                 _world.ShowGhostRect(r, Brand.Critical, y, _dragStart == null ? null : Dim(r) + (gone > 0 ? " · " + Loc.T("erase_objects", gone) : ""));
@@ -1547,11 +1550,17 @@ public partial class Main : Node3D
                 var hall = r;
                 hallBody = (report.Sig() + Loc.Language + HallCard.Tab, () => HallCard.Build(_state, report, u => ApplyHallUpgrade(hall, u),
                     () => OpenPowerTree(infra.Tree?.SourcesIn(hall).FirstOrDefault(n => n.Obj != null)?.Obj), () => OpenPanel(PanelKind.Network, NetworkPanel.TabTree), RefreshInspectNow));
-                lines.Add(Loc.T("inspect_zone", Loc.T("zone_" + r.Zone.ToString().ToLowerInvariant())));
-                var nextZone = (HallZone)(((int)r.Zone + 1) % Enum.GetValues<HallZone>().Length);
-                actions.Add((Loc.T("action_zone", Loc.T("zone_" + nextZone.ToString().ToLowerInvariant())), () => { _state.SetZone(hall, nextZone); Act(null); }, true));
-                lines.Add(Loc.T("inspect_hall_clients", CompanyPanel.ClientsText(r)));
-                actions.Add((Loc.T("action_hall_clients"), () => OpenCompany(CompanyPanel.TabSales), true));
+                // what the hall is sold as and for whom is set only in Company › Contracts (sketch board 7); here it is shown
+                var tenant = _state.HallTenant(r);
+                lines.Add(tenant != null ? Loc.T(tenant.State == DealState.Building ? "inspect_hall_reserved" : "inspect_hall_tenant", CompanyPanel.DealName(tenant))
+                    : Loc.T("inspect_zone", Loc.T("zone_" + r.Zone.ToString().ToLowerInvariant())) + " · " + Loc.T("inspect_hall_clients", CompanyPanel.ClientsText(r)));
+                actions.Add((Loc.T("action_hall_contracts"), () => OpenCompany(CompanyPanel.TabContracts), true));
+            }
+            // infra sketch board 8: keep this design to place it again
+            if (r.Type == RoomType.DataHall)
+            {
+                var saveHall = r;
+                actions.Add((Loc.T("bp_save_hall"), () => SaveHallBlueprint(saveHall), true));
             }
             if (r.Type is RoomType.Executive or RoomType.Office)
             {
@@ -1587,7 +1596,7 @@ public partial class Main : Node3D
                 lines.Add(r.Type == RoomType.MeetMe ? Loc.T("inspect_mmr", net.OdfPorts, net.OdfUsed, net.Cores, _state.CrossConnects) : net.Noc ? Loc.T("net_noc_on") : Loc.T("inspect_noc_needs_wall"));
                 actions.Add((Loc.T("net_overview"), OpenNetwork, true));
             }
-            _hud.Inspect(r.Type == RoomType.DataHall ? Loc.T(Catalog.Rooms[r.Type].NameKey) + " · " + _state.HallCode(r) : Loc.T(Catalog.Rooms[r.Type].NameKey), lines, actions, hallBody);
+            _hud.Inspect(r.Type == RoomType.DataHall ? _state.HallTitle(r) : Loc.T(Catalog.Rooms[r.Type].NameKey), lines, actions, hallBody);
             return;
         }
         if (b != null)
@@ -2071,6 +2080,8 @@ public partial class Main : Node3D
         if (args.Contains("--photo")) StartPhoto();
         if (args.Contains("--award-demo")) AwardDemo(args.Contains("--close"));
         if (args.Contains("--plan-demo")) PlanDemo();
+        var bpi = Array.IndexOf(args, "--blueprint-demo");
+        if (bpi >= 0) BlueprintDemo(bpi + 1 < args.Length && !args[bpi + 1].StartsWith("--") ? args[bpi + 1] : "");
         var bdi = Array.IndexOf(args, "--brand-demo");
         if (bdi >= 0)
         {
@@ -2123,6 +2134,8 @@ public partial class Main : Node3D
             if (hs.Count > 0) _state.SetHallClients(hs[0], new[] { CustomerType.Bank, CustomerType.Government });
             if (hs.Count > 1) _state.SetHallClients(hs[1], new[] { CustomerType.Ai });
         }
+        // --hall-names: name the halls and rent the first one whole to a customer (sketch board 7 screenshots)
+        if (args.Contains("--hall-names") && _state != null) HallNamesDemo();
         // --outage-demo: the demo hall loses its busbar and most PDUs and switches, so warnings show their cause and fix
         if (args.Contains("--outage-demo") && _state != null)
         {
@@ -2138,6 +2151,8 @@ public partial class Main : Node3D
             // --outage-fix: press the fix of the first warning (camera jump, hall inspector, tool in hand)
             if (args.Contains("--outage-fix")) { _playing = true; FixOutage(Outages.For(_state).FirstOrDefault()); }
         }
+        // --energy-demo: solar fields, wind turbines and batteries, 45 measured days and the green label (screenshots)
+        if (args.Contains("--energy-demo") && _state != null) EnergyDemo(_state);
         if (args.Contains("--nettree-demo") && _state != null)
         {
             // network tree: without the spine the demo hall runs on two Edge 48s, not every rack gets a B port
@@ -2222,6 +2237,52 @@ public partial class Main : Node3D
         }
         GetViewport().GetTexture().GetImage().SavePng(path);
         GetTree().Quit();
+    }
+
+    /// <summary>Screenshot setup for own energy: generation on free ground, 45 days measured, nominated and labelled.</summary>
+    void EnergyDemo(GameState s)
+    {
+        int Place(ObjKind k, int count, int step)
+        {
+            var n = 0;
+            for (var z = 2; z < s.PlotSize - 2 && n < count; z += step)
+                for (var x = 2; x < s.PlotSize - 2 && n < count; x += step)
+                    if (s.AddObject(k, x, z, 0, 0) is { } o) { o.Status = ObjStatus.Live; n++; }
+            return n;
+        }
+        Place(ObjKind.WindTurbine, 8, 5);
+        Place(ObjKind.BatteryContainer, 2, 4);
+        Place(ObjKind.SolarPanel, 60, 2);
+        s.Touch();
+        s.BatteryUse = BatteryMode.Own;
+        var today = (int)s.Day;
+        s.EnergyLog.Clear();
+        for (var d = Math.Max(1, today - 44); d <= today; d++) { s.SimulateEnergyDay(d); s.GreenDay(d); }
+        if (s.Cert(CertKind.Green) == null) s.Certs.Add(new Certificate { Kind = CertKind.Green, Valid = true, IssuedDay = s.Day - 10, ExpiresDay = s.Day + 1085, CheckDay = s.Day + 355 });
+        _world.Build(s, _sim);
+    }
+
+    /// <summary>Screenshot setup for hall names: DH-01 rented whole to a cloud customer with its logo, a named second hall, a lead for an own hall.</summary>
+    void HallNamesDemo()
+    {
+        var s = _state;
+        var hs = s.Rooms.Where(r => r.Type == RoomType.DataHall).OrderBy(r => r.HallNo).ToList();
+        if (hs.Count == 0) return;
+        var hall = hs[0];
+        s.RenameHall(hall, Loc.Language == "nl" ? "Private hal Nordwind" : "Private hall Nordwind");
+        var racks = s.Objects.Where(o => o.Kind == ObjKind.Rack && o.Floor == hall.Floor && hall.Contains(o.X, o.Z)).Select(o => o.Id).ToHashSet();
+        foreach (var d in s.Deals) d.RackIds.RemoveAll(racks.Contains);
+        s.Deals.Add(new Deal
+        {
+            Id = s.NextId++, Name = "Nordwind Cloud", Type = CustomerType.Cloud, Product = Product.Hall, Racks = racks.Count, RackIds = racks.ToList(), HallIds = new() { hall.Id },
+            State = DealState.Active, AB = true, Monthly = 412_000, Months = 60, StartDay = s.Day, EndDay = s.Day + 1800, Satisfaction = 88,
+        });
+        hall.Zone = HallZone.PrivateHall;
+        if (hs.Count > 1) s.RenameHall(hs[1], "Colocation east");
+        var lead = s.MakeLead((int)s.Day, new Random(11), CustomerType.Cloud);
+        lead.Name = "Haven Compute"; lead.Product = Product.Hall; lead.Racks = 24; lead.ExpiresDay = s.Day + 14;
+        s.Deals.Add(lead);
+        s.Touch();
     }
 
     /// <summary>Screenshot setup for step 11: two years of figures, a scenario with a medal, some achievements and a timelapse picture.</summary>

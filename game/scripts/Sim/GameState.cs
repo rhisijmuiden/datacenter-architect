@@ -68,6 +68,12 @@ public class Room
     public HallZone Zone { get; set; }
     /// <summary>Data halls: the customer types hosted here. Empty means every type is welcome.</summary>
     public List<CustomerType> Clients { get; set; } = new();
+    /// <summary>Data halls: fixed number for the code DH-01, DH-02 ... (given once, kept when other halls go).</summary>
+    public int HallNo { get; set; }
+    /// <summary>Data halls: colour band (index in GameState.HallBands, -1 = one per hall number).</summary>
+    public int Band { get; set; } = -1;
+    /// <summary>Data halls: show the logo of a customer who rents the whole hall on its wall.</summary>
+    public bool ShowLogo { get; set; } = true;
     /// <summary>
     /// True for a room drawn as a rectangle with its own walls around it (the "room with walls" tool and every room
     /// from before free walls). False for a room painted on the floor tiles of a space closed by separate walls.
@@ -219,7 +225,7 @@ public class NewGameOptions
 /// <summary>All state that goes into a savegame. Workers and trucks are not saved; they restart from this state.</summary>
 public partial class GameState
 {
-    public const int CurrentFormat = 13;
+    public const int CurrentFormat = 14;
     /// <summary>Floor value for objects that stand on the roof of a building.</summary>
     public const int RoofFloor = -1;
     /// <summary>Floor id of a basement. Kept apart from the storey numbers so roof (-1) and storeys (0..) stay as they were.</summary>
@@ -397,6 +403,13 @@ public partial class GameState
         {
             // own main fiber duct: there are no street fiber pits any more; old pits become cable entries with a free duct
             MigrateDucts();
+        }
+        // hall names (sketch board 7): halls get a fixed number in the order they were drawn, so codes match older games
+        NumberHalls();
+        if (SaveFormat < 14)
+        {
+            // own energy: hourly balance, battery policy, the green label is about your own power now
+            MigrateOwnEnergy();
         }
         MigrateGrowth();
         EnsureCompetitors();
@@ -687,6 +700,7 @@ public partial class GameState
         var b = BuildingAt(x, z);
         var r = new Room { Id = NextId++, BuildingId = b.Id, Floor = floor, Type = t, X = x, Z = z, W = w, D = d, Stage = Creative.InstantBuild ? Stage.Done : Stage.Walls };
         Rooms.Add(r);
+        if (t == RoomType.DataHall) NumberHalls();
         Touch();
         return r;
     }

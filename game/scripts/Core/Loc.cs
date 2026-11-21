@@ -15,7 +15,7 @@ public static class Loc
     public static readonly Dictionary<string, Dictionary<string, string>> Table = new();
 
     /// <summary>Extra string tables next to strings.tsv (same columns), so a step can keep its own texts.</summary>
-    public static readonly string[] ExtraFiles = { "res://locale/progress.tsv", "res://locale/outages.tsv", "res://locale/hall.tsv", "res://locale/bms.tsv" };
+    public static readonly string[] ExtraFiles = { "res://locale/progress.tsv", "res://locale/outages.tsv", "res://locale/hall.tsv", "res://locale/energy.tsv", "res://locale/blueprints.tsv", "res://locale/bms.tsv" };
 
     public static void Load()
     {

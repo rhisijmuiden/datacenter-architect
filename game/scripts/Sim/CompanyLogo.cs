@@ -52,6 +52,9 @@ public class CompanyLogo
         return new CompanyLogo { Shape = h % Shapes, Primary = Palette[light[h / 7 % light.Length]], Secondary = h / 3 % 2 == 0 ? "#111d2b" : "#f4f1ea" };
     }
 
+    /// <summary>A customer's logo, the same every time for the same customer.</summary>
+    public static CompanyLogo ForCustomer(Deal d) => For((d.NameKey ?? "") + d.Name + (int)d.Type);
+
     /// <summary>Changes on this number tell the world to redraw the logo.</summary>
     [JsonIgnore] public int Version => HashCode.Combine(Shape, Primary, Secondary, Initials, OnBuildings, OnVehicles, OnWorkwear, OnRacks);
 }

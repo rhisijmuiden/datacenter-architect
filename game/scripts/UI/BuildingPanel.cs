@@ -156,7 +156,11 @@ public partial class BuildingPanel : Modal
             Text = s.HallCode(h), AutoTranslateMode = AutoTranslateModeEnum.Disabled };
         name.AddThemeFontOverride("font", Ui.DisplaySemi); name.AddThemeFontSizeOverride("font_size", 17);
         name.Pressed += () => _show(h);
-        var hc = Cell(row, 1); hc.AddChild(name);
+        var hc = Cell(row, 1);
+        var line = new HBoxContainer(); line.AddThemeConstantOverride("separation", 8);
+        line.AddChild(new ColorRect { Color = new Color(GameState.HallBand(h)), CustomMinimumSize = new Vector2(5, 26), MouseFilter = MouseFilterEnum.Ignore });
+        line.AddChild(name);
+        hc.AddChild(line);
         hc.AddChild(Dim((string.IsNullOrWhiteSpace(h.Name) ? $"{h.Area} m²" : h.Name) + (h.Floor != 0 ? " · " + Ui.FloorName(h.Floor) : ""), 12));
         if (h.Upgrade != 0)
             hc.AddChild(Dim("⟳ " + Loc.T("bms_busy", Math.Ceiling(GameState.UpgradeHoursLeft(h)), 1 + h.UpgradeQueue.Count), 12, Brand.Amber));
@@ -194,10 +198,16 @@ public partial class BuildingPanel : Modal
         Cell(row, 7).AddChild(Chip(Loc.T(Catalog.Containments[h.Containment].NameKey), h.Containment == Containment.Open ? HallLevel.None : air));
         Cell(row, 8).AddChild(Big(Pue(r.Pue)));
 
-        // customer
+        // customer: the tenant of a whole hall, else what the hall is sold as and how many customers it has
         var cu = Cell(row, 9);
-        cu.AddChild(Dim(Loc.T("zone_" + h.Zone.ToString().ToLowerInvariant()), 12, Brand.Ink));
-        cu.AddChild(Dim(CompanyPanel.ClientsText(h), 11));
+        var tenant = s.HallTenant(h);
+        if (tenant != null) cu.AddChild(Dim(CompanyPanel.DealName(tenant), 12, Brand.Ok));
+        else
+        {
+            cu.AddChild(Dim(Loc.T("zone_" + h.Zone.ToString().ToLowerInvariant()), 12, Brand.Ink));
+            var n = s.Deals.Count(d => d.State == DealState.Active && s.DealHalls(d).Contains(h));
+            cu.AddChild(Dim(n > 0 ? Loc.T("bms_customers", n) : CompanyPanel.ClientsText(h), 11));
+        }
     }
 
     /// <summary>How the hall is fed: "Busbar A+B", or the PDUs per size ("4 × PDU 150").</summary>

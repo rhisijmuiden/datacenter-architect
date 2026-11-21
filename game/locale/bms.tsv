@@ -6,7 +6,7 @@ bms_intro	Power, network, cooling and redundancy of every data hall. Tick halls 
 bms_filter_all	All halls ({0})	Alle hallen ({0})
 bms_filter_non1	Without N+1 ({0})	Zonder N+1 ({0})
 bms_filter_nobusbar	Without busbar ({0})	Zonder busbar ({0})
-bms_filter_hot	Too hot ({0})	Te warm ({0})
+bms_filter_hot	Cooling short ({0})	Koeling tekort ({0})
 bms_filter_notonline	Not fully online ({0})	Niet volledig online ({0})
 bms_filter_empty	No hall matches this filter.	Geen hal past bij dit filter.
 bms_tile_it	IT load	IT-last
@@ -17,7 +17,7 @@ bms_tile_net	Network N+1	Netwerk N+1
 bms_tile_net_sub	{0} of {1} Gbit/s uplink in use	{0} van {1} Gbit/s uplink in gebruik
 bms_tile_cool	Cooling N+1	Koeling N+1
 bms_tile_cool_sub	halls where one CRAH may fail	hallen waar één CRAH mag uitvallen
-bms_tile_hot	{0} hall(s) too hot (up to {1} °C)	{0} hal(len) te warm (tot {1} °C)
+bms_tile_hot	{0} hall(s) short on cooling or too hot · warmest {1} °C	{0} hal(len) met te weinig koeling of te warm · warmste {1} °C
 bms_tile_pue	Average PUE	PUE gemiddeld
 bms_tile_pue_sub	with cold corridors everywhere: {0}	met koude gangen overal: {0}
 bms_tile_pue_none	weighted by IT load	gewogen naar IT-last
@@ -52,3 +52,4 @@ bms_skip_note	Hall upgrades run one after the other in a hall and are paid now. 
 msg_level_up	Halls levelled up: {0} hall upgrade(s) started or queued, {1} device(s) placed.	Hallen gelijkgetrokken: {0} halupgrade(s) gestart of ingepland, {1} apparaat/apparaten geplaatst.
 msg_level_up_noroom	{0} device(s) found no free spot along the walls.	{0} apparaat/apparaten vonden geen vrije plek langs de wanden.
 ev_level_up	Building management levelled up halls ({0} jobs).	Gebouwbeheer heeft hallen gelijkgetrokken ({0} klussen).
+bms_customers	{0} customer(s)	{0} klant(en)
