@@ -4,7 +4,7 @@ description: Wat je allemaal kunt in Datacenter Architect, en waar je begint.
 ---
 
 <div class="hero">
-  <img src="{{ '/assets/shots/hero.jpg' | relative_url }}" alt="Een datacentercampus in aanbouw, met kranen, vrachtwagens en een parkeerplaats">
+  <img src="{{ '/assets/shots/photo.jpg' | relative_url }}" alt="Een datacentercampus met koelmachines op het dak, generatoren, een kantoor en een parkeerplaats">
   <div class="hero-text">
     <h1>Datacenter Architect</h1>
     <p>Koop grond, ontwerp het hele terrein van parkeerplaats tot datazaal, houd stroom, koeling en glasvezel in balans en groei uit tot een campus. Een offline bouwgame voor Windows 11.</p>

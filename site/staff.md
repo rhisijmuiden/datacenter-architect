@@ -66,4 +66,4 @@ With **random events** on (new game setting):
 
 In creative mode **no breakdowns** switches off wear faults and cable cuts.
 
-{% include shot.html src="staff-site" caption="During a city outage: the generators run, a technician walks to a broken CRAH unit and the inspector shows its state." %}
+{% include shot.html src="staff-site" caption="A broken CRAH unit next to the racks. The messages report the fault and the new hires; the inspector says it is being dealt with and offers to call a contractor." %}

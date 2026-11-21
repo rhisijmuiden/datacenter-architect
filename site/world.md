@@ -19,7 +19,7 @@ With **weather plays along** switched on at the start of a game, the weather als
 
 The **sun** and **cloud** buttons top right switch day/night and weather on or off at any time (also under Options › Graphics). Off means a sunny summer afternoon.
 
-{% include shot.html src="snow" caption="Snow on the roofs, the trees and the grass after a snowy day." %}
+{% include shot.html src="snow" nl=true caption="A clear winter day in December: a low sun, long shadows, bare trees and frost on the grass." %}
 
 ## Walk around
 

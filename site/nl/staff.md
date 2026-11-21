@@ -66,4 +66,4 @@ Met **willekeurige gebeurtenissen** aan (instelling bij een nieuw spel):
 
 In de creatieve modus zet **geen storingen** slijtagestoringen en kabelbreuken uit.
 
-{% include shot.html src="staff-site" caption="Tijdens een stroomstoring in de stad: de generatoren draaien, een technicus loopt naar een kapotte CRAH-unit en het infopaneel toont de staat ervan." %}
+{% include shot.html src="staff-site" caption="Een kapotte CRAH-unit naast de racks. De meldingen tonen de storing en de nieuwe mensen; het infopaneel zegt dat eraan gewerkt wordt en biedt aan een externe monteur te bellen." %}

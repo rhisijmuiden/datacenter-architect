@@ -4,7 +4,7 @@ description: What you can do in Datacenter Architect, and where to start.
 ---
 
 <div class="hero">
-  <img src="{{ '/assets/shots/hero.jpg' | relative_url }}" alt="A datacenter campus under construction, with cranes, trucks and a parking lot">
+  <img src="{{ '/assets/shots/photo.jpg' | relative_url }}" alt="A datacenter campus with chillers on the roof, generators, an office and a parking lot">
   <div class="hero-text">
     <h1>Datacenter Architect</h1>
     <p>Buy land, design the whole site from the parking lot to the data hall, keep power, cooling and fiber in balance, and grow into a campus. An offline building game for Windows 11.</p>

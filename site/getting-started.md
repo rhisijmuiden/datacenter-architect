@@ -52,7 +52,7 @@ On the right of the screen sits a checklist (Overview › Goals, or <kbd>F1</kbd
 <li><strong>Sign your first customer.</strong> Open <b>Customers</b> (<kbd>F3</kbd>): your sales director brings in requests. Sign one and the money starts to flow.</li>
 </ol>
 
-{% include shot.html src="build-menu" nl=true caption="The build bar along the bottom. Each category has its own colour (power amber, cooling cyan, network orange); the tray above shows the items with their price. The bulldozer sits on its own in the bottom right." %}
+{% include shot.html src="build-menu" caption="The build bar along the bottom. Each category has its own colour (power amber, cooling cyan, network orange); the tray above shows the items with their price. The bulldozer sits on its own in the bottom right." %}
 
 ## What a small first datacenter looks like
 

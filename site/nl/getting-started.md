@@ -52,7 +52,7 @@ Rechts in beeld staat een checklist (Overzicht › Doelen, of <kbd>F1</kbd>) met
 <li><strong>Teken je eerste klant.</strong> Open <b>Klanten</b> (<kbd>F3</kbd>): je salesdirecteur brengt aanvragen binnen. Teken er één en het geld gaat stromen.</li>
 </ol>
 
-{% include shot.html src="build-menu" nl=true caption="De bouwbalk onderin. Elke categorie heeft een eigen kleur (stroom amber, koeling cyaan, netwerk oranje); de lade erboven toont de onderdelen met hun prijs. De bulldozer staat los rechtsonder." %}
+{% include shot.html src="build-menu" caption="De bouwbalk onderin (hier in het Engels). Elke categorie heeft een eigen kleur (stroom amber, koeling cyaan, netwerk oranje); de lade erboven toont de onderdelen met hun prijs. De bulldozer staat los rechtsonder." %}
 
 ## Hoe een klein eerste datacenter eruitziet
 

@@ -19,7 +19,7 @@ Met **weer speelt mee** aan bij het begin van een spel telt het weer ook mee: ko
 
 De knoppen met de **zon** en de **wolk** rechtsboven zetten dag/nacht en weer op elk moment aan of uit (ook onder Opties › Graphics). Uit betekent een zonnige zomermiddag.
 
-{% include shot.html src="snow" caption="Sneeuw op de daken, de bomen en het gras na een sneeuwdag." %}
+{% include shot.html src="snow" nl=true caption="Een heldere winterdag in december: een lage zon, lange schaduwen, kale bomen en rijp op het gras." %}
 
 ## Zelf rondlopen
 
