@@ -44,6 +44,7 @@ public static partial class TestRunner
             ("playtest round 3", Playtest3Tests),
             ("basement", BasementTests),
             ("customers per hall", HallClientTests),
+            ("hall names and placing", HallNameTests),
             ("add a floor", AddLevelTests),
             ("office life", OfficeLifeTests),
             ("power tree", PowerTreeTests),

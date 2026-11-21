@@ -113,6 +113,30 @@ public partial class LogoArt : Node
         return true;
     }
 
+    readonly Dictionary<string, StandardMaterial3D> _others = new();
+
+    /// <summary>
+    /// A material with another company's logo (customers renting a whole hall). Each one is drawn once into its own small
+    /// texture and kept while the game runs.
+    /// </summary>
+    public StandardMaterial3D MaterialFor(CompanyLogo logo, string letters)
+    {
+        var key = $"{logo.Version}|{letters}";
+        if (_others.TryGetValue(key, out var m)) return m;
+        if (_others.Count > 64) { foreach (var c in GetChildren()) if (c != _vp) c.QueueFree(); _others.Clear(); }
+        var vp = new SubViewport { Size = new Vector2I(Size / 2, Size / 2), TransparentBg = true, RenderTargetUpdateMode = SubViewport.UpdateMode.Once, Disable3D = true };
+        var view = new LogoView { Size = new Vector2(Size / 2, Size / 2) };
+        view.Set(logo, letters);
+        vp.AddChild(view);
+        AddChild(vp);
+        m = new StandardMaterial3D
+        {
+            AlbedoTexture = vp.GetTexture(), Transparency = BaseMaterial3D.TransparencyEnum.AlphaScissor, AlphaScissorThreshold = 0.5f,
+            Roughness = 0.55f, TextureFilter = BaseMaterial3D.TextureFilterEnum.LinearWithMipmapsAnisotropic, CullMode = BaseMaterial3D.CullModeEnum.Back,
+        };
+        return _others[key] = m;
+    }
+
     /// <summary>A flat logo of <paramref name="size"/> metres facing +Z of its parent.</summary>
     public static MeshInstance3D Quad(Node3D parent, Vector3 pos, float size, float yawDeg = 0)
     {
