@@ -169,7 +169,7 @@ public partial class Main : Node3D
             FloorDown = () => SetView(StepFloor(-1), StepFloor(-1) == 0 && _world.Roofs),
             OpenInfo = OpenInfo, OpenOptions = OpenOptions, OpenMenu = OpenPause, ToggleLanguage = ToggleLanguage,
             OpenSection = ToggleSection,
-            Undo = DoUndo, Redo = DoRedo, TogglePlan = TogglePlan,
+            Undo = DoUndo, Redo = DoRedo, TogglePlan = TogglePlan, OpenBlueprints = OpenBlueprintLibrary,
             OpenPower = OpenPower, OpenNetwork = OpenNetwork, OpenCompany = OpenCompany, OpenStaff = OpenStaff, OpenReputation = OpenReputation, OpenGrowth = OpenGrowth, ToggleOverlay = m => SetOverlay(_world.Overlay.Mode == (OverlayMode)m ? OverlayMode.None : (OverlayMode)m),
         };
         _ui.AddChild(_hud);
@@ -226,9 +226,9 @@ public partial class Main : Node3D
 
     void OnTool(BuildItem item)
     {
-        _item = item; _rot = 0; _dragStart = null; _curveA = _curveB = null; _world.ClearGhost();
+        _item = item; _rot = 0; _bpMirror = false; _dragStart = null; _curveA = _curveB = null; _world.ClearGhost();
         if (item.Mode == Mode.Curve) _curveWidth = CurvePath.DefaultWidth[(Surface)item.Arg];
-        var inside = item.Mode is Mode.Room or Mode.Door or Mode.Row ||
+        var inside = item.Mode is Mode.Room or Mode.Door or Mode.Row or Mode.Blueprint ||
             (item.Mode == Mode.Object && Catalog.Objects[(ObjKind)item.Arg].Where is Where.Room or Where.Hall or Where.Building);
         if (inside && _world.Roofs) SetView(_world.ViewFloor, false);
         if (item.Mode is Mode.Surface or Mode.Curve or Mode.Fence or Mode.Building or Mode.Duct && _world.ViewFloor != 0) SetView(0, _world.Roofs);
@@ -749,6 +749,7 @@ public partial class Main : Node3D
         if (e is InputEventKey { Pressed: true, Echo: false } k)
         {
             if (k.Keycode == Key.R) { _rot = (_rot + 1) % 4; UpdateGhost(); }
+            if (k.Keycode == Key.M && _item.Mode == Mode.Blueprint) { _bpMirror = !_bpMirror; UpdateGhost(); }
             if (k.Keycode == Key.F) { StartWalk(); GetViewport().SetInputAsHandled(); return; }
             if (k.Keycode == Key.F9) { StartPhoto(); GetViewport().SetInputAsHandled(); return; }
             if (_item.Mode == Mode.Curve && k.Keycode is Key.Bracketleft or Key.Bracketright)
@@ -799,6 +800,7 @@ public partial class Main : Node3D
                     case Mode.Door: PlaceDoor(DoorAt(p.Value)); break;
                     case Mode.Curve: CurveClick(Snap(p.Value)); break;
                     case Mode.Wall: _wallStart = Corner(p.Value); break;
+                    case Mode.Blueprint: _hoverCell = c; PlaceHeldBlueprint(); break;
                     default: _dragStart = c; break;
                 }
                 UpdateGhost();
@@ -905,6 +907,7 @@ public partial class Main : Node3D
         switch (_item.Mode)
         {
             case Mode.Select: _world.ClearGhost(); break;
+            case Mode.Blueprint: GhostBlueprint(); break;
             case Mode.Erase:
                 var gone = _dragStart == null ? 0 : _state.Objects.Count(o => o.Floor == _world.ViewFloor && GameState.Cells(o).Any(c => r.HasPoint(new Vector2I(c.x, c.z))));
                 _world.ShowGhostRect(r, Brand.Critical, y, _dragStart == null ? null : Dim(r) + (gone > 0 ? " · " + Loc.T("erase_objects", gone) : ""));
@@ -1534,6 +1537,12 @@ public partial class Main : Node3D
                 lines.Add(Loc.T("inspect_hall_clients", CompanyPanel.ClientsText(r)));
                 actions.Add((Loc.T("action_hall_clients"), () => OpenCompany(CompanyPanel.TabSales), true));
             }
+            // infra sketch board 8: keep this design to place it again
+            if (r.Type == RoomType.DataHall)
+            {
+                var saveHall = r;
+                actions.Add((Loc.T("bp_save_hall"), () => SaveHallBlueprint(saveHall), true));
+            }
             if (r.Type is RoomType.Executive or RoomType.Office)
             {
                 var desks = _state.Objects.Count(x => x.Kind == ObjKind.Desk && x.Floor == r.Floor && r.Contains(x.X, x.Z));
@@ -2052,6 +2061,8 @@ public partial class Main : Node3D
         if (args.Contains("--photo")) StartPhoto();
         if (args.Contains("--award-demo")) AwardDemo(args.Contains("--close"));
         if (args.Contains("--plan-demo")) PlanDemo();
+        var bpi = Array.IndexOf(args, "--blueprint-demo");
+        if (bpi >= 0) BlueprintDemo(bpi + 1 < args.Length && !args[bpi + 1].StartsWith("--") ? args[bpi + 1] : "");
         var bdi = Array.IndexOf(args, "--brand-demo");
         if (bdi >= 0)
         {
