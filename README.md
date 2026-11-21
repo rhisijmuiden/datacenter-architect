@@ -6,6 +6,8 @@ An offline building and management sim for Windows 11. Buy land, design the whol
 
 *Een offline bouw- en managementsimulatie voor Windows 11. Koop grond, ontwerp het hele terrein van parkeerplaats tot datazaal, houd stroom, koeling en glasvezel in balans en laat je datacenter groeien.*
 
+**[Player guide](https://rhisijmuiden.github.io/datacenter-architect/)**: what you can do in the game, your first datacenter step by step, every room, power and redundancy, cooling, network, tips and troubleshooting. Also in Dutch: [Spelershandleiding](https://rhisijmuiden.github.io/datacenter-architect/nl/).
+
 ## Status
 
 Step 4: power and cooling. Every rack needs the whole power chain: grid connection (2 to 50 MVA, with lead times), transformers, switchgear with ATS, UPS with batteries, and PDUs or a busbar with A/B feeds. Generators run N+1 with diesel tanks above or under ground. CRAH units, chillers and cooling towers (outside or on the roof) keep the halls cool; hall upgrades to hot/cold aisles and a cold corridor lower the PUE. P and H show power and cooling overlays with moving dots.

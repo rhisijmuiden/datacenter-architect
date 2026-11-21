@@ -1,0 +1,22 @@
+# Player guide for Datacenter Architect, published with GitHub Pages (.github/workflows/pages.yml).
+# Pages live in this folder: English at the root, Dutch under nl/ with the same file names.
+title: Datacenter Architect
+description: Player guide for Datacenter Architect, the offline datacenter building game for Windows 11.
+baseurl: /datacenter-architect
+url: https://rhisijmuiden.github.io
+repo: https://github.com/rhisijmuiden/datacenter-architect
+permalink: pretty
+markdown: kramdown
+kramdown:
+  input: GFM
+  hard_wrap: false
+  auto_ids: true
+exclude:
+  - README.md
+  - Gemfile
+  - Gemfile.lock
+defaults:
+  - scope: { path: "" }
+    values: { layout: default, lang: en }
+  - scope: { path: "nl" }
+    values: { layout: default, lang: nl }
