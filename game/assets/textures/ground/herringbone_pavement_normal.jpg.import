@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://dlymvfisutibn"
 path.s3tc="res://.godot/imported/herringbone_pavement_normal.jpg-099ae3a7a4cd17ceb0503b42a353847e.s3tc.ctex"
+path.etc2="res://.godot/imported/herringbone_pavement_normal.jpg-099ae3a7a4cd17ceb0503b42a353847e.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/textures/ground/herringbone_pavement_normal.jpg"
-dest_files=["res://.godot/imported/herringbone_pavement_normal.jpg-099ae3a7a4cd17ceb0503b42a353847e.s3tc.ctex"]
+dest_files=["res://.godot/imported/herringbone_pavement_normal.jpg-099ae3a7a4cd17ceb0503b42a353847e.s3tc.ctex", "res://.godot/imported/herringbone_pavement_normal.jpg-099ae3a7a4cd17ceb0503b42a353847e.etc2.ctex"]
 
 [params]
 

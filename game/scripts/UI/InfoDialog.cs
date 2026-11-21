@@ -126,7 +126,7 @@ public partial class InfoDialog : Modal
             _beforeInstall?.Invoke();
             _status.Text = Loc.T("info_installing");
             if (UpdateService.RunInstaller(path)) GetTree().Quit();
-            else { _status.Text = Loc.T("info_manual", path); _updateBtn.Disabled = _checkBtn.Disabled = false; }
+            else { _status.Text = Loc.T(UpdateService.ManualKey, path); _updateBtn.Disabled = _checkBtn.Disabled = false; }
         }
         catch (Exception e)
         {

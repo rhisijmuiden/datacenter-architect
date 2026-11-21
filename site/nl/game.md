@@ -5,7 +5,7 @@ lead: Zo installeer je de game, houd je hem bijgewerkt, wissel je tussen de stab
 description: Datacenter Architect installeren, updates, stabiel en testkanaal, savegames, opties en besturing.
 ---
 
-## Installeren
+## Installeren op Windows
 
 1. Ga naar de [nieuwste release]({{ site.repo }}/releases/latest) en download `DatacenterArchitect-<versie>-Setup.exe`.
 2. Start het bestand. Het installeert alleen voor jouw Windows-gebruiker en vraagt dus geen beheerdersrechten.
@@ -13,12 +13,25 @@ description: Datacenter Architect installeren, updates, stabiel en testkanaal, s
 
 Nodig: Windows 11 (64-bit) en een videokaart met Vulkan. De game werkt helemaal offline; alleen de updatecheck gebruikt internet.
 
+## Installeren op macOS
+
+1. Ga naar de [nieuwste release]({{ site.repo }}/releases/latest) en download `DatacenterArchitect-<versie>-macOS.dmg`.
+2. Open de .dmg en sleep **Datacenter Architect** naar de map **Programma's**.
+3. Open de game de eerste keer met de hand. Hij is nog niet ondertekend met een Apple-ontwikkelaarscertificaat, dus macOS houdt hem de eerste keer tegen:
+   - **macOS 15 Sequoia en nieuwer**: dubbelklik op de game, klik in de waarschuwing op **Gereed**, open **Systeeminstellingen › Privacy en beveiliging**, scrol naar *"Datacenter Architect" is geblokkeerd* en klik op **Toch openen**. Bevestig met je wachtwoord of Touch ID.
+   - **macOS 12 tot en met 14**: <kbd>Control</kbd>-klik (of klik met rechts) in de Finder op de game in Programma's, kies **Open** en klik nog een keer op **Open**.
+4. Daarna start hij gewoon vanuit Launchpad of Programma's.
+
+Nodig: macOS 12 Monterey of nieuwer, op een Mac met Apple Silicon (M1 of later) of Intel. Eén app draait op beide zonder omweg. Een muis werkt het makkelijkst; op een trackpad zoom je met twee vingers scrollen.
+
+> **Updates op een Mac** komen ook via het Info-scherm. Laat de game in **Programma's** staan (niet in Downloads): de updater vervangt de app daar en opent de nieuwe versie. Lukt dat niet (bijvoorbeeld als jouw gebruiker Programma's niet mag wijzigen), dan opent hij de gedownloade zip en sleep je de nieuwe versie er zelf in.
+
 ## Updates en kanalen
 
 Open het **Info**-scherm (de ⓘ-knop onderaan de balk links, of Info in het hoofdmenu). Je ziet welke versie je speelt en je kunt:
 
 - **Controleren op updates** – de game vraagt GitHub naar de nieuwste release op jouw kanaal.
-- **Updaten** – downloadt de installer, controleert de grootte en de SHA-256-vingerafdruk, installeert op de achtergrond en start de game opnieuw.
+- **Updaten** – downloadt de installer (Windows) of de app (macOS), controleert de grootte en de SHA-256-vingerafdruk, installeert op de achtergrond en start de game opnieuw.
 - **Van kanaal wisselen**:
   - **Stabiel** krijgt de geteste releases (van de branch `main`).
   - **Test** krijgt ook de testbuilds (van de branch `test`): nieuwe dingen eerst, soms met een ruw randje.
@@ -29,8 +42,8 @@ Je kunt altijd van test terug naar stabiel; de volgende update brengt je naar de
 
 ## Savegames
 
-- Savegames staan in `%APPDATA%\Datacenter Architect\saves`. Geef ze elke naam die je wilt met **Opslaan** in het spelmenu (<kbd>Esc</kbd> of ☰ onderaan de balk links).
-- <kbd>Ctrl</kbd>+<kbd>S</kbd> slaat snel op.
+- Savegames staan op Windows in `%APPDATA%\Datacenter Architect\saves` en op macOS in `~/Library/Application Support/Datacenter Architect/saves`. Geef ze elke naam die je wilt met **Opslaan** in het spelmenu (<kbd>Esc</kbd> of ☰ onderaan de balk links).
+- <kbd>Ctrl</kbd>+<kbd>S</kbd> slaat snel op (op een Mac werkt <kbd>Cmd</kbd> net zo goed als <kbd>Ctrl</kbd> voor opslaan, ongedaan maken en opnieuw).
 - **Autosave**: drie autosaves die elkaar afwisselen, standaard elke 5 minuten en bij afsluiten. Hoe vaak stel je in onder Opties › Spel.
 - **Verder spelen** in het hoofdmenu laadt je laatste savegame.
 - Oudere savegames blijven werken na een update; nieuwe dingen die een oud spel zouden veranderen (zoals weereffecten) blijven daarin uit.
@@ -73,4 +86,4 @@ Opties open je vanuit het hoofdmenu, het pauzemenu en het tandwiel onderaan de b
 
 ## Problemen?
 
-Een bug gevonden of een idee? Open een [issue op GitHub]({{ site.repo }}/issues). Logbestanden staan in `%APPDATA%\Datacenter Architect\logs`.
+Een bug gevonden of een idee? Open een [issue op GitHub]({{ site.repo }}/issues). Logbestanden staan in `%APPDATA%\Datacenter Architect\logs` (Windows) of `~/Library/Application Support/Datacenter Architect/logs` (macOS).

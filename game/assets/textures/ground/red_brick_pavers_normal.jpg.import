@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://c16t8h6bl4cv8"
 path.s3tc="res://.godot/imported/red_brick_pavers_normal.jpg-4d4ddcf8bb4d466337840629fa5b9885.s3tc.ctex"
+path.etc2="res://.godot/imported/red_brick_pavers_normal.jpg-4d4ddcf8bb4d466337840629fa5b9885.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/textures/ground/red_brick_pavers_normal.jpg"
-dest_files=["res://.godot/imported/red_brick_pavers_normal.jpg-4d4ddcf8bb4d466337840629fa5b9885.s3tc.ctex"]
+dest_files=["res://.godot/imported/red_brick_pavers_normal.jpg-4d4ddcf8bb4d466337840629fa5b9885.s3tc.ctex", "res://.godot/imported/red_brick_pavers_normal.jpg-4d4ddcf8bb4d466337840629fa5b9885.etc2.ctex"]
 
 [params]
 

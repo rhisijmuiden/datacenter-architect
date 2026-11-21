@@ -22,16 +22,20 @@ public record UpdateCheck(UpdateVerdict Verdict, ReleaseInfo Release, string Err
 /// <summary>
 /// Checks GitHub Releases of the game repository. Stable = newest normal release;
 /// test = newest release including pre-releases (tags like v0.2.0-test.1).
-/// Updating downloads the Windows installer and runs it silently.
+/// Updating downloads the package for this platform: on Windows the installer, run silently; on macOS a zip of the
+/// app bundle that a small script swaps in after the game has closed (<see cref="RunInstaller"/>).
 /// Security: only HTTPS links into this repository's GitHub releases are used, the installer name must look like
 /// ours, and the download must match the SHA-256 that GitHub reports for the asset (or the release's .sha256 file)
 /// and its listed size before it is started. Anything else is refused.
 /// </summary>
+public enum UpdatePlatform { Windows, MacOS }
+
 public static class UpdateService
 {
     /// <summary>Installers are far smaller; a bigger download is refused.</summary>
     public const long MaxInstallerBytes = 2L << 30;
-    static readonly Regex InstallerPattern = new(@"^DatacenterArchitect-[0-9A-Za-z.\-]+-Setup\.exe$", RegexOptions.CultureInvariant);
+    static readonly Regex WindowsPattern = new(@"^DatacenterArchitect-[0-9A-Za-z.\-]+-Setup\.exe$", RegexOptions.CultureInvariant);
+    static readonly Regex MacPattern = new(@"^DatacenterArchitect-[0-9A-Za-z.\-]+-macOS\.zip$", RegexOptions.CultureInvariant);
     static readonly Regex Sha256Pattern = new("^[0-9a-f]{64}$", RegexOptions.CultureInvariant);
     static readonly HttpClient Http = CreateClient();
 
@@ -53,8 +57,15 @@ public static class UpdateService
         return u.AbsolutePath.StartsWith($"/{GameVersion.Repository}/{kind}/", StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <summary>An installer file name we would have published ourselves: no folders, no odd characters.</summary>
-    public static bool IsInstallerName(string name) => name != null && InstallerPattern.IsMatch(name) && Path.GetFileName(name) == name;
+    /// <summary>The platform this build runs on; anything that is not macOS uses the Windows installer.</summary>
+    public static UpdatePlatform Platform => OS.GetName() == "macOS" ? UpdatePlatform.MacOS : UpdatePlatform.Windows;
+
+    /// <summary>A package file name we would have published ourselves for that platform: no folders, no odd characters.</summary>
+    public static bool IsInstallerName(string name, UpdatePlatform platform) =>
+        name != null && (platform == UpdatePlatform.MacOS ? MacPattern : WindowsPattern).IsMatch(name) && Path.GetFileName(name) == name;
+
+    /// <summary>A package name of ours for any platform.</summary>
+    public static bool IsInstallerName(string name) => IsInstallerName(name, UpdatePlatform.Windows) || IsInstallerName(name, UpdatePlatform.MacOS);
 
     static string Digest(JsonElement asset)
     {
@@ -67,8 +78,10 @@ public static class UpdateService
 
     static string Str(JsonElement e, string name) => e.TryGetProperty(name, out var v) && v.ValueKind == JsonValueKind.String ? v.GetString() : null;
 
-    public static List<ReleaseInfo> ParseReleases(string json)
+    /// <summary>Releases with the package for <paramref name="platform"/> (default: this one); a release without it gets no installer link.</summary>
+    public static List<ReleaseInfo> ParseReleases(string json, UpdatePlatform? platform = null)
     {
+        var target = platform ?? Platform;
         var list = new List<ReleaseInfo>();
         using var doc = JsonDocument.Parse(json);
         if (doc.RootElement.ValueKind != JsonValueKind.Array) return list;
@@ -85,7 +98,7 @@ public static class UpdateService
                 {
                     var n = Str(a, "name") ?? "";
                     var link = Str(a, "browser_download_url");
-                    if (!IsInstallerName(n) || !IsTrustedUrl(link, "releases/download")) continue;
+                    if (!IsInstallerName(n, target) || !IsTrustedUrl(link, "releases/download")) continue;
                     name = n; url = link; sha = Digest(a);
                     size = a.TryGetProperty("size", out var sz) && sz.ValueKind == JsonValueKind.Number ? sz.GetInt64() : 0;
                 }
@@ -133,7 +146,7 @@ public static class UpdateService
     /// </summary>
     public static async Task<string> DownloadAsync(ReleaseInfo release, Action<double> progress)
     {
-        if (release == null || !IsInstallerName(release.InstallerName) || !IsTrustedUrl(release.InstallerUrl, "releases/download"))
+        if (release == null || !IsInstallerName(release.InstallerName, Platform) || !IsTrustedUrl(release.InstallerUrl, "releases/download"))
             throw new InvalidOperationException("untrusted update link");
         var expected = release.Sha256 ?? await ChecksumAsync(release);
         if (expected == null) throw new InvalidOperationException("the release has no SHA-256 checksum");
@@ -211,13 +224,90 @@ public static class UpdateService
         }
     }
 
-    /// <summary>Start the installer silently; it closes the game, updates and starts it again.</summary>
+    /// <summary>
+    /// Install the downloaded package. Windows: start the installer silently; it closes the game, updates and starts it
+    /// again. macOS: start a script that waits for the game to quit, swaps the app bundle and opens the new one. False
+    /// means the player has to install by hand (see <see cref="ManualKey"/>); the download folder is then opened.
+    /// </summary>
     public static bool RunInstaller(string path)
     {
         var dir = ProjectSettings.GlobalizePath("user://updates");
-        if (!IsInstallerName(Path.GetFileName(path)) || Path.GetFullPath(Path.GetDirectoryName(path) ?? "") != Path.GetFullPath(dir) || !File.Exists(path)) return false;
-        if (OS.GetName() != "Windows") { OS.ShellOpen(System.IO.Path.GetDirectoryName(path)); return false; }
-        var pid = OS.CreateProcess(path, new[] { "/SILENT", "/SP-", "/NOCANCEL", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS" });
-        return pid > 0;
+        var name = Path.GetFileName(path);
+        if (!IsInstallerName(name, Platform) || Path.GetFullPath(Path.GetDirectoryName(path) ?? "") != Path.GetFullPath(dir) || !File.Exists(path)) return false;
+        var ok = OS.GetName() switch
+        {
+            "Windows" => OS.CreateProcess(path, new[] { "/SILENT", "/SP-", "/NOCANCEL", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS" }) > 0,
+            "macOS" => SwapMacBundle(path, dir),
+            _ => false,
+        };
+        if (!ok) OS.ShellOpen(dir);
+        return ok;
     }
+
+    /// <summary>Text key for "install it yourself", per platform.</summary>
+    public static string ManualKey => Platform == UpdatePlatform.MacOS ? "info_manual_mac" : "info_manual";
+
+    /// <summary>
+    /// The .app bundle that holds a macOS executable (".../Name.app/Contents/MacOS/Name"), or null when the game does
+    /// not run from a bundle. A bundle that macOS runs from a random read-only copy (App Translocation, when the app was
+    /// opened straight from Downloads) also gives null: it cannot be replaced.
+    /// </summary>
+    public static string MacBundle(string executable)
+    {
+        // plain '/' handling: a macOS path, whatever system the tests run on
+        if (string.IsNullOrEmpty(executable)) return null;
+        var parts = executable.Split('/');
+        if (parts.Length < 5 || parts[^2] != "MacOS" || parts[^3] != "Contents" || !parts[^4].EndsWith(".app", StringComparison.Ordinal)) return null;
+        var app = string.Join('/', parts[..^3]);
+        if (app.Contains("/AppTranslocation/", StringComparison.Ordinal)) return null;
+        return app;
+    }
+
+    static bool SwapMacBundle(string zip, string dir)
+    {
+        var app = MacBundle(OS.GetExecutablePath());
+        if (app == null || !CanWrite(Path.GetDirectoryName(app))) return false;
+        var script = Path.Combine(dir, "apply-update.sh");
+        File.WriteAllText(script, MacScript);
+        // the paths go in as arguments, never into the script text
+        return OS.CreateProcess("/bin/sh", new[] { script, OS.GetProcessId().ToString(), zip, app }) > 0;
+    }
+
+    static bool CanWrite(string folder)
+    {
+        try
+        {
+            var probe = Path.Combine(folder, $".dca-write-test-{OS.GetProcessId()}");
+            File.WriteAllText(probe, "");
+            File.Delete(probe);
+            return true;
+        }
+        catch (Exception) { return false; }
+    }
+
+    /// <summary>Waits for the game (pid $1) to quit, unpacks the zip ($2) next to the bundle ($3), swaps it in and opens it.
+    /// Any failure puts the old bundle back and opens that one. Output goes to update.log in the download folder.</summary>
+    const string MacScript = """
+    #!/bin/sh
+    pid="$1"; zip="$2"; app="$3"
+    exec >>"$(dirname "$zip")/update.log" 2>&1
+    echo "update $(date): $zip -> $app"
+    i=0
+    while kill -0 "$pid" 2>/dev/null; do
+      i=$((i + 1)); if [ "$i" -gt 600 ]; then echo "game did not quit"; exit 1; fi
+      sleep 0.2
+    done
+    stage="$(dirname "$app")/.DatacenterArchitect-update-$$"
+    fail() { echo "failed: $1"; if [ ! -d "$app" ] && [ -d "$stage/old.app" ]; then mv "$stage/old.app" "$app"; fi; rm -rf "$stage"; open "$app"; exit 1; }
+    rm -rf "$stage"; mkdir "$stage" || fail "no staging folder"
+    /usr/bin/ditto -x -k "$zip" "$stage/new" || fail "unzip"
+    new="$(find "$stage/new" -maxdepth 1 -name '*.app' -type d | head -n 1)"
+    [ -n "$new" ] && [ -d "$new/Contents/MacOS" ] || fail "no app in the package"
+    mv "$app" "$stage/old.app" || fail "cannot move the old app"
+    mv "$new" "$app" || fail "cannot move the new app"
+    /usr/bin/xattr -dr com.apple.quarantine "$app" 2>/dev/null
+    rm -rf "$stage" "$zip"
+    echo "done"
+    open "$app"
+    """;
 }

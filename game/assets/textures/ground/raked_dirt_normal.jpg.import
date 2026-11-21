@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://drpcj0xc77rqk"
 path.s3tc="res://.godot/imported/raked_dirt_normal.jpg-22131257417654813be223be7099ea99.s3tc.ctex"
+path.etc2="res://.godot/imported/raked_dirt_normal.jpg-22131257417654813be223be7099ea99.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/textures/ground/raked_dirt_normal.jpg"
-dest_files=["res://.godot/imported/raked_dirt_normal.jpg-22131257417654813be223be7099ea99.s3tc.ctex"]
+dest_files=["res://.godot/imported/raked_dirt_normal.jpg-22131257417654813be223be7099ea99.s3tc.ctex", "res://.godot/imported/raked_dirt_normal.jpg-22131257417654813be223be7099ea99.etc2.ctex"]
 
 [params]
 
