@@ -163,7 +163,7 @@ public partial class Thumbnails : Node
     /// <summary>Accent colour of an object's system, used for the podium rim.</summary>
     static Color Accent(ObjKind k) => k switch
     {
-        ObjKind.Generator or ObjKind.Transformer or ObjKind.Switchgear or ObjKind.Ups or ObjKind.Battery or ObjKind.Pdu or ObjKind.DieselTank
+        ObjKind.Generator or ObjKind.Transformer or ObjKind.Switchgear or ObjKind.Ups or ObjKind.Battery or ObjKind.Pdu or ObjKind.Pdu75 or ObjKind.Pdu300 or ObjKind.DieselTank
             or ObjKind.UndergroundTank or ObjKind.SolarPanel or ObjKind.WindTurbine or ObjKind.BatteryContainer or ObjKind.EvCharger => Brand.Power,
         ObjKind.Crah or ObjKind.Chiller or ObjKind.CoolingTower or ObjKind.DryCooler => Brand.Cooling,
         ObjKind.FiberPit or ObjKind.Odf or ObjKind.CoreRouter or ObjKind.Spine or ObjKind.NocWall or ObjKind.Rack => Brand.Fiber,

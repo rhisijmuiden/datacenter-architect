@@ -121,10 +121,10 @@ public partial class Hud : Control
             O(ObjKind.Sofa), O(ObjKind.Coffee), O(ObjKind.Vending), O(ObjKind.Microwave), O(ObjKind.Terminal), O(ObjKind.LabBench), O(ObjKind.SocDesk),
             O(ObjKind.PalletRack), O(ObjKind.Workbench), O(ObjKind.PalletJack), O(ObjKind.Shredder),
         }),
-        ("cat_halls", new[] { new BuildItem(Mode.Row, (int)ObjKind.Rack), O(ObjKind.Crah), O(ObjKind.Pdu), O(ObjKind.CrashCart), O(ObjKind.CameraDome) }),
+        ("cat_halls", new[] { new BuildItem(Mode.Row, (int)ObjKind.Rack), O(ObjKind.Crah), O(ObjKind.Pdu75), O(ObjKind.Pdu), O(ObjKind.Pdu300), O(ObjKind.CrashCart), O(ObjKind.CameraDome) }),
         ("cat_power", new[]
         {
-            O(ObjKind.Transformer), O(ObjKind.Switchgear), O(ObjKind.Ups), O(ObjKind.Battery), O(ObjKind.Pdu),
+            O(ObjKind.Transformer), O(ObjKind.Switchgear), O(ObjKind.Ups), O(ObjKind.Battery), O(ObjKind.Pdu75), O(ObjKind.Pdu), O(ObjKind.Pdu300),
             O(ObjKind.Generator), O(ObjKind.DieselTank), O(ObjKind.UndergroundTank),
             O(ObjKind.SolarPanel), O(ObjKind.WindTurbine), O(ObjKind.BatteryContainer),
         }),
@@ -663,6 +663,14 @@ public partial class Hud : Control
         name.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         top.AddChild(name);
         v.AddChild(top);
+        var spec = SpecText(it);
+        if (spec != "")
+        {
+            var sl = Ui.Text(spec, 12, Brand.InkDim);
+            sl.AutowrapMode = TextServer.AutowrapMode.Off; sl.ClipText = true; sl.AutoTranslateMode = AutoTranslateModeEnum.Disabled; sl.MouseFilter = MouseFilterEnum.Ignore;
+            v.AddChild(sl);
+            b.TooltipText += "\n" + spec;
+        }
         var cost = CostText(it);
         var price = Ui.Number(cost == "" ? " " : cost, 14);
         price.AddThemeColorOverride("font_color", Brand.Ok);
@@ -679,6 +687,16 @@ public partial class Hud : Control
             b.AddThemeStyleboxOverride("normal", s); b.AddThemeStyleboxOverride("hover", s);
         }
         return b;
+    }
+
+    /// <summary>Key numbers of power devices on their card: kW and rack connections (PDU) or outputs (MSB, UPS).</summary>
+    static string SpecText(BuildItem i)
+    {
+        if (i.Mode != Mode.Object) return "";
+        var d = Catalog.Objects[(ObjKind)i.Arg];
+        if (d.Outlets > 0) return Loc.T("spec_pdu", d.CapacityKw, d.Outlets);
+        if (d.Outputs > 0) return Loc.T("spec_outputs", d.CapacityKw, d.Outputs);
+        return "";
     }
 
     string CostText(BuildItem i) => i.Mode switch

@@ -264,7 +264,7 @@ public partial class GameState
         {
             var rate = Staffing.WearRate(o.Kind);
             if (rate <= 0 || o.Status != ObjStatus.Live || o.Broken) continue;
-            var inHall = o.Kind is ObjKind.Rack or ObjKind.Crah or ObjKind.Pdu;
+            var inHall = o.Kind is ObjKind.Rack or ObjKind.Crah || Catalog.IsPdu(o.Kind);
             var wear = rate * (dusty && inHall ? 1.4 : 1) * (Heatwave && Staffing.PartFor(o.Kind) == Part.Cooling ? 1.5 : 1);
             var role = Staffing.RepairRole(o.Kind);
             var cov = role != null && coverage.TryGetValue(role.Value, out var c) ? c : 0;

@@ -73,7 +73,7 @@ public static class Staffing
     {
         [StaffRole.Support] = new(StaffRole.Support, "staff_support", Dept.Operations, 4300, true, null, "#eef3f6", new[] { ObjKind.Rack }, 150, true),
         [StaffRole.Electrical] = new(StaffRole.Electrical, "staff_electrical", Dept.Facility, 5200, true, null, "#eef3f6",
-            new[] { ObjKind.Transformer, ObjKind.Switchgear, ObjKind.Ups, ObjKind.Battery, ObjKind.Pdu }, 30, false),
+            new[] { ObjKind.Transformer, ObjKind.Switchgear, ObjKind.Ups, ObjKind.Battery, ObjKind.Pdu, ObjKind.Pdu75, ObjKind.Pdu300 }, 30, false),
         [StaffRole.Cooling] = new(StaffRole.Cooling, "staff_cooling", Dept.Facility, 5000, true, null, "#eef3f6",
             new[] { ObjKind.Crah, ObjKind.Chiller, ObjKind.CoolingTower }, 20, false),
         [StaffRole.NetworkEng] = new(StaffRole.NetworkEng, "staff_network", Dept.Network, 5400, true, null, "#eef3f6",
@@ -130,7 +130,7 @@ public static class Staffing
     public static double RepairHours(ObjKind k) => k switch
     {
         ObjKind.Rack or ObjKind.Battery or ObjKind.Spine or ObjKind.Odf => 2,
-        ObjKind.CoreRouter or ObjKind.Pdu or ObjKind.DieselTank or ObjKind.UndergroundTank => 3,
+        ObjKind.CoreRouter or ObjKind.Pdu or ObjKind.Pdu75 or ObjKind.Pdu300 or ObjKind.DieselTank or ObjKind.UndergroundTank => 3,
         ObjKind.Crah => 4,
         ObjKind.Ups => 5,
         ObjKind.Chiller or ObjKind.CoolingTower or ObjKind.Generator => 6,
@@ -144,7 +144,7 @@ public static class Staffing
     {
         ObjKind.Rack => 0.0004,
         ObjKind.Crah => 0.002, ObjKind.Chiller or ObjKind.CoolingTower => 0.0015,
-        ObjKind.Generator => 0.0012, ObjKind.Ups => 0.001, ObjKind.Battery => 0.0008, ObjKind.Pdu => 0.0006,
+        ObjKind.Generator => 0.0012, ObjKind.Ups => 0.001, ObjKind.Battery => 0.0008, ObjKind.Pdu or ObjKind.Pdu75 or ObjKind.Pdu300 => 0.0006,
         ObjKind.Transformer or ObjKind.Switchgear => 0.0003,
         ObjKind.CoreRouter or ObjKind.Spine => 0.0006, ObjKind.Odf => 0.0002, ObjKind.FiberPit => 0.0001,
         ObjKind.DieselTank or ObjKind.UndergroundTank => 0.0003,

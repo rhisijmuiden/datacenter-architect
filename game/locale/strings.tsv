@@ -338,10 +338,12 @@ advice_hot	A hall overheated and racks were shut down. Add cooling or upgrade th
 advice_cooling_tight	Cooling is almost at its limit. Add cooling before you place more racks.	De koeling zit bijna aan de limiet. Voeg koeling toe voordat je meer racks plaatst.
 advice_containment	Upgrade halls to hot and cold aisles (click the hall) for more cooling and a lower PUE.	Upgrade hallen naar warme en koude gangen (klik op de hal) voor meer koeling en een lagere PUE.
 obj_transformer	Transformer 2.5 MVA	Transformator 2,5 MVA
-obj_switchgear	Main switchgear with ATS	Hoofdschakelkast met ATS
+obj_switchgear	Main switchboard (MSB) with ATS	Hoofdverdeler (MSB) met ATS
 obj_ups	UPS 500 kW	UPS 500 kW
 obj_battery	Battery cabinet 40 kWh	Accukast 40 kWh
-obj_pdu	Floor PDU 150 kW	Vloer-PDU 150 kW
+obj_pdu	PDU 150	PDU 150
+obj_pdu75	PDU 75	PDU 75
+obj_pdu300	PDU 300	PDU 300
 obj_diesel_tank	Diesel tank 20,000 L	Dieseltank 20.000 L
 obj_underground_tank	Underground tank 50,000 L	Ondergrondse tank 50.000 L
 obj_chiller	Chiller 600 kW	Koelmachine 600 kW
@@ -1829,3 +1831,79 @@ hud_day_night_off	Always daylight. Click to let the sun follow the clock again.	
 hud_weather	Weather	Weer
 hud_weather_on	Weather: on (rain, fog, snow, storms). Click to always have clear skies.	Weer: aan (regen, mist, sneeuw, onweer). Klik voor altijd helder weer.
 hud_weather_off	Weather: off, always clear. Click to turn rain, fog and snow back on.	Weer: uit, altijd helder. Klik om regen, mist en sneeuw weer aan te zetten.
+spec_pdu	{0} kW · {1} racks	{0} kW · {1} racks
+spec_outputs	{0} kW · {1} outputs	{0} kW · {1} uitgangen
+msg_power_tree_new	New: the power tree. Switchboards, UPS units and PDUs now have an A or a B side, PDUs have a number of rack connections, and the power tree (Infrastructure, F4) shows what feeds what.	Nieuw: de stroomboom. Hoofdverdelers, UPS'en en PDU's hebben nu een A- of B-zijde, PDU's hebben een aantal rack-aansluitingen en de stroomboom (Infrastructuur, F4) laat zien wat wat voedt.
+hall_ab_partial	{0}/{1} A+B	{0}/{1} A+B
+advice_pdu_full	Racks in a hall are off because every PDU outlet is used. Place an extra PDU in that hall (a PDU 300 has 42 connections) or install a busbar.	Racks in een hal staan uit omdat alle PDU-aansluitingen bezet zijn. Zet een extra PDU in die hal (een PDU 300 heeft 42 aansluitingen) of laat een busbar aanleggen.
+advice_msb_outputs	A UPS has no free output on a main switchboard. Every MSB has 8 outputs: place another MSB in a switchgear room.	Een UPS heeft geen vrije uitgang op een hoofdverdeler. Elke MSB heeft 8 uitgangen: zet een extra MSB in een schakelruimte.
+advice_ups_outputs	A PDU or busbar has no free feeder left. Each UPS has 6 outputs and each MSB 8: add a UPS or an MSB.	Een PDU of busbar heeft geen vrije voeding meer. Elke UPS heeft 6 uitgangen en elke MSB 8: zet een extra UPS of MSB neer.
+advice_pdu_direct	Some PDUs hang straight on the switchboard because the UPS units have no free outputs: those racks go dark in a power cut. Add a UPS.	Sommige PDU's hangen direct aan de hoofdverdeler omdat de UPS'en geen vrije uitgangen hebben: die racks gaan uit bij een stroomstoring. Zet een extra UPS neer.
+advice_pdu_b	A hall has PDUs on one side only. Place a second PDU (it goes on the B side by itself) so racks get A and B feeds.	Een hal heeft alleen PDU's aan één zijde. Zet een tweede PDU neer (die komt vanzelf op de B-zijde), dan krijgen racks een A- en een B-voeding.
+nav_tab_power_tree	Power tree	Stroomboom
+ptree_title	Power tree	Stroomboom
+ptree_help	Each main switchboard (MSB, 8 outputs) feeds UPS units (6 outputs each), and they feed the PDUs and busbars in the halls. A PDU only feeds racks in its own hall, one outlet per rack, up to its kW. Racks fed from A and B draw half from each side; each side must carry everything when the other fails.	Elke hoofdverdeler (MSB, 8 uitgangen) voedt UPS'en (elk 6 uitgangen) en die voeden de PDU's en busbars in de hallen. Een PDU voedt alleen racks in zijn eigen hal, één aansluiting per rack, tot zijn kW. Racks met A en B trekken van elke zijde de helft; elke zijde moet alles kunnen dragen als de andere uitvalt.
+ptree_up_grid	Grid {0} MVA	Netaansluiting {0} MVA
+ptree_up_trafo	Transformers: {0}	Transformatoren: {0}
+ptree_up_ats	ATS · {0} generators ({1})	ATS · {0} generatoren ({1})
+ptree_up_no_ats	No ATS	Geen ATS
+ptree_up_msb	MSB × {0}	MSB × {0}
+ptree_side_both	A + B	A + B
+ptree_side	Side {0}	{0}-zijde
+ptree_none	No power distribution yet. Place a main switchboard (MSB) in a switchgear room, a UPS in a UPS room and PDUs in your data halls.	Nog geen stroomverdeling. Zet een hoofdverdeler (MSB) in een schakelruimte, een UPS in een UPS-ruimte en PDU's in je datahallen.
+ptree_unconnected	Not connected	Niet aangesloten
+ptree_pick	Click a device for its details.	Klik op een apparaat voor de details.
+ptree_mech	Cooling, offices and losses	Koeling, kantoren en verliezen
+ptree_busbar	Busbar {0}	Busbar {0}
+ptree_sub_msb	{0} · {1}/{2} outputs used	{0} · {1}/{2} uitgangen bezet
+ptree_sub_ups	{0} · {1}/{2} outputs · {3} racks	{0} · {1}/{2} uitgangen · {3} racks
+ptree_sub_pdu	{0}/{1} rack connections	{0}/{1} rack-aansluitingen
+ptree_full	full	vol
+ptree_sub_busbar	{0} tap-off boxes	{0} tap-off boxen
+ptree_sub_mech	own field, not via a UPS	eigen veld, niet via een UPS
+ptree_direct	no UPS	geen UPS
+ptree_failover	{0} if the other side fails	{0} bij uitval andere zijde
+ptree_not_connected	Not connected: no free output upstream	Niet aangesloten: geen vrije uitgang erboven
+ptree_no_outputs	All outputs used · {0} left	Alle uitgangen bezet · nog {0} over
+ptree_free_outputs	{0} outputs free · {1} left (about {2} more PDU 150s)	{0} uitgangen vrij · nog {1} over (ongeveer {2} extra PDU 150's)
+ptree_selected	Selected	Geselecteerd
+ptree_max	Max	Max
+ptree_outlets	Connections	Aansluitingen
+ptree_outlets_n	{0} racks	{0} racks
+ptree_tapoff	1 per rack	1 per rack
+ptree_outputs	Outputs	Uitgangen
+ptree_serves	Feeds only	Voedt alleen
+ptree_side_label	Side	Zijde
+ptree_outlets_used	Rack connections ({0} of {1} used)	Rack-aansluitingen ({0} van {1} bezet)
+ptree_outputs_used	Outputs ({0} of {1} used)	Uitgangen ({0} van {1} bezet)
+ptree_load	Load {0} now · {1} if the other side fails	Belasting nu {0} · {1} bij uitval andere zijde
+ptree_fed_by	Fed by {0}	Gevoed door {0}
+ptree_feeder	feeder {0} A	feeder {0} A
+ptree_tip_prefix	Tip:	Tip:
+action_switch_feed	Move to side {0}	Naar {0}-zijde
+ptree_tip_ups_unconnected	This UPS has no free output on any switchboard. Place another main switchboard (MSB) in a switchgear room.	Deze UPS heeft geen vrije uitgang op een hoofdverdeler. Zet een extra hoofdverdeler (MSB) in een schakelruimte.
+ptree_tip_unconnected	No UPS or switchboard has a free output for this one. Add a UPS (6 outputs) or a switchboard (8 outputs).	Geen UPS of hoofdverdeler heeft hiervoor nog een vrije uitgang. Zet een extra UPS (6 uitgangen) of hoofdverdeler (8 uitgangen) neer.
+ptree_tip_pdu_full_down	This PDU is full and {1} racks in {0} have no power. Place another PDU in {0}, or upgrade {0} to a busbar.	Deze PDU zit vol en {1} racks in {0} hebben geen stroom. Zet nog een PDU in {0}, of upgrade {0} naar een busbar.
+ptree_tip_pdu_full	This PDU is full: new racks in {0} get no {1} feed from it. Place another {1}-side PDU in {0}, or upgrade {0} to a busbar.	Deze PDU zit vol: nieuwe racks in {0} krijgen er geen {1}-voeding meer van. Zet nog een PDU aan de {1}-zijde in {0}, of upgrade {0} naar een busbar.
+ptree_tip_direct	Fed straight from the switchboard: no UPS behind it, so its racks go dark in a power cut. Add a UPS with free outputs.	Direct gevoed vanaf de hoofdverdeler: er zit geen UPS achter, dus de racks gaan uit bij een stroomstoring. Zet een UPS met vrije uitgangen neer.
+ptree_tip_failover	If the other side fails this needs {0} but it carries {1}: no real 2N. Use a bigger PDU or spread the racks.	Bij uitval van de andere zijde is {0} nodig, maar dit kan {1} dragen: geen echte 2N. Kies een grotere PDU of verdeel de racks.
+ptree_tip_overload	Overloaded: add capacity on this side.	Overbelast: zet aan deze zijde capaciteit bij.
+ptree_tip_msb_full	All 8 outputs are used. Place another main switchboard for more UPS units.	Alle 8 uitgangen zijn bezet. Zet een extra hoofdverdeler neer voor meer UPS'en.
+ptree_tip_ups_full	All 6 outputs are used. Place another UPS for more PDUs.	Alle 6 uitgangen zijn bezet. Zet een extra UPS neer voor meer PDU's.
+ptree_tip_add_b	{0} has PDUs on one side only, so its racks have no redundancy. Place a PDU on the {1} side for A+B.	{0} heeft alleen PDU's aan één zijde, dus de racks hebben geen redundantie. Zet een PDU aan de {1}-zijde voor A+B.
+ptree_tip_one_msb	Both sides hang on this one switchboard. A second MSB for the B side makes it real 2N.	Beide zijden hangen aan deze ene hoofdverdeler. Een tweede MSB voor de B-zijde maakt het echte 2N.
+inspect_down_nopdu	Off: no PDU or busbar in this hall	Uit: geen PDU of busbar in deze hal
+inspect_down_pdufull	Off: every PDU connection in this hall is used. Place an extra PDU.	Uit: alle PDU-aansluitingen in deze hal zijn bezet. Zet een extra PDU neer.
+inspect_down_nohall	Off: racks only get power inside a data hall	Uit: racks krijgen alleen stroom in een datahal
+inspect_down_chain	Off: the power chain (grid, transformer, MSB or UPS) is too small	Uit: de stroomketen (net, transformator, MSB of UPS) is te klein
+inspect_rack_feeds_ab	Fed by {0} + {1} (A+B)	Gevoed door {0} + {1} (A+B)
+inspect_rack_feed_one	Fed by {0} only, no {1} feed	Alleen gevoed door {0}, geen {1}-voeding
+inspect_feed_side	Side {0}	{0}-zijde
+inspect_outlets	Rack connections {0}/{1} · feeder {2} A	Rack-aansluitingen {0}/{1} · feeder {2} A
+inspect_outputs	Outputs {0}/{1} used	Uitgangen {0}/{1} bezet
+inspect_power_load	Load {0} of {1} · {2} if the other side fails	Belasting {0} van {1} · {2} bij uitval andere zijde
+inspect_pdu_hall	Feeds only racks in {0}	Voedt alleen racks in {0}
+inspect_hall_pdus	PDUs/busbars {0} · {1}/{2} racks fed · {3} connections free	PDU's/busbars {0} · {1}/{2} racks gevoed · {3} aansluitingen vrij
+inspect_hall_tip_nopdu	{0} racks have no power: place a PDU in this hall	{0} racks hebben geen stroom: zet een PDU in deze hal
+inspect_hall_tip_pdu	{0} racks have no PDU connection: place an extra PDU in this hall	{0} racks hebben geen PDU-aansluiting: zet een extra PDU in deze hal
+inspect_hall_tip_ab	{0} racks have only one feed: add a PDU on the other side for A+B	{0} racks hebben maar één voeding: zet een PDU aan de andere zijde voor A+B

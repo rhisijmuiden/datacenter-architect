@@ -260,7 +260,7 @@ public static class Models
     static readonly Dictionary<ObjKind, string> MadeModels = new()
     {
         [ObjKind.Generator] = "generator", [ObjKind.Transformer] = "transformer", [ObjKind.Switchgear] = "switchgear",
-        [ObjKind.Ups] = "ups", [ObjKind.Battery] = "battery", [ObjKind.Pdu] = "pdu", [ObjKind.DieselTank] = "diesel_tank",
+        [ObjKind.Ups] = "ups", [ObjKind.Battery] = "battery", [ObjKind.Pdu] = "pdu", [ObjKind.Pdu75] = "pdu", [ObjKind.Pdu300] = "pdu", [ObjKind.DieselTank] = "diesel_tank",
         [ObjKind.UndergroundTank] = "underground_tank", [ObjKind.Chiller] = "chiller", [ObjKind.DryCooler] = "dry_cooler",
         [ObjKind.CoolingTower] = "cooling_tower", [ObjKind.Crah] = "crah", [ObjKind.CoreRouter] = "core_router",
         [ObjKind.Spine] = "spine", [ObjKind.Odf] = "odf", [ObjKind.BatteryContainer] = "battery_container",

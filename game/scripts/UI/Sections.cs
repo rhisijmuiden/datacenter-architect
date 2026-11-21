@@ -46,7 +46,8 @@ public static class Sections
         }),
         new("nav_infra", "nav_infra_short", "bolt", Brand.Power, Key.F4, new SectionTab[]
         {
-            new("nav_tab_power", "bolt", PanelKind.Power, 0),
+            new("nav_tab_power", "bolt", PanelKind.Power, PowerPanel.TabOverview),
+            new("nav_tab_power_tree", "msb", PanelKind.Power, PowerPanel.TabTree),
             new("nav_tab_network", "cat_network", PanelKind.Network, 0),
             new("gr_tab_energy", "leaf", PanelKind.Growth, GrowthPanel.TabEnergy),
         }),

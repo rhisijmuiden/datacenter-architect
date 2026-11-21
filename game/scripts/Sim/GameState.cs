@@ -110,6 +110,8 @@ public class PlacedObject
     public double ContractorHour { get; set; }
     /// <summary>Game day the object was installed (UPS units and batteries age).</summary>
     public double Installed { get; set; }
+    /// <summary>Main switchboards, UPS units and PDUs belong to the A or the B side of the power distribution.</summary>
+    public FeedSide Feed { get; set; }
     [JsonIgnore] public ObjDef Def => Catalog.Objects[Kind];
 }
 
@@ -162,7 +164,7 @@ public class NewGameOptions
 /// <summary>All state that goes into a savegame. Workers and trucks are not saved; they restart from this state.</summary>
 public partial class GameState
 {
-    public const int CurrentFormat = 9;
+    public const int CurrentFormat = 10;
     /// <summary>Floor value for objects that stand on the roof of a building.</summary>
     public const int RoofFloor = -1;
     /// <summary>Floor id of a basement. Kept apart from the storey numbers so roof (-1) and storeys (0..) stay as they were.</summary>
@@ -318,6 +320,13 @@ public partial class GameState
         {
             // step 10: older games get the new looks, but the weather only plays along in new games
             Options.WeatherEffects = false;
+        }
+        if (SaveFormat < 10)
+        {
+            // power tree: switchboards, UPS units and PDUs now belong to an A or a B side. Older games had no sides,
+            // so they alternate A, B, A ... per hall (PDUs) and over the site (switchboards and UPS units), as a player would.
+            AssignFeedSides();
+            if (Objects.Any(o => Catalog.HasFeed(o.Kind))) Notes.Add(("msg_power_tree_new", null));
         }
         MigrateGrowth();
         EnsureCompetitors();
@@ -763,6 +772,7 @@ public partial class GameState
         o.Installed = Hours / 24;
         Spend(o.Def.Cost);
         o.Status = o.Def.Chain && !Creative.InstantBuild ? ObjStatus.Ordered : ObjStatus.Live;
+        if (Catalog.HasFeed(k)) o.Feed = NextFeed(o);
         var indexed = _objIndexRev == Revision && _objIndexCount == Objects.Count;
         Objects.Add(o);
         // most objects (racks above all) do not change walls, roofs or fences: skip the layout rebuild for them
