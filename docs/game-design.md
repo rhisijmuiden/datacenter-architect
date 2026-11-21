@@ -85,7 +85,9 @@ Elke locatie toont vooraf de **beschikbare netcapaciteit (MVA)** en de **glasvez
 - **Koelmachines** buiten en **CRAH-units** in de zalen, elk met een capaciteit in kW.
 - Elke rack produceert warmte, afhankelijk van de klant. De koelbalk toont de belasting tegenover de capaciteit.
 - Racks staan **aaneengesloten in rijen**, zonder ruimte tussen de racks in een rij. Je plaatst ze rij voor rij (slepen).
-- **Tussen de rijen zit altijd een gang.** Aan de voorkant is dat de koude gang, aan de achterkant de warme gang. Engineers moeten bij de achterkant van de servers kunnen, dus een rij zonder vrije gang erachter geeft een waarschuwing.
+- **Tussen de rijen zit altijd een gang.** Aan de voorkant is dat de koude gang, aan de achterkant de warme gang. Engineers moeten aan **beide kanten** bij een rack kunnen. Een rack waarvan de voor- of achterkant geblokkeerd is (door een muur, een ander object of een rack dat er tegenaan staat), kun je niet plaatsen; het spookbeeld kleurt rood met de reden erbij (wens van Reinder, 20 november 2026, speelronde).
+- **Fibergoten in datahallen** (wens van Reinder, 20 november 2026, speelronde): de goten worden pas aangelegd boven rijen waar racks staan, en groeien mee als je rijen bijplaatst. Ze zijn duidelijk zichtbaar in oranje (de huisstijlkleur voor glasvezel), met een aftakking naar elk rack.
+- **Voorkant zichtbaar bij plaatsen**: alles met een voorkant (racks, koelunits, UPS-kasten, bureaus, deuren) toont tijdens het plaatsen een pijl of gekleurde rand aan de voorkant, en bij racks ook de vrije gang die voor en achter nodig is.
 - **Zaal-upgrades:** een datazaal kun je upgraden in stappen. Elke stap kost geld en bouwtijd, verhoogt de effectieve koelcapaciteit en verlaagt het energieverbruik (PUE):
 
 | Niveau | Wat je bouwt | Koeling | PUE |
@@ -175,6 +177,7 @@ Een gebouw bouw je in fases, elk met bouwtijd en kosten. Een bouwkraan en bouwva
 
 - Een **parkeerplaats** werkt pas als hij met een weg op de **openbare weg** is aangesloten. Hetzelfde geldt voor het laadperron en de beveiligingsloge: vrachtwagens, personeel en bezoekers moeten er kunnen komen.
 - Je legt zelf wegen, paden en toegangen aan. De route van de openbare weg via de loge naar het terrein is de enige officiële ingang.
+- **Tweerichtingswegen** (wens van Reinder, 20 november 2026, speelronde): een weg van 6 tegels breed of breder krijgt vanzelf een witte middenstreep. Auto's en vrachtwagens rijden daarop **rechts**, zoals in Nederland.
 - **Hekwerk** trek je zelf rond (delen van) het terrein. Er zijn verschillende soorten:
 
 | Hekwerk | Beveiliging | Kosten | Opmerking |
@@ -902,6 +905,10 @@ Goedgekeurd door Reinder op 19 november 2026; ze komen in de genoemde stap.
 - *Stap 11*: **timelapse** van je hele campus vanaf de eerste schop in de grond.
 - *Later*: **edge-datacenters** (kleine containerlocaties in steden, gekoppeld aan de hoofdcampus), **kleurenblindmodus** en zelf toetsen instellen.
 
+**Ideeënronde 3** (goedgekeurd door Reinder op 20 november 2026)
+- *Speelronde, met voorrang*: **ongedaan maken / opnieuw** (Ctrl+Z) en **slim slepen** (doorgeschoven uit stap 7).
+- *Stap 11*: **planmodus**: je tekent je hele ontwerp eerst uit als doorzichtige blauwdruk met de kosten erbij, en laat het daarna met één klik bouwen. **Eigen bedrijfsnaam en logo** op gevels, vrachtwagens, bedrijfsauto's, werkkleding en racks. **De stad groeit mee**: verkeer op de openbare wegen, en buren die door de jaren heen nieuwe kantoren en woningen bouwen. **Netcongestie**: een wachtrij bij de netbeheerder voor extra vermogen; uit te zetten bij een nieuw spel. **Rondleidingen**: schoolklassen en geïnteresseerden lopen door het experience center, als achtergrondleven. **Ontruimingsoefening**: bij brand of een oefening loopt iedereen via de trappen naar een verzamelpunt. **Klanten met eigen racks**: in hun kooi zie je hun logo, kleur en eigen apparatuur. **Muziek en geluid**: rustige achtergrondmuziek die meebeweegt met dag en nacht, en een geluidslandschap per gebied (buiten, hal, kantoor). **Prijs "Datacenter van het jaar"**: elk jaar een uitreiking op basis van PUE, uptime en reputatie, met een beeldje voor in het CEO-kantoor. **Bioscoopcamera**: een automatische camera die langzaam over je campus vliegt, ook als screensaver.
+
 **Overige ideeën**
 - *Stap 7*: **hardware-levenscyclus**: servers en UPS-accu's verouderen en moeten worden vervangen. **Klantbezoeken en audits**: klanten komen kijken, en een nette site levert betere contracten op.
 - *Stap 8*: **waterkoeling en immersion cooling** voor AI- en GPU-klanten met racks van 50 kW of meer, en **restwarmte verkopen** aan een stadsverwarming of kas (via research).
@@ -965,7 +972,7 @@ Elk ding heeft één vaste plek: **bouwen onderaan, beheren links, kijken rechts
 
 ## Opties en bediening
 
-- **Bouwbalk onderaan** het scherm met duidelijke categorieën (icoon, naam en eigen accentkleur). Klik op een categorie om de lade met onderdelen te openen, nog een keer klikken sluit hem. De **bulldozer** (slopen) staat los rechtsonder; nog een keer klikken zet hem weer uit.
+- **Bouwbalk onderaan** het scherm met duidelijke categorieën (icoon, naam en eigen accentkleur). De **plaatjes in het bouwmenu** worden gemoderniseerd: echte, gerenderde afbeeldingen van de 3D-modellen in de huisstijl (wens van Reinder, 20 november 2026, speelronde). Klik op een categorie om de lade met onderdelen te openen, nog een keer klikken sluit hem. De **bulldozer** (slopen) staat los rechtsonder; nog een keer klikken zet hem weer uit.
 - **Optiemenu** vanuit het hoofdmenu, het pauzemenu (Esc) en het tandwiel rechtsboven in het spel. Alles wordt direct toegepast en lokaal bewaard (user://settings.cfg).
   - **Beeld:** venster, randloos volledig scherm of volledig scherm; resolutie (alle gangbare 4:3, 16:9, 16:10, 21:9, 32:9 en 4K-resoluties die op het scherm passen); beeldscherm kiezen bij meerdere schermen; grootte van de interface (75 tot 150%); V-Sync; maximale framerate. In volledig scherm blijft het scherm op zijn eigen resolutie en wordt alleen de 3D-wereld op de gekozen resolutie getekend (met FSR), zodat tekst scherp blijft. Een wijziging van modus, resolutie of scherm moet je binnen 15 seconden bevestigen, anders gaat hij terug. Alt+Enter of F11 wisselt altijd tussen venster en volledig scherm.
   - **Graphics:** snelkeuze Prestaties, Gebalanceerd of Kwaliteit; schaduwen, ambient occlusion, nevel en anti-aliasing los aan en uit; visuele effecten: knipperende statuslampjes, bewegende onderdelen (ventilatoren, kraanarmen), vloeiende camera.
