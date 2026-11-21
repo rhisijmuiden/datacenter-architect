@@ -231,7 +231,9 @@ public partial class Main : Node3D
         var inside = item.Mode is Mode.Room or Mode.Door or Mode.Row ||
             (item.Mode == Mode.Object && Catalog.Objects[(ObjKind)item.Arg].Where is Where.Room or Where.Hall or Where.Building);
         if (inside && _world.Roofs) SetView(_world.ViewFloor, false);
-        if (item.Mode is Mode.Surface or Mode.Curve or Mode.Fence or Mode.Building && _world.ViewFloor != 0) SetView(0, _world.Roofs);
+        if (item.Mode is Mode.Surface or Mode.Curve or Mode.Fence or Mode.Building or Mode.Duct && _world.ViewFloor != 0) SetView(0, _world.Roofs);
+        // ducts lie underground: the network view shows the ducts, entries and handholes you already have
+        if ((item.Mode == Mode.Duct || (item.Mode == Mode.Object && item.Arg == (int)ObjKind.FiberPit)) && _world.Overlay.Mode == OverlayMode.None) SetOverlay(OverlayMode.Network);
     }
 
     void CyclePriority(int id)
@@ -694,7 +696,7 @@ public partial class Main : Node3D
             ("goal_pdu", s.Objects.Any(o => Catalog.IsPdu(o.Kind) && o.Status == ObjStatus.Live) || s.Rooms.Any(r => r.Busbar)),
             ("goal_cooling", s.Objects.Any(o => o.Def.RejectKw > 0)),
             ("goal_generators", s.Objects.Count(o => o.Kind == ObjKind.Generator) >= 2),
-            ("goal_fiber", s.Objects.Any(o => o.Kind == ObjKind.FiberPit) && Sim.Network.MmrReady(s)),
+            ("goal_fiber", s.Net.Entries.Any(e => e.Connected) && Sim.Network.MmrReady(s)),
             ("goal_carrier", s.Net.Carriers.Count(x => x.Up && !x.Def.Ix) >= 2),
             ("goal_network", s.Net.OnlineRacks > 0),
         });
@@ -929,6 +931,23 @@ public partial class Main : Node3D
                 _world.ShowGhostRect(r, Brand.Ok, 0, _dragStart == null ? null : $"{Dim(r)} · {Ui.Money(sc)}{bays}");
                 if ((Surface)_item.Arg == Surface.Parking) _world.ShowGhostParking(r);
                 break;
+            case Mode.Duct:
+            {
+                var from = _dragStart ?? _hoverCell;
+                var duct = FiberDuct.L(from.X, from.Y, _hoverCell.X, _hoverCell.Y, _rot % 2 == 1, _item.Arg);
+                var dwhy = _dragStart == null ? null : _state.CanDuct(duct);
+                string dtext;
+                if (_dragStart == null) dtext = Loc.T("duct_ghost_start", _item.Arg);
+                else
+                {
+                    var (_, end) = (duct.Corner().First(), duct.Corner().Last());
+                    var reach = _state.MmrBuildingNear(end.x, end.z) != null || _state.MmrBuildingNear(from.X, from.Y) != null;
+                    dtext = Loc.T("duct_ghost", _item.Arg, duct.Length, Ui.Money(_state.DuctCost(duct)), duct.Handholes().Count)
+                            + (reach ? "\n" + Loc.T("duct_ghost_mmr") : "") + (dwhy != null ? "\n" + Loc.T(dwhy) : "");
+                }
+                _world.ShowGhostDuct(duct, dwhy == null, dtext);
+                break;
+            }
             case Mode.Fence:
                 var n = GameState.FenceCells(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y).Count();
                 _world.ShowGhostRect(r, Brand.Ok, 0, _dragStart == null ? null : $"{n} m · {Ui.Money(n * Catalog.Fences[(FenceType)_item.Arg].Cost)}", true);
@@ -1123,6 +1142,14 @@ public partial class Main : Node3D
                 var why = _state.PaintSurface(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, (Surface)_item.Arg, out _);
                 if (why == "msg_no_money") Fail(why);
                 break;
+            case Mode.Duct:
+            {
+                var duct = FiberDuct.L(a.X, a.Y, b.X, b.Y, _rot % 2 == 1, _item.Arg);
+                var dw = _state.AddDuct(duct);
+                if (dw != null) Fail(dw);
+                else _hud.Notify(Loc.T("msg_duct_built", duct.Ways, duct.Length, duct.Handholes().Count), Brand.Fiber);
+                break;
+            }
             case Mode.Fence:
                 var fw = _state.PlaceFence(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, (FenceType)_item.Arg, out _);
                 if (fw is "msg_no_money" or "msg_needs_research") Fail(fw);
@@ -1290,6 +1317,35 @@ public partial class Main : Node3D
 
     void Act(string why) { if (why != null) Fail(why); _hud.UpdateStats(_state); RefreshInspect(); }
 
+    /// <summary>Inspector of a main fiber duct: size, length, subducts in use, handholes and where it runs.</summary>
+    void InspectDuct(FiberDuct duct)
+    {
+        var di = _state.Net.DuctOf(duct);
+        var lines = new List<string>
+        {
+            Loc.T("inspect_duct", duct.Ways, duct.Length, duct.Handholes().Count),
+            Loc.T("inspect_subducts", di?.Used ?? 0, duct.Ways),
+            di?.ToMmr == true ? Loc.T("inspect_duct_mmr") : "⚠ " + Loc.T("inspect_duct_no_mmr"),
+        };
+        if (di != null && !di.FromEntry) lines.Add("⚠ " + Loc.T("inspect_duct_no_entry"));
+        if (di != null && di.Used >= duct.Ways) lines.Add("⚠ " + Loc.T("inspect_duct_full"));
+        var actions = new List<(string, Action, bool)>();
+        var next = _state.NextWays(duct);
+        if (next > 0) actions.Add((Loc.T("action_duct_upgrade", next, Ui.Money(_state.DuctUpgradeCost(duct))), () => Act(_state.UpgradeDuct(duct)), _state.CanUpgradeDuct(duct) == null));
+        actions.Add((Loc.T("net_overview"), OpenNetwork, true));
+        _hud.Inspect(Loc.T("duct_" + duct.Ways + "way"), lines, actions);
+    }
+
+    void AutoDuctFrom(PlacedObject entry)
+    {
+        var before = UndoHistory.Take(_state);
+        var d = _state.AutoDuct(entry, 4);
+        Record(before, "action_auto_duct");
+        if (d == null) { Fail(_state.CanAfford(1) ? "msg_no_duct_route" : "msg_no_money"); return; }
+        _hud.Notify(Loc.T("msg_duct_built", d.Ways, d.Length, d.Handholes().Count), Brand.Fiber);
+        _hud.UpdateStats(_state); RefreshInspect();
+    }
+
     void Inspect(Vector2I c, bool roof = false)
     {
         _inspectCell = c; _inspectRoof = roof; _inspectDoor = -1;
@@ -1349,17 +1405,18 @@ public partial class Main : Node3D
             if (d.Ports > 0) lines.Add(Loc.T("inspect_ports", d.Ports) + (d.Gbps > 0 ? $" · {d.Gbps:0} Gbit/s" : ""));
             if (o.Kind == ObjKind.FiberPit)
             {
-                var pi = _state.Net.Pits.FirstOrDefault(x => x.Pit == o);
-                if (pi != null)
+                var ei = _state.Net.EntryOf(o);
+                if (ei != null)
                 {
-                    lines.Add(Loc.T("inspect_pit", Catalog.PitName(pi.Street), string.Join(", ", Catalog.Carriers.Where(x => x.Pit == pi.Street).Select(x => x.Name))));
-                    lines.Add(Loc.T("inspect_subducts", pi.Used, pi.Subducts));
+                    lines.Add(Loc.T("inspect_entry_side", NetworkPanel.SideName(ei.Side)));
+                    lines.Add(ei.Connected ? Loc.T("inspect_entry_route", ei.Ways, ei.Used) : "⚠ " + Loc.T("inspect_entry_no_duct"));
                 }
-                if (o.Level < 3)
+                if (o.Status == ObjStatus.Live && ei?.Connected != true)
                 {
-                    var target = o;
-                    actions.Add((Loc.T("action_duct", Catalog.Subducts(o.Level + 1), Ui.Money(Catalog.UpgradeCost(d, o.Level))), () => Act(_state.UpgradeObject(target)), _state.CanUpgrade(o) == null));
+                    var entry = o;
+                    actions.Add((Loc.T("action_auto_duct"), () => AutoDuctFrom(entry), true));
                 }
+                actions.Add((Loc.T("net_draw_duct"), () => _hud.Pick(new BuildItem(Mode.Duct, 12)), true));
             }
             if (Catalog.IsHallSwitch(o.Kind) || o.Kind is ObjKind.DistSwitch or ObjKind.CoreRouter) lines.AddRange(NetworkPanel.InspectLines(_state, o));
             if (o.Kind is ObjKind.FiberPit or ObjKind.Odf or ObjKind.NocWall)
@@ -1412,6 +1469,12 @@ public partial class Main : Node3D
             var lines = new List<string> { $"{lv.Mva:0} MVA · {Loc.T(lv.NameKey)}" };
             if (_state.GridRequest >= 0) lines.Add(Loc.T("grid_request_running", Catalog.GridLevels[_state.GridRequest].Mva, Math.Ceiling(_state.GridDaysLeft)));
             _hud.Inspect(Loc.T("grid_station"), lines, new List<(string, Action, bool)> { (Loc.T("power_overview"), OpenPower, true) });
+            return;
+        }
+        var duct = roof || f != 0 ? null : _state.DuctAt(c.X, c.Y);
+        if (duct != null && _state.BuildingAt(c.X, c.Y) == null)
+        {
+            InspectDuct(duct);
             return;
         }
         var r = roof ? null : _state.RoomAt(c.X, c.Y, f);
@@ -1590,7 +1653,7 @@ public partial class Main : Node3D
         if (oi >= 0) System.IO.File.WriteAllText(args[oi + 1], json);
         GetTree().Quit();
     }
-    /// <summary>--screenshot path [--in-game] [--interior] [--new-game] [--info] [--options TAB] [--company TAB] [--category cat_x] [--nl] [--hours N] [--driveway] [--curves] [--curvetool] [--gate] [--barrier] [--cam yaw,pitch,dist,x,z]</summary>
+    /// <summary>--screenshot path [--in-game] [--interior] [--new-game] [--info] [--options TAB] [--company TAB] [--category cat_x] [--nl] [--hours N] [--driveway] [--curves] [--curvetool] [--gate] [--barrier] [--duct-demo [--ghost|--inspect]] [--cam yaw,pitch,dist,x,z]</summary>
     async System.Threading.Tasks.Task Screenshot(string path, string[] args)
     {
         if (args.Contains("--nl")) Loc.SetLanguage("nl");
@@ -1862,6 +1925,27 @@ public partial class Main : Node3D
             _hud.Pick(new BuildItem(Mode.Row, (int)ObjKind.Rack));
             _dragStart = new Vector2I(12, 16); _hoverCell = new Vector2I(24, 30);
             UpdateGhost();
+        }
+        // --duct-demo [--ghost|--inspect]: the network view over the site with both cable entries and their main ducts;
+        // --ghost draws a third route from a new entry on the west border, --inspect opens a duct in the inspector
+        if (args.Contains("--duct-demo"))
+        {
+            SetView(0, true);
+            _cam.SetView(0.62f, 0.95f, 82, new Vector3(34, 0, 36));
+            SetOverlay(OverlayMode.Network);
+            if (args.Contains("--ghost"))
+            {
+                var w = _state.AddObject(ObjKind.FiberPit, 0, 50, 0, 0);
+                if (w != null) w.Status = ObjStatus.Live;
+                _hud.Pick(new BuildItem(Mode.Duct, 7));
+                _dragStart = new Vector2I(1, 50); _hoverCell = new Vector2I(7, 30);
+                UpdateGhost();
+            }
+            if (args.Contains("--inspect") && _state.Ducts.Count > 0)
+            {
+                var c = _state.Ducts[0].Cells()[_state.Ducts[0].Length / 2];
+                Inspect(new Vector2I(c.x, c.z));
+            }
         }
         // --ghost-demo: one rack about to be placed, showing its front arrow and the aisles it needs
         var ghi = Array.IndexOf(args, "--ghost-demo");

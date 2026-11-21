@@ -155,6 +155,7 @@ public partial class GameState
             c.Ax += d; c.Az += d; c.Bx += d; c.Bz += d; c.Cx += d; c.Cz += d;
             c.Cells = c.Cells.Select(i => (i / old + d) * size + i % old + d).ToList();
         }
+        foreach (var duct in Ducts) duct.Shift(d);
         if (CamTarget is { Length: 3 }) { CamTarget[0] += d; CamTarget[2] += d; }
         PlotSize = size;
         StreetShift += d;

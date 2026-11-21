@@ -122,7 +122,7 @@ public static class Catalog
         [ObjKind.Rack] = new(ObjKind.Rack, "obj_rack", 1, 1, 4200, Where.Hall, true, PowerKw: 6, Chain: true, NeedsFiber: true),
         [ObjKind.Crah] = new(ObjKind.Crah, "obj_crah", 1, 2, 38000, Where.Hall, true, PowerKw: 4, CoolingKw: 120, Chain: true, MaxLevel: 3),
         [ObjKind.Generator] = new(ObjKind.Generator, "obj_generator", 3, 2, 410000, Where.Outside, true, GenKw: 1000, FuelLitres: 2000),
-        [ObjKind.FiberPit] = new(ObjKind.FiberPit, "obj_fiberpit", 1, 1, 25000, Where.Outside, false, MaxLevel: 3),
+        [ObjKind.FiberPit] = new(ObjKind.FiberPit, "obj_fiberpit", 1, 1, 25000, Where.Outside, false),
         [ObjKind.Lift] = new(ObjKind.Lift, "obj_lift", 2, 2, 85000, Where.Building, false),
         [ObjKind.PassengerLift] = new(ObjKind.PassengerLift, "obj_passenger_lift", 2, 2, 60000, Where.Building, false),
         [ObjKind.Stairs] = new(ObjKind.Stairs, "obj_stairs", 2, 5, 18000, Where.Building, false),
@@ -237,13 +237,14 @@ public static class Catalog
     public const double BusbarHours = 24;
 
     // ---------------- network ----------------
-    /// <summary>Carrier pits in the pavement of the public road (x positions). Your own fiber pit connects to the nearest one.</summary>
+    /// <summary>Old carrier pits in the pavement (x positions), only kept so old land shifts still add up; ducts now start at your own cable entries.</summary>
     public static readonly int[] StreetPits = { 8, 30, 52 };
     /// <summary>Street pits sit in the pavement across the public road (plot edge + this many metres), never on the carriageway.</summary>
     public const float StreetPitOffset = 7.8f;
     public static string PitName(int pit) => ((char)('A' + pit)).ToString();
-    /// <summary>Subducts in your own fiber pit's duct per level: every carrier, IX port or dark fiber needs one.</summary>
-    public static int Subducts(int level) => level switch { >= 3 => 12, 2 => 8, _ => 4 };
+    /// <summary>Your own main fiber duct comes as a 4-, 7- or 12-way duct: that many subducts, one per carrier, IX port or dark fiber.</summary>
+    public static readonly int[] DuctWays = { 4, 7, 12 };
+    public static long DuctCostPerM(int ways) => ways >= 12 ? 180 : ways >= 7 ? 130 : 90;
     public const int FibersPerCable = 144;
     /// <summary>Port sizes in Gbit/s, with the monthly port fee and the one-off setup fee.</summary>
     public static readonly PortDef[] Ports =

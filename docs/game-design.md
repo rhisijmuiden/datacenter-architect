@@ -35,7 +35,7 @@ Je bouwt op een **kaal terrein** of op een **kavel in de stad**. Elke locatie he
 | Glasvezel in de buurt | Weinig providers, verder weg | Veel providers, dichtbij |
 | Netcapaciteit | Wisselend, soms een nieuwe aansluiting nodig | Vaak krap, de netbeheerder bepaalt het tempo |
 
-Elke locatie toont vooraf de **beschikbare netcapaciteit (MVA)** en de **glasvezelputten** in de buurt, met provider en afstand. Aangrenzende kavels kun je later bijkopen.
+Elke locatie toont vooraf de **beschikbare netcapaciteit (MVA)** en welke carriers er glasvezel kunnen leveren. Aangrenzende kavels kun je later bijkopen.
 
 ### Kaart en meerdere locaties
 
@@ -114,11 +114,11 @@ Elke locatie toont vooraf de **beschikbare netcapaciteit (MVA)** en de **glasvez
 
 ## Netwerk en glasvezel
 
-- Glasvezelputten bij de weg, elk van een provider. Je legt zelf de mantelbuis naar de **MMR** (meet-me room) in je gebouw.
+- Geen glasvezelputten in de stoep: carriers komen binnen bij je eigen **kabelinvoer** op de terreingrens. Je legt zelf de **hoofdduct** naar de **MMR** (meet-me room) in je gebouw.
 - Meer providers aangesloten betekent een hogere prijs per rack en meer interesse van klanten.
 - Binnen leg je **kabelgoten** boven de rackrijen: geel voor glasvezel, grijs voor stroom. Kabelgoten hebben een maximale vulling.
 - **Netwerkinfrastructuur**, ook gedetailleerd:
-  1. **Glasvezelput en mantelbuis** van de provider naar je terrein. Twee gescheiden routes (verschillende putten en ingangen) geven **netwerkredundantie**.
+  1. **Kabelinvoer en hoofdduct** op je eigen terrein naar de MMR. Twee gescheiden routes (twee invoeren met ducts die niets delen) geven **netwerkredundantie**.
   2. **MMR (meet-me room)** met ODF's en patchpanelen, waar providers binnenkomen.
   3. **Core-routers en core-switches**, bij voorkeur dubbel uitgevoerd.
   4. **Aggregatie- of spine-switches** per zaal.
@@ -733,10 +733,15 @@ Zo werkt stap 4 (versie 0.3.0) nu echt in de game:
 Zo werkt stap 5 (versie 0.4.0) nu echt in de game:
 
 - **De keten**: een rack is pas online als het een poort heeft op een **edge-switch** in zijn eigen hal, die switch een uplink heeft op een **distributieswitch** (of rechtstreeks op een **core-router**), en de core via de **ODF's** (patchframes) in de **meet-me room** een carrier, de internet exchange of een peer bereikt. Racks die draaien maar offline zijn, leveren geen huur op.
-- **Glasvezelputten**: in de straat liggen drie carrierputten (A, B en C). Je zet zelf een **glasvezelput** op je terrein; de mantelbuis loopt naar de dichtstbijzijnde straatput. Een put heeft 4 subducts, te upgraden naar 8 en 12 (144 vezels per kabel). Elke carrier, IX-poort en dark fiber neemt één subduct. Putten op twee verschillende straatputten geven **twee gescheiden routes**.
-- **Carriers** (verzonnen): Lowlands Transit (put A, € 0,32/Mbit), Kanaal Net (put A, € 0,29), NordFiber (put B, € 0,26) en Eurolink (put C, € 0,38, premium). Je bestelt een poort van 1G, 10G, 100G of 400G (eenmalige aansluitkosten, 20 speldagen levertijd; een upgrade 10 dagen) met een **commit**. Je betaalt per maand de poort plus de commit per Mbit; vanaf 10G commit 15% korting, vanaf 100G 30%.
+- **Kabelinvoer en hoofdduct** (infra-schets bord 5, 2026-11-21): er liggen geen glasvezelputten meer in de stoep. Je zet een **kabelinvoer** (€ 25.000) op de terreingrens (de buitenste 2 m van je grond); daar sluiten carriers aan. Vanaf de invoer trek je zelf de **hoofdduct** naar het gebouw met de meet-me room, als een weg: rechte stukken met hoeken van 90° (R zet de hoek aan de andere kant). Bij beide einden en elke hoek zet het spel vanzelf een **trekput** (handhole), langs de route staan oranje markeerpaaltjes.
+  - Maten: **4-way** (4 subducts, € 90/m), **7-way** (€ 130/m) en **12-way** (€ 180/m). Klik op een duct om hem op te hogen; je betaalt het verschil per meter.
+  - Ducts die elkaar raken of naast elkaar liggen vormen één net: een verzamelduct langs de weg met één stamduct naar binnen kan. Elke carrier, IX-poort en dark fiber neemt één subduct over de hele route (eerst de invoer met de minste aansluitingen). De smalste duct bepaalt hoeveel er door kan.
+  - Een duct kan niet door een gebouw en je bouwt niet op een duct. De bulldozer haalt een duct weg (de helft terug). Een geraakte kabel bij een invoer laat zijn aansluitingen over de andere invoer lopen zolang er subducts vrij zijn.
+  - **Gescheiden routes**: twee invoeren in gebruik waarvan de ducts niets delen = N+1; anders is de route een enkel punt van falen.
+  - Oude saves (formaat < 13): glasvezelputten worden kabelinvoeren, elk met een gratis duct naar de dichtstbijzijnde MMR (4 subducts blijft 4-way, 8 en 12 worden 12-way), zodat niets uitvalt.
+- **Carriers** (verzonnen): Lowlands Transit (€ 0,32/Mbit), Kanaal Net (€ 0,29), NordFiber (€ 0,26) en Eurolink (€ 0,38, premium). Je bestelt een poort van 1G, 10G, 100G of 400G (eenmalige aansluitkosten, 20 speldagen levertijd; een upgrade 10 dagen) met een **commit**. Je betaalt per maand de poort plus de commit per Mbit; vanaf 10G commit 15% korting, vanaf 100G 30%.
 - **Burst**: elk speluur wordt het verkeer per carrier gemeten. Elke 30 dagen wordt het **95e percentiel** boven de commit afgerekend tegen 1,5 keer de prijs (1,2 keer met een NOC). De drukste 5% van de uren telt niet mee.
-- **Internet exchange**: Polder-IX (put C). Je betaalt alleen de poort; de IX neemt 25% van je verkeer gratis over (18% zonder AI-concurrenten), tot de poort vol is.
+- **Internet exchange**: Polder-IX. Je betaalt alleen de poort; de IX neemt 25% van je verkeer gratis over (18% zonder AI-concurrenten), tot de poort vol is.
 - **Peering**: met AI-concurrenten aan vragen Zuidas Colo, Rivierhaven DC en Noordpoort Data na een tijd of ze met je mogen peeren via dark fiber. Elk heeft eigen voorwaarden: zij huren een rack in jouw MMR (jij krijgt geld) of ze zijn groter en vragen een maandbedrag. Een peer neemt 7 tot 10% van je verkeer over. Je kunt ook zelf voorstellen, maar een grote concurrent wil pas als je netwerk groot genoeg is.
 - **Verkeer**: elk online rack doet gemiddeld 0,25 Gbit/s, met een dagcurve (rustig rond 08:00, piek rond 20:00). Eerst gaat verkeer naar de IX en de peers, de rest over transit. Past het niet, dan raakt een deel zoek: klanten betalen naar rato minder huur.
 - **Cross-connects**: hoe meer netwerken in je MMR, hoe meer klanten een cross-connect bestellen. Een engineer patcht die bij een ODF (vrije patchpoort nodig). Elke cross-connect levert € 250 eenmalig en € 60 per maand op.
@@ -747,7 +752,7 @@ Zo werkt stap 5 (versie 0.4.0) nu echt in de game:
   - **A/B**: met twee of meer switches in een hal krijgt een rack een A- en een B-poort op verschillende switches zolang er poorten over zijn. Alle racks A/B = 2N; één switch = enkel punt van falen.
   - **Distributieswitch** (meet-me room, 64 poorten, 2 × 400G, € 120.000): neemt één corepoort en geeft elke hal-switch een uplink. Zonder vrije distributiepoort hangt een hal-switch rechtstreeks op een corepoort; zijn die op, dan heeft hij geen uplink en blijven zijn racks offline.
   - Oude saves (formaat < 11): spines blijven staan (nu Spine 400 met 96 poorten) en hangen rechtstreeks op de core.
-- **Netwerkweergave** (N): oranje lijnen en bolletjes van de straatputten via je putten en mantelbuizen naar de MMR, de core-routers, de spines en de rijen. Hoe drukker, hoe sneller; vol of offline kleurt rood. Dark fiber naar peers loopt langs de weg weg.
+- **Netwerkweergave** (N): oranje lijnen en bolletjes vanaf de kabelinvoeren precies langs je ducts (rechte stukken, hoeken van 90°) naar de MMR, en binnen in rechte goot-lijnen naar de core-routers, distributie- en hal-switches en de rijen; geen schuine lijnen door de lucht. Hoe drukker, hoe sneller; vol kleurt geel, offline of geraakt rood. Dark fiber naar peers loopt recht van het terrein af.
 - In de creatieve modus zet "netwerk geen beperking" de keten uit; "direct bouwen" levert poorten, upgrades en dark fiber direct.
 - Later: klanten met eigen netwerkeisen en meerdere carriers (stap 6), kabelbreuk en storingen (stap 7), voorstellen van de NOC en de netwerkarchitect (stap 8).
 
