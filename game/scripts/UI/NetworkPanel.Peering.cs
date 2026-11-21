@@ -77,7 +77,7 @@ public partial class NetworkPanel
         left.AddChild(new Control { CustomMinimumSize = new Vector2(0, 4) });
     }
 
-    static string Cap(double gbps) => gbps >= 1 ? $"{gbps:0} Gbit/s" : $"{gbps:0.0} Gbit/s";
+    static string Cap(double gbps) => N(gbps, gbps >= 1 ? "0" : "0.0") + " Gbit/s";
 
     void PeerBlock(VBoxContainer right, GameState s, RivalDef rv)
     {
@@ -193,7 +193,7 @@ public partial class PeeringDialog : Modal
     }
 
     static string N(double v) => v.ToString("0", Loc.Language == "nl" ? new System.Globalization.CultureInfo("nl-NL") : new System.Globalization.CultureInfo("en-GB"));
-    static string Gb(double v) => v >= 10 ? $"{v:0} Gbit/s" : $"{v:0.0} Gbit/s";
+    static string Gb(double v) => v.ToString(v >= 10 ? "0" : "0.0", Loc.Language == "nl" ? new System.Globalization.CultureInfo("nl-NL") : new System.Globalization.CultureInfo("en-GB")) + " Gbit/s";
 
     static Label Plain(string text, int size, Color color, bool wrap = true)
     {

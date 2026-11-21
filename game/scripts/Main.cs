@@ -1818,11 +1818,7 @@ public partial class Main : Node3D
             var p1 = _state.PeerOf(1);
             if (p1 != null) { p1.State = PeerState.Offered; p1.PortGbps = 100; p1.Granted = 20; p1.Asked = 40; }
             _state.Touch(false);
-            if (pdi + 1 < args.Length && args[pdi + 1] == "dialog")
-            {
-                _state.Peers.RemoveAll(x => x.Rival == 2);
-                _ui.AddChild(new PeeringDialog(() => _state, 2, false, Fail));
-            }
+            if (pdi + 1 < args.Length && args[pdi + 1] == "dialog") _state.Peers.RemoveAll(x => x.Rival == 2);
         }
         var coi = Array.IndexOf(args, "--company");
         if (coi >= 0 && coi + 1 < args.Length) { _playing = true; OpenCompany(int.Parse(args[coi + 1])); }
@@ -1833,6 +1829,8 @@ public partial class Main : Node3D
             var parts = args[seci + 1].Split(',');
             OpenSectionTab(int.Parse(parts[0]), parts.Length > 1 ? int.Parse(parts[1]) : 0);
         }
+        // the peering request dialog opens on top of the drawer
+        if (pdi >= 0 && pdi + 1 < args.Length && args[pdi + 1] == "dialog" && _state != null) _ui.AddChild(new PeeringDialog(() => _state, 2, false, Fail));
         if (args.Contains("--goals-open")) _hud?.ToggleGoals();
         if (args.Contains("--overlay-network") && !args.Contains("--interior")) { SetOverlay(OverlayMode.Network); _cam.SetView(0.62f, 0.9f, 70, new Vector3(30, 0, 40)); }
         for (var i = 0; i < 50; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);

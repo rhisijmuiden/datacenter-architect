@@ -490,7 +490,7 @@ net_no_pits	No fiber pit yet. Place one on your plot near a carrier pit in the s
 net_pit_line	Pit {0} → street pit {1} · {2}/{3} subducts in use · {4} fibers	Put {0} → straatput {1} · {2}/{3} subducts in gebruik · {4} vezels
 net_routes_count	Separate routes in use: {0}	Gescheiden routes in gebruik: {0}
 net_routes_help	Every carrier, IX port and dark fiber needs a subduct in the duct of one of your pits. Upgrade a pit for more subducts. Pits on two different street pits give two separate routes.	Elke carrier, IX-poort en dark fiber heeft een subduct nodig in de mantelbuis van een van je putten. Upgrade een put voor meer subducts. Putten op twee verschillende straatputten geven twee gescheiden routes.
-net_carriers	Carriers and internet exchange	Carriers en internet exchange
+net_carriers	Transit carriers	Transitcarriers
 net_pit	street pit {0}	straatput {0}
 net_ix	internet exchange, free peering	internet exchange, gratis peering
 carrier_tier1	Large international transit network. Reliable, middle of the road on price.	Groot internationaal transitnetwerk. Betrouwbaar, gemiddeld in prijs.
