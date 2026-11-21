@@ -45,6 +45,8 @@ public static class Demo
         s.AddObject(ObjKind.Odf, 31, 25, 0, 0);
         s.AddObject(ObjKind.CoreRouter, 33, 22, 3, 0);
         s.AddObject(ObjKind.CoreRouter, 33, 24, 3, 0);
+        // the distribution switch: every hall switch hangs on it, it takes one port on the core
+        s.AddObject(ObjKind.DistSwitch, 32, 25, 0, 0);
         // technical rooms: main switchgear with the ATS, and the UPS room with its batteries
         s.AddRoom(RoomType.Switchgear, 26, 14, 4, 4, 0);
         s.AddRoom(RoomType.UpsRoom, 30, 14, 4, 4, 0);
@@ -67,8 +69,9 @@ public static class Demo
         // floor PDUs at the end of the rows; the hall also has an overhead busbar
         foreach (var z in new[] { 15, 22, 27 }) s.AddObject(ObjKind.Pdu, 25, z, 0, 0);
         hall.Busbar = true;
-        // spine switches at the start of the rows
-        foreach (var z in new[] { 16, 23, 28 }) s.AddObject(ObjKind.Spine, 11, z, 1, 0);
+        // hall switches at the start of the rows: a Spine 400 and two Edge 48s, so every rack has an A and a B port
+        s.AddObject(ObjKind.Spine, 11, 16, 1, 0);
+        foreach (var z in new[] { 23, 28 }) s.AddObject(ObjKind.EdgeSwitch48, 11, z, 1, 0);
         hall.Containment = Containment.HotCold;
 
         s.AddObject(ObjKind.CrashCart, 24, 17, 0, 0);

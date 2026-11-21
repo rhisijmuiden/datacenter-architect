@@ -230,6 +230,12 @@ public partial class Main : Node3D
     bool _drawerSetOverlay;
 
     void OpenPower() => OpenPanel(PanelKind.Power, 0);
+    /// <summary>The power tree with this switchboard, UPS or PDU selected.</summary>
+    void OpenPowerTree(PlacedObject o)
+    {
+        OpenPanel(PanelKind.Power, PowerPanel.TabTree);
+        if (_drawer is PowerPanel pp) pp.Select(o);
+    }
     void OpenNetwork() => OpenPanel(PanelKind.Network, 0);
     void OpenCompany(int tab) => OpenPanel(PanelKind.Company, tab);
     void OpenReputation(int tab) => OpenPanel(PanelKind.Reputation, tab);
@@ -266,9 +272,9 @@ public partial class Main : Node3D
             PanelKind.Staff => new StaffPanel(() => _state, Fail, want),
             PanelKind.Reputation => new ReputationPanel(() => _state, Fail, want),
             PanelKind.Growth => new GrowthPanel(() => _state, Fail, want),
-            PanelKind.Power => new PowerPanel(() => _state, Fail),
+            PanelKind.Power => new PowerPanel(() => _state, Fail, want),
             PanelKind.Progress => new ProgressPanel(() => _state, StartPhoto, want),
-            _ => new NetworkPanel(() => _state, Fail),
+            _ => new NetworkPanel(() => _state, Fail, want, item => _hud.Pick(item)),
         };
         m.Kind = e.Kind;
         m.Dock(Hud.LeftEdge - 2, section, tabIndex, (s, t) => OpenSectionTab(s, t));
@@ -666,7 +672,7 @@ public partial class Main : Node3D
             ("goal_contract", s.Deals.Any(d => d.State == DealState.Active && !d.Legacy)),
             ("goal_switchgear", s.Objects.Any(o => o.Kind == ObjKind.Switchgear && o.Status == ObjStatus.Live)),
             ("goal_ups", s.Objects.Any(o => o.Kind == ObjKind.Ups && o.Status == ObjStatus.Live) && s.Objects.Any(o => o.Kind == ObjKind.Battery && o.Status == ObjStatus.Live)),
-            ("goal_pdu", s.Objects.Any(o => o.Kind == ObjKind.Pdu && o.Status == ObjStatus.Live) || s.Rooms.Any(r => r.Busbar)),
+            ("goal_pdu", s.Objects.Any(o => Catalog.IsPdu(o.Kind) && o.Status == ObjStatus.Live) || s.Rooms.Any(r => r.Busbar)),
             ("goal_cooling", s.Objects.Any(o => o.Def.RejectKw > 0)),
             ("goal_generators", s.Objects.Count(o => o.Kind == ObjKind.Generator) >= 2),
             ("goal_fiber", s.Objects.Any(o => o.Kind == ObjKind.FiberPit) && Sim.Network.MmrReady(s)),
@@ -1212,7 +1218,18 @@ public partial class Main : Node3D
             if (o.Kind == ObjKind.Rack && o.Status == ObjStatus.Live)
             {
                 var hall = _state.RoomAt(o.X, o.Z, o.Floor);
-                lines.Add(!infra.Down.Contains(o.Id) ? Loc.T("inspect_running") : hall?.Hot == true ? "⚠ " + Loc.T("inspect_down_heat") : "⚠ " + Loc.T("inspect_down_power"));
+                lines.Add(!infra.Down.Contains(o.Id) ? Loc.T("inspect_running") : infra.Reason(o.Id) switch
+                {
+                    DownReason.Heat or DownReason.Suppressed => "⚠ " + Loc.T("inspect_down_heat"),
+                    DownReason.NoPdu => "⚠ " + Loc.T("inspect_down_nopdu"),
+                    DownReason.PduFull => "⚠ " + Loc.T("inspect_down_pdufull"),
+                    DownReason.NoHall => "⚠ " + Loc.T("inspect_down_nohall"),
+                    DownReason.Chain => "⚠ " + Loc.T("inspect_down_chain"),
+                    _ => hall?.Hot == true ? "⚠ " + Loc.T("inspect_down_heat") : "⚠ " + Loc.T("inspect_down_power"),
+                });
+                var (fa, fb) = infra.Tree?.Feeds(o.Id) ?? (null, null);
+                if (fa != null) lines.Add(fb != null ? Loc.T("inspect_rack_feeds_ab", fa.Kind == PowerNodeKind.Busbar ? PowerPanel.NodeName(fa) : fa.Name, fb.Kind == PowerNodeKind.Busbar ? PowerPanel.NodeName(fb) : fb.Name)
+                    : Loc.T("inspect_rack_feed_one", fa.Kind == PowerNodeKind.Busbar ? PowerPanel.NodeName(fa) : fa.Name, fa.Side == FeedSide.A ? "B" : "A"));
                 if (!infra.Down.Contains(o.Id)) lines.Add(_state.Net.Offline.Contains(o.Id) ? "⚠ " + Loc.T("inspect_offline") : Loc.T("inspect_online"));
                 var owner = _state.RackOwners().TryGetValue(o.Id, out var dealId) ? _state.DealById(dealId) : null;
                 lines.Add(owner != null ? Loc.T("inspect_rented", CompanyPanel.DealName(owner)) : hall?.Zone == HallZone.PerU ? Loc.T("inspect_peru") : Loc.T("inspect_for_sale"));
@@ -1232,12 +1249,33 @@ public partial class Main : Node3D
                     actions.Add((Loc.T("action_duct", Catalog.Subducts(o.Level + 1), Ui.Money(Catalog.UpgradeCost(d, o.Level))), () => Act(_state.UpgradeObject(target)), _state.CanUpgrade(o) == null));
                 }
             }
-            if (o.Kind is ObjKind.FiberPit or ObjKind.Odf or ObjKind.CoreRouter or ObjKind.Spine or ObjKind.NocWall)
+            if (Catalog.IsHallSwitch(o.Kind) || o.Kind is ObjKind.DistSwitch or ObjKind.CoreRouter) lines.AddRange(NetworkPanel.InspectLines(_state, o));
+            if (o.Kind is ObjKind.FiberPit or ObjKind.Odf or ObjKind.NocWall)
                 actions.Add((Loc.T("net_overview"), OpenNetwork, true));
+            if (Catalog.IsHallSwitch(o.Kind) || o.Kind is ObjKind.DistSwitch or ObjKind.CoreRouter)
+                actions.Add((Loc.T("ntree_open"), () => OpenPanel(PanelKind.Network, NetworkPanel.TabTree), true));
             if (d.PowerKw > 0) lines.Add($"{d.PowerKw:0.#} kW");
             if (d.CoolingKw > 0) lines.Add(Loc.T("inspect_cooling", Math.Round(d.CoolingKw * Catalog.LevelFactor(o.Level))));
             if (d.RejectKw > 0) lines.Add(Loc.T("inspect_reject", Math.Round(d.RejectKw * Catalog.LevelFactor(o.Level))));
             if (d.CapacityKw > 0) lines.Add(Loc.T("inspect_capacity", d.CapacityKw));
+            if (Catalog.HasFeed(o.Kind))
+            {
+                var node = infra.Tree?.Node(o);
+                lines.Add(Loc.T("inspect_feed_side", o.Feed) + (node != null ? " · " + node.Name : ""));
+                if (d.Outlets > 0) lines.Add(Loc.T("inspect_outlets", node?.UsedOutlets ?? 0, d.Outlets, d.FeederAmps));
+                if (d.Outputs > 0) lines.Add(Loc.T("inspect_outputs", node?.UsedOutputs ?? 0, d.Outputs));
+                if (node != null)
+                {
+                    lines.Add(Loc.T("inspect_power_load", Kw(node.LoadKw), Kw(node.CapacityKw), Kw(node.FailoverKw)));
+                    if (node.Hall != null) lines.Add(Loc.T("inspect_pdu_hall", _state.HallCode(node.Hall)));
+                    if (node.Parent != null) lines.Add(Loc.T("ptree_fed_by", PowerPanel.NodeName(node.Parent)));
+                    foreach (var tip in PowerPanel.Tips(_state, infra, node)) lines.Add("⚠ " + tip);
+                }
+                else if (o.Status == ObjStatus.Live) lines.Add("⚠ " + Loc.T("ptree_not_connected"));
+                var target = o;
+                actions.Add((Loc.T("action_switch_feed", o.Feed == FeedSide.A ? "B" : "A"), () => Act(_state.SwitchFeed(target)), true));
+                actions.Add((Loc.T("nav_tab_power_tree"), () => OpenPowerTree(target), true));
+            }
             if (d.StorageKwh > 0) lines.Add(Loc.T("inspect_storage", d.StorageKwh));
             if (d.GenKw > 0) lines.Add(Loc.T("inspect_generator", d.GenKw));
             if (d.FuelLitres > 0) lines.Add(Loc.T("inspect_fuel", d.FuelLitres));
@@ -1251,7 +1289,7 @@ public partial class Main : Node3D
                     actions.Add((Loc.T("action_upgrade", o.Level + 1, Ui.Money(Catalog.UpgradeCost(d, o.Level))), () => Act(_state.UpgradeObject(target)), _state.CanUpgrade(o) == null));
                 }
             }
-            if (d.Rooms != null && o.Kind is ObjKind.Transformer or ObjKind.Switchgear or ObjKind.Ups or ObjKind.Battery)
+            if (d.Rooms != null && o.Kind is ObjKind.Transformer or ObjKind.Battery)
                 actions.Add((Loc.T("power_overview"), OpenPower, true));
             _hud.Inspect(Loc.T(d.NameKey), lines, actions);
             return;
@@ -1281,13 +1319,17 @@ public partial class Main : Node3D
                 if (r.Containment == Containment.HotCold && !_state.Done("cool_corridor")) lines.Add(Loc.T("inspect_corridor_research"));
                 if (hi != null)
                 {
-                    lines.Add(Loc.T("inspect_hall_power", Kw(hi.ItKw), Kw(hi.DistributionKw), hi.ItKw <= 0 ? "-" : hi.AB ? "A+B" : Loc.T("hall_ab_no")));
+                    lines.Add(Loc.T("inspect_hall_power", Kw(hi.ItKw), Kw(hi.DistributionKw), PowerPanel.RedundancyText(hi)));
+                    lines.Add(Loc.T("inspect_hall_pdus", hi.Feeds, hi.FedRacks, hi.LiveRacks, hi.FreeOutlets == int.MaxValue ? "∞" : hi.FreeOutlets.ToString()));
+                    if (hi.LiveRacks > hi.FedRacks) lines.Add("⚠ " + Loc.T(hi.Feeds == 0 ? "inspect_hall_tip_nopdu" : "inspect_hall_tip_pdu", hi.LiveRacks - hi.FedRacks));
+                    else if (hi.LiveRacks > 0 && !hi.AB) lines.Add(Loc.T("inspect_hall_tip_ab", hi.LiveRacks - hi.DualRacks));
                     lines.Add(Loc.T("inspect_hall_cooling", Kw(hi.CrahKw), $"{r.Temp:0}"));
                     if (hi.RunningRacks < hi.LiveRacks) lines.Add("⚠ " + Loc.T(r.Hot ? "inspect_hall_hot" : "inspect_hall_short", hi.LiveRacks - hi.RunningRacks));
                 }
                 if (r.Upgrade != 0) lines.Add(Loc.T("inspect_upgrading", Math.Ceiling(r.UpgradeLeft)));
                 var hn = _state.Net.Halls.FirstOrDefault(h => h.Room == r);
-                if (hn != null && hn.Racks > 0) lines.Add((hn.Online < hn.Racks ? "⚠ " : "") + Loc.T("inspect_hall_net", hn.Online, hn.Racks, hn.Spines));
+                if (hn != null && hn.Racks > 0) lines.Add((hn.Online < hn.Racks ? "⚠ " : "") + Loc.T("inspect_hall_net", hn.Online, hn.Racks, hn.Spines)
+                    + " · " + Loc.T("ntree_ports_of", hn.UsedPorts, hn.Ports) + (hn.AB ? " · A/B" : ""));
                 var hall = r;
                 if (r.Containment < Containment.ColdCorridor)
                 {
@@ -1756,12 +1798,27 @@ public partial class Main : Node3D
         if (oi >= 0) OpenOptions(oi + 1 < args.Length && int.TryParse(args[oi + 1], out var tab) ? tab : 0);
         if (args.Contains("--power")) { _playing = true; OpenPower(); }
         if (args.Contains("--network")) { _playing = true; OpenNetwork(); }
+        // --power-tree [msb|ups|pdu]: the power tree with that kind of device selected
+        var pti = Array.IndexOf(args, "--power-tree");
+        if (pti >= 0 && _state != null)
+        {
+            _playing = true;
+            var what = pti + 1 < args.Length ? args[pti + 1] : "msb";
+            var pick = _state.Objects.Where(o => what == "pdu" ? Catalog.IsPdu(o.Kind) : o.Kind == (what == "ups" ? ObjKind.Ups : ObjKind.Switchgear)).OrderBy(o => o.Id).FirstOrDefault();
+            OpenPowerTree(pick);
+        }
         // --hall-clients: keep the first hall for banks and government and the second for AI companies (screenshots)
         if (args.Contains("--hall-clients") && _state != null)
         {
             var hs = _state.Rooms.Where(r => r.Type == RoomType.DataHall).ToList();
             if (hs.Count > 0) _state.SetHallClients(hs[0], new[] { CustomerType.Bank, CustomerType.Government });
             if (hs.Count > 1) _state.SetHallClients(hs[1], new[] { CustomerType.Ai });
+        }
+        if (args.Contains("--nettree-demo") && _state != null)
+        {
+            // network tree: without the spine the demo hall runs on two Edge 48s, not every rack gets a B port
+            _state.Objects.RemoveAll(o => o.Kind == ObjKind.Spine);
+            _state.Touch();
         }
         var coi = Array.IndexOf(args, "--company");
         if (coi >= 0 && coi + 1 < args.Length) { _playing = true; OpenCompany(int.Parse(args[coi + 1])); }

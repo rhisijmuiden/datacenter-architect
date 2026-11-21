@@ -21,10 +21,18 @@ public class HallInfo
     public Room Room;
     public int LiveRacks, RunningRacks;
     public double ItKw;
+    /// <summary>Capacity of the connected PDUs and busbar runs in the hall.</summary>
     public double DistributionKw;
-    public int Feeds;
-    /// <summary>Racks keep running when one of the A/B feeds fails.</summary>
+    /// <summary>Connected PDUs and busbar runs, and on how many sides (A, B) they are.</summary>
+    public int Feeds, Sides;
+    /// <summary>Racks with at least one feed, and racks fed from both A and B.</summary>
+    public int FedRacks, DualRacks;
+    /// <summary>Free rack connections left on the hall's PDUs (busbar: unlimited).</summary>
+    public int FreeOutlets;
+    /// <summary>Every rack is fed from A and B: racks keep running when one side fails.</summary>
     public bool AB;
+    /// <summary>"2N" (A and B from separate switchboards), "A+B" (both sides, shared switchboard), "partial", "N" or "-".</summary>
+    public string Redundancy = "-";
     /// <summary>CRAH capacity in the hall with the containment bonus.</summary>
     public double CrahKw;
     /// <summary>What the hall can really cool: its CRAH units, limited by its share of heat rejection outside.</summary>
@@ -50,6 +58,11 @@ public class InfraReport
     public int LiveRacks, RunningRacks;
     public int DownForPower, DownForHeat;
     public readonly HashSet<int> Down = new();
+    /// <summary>Why each rack in <see cref="Down"/> is off.</summary>
+    public readonly Dictionary<int, DownReason> Why = new();
+    /// <summary>The power distribution tree: switchboards, UPS units, PDUs and busbars with their loads.</summary>
+    public PowerTree Tree;
+    public DownReason Reason(int rackId) => Why.TryGetValue(rackId, out var w) ? w : DownReason.None;
     public double Pue;
     /// <summary>During a city-wide power cut: running on generators, or completely dark.</summary>
     public bool OnGenerators, Blackout;
@@ -115,15 +128,28 @@ public static class Infra
         var rejectUnits = live.Where(o => o.Def.RejectKw > 0).Select(o => o.Def.RejectKw * Catalog.LevelFactor(o.Level)).ToList();
         r.RejectKw = rejectUnits.Sum() * s.RejectFactor;
         r.HeatKw = racks.Sum(o => o.Def.PowerKw);
+        var tree = PowerTree.Build(s, live, halls, byHall);
+        r.Tree = tree;
         foreach (var h in halls)
         {
             var info = new HallInfo { Room = h, LiveRacks = byHall[h].Count, ItKw = byHall[h].Sum(o => o.Def.PowerKw) };
             var inHall = live.Where(o => o.Floor == h.Floor && h.Contains(o.X, o.Z)).ToList();
-            var feeds = inHall.Where(o => o.Kind == ObjKind.Pdu).Select(o => o.Def.CapacityKw).ToList();
-            if (h.Busbar) { feeds.Add(s.BusbarKw); feeds.Add(s.BusbarKw); }
-            info.Feeds = feeds.Count;
-            info.DistributionKw = feeds.Sum();
-            info.AB = feeds.Count >= 2 && info.ItKw > 0 && feeds.Sum() - feeds.Max() >= info.ItKw;
+            var sources = tree.SourcesIn(h).Where(n => n.Connected).ToList();
+            info.Feeds = sources.Count;
+            info.Sides = sources.Select(n => n.Side).Distinct().Count();
+            info.DistributionKw = sources.Sum(n => n.CapacityKw);
+            info.FreeOutlets = sources.Any(n => n.Unlimited) ? int.MaxValue : sources.Sum(n => n.FreeOutlets);
+            foreach (var o in byHall[h])
+                if (tree.RackFeeds.TryGetValue(o.Id, out var f)) { info.FedRacks++; if (f.b != null) info.DualRacks++; }
+            info.AB = info.LiveRacks > 0 && info.DualRacks == info.LiveRacks;
+            if (info.LiveRacks == 0) info.Redundancy = "-";
+            else if (info.AB)
+            {
+                // real 2N: the A side and the B side come from different switchboards
+                var roots = sources.Where(n => n.Racks > 0).GroupBy(n => n.Side).Select(g => g.Select(n => n.Root).ToHashSet()).ToList();
+                info.Redundancy = roots.Count == 2 && !roots[0].Overlaps(roots[1]) ? "2N" : "A+B";
+            }
+            else info.Redundancy = info.DualRacks > 0 ? "partial" : "N";
             var cont = Catalog.Containments[h.Containment];
             info.CrahKw = inHall.Where(o => o.Kind == ObjKind.Crah).Sum(o => o.Def.CoolingKw * Catalog.LevelFactor(o.Level)) * (1 + cont.CoolingBonus) * s.CrahFactor;
             info.Pue = Math.Max(1.08, cont.Pue - s.PueSaving);
@@ -149,7 +175,8 @@ public static class Infra
         // ---- the power chain ----
         var trafos = live.Where(o => o.Kind == ObjKind.Transformer).Select(o => o.Def.CapacityKw).ToList();
         var switches = live.Where(o => o.Kind == ObjKind.Switchgear).Select(o => o.Def.CapacityKw).ToList();
-        var ups = live.Where(o => o.Kind == ObjKind.Ups).Select(o => o.Def.CapacityKw * s.UpsFactor).ToList();
+        // a UPS that found no free switchboard output carries nothing
+        var ups = tree.Ups.Where(n => n.Connected).Select(n => n.CapacityKw).ToList();
         var dist = r.Halls.Select(h => h.DistributionKw).Where(k => k > 0).ToList();
         var gridT = new List<double> { Catalog.GridTransformerKw }; gridT.AddRange(trafos);
         // a city-wide power cut: the generators take over behind the ATS, for as long as the diesel lasts
@@ -194,22 +221,32 @@ public static class Infra
         foreach (var h in r.Halls)
         {
             var list = byHall[h.Room];
-            var allowed = list.Count;
+            var on = list;
             if (!c.NoPowerLimit)
             {
-                var byDist = (int)Math.Floor(h.DistributionKw / Catalog.RackKw + 1e-9);
-                if (byDist < allowed) { allowed = byDist; h.PowerLimited = true; }
+                // a rack runs when it has a PDU outlet (or busbar tap-off) in its own hall
+                on = list.Where(o => tree.RackFeeds.ContainsKey(o.Id)).ToList();
+                if (on.Count < list.Count)
+                {
+                    h.PowerLimited = true;
+                    var why = h.Feeds == 0 ? DownReason.NoPdu : DownReason.PduFull;
+                    foreach (var o in list) if (!tree.RackFeeds.ContainsKey(o.Id)) r.Why[o.Id] = why;
+                }
             }
+            var allowed = on.Count;
             var heatLimit = allowed;
             if (h.Room.Hot && !c.NoCoolingLimit) heatLimit = Math.Min(allowed, (int)Math.Floor(h.CoolKw / Catalog.RackKw + 1e-9));
-            if (s.Suppressed(h.Room)) { heatLimit = 0; h.Suppressed = true; }
+            var suppressed = s.Suppressed(h.Room);
+            if (suppressed) { heatLimit = 0; h.Suppressed = true; }
             r.DownForPower += list.Count - allowed;
             r.DownForHeat += allowed - heatLimit;
-            running.AddRange(list.Take(heatLimit));
+            for (var i = heatLimit; i < on.Count; i++) r.Why[on[i].Id] = suppressed ? DownReason.Suppressed : DownReason.Heat;
+            running.AddRange(on.Take(heatLimit));
             h.RunningRacks = heatLimit;
         }
         running.AddRange(orphan.Where(_ => c.NoPowerLimit));
         r.DownForPower += orphan.Count(_ => !c.NoPowerLimit);
+        if (!c.NoPowerLimit) foreach (var o in orphan) r.Why[o.Id] = DownReason.NoHall;
         if (!c.NoPowerLimit)
         {
             var max = (int)Math.Floor(usable / Catalog.RackKw + 1e-9);
@@ -218,6 +255,7 @@ public static class Infra
                 // the newest racks are switched off first
                 var cut = running.OrderByDescending(o => o.Id).Take(running.Count - max).ToHashSet();
                 r.DownForPower += cut.Count;
+                foreach (var o in cut) r.Why[o.Id] = DownReason.Chain;
                 running = running.Where(o => !cut.Contains(o)).ToList();
                 // a set, not the list: with thousands of racks a list lookup per rack takes far too long
                 var on = running.ToHashSet();
@@ -229,6 +267,15 @@ public static class Infra
         r.RunningRacks = running.Count;
         r.ItRunningKw = running.Sum(o => o.Def.PowerKw);
         r.FacilityKw = r.ItRunningKw * pue + r.OtherKw;
+        // cooling, offices and losses hang on the first switchboard, on a field of their own (no feeder output)
+        if (tree.Msbs.Count > 0)
+        {
+            var mech = new PowerNode { Kind = PowerNodeKind.Mech, Name = "mech", LoadKw = Math.Max(0, r.FacilityKw - r.ItRunningKw), Parent = tree.Msbs[0] };
+            mech.FailoverKw = mech.LoadKw;
+            tree.Mech = mech;
+            tree.Msbs[0].Children.Add(mech);
+            tree.Msbs[0].LoadKw += mech.LoadKw; tree.Msbs[0].FailoverKw += mech.LoadKw;
+        }
 
         foreach (var l in r.Links)
         {
