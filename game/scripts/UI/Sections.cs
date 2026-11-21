@@ -50,7 +50,8 @@ public static class Sections
             new("nav_tab_power_tree", "msb", PanelKind.Power, PowerPanel.TabTree),
             new("nav_tab_network", "cat_network", PanelKind.Network, NetworkPanel.TabOverview),
             new("nav_tab_nettree", "tree", PanelKind.Network, NetworkPanel.TabTree),
-            new("gr_tab_energy", "leaf", PanelKind.Growth, GrowthPanel.TabEnergy),
+            new("nav_tab_own_energy", "leaf", PanelKind.Power, PowerPanel.TabEnergy),
+            new("gr_tab_energy", "chart", PanelKind.Growth, GrowthPanel.TabEnergy),
         }),
         new("nav_staff", "nav_staff_short", "crew", Brand.Cooling, Key.F5, new SectionTab[]
         {

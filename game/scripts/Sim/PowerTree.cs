@@ -206,19 +206,6 @@ public class PowerTree
 
 public partial class GameState
 {
-    /// <summary>Short code of a data hall, DH-01, DH-02 ... in the order they were drawn.</summary>
-    public string HallCode(Room hall)
-    {
-        var i = 0;
-        foreach (var r in Rooms)
-        {
-            if (r.Type != RoomType.DataHall) continue;
-            i++;
-            if (r == hall) return $"DH-{i:00}";
-        }
-        return "DH";
-    }
-
     /// <summary>Which scope a power device is balanced in: PDUs per hall, switchboards and UPS units over the site.</summary>
     Room FeedScope(PlacedObject o) => Catalog.IsPdu(o.Kind) ? RoomAt(o.X, o.Z, o.Floor) : null;
     static int FeedClass(ObjKind k) => Catalog.IsPdu(k) ? 0 : k == ObjKind.Ups ? 1 : 2;

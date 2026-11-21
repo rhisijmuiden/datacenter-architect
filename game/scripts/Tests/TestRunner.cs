@@ -44,6 +44,7 @@ public static partial class TestRunner
             ("playtest round 3", Playtest3Tests),
             ("basement", BasementTests),
             ("customers per hall", HallClientTests),
+            ("hall names and placing", HallNameTests),
             ("add a floor", AddLevelTests),
             ("office life", OfficeLifeTests),
             ("power tree", PowerTreeTests),
@@ -52,6 +53,7 @@ public static partial class TestRunner
             ("door swaps and badge readers", DoorSwapTests),
             ("walls and painted rooms", WallPaintTests),
             ("outages", OutageTests),
+            ("own energy", OwnEnergyTests),
             ("hall card", HallReportTests),
             ("blueprints", BlueprintTests),
         };
@@ -993,9 +995,11 @@ public static partial class TestRunner
         Check(s.Sign(lead) == null && lead.State == DealState.Active && lead.RackIds.Count == 4, "sign: four racks rented");
         Check(s.RackOwners().Count == 4 && s.FreeRacksFor(big, out _).Count == 6, "rented racks are no longer for sale");
         var green = s.MakeLead(0, rng, CustomerType.Smb); green.Product = Product.Rack; green.Racks = 1; green.Green = true; green.AB = green.Amp32 = green.TwoN = false;
-        Check(s.Check(green).Any(r => r.Key == "req_green" && r.Status == ReqStatus.Fail), "green customers need a green energy contract");
+        Check(s.Check(green).Any(r => r.Key == "req_green" && r.Status == ReqStatus.Fail), "green customers need the green datacenter label");
         s.SetSupplier(2);
-        Check(s.Check(green).First(r => r.Key == "req_green").Status == ReqStatus.Ok, "switching to green energy");
+        Check(s.Check(green).First(r => r.Key == "req_green").Status == ReqStatus.Fail, "a green energy contract alone is not the label");
+        s.Certs.Add(new Certificate { Kind = CertKind.Green, Valid = true, ExpiresDay = s.Day + 1000, CheckDay = s.Day + 365 });
+        Check(s.Check(green).First(r => r.Key == "req_green").Status == ReqStatus.Ok, "with the green label green customers can sign");
         // zones
         var peru = s.MakeLead(0, rng, CustomerType.Startup); peru.Product = Product.PerU; peru.Units = 10; peru.Green = false;
         Check(s.FreeUnits() == 0 && !s.Meets(peru), "no per-U hall, no units");
@@ -1774,7 +1778,7 @@ public static partial class TestRunner
         Check(!s.HasCert(CertKind.Iso27001) && s.Notes.Any(n => n.key == "msg_cert_withdrawn"), "the yearly check withdraws it when policies lapse");
         // Tier III and the green label check the technical site
         Check(s.CertChecks(CertKind.TierIII).Count >= 4, "Tier III checks UPS, generators, A/B power and carriers");
-        Check(s.CertChecks(CertKind.Green).Any(r => r.Key == "cert_req_green_energy" && r.Status == ReqStatus.Fail), "the green label wants green energy");
+        Check(s.CertChecks(CertKind.Green).Any(r => r.Key == "cert_req_own_energy" && r.Status == ReqStatus.Fail), "the green label wants own energy");
         SaveSystem.Save(s, "unit-test-certs");
         Check(SaveSystem.Load("unit-test-certs") != null, "save roundtrip certificates");
     }

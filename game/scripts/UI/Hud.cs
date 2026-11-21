@@ -69,7 +69,8 @@ public partial class Hud : Control
     readonly Dictionary<string, (Label value, ProgressBar bar)> _bars = new();
     Label _weather;
     Label _money, _date, _company, _toolHint, _floorLabel, _creative;
-    Label _staffStat, _repStat;
+    Label _staffStat, _repStat, _greenStat;
+    Control _greenBox;
     bool _alert;
     Button _langBtn, _roofBtn, _powerBtn, _coolBtn, _netBtn;
     Label _pue;
@@ -290,6 +291,14 @@ public partial class Hud : Control
         _repStat = Ui.Number("30", 18); _repStat.AutoTranslateMode = AutoTranslateModeEnum.Disabled; _repStat.AutowrapMode = TextServer.AutowrapMode.Off;
         rv.AddChild(_repStat);
         sh.AddChild(rv);
+        // own energy: share of own power over 30 days, green when you hold the green datacenter label
+        var gv = new VBoxContainer { MouseFilter = MouseFilterEnum.Stop, TooltipText = "hud_own_energy_tip", CustomMinimumSize = new Vector2(70, 0) };
+        gv.AddThemeConstantOverride("separation", 2);
+        gv.AddChild(Ui.Heading("res_own_energy", 12));
+        _greenStat = Ui.Number("0%", 18); _greenStat.AutoTranslateMode = AutoTranslateModeEnum.Disabled; _greenStat.AutowrapMode = TextServer.AutowrapMode.Off;
+        gv.AddChild(_greenStat);
+        sh.AddChild(gv);
+        _greenBox = gv;
         var mv = new VBoxContainer { MouseFilter = MouseFilterEnum.Stop, TooltipText = "hud_money_tip", MouseDefaultCursorShape = CursorShape.PointingHand }; mv.AddThemeConstantOverride("separation", 2);
         mv.GuiInput += e => { if (e is InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) OpenCompany?.Invoke(CompanyPanel.TabFinance); };
         mv.AddChild(Ui.Heading("res_money", 12));
@@ -442,6 +451,9 @@ public partial class Hud : Control
         _staffStat.AddThemeColorOverride("font_color", faults > 0 || s.GridDown ? Brand.Critical : events > 0 ? Brand.Warning : Brand.Ink);
         _repStat.Text = "★ " + Math.Round(s.Reputation).ToString("0") + (s.OpenProposals.Count > 0 ? " · !" : "");
         _repStat.AddThemeColorOverride("font_color", s.Reputation >= 65 ? Brand.Ok : s.Reputation >= 40 ? Brand.Amber : Brand.Critical);
+        _greenBox.Visible = s.SolarPanels + s.WindTurbines > 0 || s.GreenLabel;
+        _greenStat.Text = Math.Round(s.OwnShare30 * 100).ToString("0") + "%" + (s.GoldLabel ? " · " + Loc.T("hud_gold") : s.GreenLabel ? " · " + Loc.T("hud_green") : "");
+        _greenStat.AddThemeColorOverride("font_color", s.GoldLabel ? PowerPanel.Solar : s.GreenLabel ? Brand.Ok : Brand.Ink);
         _money.Text = c.UnlimitedMoney ? "∞" : Ui.Money(s.Money);
         _money.AddThemeColorOverride("font_color", s.Money < 0 && !c.UnlimitedMoney ? Brand.Critical : Brand.Ok);
         var culture = new System.Globalization.CultureInfo(Loc.Language == "nl" ? "nl-NL" : "en-GB");

@@ -1,0 +1,86 @@
+key	en	nl
+nav_tab_own_energy	Own energy	Eigen energie
+own_title	Own energy: solar, wind and battery	Eigen energie: zon, wind en batterij
+own_help	Your own solar and wind feed your site first, every hour. Surplus charges the battery, then is sold to the grid. What is still missing comes from the grid. The share of own energy over 30 days earns the green datacenter label.	Je eigen zon en wind voeden eerst je eigen site, elk uur. Overschot laadt de batterij en wordt daarna aan het net verkocht. Wat dan nog ontbreekt komt van het net. Het aandeel eigen energie over 30 dagen levert het keurmerk groen datacenter op.
+own_share	Own energy in use	Eigen energie in verbruik
+own_share_30	30 days: {0} · green threshold {1}	30 dagen: {0} · drempel groen {1}
+own_generation	Own generation	Eigen opwek
+own_gen_split	solar {0} · wind {1}	zon {0} · wind {1}
+own_from_grid	From the grid	Van het net
+own_sold	Sold to the grid	Verkocht aan het net
+own_curtailed	{0} switched off	{0} afgeschakeld
+own_battery	Battery	Batterij
+own_battery_size	{0} × container · {1} kWh	{0} × container · {1} kWh
+own_no_data	No full day measured yet. The balance appears after the first night.	Nog geen volle dag gemeten. Het overzicht verschijnt na de eerste nacht.
+own_chart	Use per hour, last day	Verbruik per uur, laatste dag
+own_l_direct	own, direct	eigen, direct
+own_l_battery	from battery	uit batterij
+own_l_grid	from the grid	van het net
+own_l_gen	solar + wind	zon + wind
+own_l_use	site use	verbruik site
+own_where_own	Where did your own power go?	Waar ging je eigen stroom heen?
+own_f_direct	Used straight away	Direct zelf gebruikt
+own_f_charged	Stored in the battery	Opgeslagen in batterij
+own_f_sold	Sold to the grid	Verkocht aan het net
+own_f_curtailed	Switched off (no room)	Afgeschakeld (geen ruimte)
+own_used_self	You use {0} of your own generation yourself.	{0} van je eigen opwek gebruik je zelf.
+own_where_use	Where did your use come from?	Waar kwam je verbruik vandaan?
+own_u_direct	Own generation, direct	Eigen opwek, direct
+own_u_battery	From the battery (own power)	Uit batterij (eigen stroom)
+own_u_grid	From the grid	Van het net
+own_u_total	Total use (IT + cooling)	Totaal verbruik (IT + koeling)
+own_trend	Own share per day	Eigen aandeel per dag
+own_policy	Battery policy	Batterijbeleid
+own_mode_own	Store own power	Eigen stroom opslaan
+own_mode_own_help	Charge only with your own surplus. Counts toward your green share.	Alleen laden met eigen overschot. Telt mee voor je groen-percentage.
+own_mode_trade	Trade on the market	Handelen op de markt
+own_mode_trade_help	Buy cheap hours from the grid, sell dear ones. Earns money, no green share.	Goedkoop laden van het net, duur terugverkopen. Levert geld op, geen groene procenten.
+own_mode_smart	Smart combination	Slim combineren
+own_mode_smart_help	Own surplus first; storage it did not need goes to the market.	Eerst eigen overschot; ruimte die overblijft gaat naar de markt.
+own_reserve	Reserve for outages	Reserve voor stroomuitval
+own_reserve_help	This part always stays charged; own use does not go below it.	Dit deel blijft altijd geladen; eigen verbruik gaat er niet onder.
+own_sell	Sell surplus to the grid	Overschot verkopen aan het net
+own_sell_help	At 60% of the market price, up to your {0} MVA grid connection. Off: the surplus is switched off.	Tegen 60% van de marktprijs, tot je netaansluiting van {0} MVA. Uit: het overschot wordt afgeschakeld.
+own_objects	{0} solar fields ({1} kWp) · {2} wind turbines ({3} kW). Place them from the build bar › Power.	{0} zonnevelden ({1} kWp) · {2} windturbines ({3} kW). Plaats ze via de bouwbalk › Stroom.
+own_label	Green datacenter	Groen datacenter
+own_label_help	Stay 30 days above the threshold for a nomination, then have the audit done under Reputation › Certificates. Below the threshold you get 60 days of grace before the label is suspended. A green supplier contract gives ESG points but does not count here.	Zit 30 dagen boven de drempel voor een nominatie en laat daarna de audit doen bij Reputatie › Certificaten. Onder de drempel heb je 60 dagen respijt voordat het keurmerk geschorst wordt. Een groen stroomcontract geeft ESG-punten maar telt hier niet mee.
+own_st_suspended	suspended	geschorst
+own_st_has	label held	keurmerk behaald
+own_st_audit	audit running	audit bezig
+own_st_nominated	nominated	genomineerd
+own_st_none	not yet	nog niet
+own_label_need	Need {0}	Nodig {0}
+own_grace	Under the threshold: {0} days left before suspension.	Onder de drempel: nog {0} dagen tot schorsing.
+own_go_audit	Nominated: start the audit under Reputation › Certificates.	Genomineerd: start de audit bij Reputatie › Certificaten.
+own_get_nominated	Stay 30 days at {0} or more for a nomination.	Zit 30 dagen op {0} of meer voor een nominatie.
+ptree_up_own	Own generation: solar {0} kWp · wind {1} kW · now {2}	Eigen opwek: zon {0} kWp · wind {1} kW · nu {2}
+ptree_up_battery	Battery {0} kWh · {1}%	Batterij {0} kWh · {1}%
+en_battery_mode	Battery policy: {0}. Change it under Infrastructure › Own energy.	Batterijbeleid: {0}. Wijzig het bij Infrastructuur › Eigen energie.
+res_own_energy	Own energy	Eigen energie
+hud_own_energy_tip	Share of your use from your own solar, wind and battery over 30 days. Infrastructure › Own energy.	Aandeel van je verbruik uit eigen zon, wind en batterij over 30 dagen. Infrastructuur › Eigen energie.
+hud_green	green	groen
+hud_gold	gold	goud
+sign_green	GREEN DATACENTER	GROEN DATACENTER
+sign_green_gold	GREEN GOLD DATACENTER	GROEN GOUD DATACENTER
+cert_green_gold	Green Gold label	Groen Goud keurmerk
+cert_green_gold_desc	At least 80% of your energy use from your own power over 30 days, PUE 1.30 or lower, and the green label.	Minstens 80% van je verbruik uit eigen stroom over 30 dagen, PUE 1,30 of lager, en het groene keurmerk.
+req_cert_green_gold	Certificate: Green Gold label	Certificaat: Groen Goud keurmerk
+req_green_gold	Green Gold label	Groen Goud keurmerk
+deal_green_gold	Green Gold required	Groen Goud vereist
+cert_suspended	Suspended: own energy below the threshold	Geschorst: eigen energie onder de drempel
+cert_req_own_energy	Own energy in use, 30 days	Eigen energie in verbruik, 30 dagen
+cert_req_nominated	Nominated as green datacenter	Genomineerd als groen datacenter
+cert_req_gold_nominated	Nominated for Green Gold	Genomineerd voor Groen Goud
+cert_req_green_label	Green datacenter label	Keurmerk groen datacenter
+cust_greencloud	Sustainable cloud	Duurzame cloud
+msg_green_nominated	Nominated as green datacenter: {0} own energy over 30 days. Start the audit under Reputation › Certificates.	Genomineerd als groen datacenter: {0} eigen energie over 30 dagen. Start de audit bij Reputatie › Certificaten.
+msg_gold_nominated	Nominated for Green Gold: {0} own energy over 30 days.	Genomineerd voor Groen Goud: {0} eigen energie over 30 dagen.
+news_green_nominated	{0} is nominated as a green datacenter.	{0} is genomineerd als groen datacenter.
+news_gold_nominated	{0} is nominated for the Green Gold label.	{0} is genomineerd voor het Groen Goud keurmerk.
+msg_green_below	{0}: own energy is below the threshold. {1} days left before the label is suspended.	{0}: eigen energie zit onder de drempel. Nog {1} dagen voordat het keurmerk geschorst wordt.
+msg_green_suspended	{0} suspended: 60 days under the threshold. Green customers do not renew until it is back.	{0} geschorst: 60 dagen onder de drempel. Groene klanten verlengen niet tot het terug is.
+msg_green_restored	{0} is back: own energy is above the threshold again.	{0} is terug: eigen energie zit weer boven de drempel.
+ev_green_suspended	Label suspended: {0}	Keurmerk geschorst: {0}
+ev_green_restored	Label restored: {0}	Keurmerk hersteld: {0}
+msg_green_no_renew	{0} does not renew: they need the green label.	{0} verlengt niet: ze willen het groene keurmerk.
+msg_own_energy_new	New: own energy. Solar and wind now feed your site hour by hour; see Infrastructure › Own energy. The green label is about your own power now (a green contract no longer counts). Your batteries keep trading until you choose another policy.	Nieuw: eigen energie. Zon en wind voeden je site nu per uur; zie Infrastructuur › Eigen energie. Het groene keurmerk gaat nu over je eigen stroom (een groen contract telt niet meer). Je batterijen blijven handelen tot je ander beleid kiest.

@@ -97,6 +97,14 @@ public partial class PowerPanel
         Chip(Loc.T("ptree_up_trafo", trafos + 1), Brand.Ink); Arrow();
         Chip(r.Ats ? Loc.T("ptree_up_ats", r.Generators, r.GenRedundancy) : Loc.T("ptree_up_no_ats"), r.Ats ? Brand.Ink : Brand.Critical, !r.Ats); Arrow();
         Chip(Loc.T("ptree_up_msb", t?.Msbs.Count ?? 0), Brand.Power, true);
+        // own generation feeds the switchboards next to the grid
+        if (s.SolarPanels + s.WindTurbines > 0 || s.BatteryKwh > 0)
+        {
+            var hour = s.EnergyHours.Count == 24 ? s.EnergyHours[(int)(s.Hours % 24)] : null;
+            Arrow();
+            Chip(Loc.T("ptree_up_own", N(s.SolarKwpTotal), N(s.WindKwTotal), hour == null ? "-" : Kw(hour.Own)), Brand.Ok, true);
+            if (s.BatteryKwh > 0) Chip(Loc.T("ptree_up_battery", N(s.BatteryKwh), N(Math.Round(100 * s.BatterySoc / s.BatteryKwh))), PowerPanel.Store, true);
+        }
         chain.AddChild(new Control { SizeFlagsHorizontal = SizeFlags.ExpandFill });
         foreach (var opt in new FeedSide?[] { null, FeedSide.A, FeedSide.B })
         {

@@ -317,6 +317,7 @@ public partial class GameState
                     var part = r.Copy();
                     part.Id = NextId++;
                     part.Name = null;
+                    part.HallNo = 0; // a split-off data hall gets its own code
                     part.SetCells(g.ToList());
                     Rooms.Add(part); painted.Add(part);
                 }
