@@ -16,6 +16,7 @@ public static class Demo
         s.PaintSurface(31, 50, 15, 2, Surface.Asphalt, out _);
         s.PaintSurface(46, 44, 8, 8, Surface.Yard, out _);
         s.PaintSurface(33, 40, 10, 8, Surface.Parking, out _);
+        s.PaintSurface(31, 42, 2, 4, Surface.Asphalt, out _); // the car park's entrance from the driveway
         s.PaintSurface(14, 34, 14, 1, Surface.Footpath, out _);
         s.PaintSurface(31, 36, 2, 1, Surface.Footpath, out _);
         s.PaintSurface(38, 28, 2, 12, Surface.Footpath, out _);
@@ -27,10 +28,9 @@ public static class Demo
         s.AddObject(ObjKind.Barrier, 28, 56, 0, 0);
         s.AddObject(ObjKind.GuardBooth, 31, 56, 0, 0);
         s.AddObject(ObjKind.Intercom, 27, 62, 0, 0);
-        // two fiber pits on different carrier pits in the street: two separate routes
-        var pit = s.AddObject(ObjKind.FiberPit, 24, 62, 0, 0);
-        s.AddObject(ObjKind.FiberPit, 50, 62, 0, 0);
-        pit.Level = 2;
+        // two cable entries on different sides of the plot: the carriers come in at two places, two separate routes
+        var entryS = s.AddObject(ObjKind.FiberPit, 24, 62, 0, 0);
+        var entryE = s.AddObject(ObjKind.FiberPit, 62, 30, 0, 0);
 
         // the datacenter: a closed concrete box with a hall, a corridor and the loading dock
         var dc = s.AddBuilding(BuildingKind.Datacenter, 8, 14, 26, 20, 1);
@@ -45,6 +45,8 @@ public static class Demo
         s.AddObject(ObjKind.Odf, 31, 25, 0, 0);
         s.AddObject(ObjKind.CoreRouter, 33, 22, 3, 0);
         s.AddObject(ObjKind.CoreRouter, 33, 24, 3, 0);
+        // the distribution switch: every hall switch hangs on it, it takes one port on the core
+        s.AddObject(ObjKind.DistSwitch, 32, 25, 0, 0);
         // technical rooms: main switchgear with the ATS, and the UPS room with its batteries
         s.AddRoom(RoomType.Switchgear, 26, 14, 4, 4, 0);
         s.AddRoom(RoomType.UpsRoom, 30, 14, 4, 4, 0);
@@ -67,8 +69,9 @@ public static class Demo
         // floor PDUs at the end of the rows; the hall also has an overhead busbar
         foreach (var z in new[] { 15, 22, 27 }) s.AddObject(ObjKind.Pdu, 25, z, 0, 0);
         hall.Busbar = true;
-        // spine switches at the start of the rows
-        foreach (var z in new[] { 16, 23, 28 }) s.AddObject(ObjKind.Spine, 11, z, 1, 0);
+        // hall switches at the start of the rows: a Spine 400 and two Edge 48s, so every rack has an A and a B port
+        s.AddObject(ObjKind.Spine, 11, 16, 1, 0);
+        foreach (var z in new[] { 23, 28 }) s.AddObject(ObjKind.EdgeSwitch48, 11, z, 1, 0);
         hall.Containment = Containment.HotCold;
 
         s.AddObject(ObjKind.CrashCart, 24, 17, 0, 0);
@@ -137,6 +140,9 @@ public static class Demo
         var wh = s.AddBuilding(BuildingKind.Warehouse, 40, 30, 12, 8, 1);
         wh.Stage = Stage.Walls; wh.Material = 18; wh.Work = 1.4;
         for (var x = 12; x < 25; x++) s.AddObject(ObjKind.Rack, x, 32, 2, 0);
+        // your own main ducts from both entries to the datacenter with the meet-me room: 12-way from the road, 4-way from the east
+        s.AutoDuct(entryS, 12);
+        s.AutoDuct(entryE, 4);
         // carriers, the internet exchange and peering with a rival
         s.Contracts.Add(new CarrierContract { Carrier = 1, PortGbps = 100, Commit = 10 });
         s.Contracts.Add(new CarrierContract { Carrier = 3, PortGbps = 10, Commit = 5 });

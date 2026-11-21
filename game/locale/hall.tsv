@@ -1,0 +1,70 @@
+key	en	nl
+# Data hall card in the inspector (infra sketch board 6)
+hall_lvl_short	short	tekort
+hall_lvl_partial	partly A+B	deels A+B
+hall_need	Needs: {0} racks · {1}	Vraag: {0} racks · {1}
+hall_all_online	All {0} racks come online.	Alle {0} racks komen online.
+hall_not_online	Hall does not fully come online: {0} of {1} racks online.	Hal komt niet volledig online: {0} van {1} racks online.
+hall_busy_busbar	Busbar being installed · {0} h left	Busbar wordt aangelegd · nog {0} u
+hall_busy_containment	Containment being built · {0} h left	Insluiting wordt gebouwd · nog {0} u
+hall_tab_capacity	Capacity	Capaciteit
+hall_tab_upgrades	Upgrades	Upgrades
+hall_power	Power	Stroom
+hall_network	Network	Netwerk
+hall_cooling	Cooling	Koeling
+hall_goal_ab	goal A+B	doel A+B
+hall_goal_n1	goal N+1	doel N+1
+hall_side	Side {0}	{0}-zijde
+hall_side_none	nothing	niets
+hall_side_pdus	PDUs: {0}	PDU's: {0}
+hall_side_busbar	{0} feeds incl. busbar	{0} voedingen incl. busbar
+hall_no_feed	no feed	geen feed
+hall_outlets	outlets {0} / {1} used	aansluitingen {0} / {1} in gebruik
+hall_side_need	for A+B this side carries {0} for {1} racks	voor A+B draagt deze zijde {0} voor {1} racks
+hall_unfed	{0} PDU(s) found no free UPS or switchboard output.	{0} PDU('s) vinden geen vrije UPS- of hoofdverdeleruitgang.
+hall_tip_2n	A and B share a switchboard: give each side its own MSB for 2N.	A en B delen een hoofdverdeler: geef elke zijde een eigen MSB voor 2N.
+hall_no_switch	No edge switch	Geen edge switch
+hall_switches	Edge switches: {0}	Edge switches: {0}
+hall_ports	{0} / {1} ports	{0} / {1} poorten
+hall_gbps	{0} Gbit/s now · uplink {1} Gbit/s	nu {0} Gbit/s · uplink {1} Gbit/s
+hall_dual	{0} racks on two switches	{0} racks op twee switches
+hall_unlinked	{0} switch(es) without an uplink: their ports do not count.	{0} switch(es) zonder uplink: hun poorten tellen niet mee.
+hall_no_crah	No CRAH	Geen CRAH
+hall_crahs	{0} × CRAH {1}	{0} × CRAH {1}
+hall_temp	{0} °C · {1} · PUE {2}	{0} °C · {1} · PUE {2}
+hall_crah_broken	{0} CRAH(s) broken.	{0} CRAH('s) kapot.
+hall_reject_short	Heat rejection outside is short: the CRAHs could do {0}, the hall gets {1}. Add chillers or cooling towers.	Warmteafvoer buiten is te klein: de CRAH's kunnen {0}, de hal krijgt {1}. Plaats chillers of koeltorens.
+hall_crah_n1	For N+1: {0} more CRAH.	Voor N+1: nog {0} CRAH erbij.
+hall_headroom	Room for {0} more racks (limited by {1}).	Ruimte voor nog {0} racks (grens: {1}).
+hall_by_power	power	stroom
+hall_by_network	network ports	netwerkpoorten
+hall_by_cooling	cooling	koeling
+hall_has	In this hall	Zit erin
+hall_feat_busbar	Busbar A+B	Busbar A+B
+hall_feat_2n	Power 2N	Stroom 2N
+hall_feat_ab	Power A+B	Stroom A+B
+hall_feat_net_ab	Network A/B	Netwerk A/B
+hall_feat_net_n1	Network N+1	Netwerk N+1
+hall_feat_cool_2n	Cooling 2N	Koeling 2N
+hall_feat_cool_n1	Cooling N+1	Koeling N+1
+hall_up_none	Nothing left to upgrade: this hall has it all.	Niets meer te upgraden: deze hal heeft alles.
+hall_up_place	Place {0} × {1}	Plaats {0} × {1}
+hall_up_pdu_short	Not every rack has a feed yet · {0} · {1} outlets each	Nog niet elk rack heeft voeding · {0} · {1} aansluitingen per stuk
+hall_up_pdu_ab	Second feed for every rack (A+B) · {0} · {1} outlets each	Tweede voeding voor elk rack (A+B) · {0} · {1} aansluitingen per stuk
+hall_up_busbar	Busbar A+B	Busbar A+B
+hall_up_busbar_sub	Two runs of {0}, a tap-off for every rack: A+B in one go	Twee rails van {0}, een aftakking voor elk rack: in één keer A+B
+hall_up_containment_sub	Cooling +{0}% · PUE {1} → {2}	Koeling +{0}% · PUE {1} → {2}
+hall_up_edge_short	Racks without a port stay offline · {0} ports each	Racks zonder poort blijven offline · {0} poorten per stuk
+hall_up_edge_n1	Spare switch so racks stay online when one fails · {0} ports	Reserveswitch zodat racks online blijven bij uitval · {0} poorten
+hall_up_crah_short	The hall overheats without it · {0} each	Zonder loopt de hal te warm · {0} per stuk
+hall_up_crah_n1	One CRAH may fail and the hall stays cool · {0} each	Eén CRAH mag uitvallen en de hal blijft koel · {0} per stuk
+hall_hours	{0} h	{0} u
+hall_btn_place	Place	Plaats
+hall_btn_upgrade	Upgrade	Upgrade
+hall_why_pdu	{0} off: no free PDU outlet or kW in this hall	{0} uit: geen vrije PDU-aansluiting of kW in deze hal
+hall_why_chain	{0} off: the site's power chain (grid, MSB, UPS) is full	{0} uit: de stroomketen van het terrein (net, MSB, UPS) is vol
+hall_why_heat	{0} off: the hall is too hot	{0} uit: de hal is te warm
+hall_why_suppressed	{0} off: fire suppression went off	{0} uit: de blusinstallatie is afgegaan
+hall_why_power	{0} off: no power	{0} uit: geen stroom
+hall_why_offline	{0} running but offline: no network path	{0} draaien maar zijn offline: geen netwerkpad
+hall_why_waiting	{0} still being delivered or installed	{0} worden nog geleverd of geïnstalleerd

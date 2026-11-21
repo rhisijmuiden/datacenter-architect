@@ -46,7 +46,7 @@ public partial class WorldView
             var free = new List<int>();
             for (var x = r.X; x < r.X + r.W; x++)
             {
-                if (doorEdges.Contains((x, r.Z, 1))) continue;
+                if (doorEdges.Contains((x, r.Z, 1)) || !r.Contains(x, r.Z)) continue;
                 free.Add(x);
                 wl.Add(new Transform3D(Basis.FromScale(new Vector3(1.0f, h - 0.02f, 0.03f)), new Vector3(x + 0.5f, y + (h - 0.02f) / 2, r.Z + 0.1f)));
                 if (style == InteriorStyle.Tech) strips.Add((new Transform3D(Basis.FromScale(new Vector3(1.0f, 0.025f, 0.02f)), new Vector3(x + 0.5f, y + 0.08f, r.Z + 0.12f)), accent));

@@ -5,7 +5,7 @@ namespace DatacenterArchitect.Sim;
 
 /// <summary>
 /// Undo and redo for the player's building actions (Ctrl+Z / Ctrl+Y). Each action is recorded as the difference
-/// it made to the layout: buildings, rooms, doors, objects and curves it added or removed, paving and fence cells
+/// it made to the layout: buildings, rooms, walls, doors, objects, curves and fiber ducts it added or removed, paving and fence cells
 /// it changed, and the money it cost. Undo puts exactly that back, so the simulation keeps running (time, staff,
 /// customers and anything built since stay as they are).
 /// </summary>
@@ -20,8 +20,10 @@ public class UndoHistory
         internal List<Building> Buildings;
         internal List<Room> Rooms;
         internal List<Door> Doors;
+        internal List<Wall> Walls;
         internal List<PlacedObject> Objects;
         internal List<CurvePath> Curves;
+        internal List<FiberDuct> Ducts;
         internal long Money;
     }
 
@@ -38,8 +40,10 @@ public class UndoHistory
         internal Diff<Building> Buildings;
         internal Diff<Room> Rooms;
         internal Diff<Door> Doors;
+        internal Diff<Wall> Walls;
         internal Diff<PlacedObject> Objects;
         internal Diff<CurvePath> Curves;
+        internal Diff<FiberDuct> Ducts;
         internal List<(int i, byte before, byte after)> Surfaces = new(), Fences = new();
         internal long Spent;
     }
@@ -57,8 +61,8 @@ public class UndoHistory
     public static Snapshot Take(GameState s) => new()
     {
         Surfaces = (byte[])s.Surfaces.Clone(), Fences = (byte[])s.Fences.Clone(),
-        Buildings = s.Buildings.ToList(), Rooms = s.Rooms.ToList(), Doors = s.Doors.ToList(),
-        Objects = s.Objects.ToList(), Curves = s.Curves.ToList(), Money = s.Money,
+        Buildings = s.Buildings.ToList(), Rooms = s.Rooms.ToList(), Doors = s.Doors.ToList(), Walls = s.Walls.ToList(),
+        Objects = s.Objects.ToList(), Curves = s.Curves.ToList(), Ducts = s.Ducts.ToList(), Money = s.Money,
     };
 
     /// <summary>Record what changed since <paramref name="before"/>. Returns false when the action changed nothing.</summary>
@@ -67,8 +71,8 @@ public class UndoHistory
         var e = new Entry
         {
             Label = label,
-            Buildings = DiffOf(before.Buildings, s.Buildings), Rooms = DiffOf(before.Rooms, s.Rooms), Doors = DiffOf(before.Doors, s.Doors),
-            Objects = DiffOf(before.Objects, s.Objects), Curves = DiffOf(before.Curves, s.Curves),
+            Buildings = DiffOf(before.Buildings, s.Buildings), Rooms = DiffOf(before.Rooms, s.Rooms), Doors = DiffOf(before.Doors, s.Doors), Walls = DiffOf(before.Walls, s.Walls),
+            Objects = DiffOf(before.Objects, s.Objects), Curves = DiffOf(before.Curves, s.Curves), Ducts = DiffOf(before.Ducts, s.Ducts),
             Spent = before.Money - s.Money,
         };
         // a resized plot (more land bought) cannot be undone cell by cell: start a fresh history
@@ -78,7 +82,7 @@ public class UndoHistory
             if (before.Surfaces[i] != s.Surfaces[i]) e.Surfaces.Add((i, before.Surfaces[i], s.Surfaces[i]));
             if (before.Fences[i] != s.Fences[i]) e.Fences.Add((i, before.Fences[i], s.Fences[i]));
         }
-        if (e.Buildings.Empty && e.Rooms.Empty && e.Doors.Empty && e.Objects.Empty && e.Curves.Empty && e.Surfaces.Count == 0 && e.Fences.Count == 0)
+        if (e.Buildings.Empty && e.Rooms.Empty && e.Doors.Empty && e.Walls.Empty && e.Objects.Empty && e.Curves.Empty && e.Ducts.Empty && e.Surfaces.Count == 0 && e.Fences.Count == 0)
             return false;
         _undo.Add(e);
         if (_undo.Count > Limit) _undo.RemoveAt(0);
@@ -127,8 +131,10 @@ public class UndoHistory
         Swap(s.Buildings, e.Buildings, back);
         Swap(s.Rooms, e.Rooms, back);
         Swap(s.Doors, e.Doors, back);
+        Swap(s.Walls, e.Walls, back);
         Swap(s.Objects, e.Objects, back);
         Swap(s.Curves, e.Curves, back);
+        Swap(s.Ducts, e.Ducts, back);
         foreach (var (i, before, after) in e.Surfaces) s.Surfaces[i] = back ? before : after;
         foreach (var (i, before, after) in e.Fences) s.Fences[i] = back ? before : after;
         if (e.Spent != 0) s.Refund(back ? e.Spent : -e.Spent);

@@ -24,15 +24,24 @@ public partial class PowerPanel : Modal
     static string N(double v, string f = "N0") => v.ToString(f, Loc.Language == "nl" ? new CultureInfo("nl-NL") : new CultureInfo("en-GB"));
     static string Kw(double v) => v >= 10000 ? N(v / 1000, "0.0") + " MW" : N(v) + " kW";
 
-    public PowerPanel(Func<GameState> state, Action<string> fail) : base("power_title", 900)
+    public const int TabOverview = 0, TabTree = 1;
+    int _tab;
+
+    public PowerPanel(Func<GameState> state, Action<string> fail, int tab = 0) : base("power_title", 980)
     {
-        _state = state; _fail = fail;
+        _state = state; _fail = fail; _tab = Math.Clamp(tab, 0, 1);
         var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 640), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         _content = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _content.AddThemeConstantOverride("separation", 8);
         scroll.AddChild(_content);
         Body.AddChild(scroll);
         FillHeight(scroll);
+        Refresh();
+    }
+
+    public override void SelectTab(int tab)
+    {
+        _tab = Math.Clamp(tab, 0, 1); _sig = null;
         Refresh();
     }
 
@@ -49,7 +58,7 @@ public partial class PowerPanel : Modal
         var s = _state();
         if (s == null) return;
         var r = s.Infra;
-        var sig = $"{s.GridLevel}:{s.GridRequest}:{s.GridQueuePlace}:{s.Supplier}:{s.Rooms.Count(x => x.Type == RoomType.DataHall)}:{Loc.Language}:{s.Rooms.Sum(x => (int)x.Containment + (x.Busbar ? 10 : 0) + x.Upgrade * 100)}";
+        var sig = _tab == TabTree ? TreeSig(s, r) : $"{s.GridLevel}:{s.GridRequest}:{s.GridQueuePlace}:{s.Supplier}:{s.Rooms.Count(x => x.Type == RoomType.DataHall)}:{Loc.Language}:{s.Rooms.Sum(x => (int)x.Containment + (x.Busbar ? 10 : 0) + x.Upgrade * 100)}";
         if (sig != _sig) { _sig = sig; Build(s); }
         foreach (var u in _updaters) u(s, r);
     }
@@ -75,6 +84,7 @@ public partial class PowerPanel : Modal
     {
         foreach (var c in _content.GetChildren()) c.QueueFree();
         _updaters.Clear();
+        if (_tab == TabTree) { BuildTree(s, s.Infra); return; }
         var cols = new HBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         cols.AddThemeConstantOverride("separation", 28);
         _content.AddChild(cols);
@@ -213,11 +223,11 @@ public partial class PowerPanel : Modal
         {
             i++;
             var room = hall;
-            hg.AddChild(Plain($"{i} · {hall.W}×{hall.D} m" + (hall.Floor != 0 ? $" · {Ui.FloorName(hall.Floor)}" : ""), 14, null, false));
+            hg.AddChild(Plain($"{s.HallCode(hall)} · {hall.Area} m²" + (hall.Floor != 0 ? $" · {Ui.FloorName(hall.Floor)}" : ""), 14, null, false));
             HallInfo Info(InfraReport r) => r.Halls.FirstOrDefault(x => x.Room == room);
             hg.AddChild(Dyn((l, _, r) => { var x = Info(r); l.Text = x == null ? "-" : $"{x.RunningRacks}/{x.LiveRacks}"; l.AddThemeColorOverride("font_color", x != null && x.RunningRacks < x.LiveRacks ? Brand.Critical : Brand.Ink); }, 14, null, false));
             hg.AddChild(Dyn((l, _, r) => { var x = Info(r); l.Text = x == null ? "-" : $"{N(x.ItKw)}/{N(x.DistributionKw)} kW"; l.AddThemeColorOverride("font_color", x != null && x.PowerLimited ? Brand.Critical : Brand.Ink); }, 14, null, false));
-            hg.AddChild(Dyn((l, _, r) => { var x = Info(r); l.Text = x == null || x.ItKw <= 0 ? "-" : x.AB ? "A+B" : Loc.T("hall_ab_no"); l.AddThemeColorOverride("font_color", x != null && x.AB ? Brand.Ok : Brand.InkDim); }, 14, null, false));
+            hg.AddChild(Dyn((l, _, r) => { var x = Info(r); l.Text = RedundancyText(x); l.AddThemeColorOverride("font_color", x != null && x.AB ? Brand.Ok : x?.Redundancy == "partial" ? Brand.Warning : Brand.InkDim); }, 14, null, false));
             hg.AddChild(Plain(Loc.T(Catalog.Containments[room.Containment].NameKey) + (room.Busbar ? " · busbar" : "") + (room.Upgrade != 0 ? " ⟳" : ""), 14, null, false));
             hg.AddChild(Dyn((l, _, r) => { l.Text = $"{room.Temp:0} °C"; l.AddThemeColorOverride("font_color", room.Hot ? Brand.Critical : room.Temp >= 27 ? Brand.Warning : Brand.Cooling); }, 14, null, false));
         }
@@ -234,6 +244,12 @@ public partial class PowerPanel : Modal
         }, 14));
     }
 
+    /// <summary>How a hall is fed: 2N, A+B, partly A+B (12/24) or single.</summary>
+    public static string RedundancyText(HallInfo x) => x == null || x.LiveRacks <= 0 ? "-" : x.Redundancy switch
+    {
+        "2N" => "2N", "A+B" => "A+B", "partial" => Loc.T("hall_ab_partial", x.DualRacks, x.LiveRacks), _ => Loc.T("hall_ab_no"),
+    };
+
     /// <summary>Short hints for what the power chain or the cooling is missing, most urgent first.</summary>
     public static List<string> Advice(GameState s, InfraReport r)
     {
@@ -244,6 +260,10 @@ public partial class PowerPanel : Modal
             if (r.Link(PowerLink.Switchgear).CapacityKw <= 0) list.Add("advice_switchgear");
             if (r.Link(PowerLink.Ups).CapacityKw <= 0) list.Add("advice_ups");
             if (r.Halls.Any(h => h.LiveRacks > 0 && h.DistributionKw <= 0)) list.Add("advice_pdu");
+            if (r.Halls.Any(h => h.Feeds > 0 && h.FedRacks < h.LiveRacks)) list.Add("advice_pdu_full");
+            if (r.Tree != null && r.Tree.Unconnected.Count > 0) list.Add(r.Tree.Unconnected.Any(n => n.Kind == PowerNodeKind.Ups) ? "advice_msb_outputs" : "advice_ups_outputs");
+            if (r.Tree != null && r.Tree.Sources.Any(n => n.Direct)) list.Add("advice_pdu_direct");
+            if (r.Halls.Any(h => h.LiveRacks > 0 && h.FedRacks == h.LiveRacks && !h.AB && h.Sides < 2)) list.Add("advice_pdu_b");
             if (r.DownForPower > 0) list.Add("advice_power_short");
             if (r.UpsKw > 0 && r.BatteryKwh <= 0) list.Add("advice_battery");
             if (r.Generators < 2) list.Add("advice_generators");

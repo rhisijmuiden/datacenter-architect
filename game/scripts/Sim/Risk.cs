@@ -36,8 +36,8 @@ public partial class GameState
         if (!SupplyCrunch || Creative.InstantBuild) return 0;
         var hit = SupplyKind switch
         {
-            0 => k is ObjKind.Rack or ObjKind.Spine or ObjKind.CoreRouter,
-            1 => k is ObjKind.Transformer or ObjKind.Switchgear or ObjKind.Ups or ObjKind.Pdu or ObjKind.Battery,
+            0 => k is ObjKind.Rack or ObjKind.Spine or ObjKind.EdgeSwitch24 or ObjKind.EdgeSwitch48 or ObjKind.DistSwitch or ObjKind.CoreRouter,
+            1 => k is ObjKind.Transformer or ObjKind.Switchgear or ObjKind.Ups or ObjKind.Pdu or ObjKind.Pdu75 or ObjKind.Pdu300 or ObjKind.Battery,
             _ => true,
         };
         return hit ? SupplyDays : 0;
@@ -175,7 +175,7 @@ public partial class GameState
                 if (hall != null)
                 {
                     StartEvent(EventKind.Flood, 18 + rng.Next(30), hall.Id);
-                    damage += 80_000 + hall.W * hall.D * 150L;
+                    damage += 80_000 + hall.Area * 150L;
                 }
                 else damage += 30_000;
                 break;

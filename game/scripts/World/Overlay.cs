@@ -13,8 +13,9 @@ public enum OverlayMode { None, Power, Cooling, Network }
 /// X-ray overlay over the world. Power: amber lines from the grid connection via transformers, switchgear,
 /// UPS and PDUs to the rack rows, with dots that run faster the busier a link is; overloaded links and racks
 /// without power turn red. Cooling: cold air from the CRAH units to the rows, warm water to the chillers
-/// and cooling towers, and racks coloured by the temperature of their hall. Network: orange fiber from the carrier pits
-/// in the street through your own pits and ducts to the meet-me room, the core routers, the spine switches and the rows;
+/// and cooling towers, and racks coloured by the temperature of their hall. Network: orange fiber from the cable entries on
+/// the plot border along your own main ducts (straight legs, 90° corners) to the meet-me room, then in straight tray runs to
+/// the core routers, the distribution and hall switches and the rows;
 /// dots run faster the busier a link is, congested links and offline racks turn red.
 /// </summary>
 public partial class Overlay : Node3D
@@ -85,6 +86,30 @@ public partial class Overlay : Node3D
         _segs.Add(new Seg(a, b, speed, c, dots));
     }
 
+    /// <summary>
+    /// A straight run like a real cable tray: up (or down) to the higher of the two heights, along x, along z, then down.
+    /// No diagonals through the air: fiber follows trays and ducts.
+    /// </summary>
+    void Ortho(Vector3 a, Vector3 b, float ratio, Color c, bool flow = true)
+    {
+        var h = Math.Max(a.Y, b.Y);
+        var p1 = new Vector3(a.X, h, a.Z);
+        var p2 = new Vector3(b.X, h, a.Z);
+        var p3 = new Vector3(b.X, h, b.Z);
+        Add(a, p1, ratio, c, flow); Add(p1, p2, ratio, c, flow); Add(p2, p3, ratio, c, flow); Add(p3, b, ratio, c, flow);
+    }
+
+    static float DistToRect(Vector3 p, Building b)
+    {
+        var dx = Math.Max(Math.Max(b.X - p.X, 0), p.X - (b.X + b.W));
+        var dz = Math.Max(Math.Max(b.Z - p.Z, 0), p.Z - (b.Z + b.D));
+        return dx + dz;
+    }
+
+    /// <summary>The point on the building's wall straight across from p.</summary>
+    static Vector3 OnRect(Vector3 p, Building b) =>
+        new(Math.Clamp(p.X, b.X + 0.3f, b.X + b.W - 0.3f), p.Y, Math.Clamp(p.Z, b.Z + 0.3f, b.Z + b.D - 0.3f));
+
     static Transform3D LineXf(Vector3 a, Vector3 b, float thick)
     {
         var dir = b - a;
@@ -146,7 +171,7 @@ public partial class Overlay : Node3D
             var trafos = objs.Where(o => o.Kind == ObjKind.Transformer).ToList();
             var switches = objs.Where(o => o.Kind == ObjKind.Switchgear).ToList();
             var ups = objs.Where(o => o.Kind == ObjKind.Ups).ToList();
-            var pdus = objs.Where(o => o.Kind == ObjKind.Pdu).ToList();
+            var pdus = objs.Where(o => Catalog.IsPdu(o.Kind)).ToList();
             foreach (var t in trafos) Add(station, Top(s, t, 2.4f), R(PowerLink.Grid), C(PowerLink.Grid));
             foreach (var w in switches)
             {
@@ -173,11 +198,19 @@ public partial class Overlay : Node3D
                 var gn = Nearest(gens, p, x => Top(s, x, 0.4f));
                 if (gn != null) Add(p, Top(s, gn, 0.4f), 0, standby, false);
             }
+            // feeders follow the power tree: every UPS to its switchboard, every PDU or busbar run to its UPS (or switchboard)
+            var tree = r.Tree;
+            Vector3? Upstream(PowerNode n, Vector3 p)
+            {
+                var up = n?.Parent?.Obj;
+                if (up != null) return Top(s, up, 2.4f);
+                return null;
+            }
             foreach (var u in ups)
             {
                 var p = Top(s, u, 2.4f);
-                var w = Nearest(switches, p, x => Top(s, x, 2.4f));
-                if (w != null) Add(Top(s, w, 2.4f), p, R(PowerLink.Switchgear), C(PowerLink.Switchgear));
+                var src = Upstream(tree?.Node(u), p);
+                if (src != null) Add(src.Value, p, R(PowerLink.Switchgear), C(PowerLink.Switchgear));
             }
             foreach (var b in objs.Where(o => o.Kind == ObjKind.Battery))
             {
@@ -185,24 +218,20 @@ public partial class Overlay : Node3D
                 var u = Nearest(ups, p, x => Top(s, x, 2.4f));
                 if (u != null) Add(p, Top(s, u, 2.4f), 0, standby, false);
             }
-            Vector3? Feed(Vector3 p)
-            {
-                var u = Nearest(ups, p, x => Top(s, x, 2.4f));
-                if (u != null) return Top(s, u, 2.4f);
-                return null;
-            }
             foreach (var pd in pdus)
             {
                 var p = Top(s, pd, 2.2f);
-                var src = Feed(p);
-                if (src != null) Add(src.Value, p, R(PowerLink.Ups), C(PowerLink.Ups));
+                var node = tree?.Node(pd);
+                var src = Upstream(node, p);
+                if (src != null) Add(src.Value, p, (float)Math.Min(1.5, node.FailoverRatio), node.FailoverShort ? bad : power);
             }
             var busbarAt = new Dictionary<Room, Vector3>();
             foreach (var h in halls.Where(h => h.Busbar))
             {
                 var p = new Vector3(h.X + h.W / 2f, WorldView.Base(h.Floor) + 2.6f, h.Z + 0.6f);
                 busbarAt[h] = p;
-                var src = Feed(p);
+                var run = tree?.SourcesIn(h).FirstOrDefault(n => n.Kind == PowerNodeKind.Busbar);
+                var src = Upstream(run, p);
                 if (src != null) Add(src.Value, p, R(PowerLink.Ups), C(PowerLink.Ups));
             }
             foreach (var row in Rows(racks))
@@ -269,39 +298,75 @@ public partial class Overlay : Node3D
             bool InMmr(PlacedObject o) => mmr.Any(m => m.Floor == o.Floor && m.Contains(o.X, o.Z));
             var odfs = objs.Where(o => o.Kind == ObjKind.Odf && InMmr(o)).ToList();
             var cores = objs.Where(o => o.Kind == ObjKind.CoreRouter && InMmr(o)).ToList();
-            var spines = objs.Where(o => o.Kind == ObjKind.Spine).ToList();
-            // carrier pits in the street, your pits and the ducts into the building
-            foreach (var p in n.Pits)
+            var spines = objs.Where(o => Catalog.IsHallSwitch(o.Kind)).ToList();
+            var dists = objs.Where(o => o.Kind == ObjKind.DistSwitch && InMmr(o)).ToList();
+            // your own main ducts: straight legs with 90° corners, handholes at the ends and corners
+            foreach (var di in n.Ducts)
             {
-                var street = new Vector3(s.StreetPit(p.Street) + 0.5f, 0.3f, s.PlotSize + Catalog.StreetPitOffset);
-                var pit = Top(s, p.Pit, 0.3f);
-                var used = p.Used > 0;
-                Add(street, pit, used ? upRatio : 0, used ? upColor : idle, used);
-                var odf = Nearest(odfs, pit, x => Top(s, x, 2.3f));
-                if (odf != null) Add(pit, Top(s, odf, 2.3f), used ? upRatio : 0, used ? upColor : idle, used);
-                plates.Add((new Transform3D(Basis.Identity.Scaled(new Vector3(0.9f, 0.05f, 0.9f)), pit), new Color(used ? fiber : idle, 0.8f)));
+                var used = di.Used > 0;
+                var col = used ? (di.Used >= di.Duct.Ways ? Brand.Warning : upColor) : idle;
+                var pts = di.Duct.Corner().Select(p => new Vector3(p.x + 0.5f, 0.3f, p.z + 0.5f)).ToList();
+                for (var i = 1; i < pts.Count; i++) Add(pts[i - 1], pts[i], used ? upRatio : 0, col, used);
+                foreach (var h in di.Duct.Handholes())
+                    plates.Add((new Transform3D(Basis.Identity.Scaled(new Vector3(0.8f, 0.05f, 0.8f)), new Vector3(h.x + 0.5f, 0.3f, h.z + 0.5f)), new Color(used ? fiber : idle, 0.9f)));
+                // into the building: from the duct end along the wall to the nearest ODF, up and along the tray
+                if (di.ToMmr && di.Mmr != null)
+                {
+                    var end = pts.OrderBy(p => DistToRect(p, di.Mmr)).First();
+                    var wall = OnRect(end, di.Mmr);
+                    Add(end, wall, used ? upRatio : 0, col, used);
+                    var odf = Nearest(odfs.Where(o => di.Mmr.Contains(o.X, o.Z)), wall, x => Top(s, x, 2.3f));
+                    if (odf != null) Ortho(wall, Top(s, odf, 2.3f), used ? upRatio : 0, col, used);
+                }
             }
-            // dark fiber to peers leaves along the road to the west
-            var firstPit = n.Pits.FirstOrDefault(p => p.Used > 0);
-            if (firstPit != null)
+            // cable entries on the plot border: the carriers' cables come in here and drop into the duct
+            foreach (var e in n.Entries)
             {
-                var a = Top(s, firstPit.Pit, 0.3f);
+                var p = Top(s, e.Entry, 0.3f);
+                var used = e.Used > 0;
+                var col = e.Entry.Broken || !e.Connected ? bad : used ? fiber : idle;
+                plates.Add((new Transform3D(Basis.Identity.Scaled(new Vector3(1.1f, 0.08f, 1.1f)), p), new Color(col, 0.95f)));
+                // the carrier side: a short straight line off the plot, across the border
+                var outward = e.Side switch { 0 => new Vector3(0, 0, -1), 1 => new Vector3(1, 0, 0), 2 => new Vector3(0, 0, 1), _ => new Vector3(-1, 0, 0) };
+                Add(p + outward * 6, p, used ? upRatio : 0, used ? upColor : idle, used);
+                var dc = n.Ducts.Where(d => d.Duct.Cells().Any(c => System.Math.Abs(c.x - e.Entry.X) + System.Math.Abs(c.z - e.Entry.Z) <= 1)).Select(d => d.Duct.Cells().OrderBy(c => System.Math.Abs(c.x - e.Entry.X) + System.Math.Abs(c.z - e.Entry.Z)).First()).ToList();
+                if (dc.Count > 0) Add(p, new Vector3(dc[0].x + 0.5f, 0.3f, dc[0].z + 0.5f), used ? upRatio : 0, used ? upColor : idle, used);
+            }
+            // dark fiber to peers leaves straight off the plot from the first entry in use
+            var firstEntry = n.Entries.FirstOrDefault(e => e.Used > 0);
+            if (firstEntry != null)
+            {
+                var a = Top(s, firstEntry.Entry, 0.3f);
+                var along = firstEntry.Side is 0 or 2 ? new Vector3(1, 0, 0) : new Vector3(0, 0, 1);
+                var outward = firstEntry.Side switch { 0 => new Vector3(0, 0, -1), 1 => new Vector3(1, 0, 0), 2 => new Vector3(0, 0, 1), _ => new Vector3(-1, 0, 0) };
                 var i = 0;
                 foreach (var (rival, gbps) in n.PeerFlows)
-                    Add(a, new Vector3(-24, 0.3f, s.PlotSize + 3 + i++ * 1.2f), (float)Math.Min(1.5, gbps / 10), fiber);
+                {
+                    var off = a + along * (1.2f * ++i);
+                    Ortho(a, off + outward * 18, (float)Math.Min(1.5, gbps / 10), fiber);
+                }
             }
             foreach (var c in cores)
             {
                 var p = Top(s, c, 2.3f);
                 var odf = Nearest(odfs, p, x => Top(s, x, 2.3f));
-                if (odf != null) Add(Top(s, odf, 2.3f), p, upRatio, upColor);
+                if (odf != null) Ortho(Top(s, odf, 2.3f), p, upRatio, upColor);
             }
             var coreRatio = (float)Math.Min(1.5, n.Link(NetLink.Core).Ratio);
+            // the tree: distribution switches on the core, hall switches on their distribution switch (or straight on the core)
+            foreach (var d in dists)
+            {
+                var p = Top(s, d, 2.3f);
+                var c = Nearest(cores, p, x => Top(s, x, 2.3f));
+                if (c != null) Ortho(Top(s, c, 2.3f), p, coreRatio, n.Link(NetLink.Core).Ratio > 1 ? bad : fiber);
+            }
             foreach (var sp in spines)
             {
                 var p = Top(s, sp, 2.4f);
-                var c = Nearest(cores, p, x => Top(s, x, 2.3f));
-                if (c != null) Add(Top(s, c, 2.3f), p, coreRatio, n.Link(NetLink.Core).Ratio > 1 ? bad : fiber);
+                n.Uplink.TryGetValue(sp.Id, out var up);
+                var ds = up > 0 ? dists.FirstOrDefault(x => x.Id == up) : null;
+                var c = ds ?? Nearest(cores, p, x => Top(s, x, 2.3f));
+                if (c != null) Ortho(Top(s, c, 2.3f), p, coreRatio, up < 0 || n.Link(NetLink.Core).Ratio > 1 ? bad : fiber);
             }
             foreach (var row in Rows(racks))
             {
@@ -310,7 +375,7 @@ public partial class Overlay : Node3D
                 var off = row.Any(o => n.Offline.Contains(o.Id));
                 var sp = hall == null ? null : Nearest(spines.Where(x => HallOf(x) == hall), (a + b) / 2, x => Top(s, x, 2.4f));
                 var col = off ? bad : fiber;
-                if (sp != null) Add(Top(s, sp, 2.4f), a, upRatio, col);
+                if (sp != null) Ortho(Top(s, sp, 2.4f), a, upRatio, col);
                 if (row.Count > 1) Add(a, b, upRatio, col);
             }
             foreach (var o in racks.Where(o => o.Status == ObjStatus.Live))

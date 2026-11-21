@@ -40,6 +40,10 @@ public partial class Main : Node3D
     BuildItem _item = BuildItem.Select;
     int _rot, _floors = 1;
     bool _basement;
+    /// <summary>Paint tool options: draw the room with its own walls (the old way), or fill the whole closed space.</summary>
+    bool _roomWalls, _roomFill;
+    /// <summary>Wall tool: the grid corner where the drag started.</summary>
+    Vector2I? _wallStart;
     Facade _facade = Facade.Brick;
     Vector2I? _dragStart;
     // curve tool: first click sets the start, second the end, the mouse bends it, the third click builds
@@ -131,7 +135,7 @@ public partial class Main : Node3D
 
     void StartGame(GameState s, bool fresh)
     {
-        StopWalk(); StopPhoto();
+        StopWalk(); StopPhoto(); ResetOutages();
         Profile.Instance.Merge(s.Achieved, s.ScenarioId, s.ScenarioMedal, s.Date.ToString("yyyy-MM-dd"));
         _menu?.QueueFree(); _menu = null;
         _hud?.QueueFree();
@@ -153,6 +157,8 @@ public partial class Main : Node3D
             FloorsChanged = f => { _floors = f; UpdateGhost(); },
             FacadeChanged = f => _facade = f,
             BasementChanged = on => { _basement = on; UpdateGhost(); },
+            RoomWallsChanged = on => { _roomWalls = on; UpdateGhost(); },
+            RoomFillChanged = on => { _roomFill = on; UpdateGhost(); },
             CyclePriority = CyclePriority,
             RotateLeft = () => _cam.RotateStep(1), RotateRight = () => _cam.RotateStep(-1), Walk = StartWalk, Photo = StartPhoto,
             ToggleGrid = () => _world.GridVisible = !_world.GridVisible,
@@ -176,7 +182,7 @@ public partial class Main : Node3D
         _ui.AddChild(_planBar);
         _ui.MoveChild(_planBar, 2);
         _playing = true; _speed = 1; _autosaveTimer = 0; _item = BuildItem.Select; _bankruptShown = false;
-        _inspectCell = null; SetOverlay(OverlayMode.None);
+        _inspectCell = null; _inspectDoor = -1; SetOverlay(OverlayMode.None);
         _hud.UpdateStats(_state);
         _history.Clear(); RefreshUndo();
         UpdateGoals();
@@ -186,6 +192,19 @@ public partial class Main : Node3D
             _hud.Notify(Loc.T("msg_start_hint"), Brand.Cooling);
             if (s.Scenario is ScenarioDef sd) _hud.Notify(Loc.T("msg_scenario_start", Loc.T("sc_" + sd.Id), Loc.T("sc_" + sd.Id + "_goal")), Brand.Amber);
         }
+    }
+
+    /// <summary>Glide the camera to an object, switch to its floor and select it (links in the overview screens).</summary>
+    void ShowObject(PlacedObject o)
+    {
+        if (o == null || _cam == null) return;
+        if (_walking) return;
+        // close the screen so the object is in view
+        CloseDrawer();
+        var (w, d) = GameState.Footprint(o);
+        if (_world.ViewFloor != o.Floor || _world.Roofs) SetView(o.Floor, false);
+        _cam.FlyTo(new Vector3(o.X + w / 2f, 0, o.Z + d / 2f), 22);
+        Inspect(new Vector2I(o.X, o.Z));
     }
 
     void SetView(int floor, bool roofs)
@@ -212,7 +231,9 @@ public partial class Main : Node3D
         var inside = item.Mode is Mode.Room or Mode.Door or Mode.Row ||
             (item.Mode == Mode.Object && Catalog.Objects[(ObjKind)item.Arg].Where is Where.Room or Where.Hall or Where.Building);
         if (inside && _world.Roofs) SetView(_world.ViewFloor, false);
-        if (item.Mode is Mode.Surface or Mode.Curve or Mode.Fence or Mode.Building && _world.ViewFloor != 0) SetView(0, _world.Roofs);
+        if (item.Mode is Mode.Surface or Mode.Curve or Mode.Fence or Mode.Building or Mode.Duct && _world.ViewFloor != 0) SetView(0, _world.Roofs);
+        // ducts lie underground: the network view shows the ducts, entries and handholes you already have
+        if ((item.Mode == Mode.Duct || (item.Mode == Mode.Object && item.Arg == (int)ObjKind.FiberPit)) && _world.Overlay.Mode == OverlayMode.None) SetOverlay(OverlayMode.Network);
     }
 
     void CyclePriority(int id)
@@ -230,6 +251,12 @@ public partial class Main : Node3D
     bool _drawerSetOverlay;
 
     void OpenPower() => OpenPanel(PanelKind.Power, 0);
+    /// <summary>The power tree with this switchboard, UPS or PDU selected.</summary>
+    void OpenPowerTree(PlacedObject o)
+    {
+        OpenPanel(PanelKind.Power, PowerPanel.TabTree);
+        if (_drawer is PowerPanel pp) pp.Select(o);
+    }
     void OpenNetwork() => OpenPanel(PanelKind.Network, 0);
     void OpenCompany(int tab) => OpenPanel(PanelKind.Company, tab);
     void OpenReputation(int tab) => OpenPanel(PanelKind.Reputation, tab);
@@ -261,14 +288,14 @@ public partial class Main : Node3D
         }
         Modal m = e.Kind switch
         {
-            PanelKind.Overview => new OverviewPanel(() => _state, () => _hud?.Goals ?? Array.Empty<(string, bool)>(), () => _hud?.History ?? new List<HudMessage>(), OpenPanel, want),
+            PanelKind.Overview => new OverviewPanel(() => _state, () => _hud?.Goals ?? Array.Empty<(string, bool)>(), () => _hud?.History ?? new List<HudMessage>(), OpenPanel, want) { Fix = FixOutage },
             PanelKind.Company => new CompanyPanel(() => _state, Fail, want),
             PanelKind.Staff => new StaffPanel(() => _state, Fail, want),
             PanelKind.Reputation => new ReputationPanel(() => _state, Fail, want),
             PanelKind.Growth => new GrowthPanel(() => _state, Fail, want),
-            PanelKind.Power => new PowerPanel(() => _state, Fail),
+            PanelKind.Power => new PowerPanel(() => _state, Fail, want),
             PanelKind.Progress => new ProgressPanel(() => _state, StartPhoto, want),
-            _ => new NetworkPanel(() => _state, Fail),
+            _ => new NetworkPanel(() => _state, Fail, want, item => _hud.Pick(item), ShowObject),
         };
         m.Kind = e.Kind;
         m.Dock(Hud.LeftEdge - 2, section, tabIndex, (s, t) => OpenSectionTab(s, t));
@@ -475,7 +502,7 @@ public partial class Main : Node3D
         CheckLand();
         _hud.UpdateStats(_state);
         _goalTimer -= delta;
-        if (_goalTimer <= 0) { _goalTimer = 1; _hud.SetWeather(_world.Now, AppSettings.Instance.Weather, _state); UpdateGoals(); UpdateProjects(); RefreshInspect(); _coach?.Refresh(); _planBar?.Refresh(); }
+        if (_goalTimer <= 0) { _goalTimer = 1; _hud.SetWeather(_world.Now, AppSettings.Instance.Weather, _state); UpdateGoals(); UpdateProjects(); CheckOutages(); RefreshInspect(); _coach?.Refresh(); _planBar?.Refresh(); }
         _autosaveTimer += delta;
         if (_autosaveTimer > AppSettings.Instance.AutosaveMinutes * 60) { _autosaveTimer = 0; Autosave(); _hud.Notify(Loc.T("msg_autosaved"), Brand.Ok); }
     }
@@ -520,7 +547,7 @@ public partial class Main : Node3D
             var dx = Math.Max(0, Math.Max(sb.X - t.X, t.X - (sb.X + sb.W))); var dz = Math.Max(0, Math.Max(sb.Z - t.Z, t.Z - (sb.Z + sb.D)));
             site = Math.Max(site, Mathf.Clamp(1 - (float)Math.Sqrt(dx * dx + dz * dz) / 25f, 0, 1));
         }
-        if (_state.Rooms.Any(r => r.Stage != Stage.Done && !_state.IsPlanned(r) && Math.Abs(r.X + r.W / 2f - t.X) < 12 && Math.Abs(r.Z + r.D / 2f - t.Z) < 12)) site = Math.Max(site, 0.5f);
+        if (_state.Rooms.Any(r => r.Walled && r.Stage != Stage.Done && !_state.IsPlanned(r) && Math.Abs(r.X + r.W / 2f - t.X) < 12 && Math.Abs(r.Z + r.D / 2f - t.Z) < 12)) site = Math.Max(site, 0.5f);
         var near = _walking ? 1 : 0.35f + 0.65f * zoom;
         _sound.Outdoor = (inside ? 0.08f : 1f) * near;
         _sound.Office = office ? near : 0;
@@ -541,7 +568,7 @@ public partial class Main : Node3D
         if (_item.Mode != Mode.Select) _hud.Pick(BuildItem.Select);
         _world.ClearGhost();
         _world.GridVisible = false;
-        _inspectCell = null;
+        _inspectCell = null; _inspectDoor = -1;
         _fp.Bounds = _cam.Bounds;
         var floor = _world.Roofs ? 0 : _world.ViewFloor;
         _fp.Begin(_state, _sim.Nav, _cam.TargetPoint, floor, _cam.Yaw);
@@ -589,7 +616,7 @@ public partial class Main : Node3D
         StopWalk();
         CloseDrawer();
         if (_item.Mode != Mode.Select) _hud.Pick(BuildItem.Select);
-        _world.ClearGhost(); _inspectCell = null;
+        _world.ClearGhost(); _inspectCell = null; _inspectDoor = -1;
         _speedBeforePhoto = _speed; _speed = 0; _hud.SetSpeed(0);
         _gridBeforePhoto = _world.GridVisible; _world.GridVisible = false;
         _hud.Visible = false;
@@ -666,10 +693,10 @@ public partial class Main : Node3D
             ("goal_contract", s.Deals.Any(d => d.State == DealState.Active && !d.Legacy)),
             ("goal_switchgear", s.Objects.Any(o => o.Kind == ObjKind.Switchgear && o.Status == ObjStatus.Live)),
             ("goal_ups", s.Objects.Any(o => o.Kind == ObjKind.Ups && o.Status == ObjStatus.Live) && s.Objects.Any(o => o.Kind == ObjKind.Battery && o.Status == ObjStatus.Live)),
-            ("goal_pdu", s.Objects.Any(o => o.Kind == ObjKind.Pdu && o.Status == ObjStatus.Live) || s.Rooms.Any(r => r.Busbar)),
+            ("goal_pdu", s.Objects.Any(o => Catalog.IsPdu(o.Kind) && o.Status == ObjStatus.Live) || s.Rooms.Any(r => r.Busbar)),
             ("goal_cooling", s.Objects.Any(o => o.Def.RejectKw > 0)),
             ("goal_generators", s.Objects.Count(o => o.Kind == ObjKind.Generator) >= 2),
-            ("goal_fiber", s.Objects.Any(o => o.Kind == ObjKind.FiberPit) && Sim.Network.MmrReady(s)),
+            ("goal_fiber", s.Net.Entries.Any(e => e.Connected) && Sim.Network.MmrReady(s)),
             ("goal_carrier", s.Net.Carriers.Count(x => x.Up && !x.Def.Ix) >= 2),
             ("goal_network", s.Net.OnlineRacks > 0),
         });
@@ -751,7 +778,7 @@ public partial class Main : Node3D
             var cell = RoofItem ? RoofCell(mm.Position) ?? CellOf(p.Value) : CellOf(p.Value);
             var doorMoved = _item.Mode == Mode.Door && DoorAt(p.Value) is var a && DoorAt(_hoverPoint) is var b && (a.X != b.X || a.Z != b.Z || a.Dir != b.Dir);
             _hoverPoint = p.Value;
-            if (_item.Mode == Mode.Curve) { _hoverCell = cell; UpdateGhost(); }
+            if (_item.Mode is Mode.Curve or Mode.Wall) { _hoverCell = cell; UpdateGhost(); }
             else if (cell != _hoverCell || doorMoved) { _hoverCell = cell; UpdateGhost(); }
         }
         if (e is InputEventMouseButton { ButtonIndex: MouseButton.Left } mb)
@@ -765,14 +792,21 @@ public partial class Main : Node3D
                 {
                     case Mode.Select:
                         var roof = _world.Roofs ? RoofCell(mb.Position) : null;
-                        Inspect(roof ?? c, roof != null);
+                        if (roof == null && !_world.Roofs && DoorNear(p.Value) is { } near) InspectDoor(near);
+                        else Inspect(roof ?? c, roof != null);
                         break;
                     case Mode.Object: PlaceObject(RoofItem ? RoofCell(mb.Position) ?? c : c); break;
                     case Mode.Door: PlaceDoor(DoorAt(p.Value)); break;
                     case Mode.Curve: CurveClick(Snap(p.Value)); break;
+                    case Mode.Wall: _wallStart = Corner(p.Value); break;
                     default: _dragStart = c; break;
                 }
                 UpdateGhost();
+            }
+            else if (_wallStart != null)
+            {
+                PlaceWall(_wallStart.Value, Corner(p.Value));
+                _wallStart = null; UpdateGhost();
             }
             else if (_dragStart != null)
             {
@@ -808,6 +842,53 @@ public partial class Main : Node3D
     }
 
     string Dim(Rect2I r) => $"{r.Size.X} × {r.Size.Y} m";
+
+    /// <summary>The grid corner closest to a point: walls are drawn from corner to corner.</summary>
+    static Vector2I Corner(Vector2 p) => new(Mathf.RoundToInt(p.X), Mathf.RoundToInt(p.Y));
+
+    /// <summary>The edges of the wall being dragged, or the one edge under the mouse before the drag starts.</summary>
+    List<(int x, int z, int dir)> WallDrag()
+    {
+        if (_wallStart is { } a) { var b = Corner(_hoverPoint); return GameState.WallLine(a.X, a.Y, b.X, b.Y); }
+        var d = DoorAt(_hoverPoint);
+        return new List<(int x, int z, int dir)> { (d.X, d.Z, d.Dir) };
+    }
+
+    void PlaceWall(Vector2I a, Vector2I b)
+    {
+        var glass = _item.Arg == 1;
+        var line = GameState.WallLine(a.X, a.Y, b.X, b.Y);
+        if (line.Count == 0) return;
+        _state.Planning = _planMode;
+        var why = _state.CanWalls(_world.ViewFloor, line, out _, glass);
+        _state.Planning = false;
+        if (why != null) { if (why != "msg_nothing_changed") Fail(why); return; }
+        var before = UndoHistory.Take(_state);
+        PlanBegin(true);
+        _state.AddWalls(_world.ViewFloor, a.X, a.Y, b.X, b.Y, glass);
+        PlanEnd();
+        Record(before, _item.NameKey);
+        _hud.UpdateStats(_state);
+    }
+
+    /// <summary>The cells the paint tool would colour now: the drag, or with "whole space" every cell of the spaces under it.</summary>
+    List<(int x, int z)> PaintCells(Rect2I r)
+    {
+        var f = _world.ViewFloor;
+        var m = _state.Spaces(f, false);
+        var cells = new List<(int x, int z)>();
+        for (var z = r.Position.Y; z < r.End.Y; z++)
+            for (var x = r.Position.X; x < r.End.X; x++)
+                if (m.At(x, z) != 0) cells.Add((x, z));
+        if (!_roomFill) return cells;
+        var labels = cells.Select(c => m.At(c.x, c.z)).ToHashSet();
+        var all = new List<(int x, int z)>();
+        foreach (var b in _state.Buildings.Where(b => b.HasFloor(f)))
+            for (var z = b.Z; z < b.Z + b.D; z++)
+                for (var x = b.X; x < b.X + b.W; x++)
+                    if (labels.Contains(m.At(x, z))) all.Add((x, z));
+        return all;
+    }
 
     void UpdateGhost()
     {
@@ -850,6 +931,23 @@ public partial class Main : Node3D
                 _world.ShowGhostRect(r, Brand.Ok, 0, _dragStart == null ? null : $"{Dim(r)} · {Ui.Money(sc)}{bays}");
                 if ((Surface)_item.Arg == Surface.Parking) _world.ShowGhostParking(r);
                 break;
+            case Mode.Duct:
+            {
+                var from = _dragStart ?? _hoverCell;
+                var duct = FiberDuct.L(from.X, from.Y, _hoverCell.X, _hoverCell.Y, _rot % 2 == 1, _item.Arg);
+                var dwhy = _dragStart == null ? null : _state.CanDuct(duct);
+                string dtext;
+                if (_dragStart == null) dtext = Loc.T("duct_ghost_start", _item.Arg);
+                else
+                {
+                    var (_, end) = (duct.Corner().First(), duct.Corner().Last());
+                    var reach = _state.MmrBuildingNear(end.x, end.z) != null || _state.MmrBuildingNear(from.X, from.Y) != null;
+                    dtext = Loc.T("duct_ghost", _item.Arg, duct.Length, Ui.Money(_state.DuctCost(duct)), duct.Handholes().Count)
+                            + (reach ? "\n" + Loc.T("duct_ghost_mmr") : "") + (dwhy != null ? "\n" + Loc.T(dwhy) : "");
+                }
+                _world.ShowGhostDuct(duct, dwhy == null, dtext);
+                break;
+            }
             case Mode.Fence:
                 var n = GameState.FenceCells(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y).Count();
                 _world.ShowGhostRect(r, Brand.Ok, 0, _dragStart == null ? null : $"{n} m · {Ui.Money(n * Catalog.Fences[(FenceType)_item.Arg].Cost)}", true);
@@ -862,6 +960,29 @@ public partial class Main : Node3D
                 var text = _dragStart == null ? null : $"{Dim(r)} · {Loc.T("hud_floors_n", _floors)}" + (cellar ? $" + {Loc.T("hud_floor_basement")}" : "") + $" · {Ui.Money(cost)}" + (why != null ? "\n" + Loc.T(why) : "");
                 _world.ShowGhostRect(r, why == null ? Brand.Ok : Brand.Critical, 0, text);
                 break;
+            case Mode.Room when !_roomWalls:
+            {
+                // the paint tool: tint the cells in the room colour; a room of another type under the brush changes as a whole
+                var pt = (RoomType)_item.Arg;
+                var pcells = PaintCells(r);
+                var under = _state.Rooms.Where(x => x.Floor == _world.ViewFloor && x.Type != pt && pcells.Any(c => x.Contains(c.x, c.z))).ToList();
+                var ptext = $"{Loc.T(Catalog.Rooms[pt].NameKey)} · {pcells.Count} m²" + (under.Count > 0 ? "\n" + Loc.T("paint_changes", string.Join(", ", under.Select(x => Loc.T(Catalog.Rooms[x.Type].NameKey)).Distinct())) : "");
+                if (pcells.Count == 0) _world.ShowGhostRect(r, Brand.Critical, WorldView.Base(_world.ViewFloor), _dragStart == null ? null : Loc.T("msg_room_in_building"));
+                else _world.ShowGhostCells(pcells, new Color(Catalog.Rooms[pt].Color), _world.ViewFloor, _dragStart == null && !_roomFill ? null : ptext);
+                break;
+            }
+            case Mode.Unpaint:
+                _world.ShowGhostRect(r, Brand.Critical, WorldView.Base(_world.ViewFloor), _dragStart == null ? null : Loc.T("tool_unpaint") + " · " + Dim(r));
+                break;
+            case Mode.Wall:
+            {
+                var line = WallDrag();
+                var glass = _item.Arg == 1;
+                var wwhy = _state.CanWalls(_world.ViewFloor, line, out var free, glass);
+                var wtext = _wallStart == null ? null : $"{Loc.T(_item.NameKey)} · {free.Count} m · {Ui.Money(GameState.WallCost(free.Count, glass))}" + (wwhy != null && wwhy != "msg_nothing_changed" ? "\n" + Loc.T(wwhy) : "");
+                _world.ShowGhostWalls(line, free.ToHashSet(), _world.ViewFloor, wtext, glass);
+                break;
+            }
             case Mode.Room:
                 var rt = (RoomType)_item.Arg;
                 var rwhy = _dragStart == null ? null : _state.CanRoom(rt, r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, _world.ViewFloor);
@@ -871,7 +992,9 @@ public partial class Main : Node3D
                 break;
             case Mode.Door:
                 var door = DoorAt(_hoverPoint);
-                _world.ShowGhostDoor(door, _state.CanDoor(door) == null);
+                if (SwapTarget(door) is { } swap)
+                    _world.ShowGhostDoor(new Door { Type = door.Type, X = swap.X, Z = swap.Z, Dir = swap.Dir, Floor = swap.Floor }, _state.CanSwapDoor(swap, door.Type) == null);
+                else _world.ShowGhostDoor(door, _state.CanDoor(door) == null);
                 break;
             case Mode.Object:
                 var gk = (ObjKind)_item.Arg;
@@ -1003,12 +1126,30 @@ public partial class Main : Node3D
         switch (_item.Mode)
         {
             case Mode.Erase:
-                if (_state.Erase(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, _world.ViewFloor, _world.Roofs && _world.ViewFloor == 0)) _hud.UpdateStats(_state);
+                var ew = _state.Erase((EraseKind)_item.Arg, r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, _world.ViewFloor, _world.Roofs && _world.ViewFloor == 0);
+                if (ew == null) _hud.UpdateStats(_state);
+                else if (ew != "msg_nothing_changed") Fail(ew);
+                break;
+            case Mode.Unpaint:
+                var uw = _state.UnpaintRoom(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, _world.ViewFloor);
+                if (uw != null && uw != "msg_nothing_changed") Fail(uw);
+                break;
+            case Mode.Room when !_roomWalls:
+                var pw = _state.PaintRoom((RoomType)_item.Arg, r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, _world.ViewFloor, _roomFill);
+                if (pw != null && pw != "msg_nothing_changed") Fail(pw);
                 break;
             case Mode.Surface:
                 var why = _state.PaintSurface(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, (Surface)_item.Arg, out _);
                 if (why == "msg_no_money") Fail(why);
                 break;
+            case Mode.Duct:
+            {
+                var duct = FiberDuct.L(a.X, a.Y, b.X, b.Y, _rot % 2 == 1, _item.Arg);
+                var dw = _state.AddDuct(duct);
+                if (dw != null) Fail(dw);
+                else _hud.Notify(Loc.T("msg_duct_built", duct.Ways, duct.Length, duct.Handholes().Count), Brand.Fiber);
+                break;
+            }
             case Mode.Fence:
                 var fw = _state.PlaceFence(r.Position.X, r.Position.Y, r.Size.X, r.Size.Y, (FenceType)_item.Arg, out _);
                 if (fw is "msg_no_money" or "msg_needs_research") Fail(fw);
@@ -1062,8 +1203,17 @@ public partial class Main : Node3D
         _hud.UpdateStats(_state);
     }
 
+    /// <summary>An existing door under a new door of another type that it can be changed into on the spot.</summary>
+    Door SwapTarget(Door d)
+    {
+        var existing = _state.Doors.FirstOrDefault(o => o.Floor == d.Floor && o.Edges().Intersect(d.Edges()).Any());
+        return existing != null && existing.Type != d.Type && _state.DoorSwaps(existing).Contains(d.Type) ? existing : null;
+    }
+
     void PlaceDoor(Door d)
     {
+        // a door of another type on top of an existing one: change it on the spot instead of refusing
+        if (SwapTarget(d) is { } existing) { SwapDoor(existing, d.Type); return; }
         _state.Planning = _planMode;
         var why = _state.CanDoor(d);
         _state.Planning = false;
@@ -1098,16 +1248,124 @@ public partial class Main : Node3D
 
     void RefreshInspect()
     {
-        if (_inspectCell != null) Inspect(_inspectCell.Value, _inspectRoof);
+        if (_inspectDoor >= 0) { var d = _state.Doors.FirstOrDefault(x => x.Id == _inspectDoor); if (d != null) InspectDoor(d); else { _inspectDoor = -1; _hud.Inspect(null, null); } }
+        else if (_inspectCell != null) Inspect(_inspectCell.Value, _inspectRoof);
+    }
+
+    /// <summary>The door being shown in the inspector (-1 = none).</summary>
+    int _inspectDoor = -1;
+
+    /// <summary>A door on the view floor whose opening lies close to the mouse, or null.</summary>
+    Door DoorNear(Vector2 p)
+    {
+        const float reach = 0.35f;
+        foreach (var d in _state.Doors.Where(x => x.Floor == _world.ViewFloor))
+            foreach (var (x, z, dir) in d.Edges())
+            {
+                var near = dir == 0 ? Math.Abs(p.X - x) < reach && p.Y >= z && p.Y <= z + 1 : Math.Abs(p.Y - z) < reach && p.X >= x && p.X <= x + 1;
+                if (near) return d;
+            }
+        return null;
+    }
+
+    /// <summary>Door inspector: what the door is, the rooms it joins, and swaps on the spot (badge reader, narrower, fire door).</summary>
+    void InspectDoor(Door d)
+    {
+        _inspectDoor = d.Id; _inspectCell = null;
+        var def = Catalog.Doors[d.Type];
+        var lines = new List<string>
+        {
+            Loc.T("inspect_door_width", def.Width, Ui.FloorName(d.Floor)),
+            def.Secure ? Loc.T("inspect_door_secure") : Loc.T("inspect_door_open"),
+            def.Carry ? Loc.T("inspect_door_racks") : Loc.T("inspect_door_no_racks"),
+        };
+        var (ex, ez, dir) = d.Edges().First();
+        var a = dir == 0 ? _state.RoomAt(ex - 1, ez, d.Floor) : _state.RoomAt(ex, ez - 1, d.Floor);
+        var b = _state.RoomAt(ex, ez, d.Floor);
+        string Name(Room r) => r == null ? Loc.T("room_none") : Loc.T(Catalog.Rooms[r.Type].NameKey);
+        lines.Add(Loc.T("inspect_door_rooms", Name(a) + " ↔ " + Name(b)));
+        var actions = new List<(string, Action, bool)>();
+        // the badge-reader version first: that is what the player usually comes for
+        var swaps = _state.DoorSwaps(d).OrderByDescending(t => GameState.BadgeVersion(d) == t).ThenBy(t => Catalog.Doors[t].Cost).ToList();
+        foreach (var t in swaps)
+        {
+            if (t == DoorType.Mantrap && !_state.Done("sec_mantrap")) continue;
+            var cost = _state.DoorSwapCost(d, t);
+            var to = t; var door = d;
+            var label = cost >= 0 ? Loc.T("action_door_swap", Loc.T(Catalog.Doors[t].NameKey), Ui.Money(cost)) : Loc.T("action_door_swap_back", Loc.T(Catalog.Doors[t].NameKey), Ui.Money(-cost));
+            actions.Add((label, () => SwapDoor(door, to), _state.CanSwapDoor(d, t) == null));
+        }
+        _hud.Inspect(Loc.T(def.NameKey), lines, actions);
+    }
+
+    /// <summary>Change a door on the spot, recorded for undo.</summary>
+    void SwapDoor(Door d, DoorType t)
+    {
+        var before = UndoHistory.Take(_state);
+        var why = _state.SwapDoor(d, t);
+        if (why == null)
+        {
+            Record(before, Catalog.Doors[t].NameKey);
+            _hud.Notify(Loc.T("msg_door_swapped", Loc.T(Catalog.Doors[t].NameKey)), Brand.Ok);
+            var now = _state.Doors.FirstOrDefault(x => x.Id == d.Id);
+            if (now != null && _inspectDoor == d.Id) InspectDoor(now);
+        }
+        Act(why);
     }
 
     static string Kw(double v) => $"{v:0} kW";
 
+    /// <summary>Redraw the inspector right away (a tab of the hall card changed).</summary>
+    void RefreshInspectNow() => CallDeferred(nameof(RefreshInspect));
+
+    /// <summary>An upgrade from the hall card: a hall upgrade starts, a device to place picks its build tool.</summary>
+    void ApplyHallUpgrade(Room hall, HallUpgrade u)
+    {
+        switch (u.Kind)
+        {
+            case HallUpgradeKind.Containment: Act(_state.UpgradeHall(hall, false)); break;
+            case HallUpgradeKind.Busbar: Act(_state.UpgradeHall(hall, true)); break;
+            default:
+                _hud.Pick(new BuildItem(Mode.Object, (int)u.Obj));
+                if (_world.ViewFloor != hall.Floor || _world.Roofs) SetView(hall.Floor, false);
+                break;
+        }
+    }
+
     void Act(string why) { if (why != null) Fail(why); _hud.UpdateStats(_state); RefreshInspect(); }
+
+    /// <summary>Inspector of a main fiber duct: size, length, subducts in use, handholes and where it runs.</summary>
+    void InspectDuct(FiberDuct duct)
+    {
+        var di = _state.Net.DuctOf(duct);
+        var lines = new List<string>
+        {
+            Loc.T("inspect_duct", duct.Ways, duct.Length, duct.Handholes().Count),
+            Loc.T("inspect_subducts", di?.Used ?? 0, duct.Ways),
+            di?.ToMmr == true ? Loc.T("inspect_duct_mmr") : "⚠ " + Loc.T("inspect_duct_no_mmr"),
+        };
+        if (di != null && !di.FromEntry) lines.Add("⚠ " + Loc.T("inspect_duct_no_entry"));
+        if (di != null && di.Used >= duct.Ways) lines.Add("⚠ " + Loc.T("inspect_duct_full"));
+        var actions = new List<(string, Action, bool)>();
+        var next = _state.NextWays(duct);
+        if (next > 0) actions.Add((Loc.T("action_duct_upgrade", next, Ui.Money(_state.DuctUpgradeCost(duct))), () => Act(_state.UpgradeDuct(duct)), _state.CanUpgradeDuct(duct) == null));
+        actions.Add((Loc.T("net_overview"), OpenNetwork, true));
+        _hud.Inspect(Loc.T("duct_" + duct.Ways + "way"), lines, actions);
+    }
+
+    void AutoDuctFrom(PlacedObject entry)
+    {
+        var before = UndoHistory.Take(_state);
+        var d = _state.AutoDuct(entry, 4);
+        Record(before, "action_auto_duct");
+        if (d == null) { Fail(_state.CanAfford(1) ? "msg_no_duct_route" : "msg_no_money"); return; }
+        _hud.Notify(Loc.T("msg_duct_built", d.Ways, d.Length, d.Handholes().Count), Brand.Fiber);
+        _hud.UpdateStats(_state); RefreshInspect();
+    }
 
     void Inspect(Vector2I c, bool roof = false)
     {
-        _inspectCell = c; _inspectRoof = roof;
+        _inspectCell = c; _inspectRoof = roof; _inspectDoor = -1;
         var f = _world.ViewFloor;
         var infra = _state.Infra;
         var o = roof ? _state.ObjectAt(c.X, c.Y, GameState.RoofFloor) : _state.ObjectAt(c.X, c.Y, f);
@@ -1138,32 +1396,72 @@ public partial class Main : Node3D
             if (o.Kind == ObjKind.Rack && o.Status == ObjStatus.Live)
             {
                 var hall = _state.RoomAt(o.X, o.Z, o.Floor);
-                lines.Add(!infra.Down.Contains(o.Id) ? Loc.T("inspect_running") : hall?.Hot == true ? "⚠ " + Loc.T("inspect_down_heat") : "⚠ " + Loc.T("inspect_down_power"));
+                lines.Add(!infra.Down.Contains(o.Id) ? Loc.T("inspect_running") : infra.Reason(o.Id) switch
+                {
+                    DownReason.Heat or DownReason.Suppressed => "⚠ " + Loc.T("inspect_down_heat"),
+                    DownReason.NoPdu => "⚠ " + Loc.T("inspect_down_nopdu"),
+                    DownReason.PduFull => "⚠ " + Loc.T("inspect_down_pdufull"),
+                    DownReason.NoHall => "⚠ " + Loc.T("inspect_down_nohall"),
+                    DownReason.Chain => "⚠ " + Loc.T("inspect_down_chain"),
+                    _ => hall?.Hot == true ? "⚠ " + Loc.T("inspect_down_heat") : "⚠ " + Loc.T("inspect_down_power"),
+                });
+                var (fa, fb) = infra.Tree?.Feeds(o.Id) ?? (null, null);
+                if (fa != null) lines.Add(fb != null ? Loc.T("inspect_rack_feeds_ab", fa.Kind == PowerNodeKind.Busbar ? PowerPanel.NodeName(fa) : fa.Name, fb.Kind == PowerNodeKind.Busbar ? PowerPanel.NodeName(fb) : fb.Name)
+                    : Loc.T("inspect_rack_feed_one", fa.Kind == PowerNodeKind.Busbar ? PowerPanel.NodeName(fa) : fa.Name, fa.Side == FeedSide.A ? "B" : "A"));
                 if (!infra.Down.Contains(o.Id)) lines.Add(_state.Net.Offline.Contains(o.Id) ? "⚠ " + Loc.T("inspect_offline") : Loc.T("inspect_online"));
+                if (hall?.Type == RoomType.DataHall) lines.Add(Loc.T("inspect_hall_code", _state.HallCode(hall)));
+                var outage = OutageFor(o, infra);
+                if (outage != null)
+                {
+                    lines.Add("⚠ " + OutageUi.Text(outage));
+                    actions.Add((OutageUi.FixText(outage), () => FixOutage(outage), true));
+                }
                 var owner = _state.RackOwners().TryGetValue(o.Id, out var dealId) ? _state.DealById(dealId) : null;
                 lines.Add(owner != null ? Loc.T("inspect_rented", CompanyPanel.DealName(owner)) : hall?.Zone == HallZone.PerU ? Loc.T("inspect_peru") : Loc.T("inspect_for_sale"));
             }
             if (d.Ports > 0) lines.Add(Loc.T("inspect_ports", d.Ports) + (d.Gbps > 0 ? $" · {d.Gbps:0} Gbit/s" : ""));
             if (o.Kind == ObjKind.FiberPit)
             {
-                var pi = _state.Net.Pits.FirstOrDefault(x => x.Pit == o);
-                if (pi != null)
+                var ei = _state.Net.EntryOf(o);
+                if (ei != null)
                 {
-                    lines.Add(Loc.T("inspect_pit", Catalog.PitName(pi.Street), string.Join(", ", Catalog.Carriers.Where(x => x.Pit == pi.Street).Select(x => x.Name))));
-                    lines.Add(Loc.T("inspect_subducts", pi.Used, pi.Subducts));
+                    lines.Add(Loc.T("inspect_entry_side", NetworkPanel.SideName(ei.Side)));
+                    lines.Add(ei.Connected ? Loc.T("inspect_entry_route", ei.Ways, ei.Used) : "⚠ " + Loc.T("inspect_entry_no_duct"));
                 }
-                if (o.Level < 3)
+                if (o.Status == ObjStatus.Live && ei?.Connected != true)
                 {
-                    var target = o;
-                    actions.Add((Loc.T("action_duct", Catalog.Subducts(o.Level + 1), Ui.Money(Catalog.UpgradeCost(d, o.Level))), () => Act(_state.UpgradeObject(target)), _state.CanUpgrade(o) == null));
+                    var entry = o;
+                    actions.Add((Loc.T("action_auto_duct"), () => AutoDuctFrom(entry), true));
                 }
+                actions.Add((Loc.T("net_draw_duct"), () => _hud.Pick(new BuildItem(Mode.Duct, 12)), true));
             }
-            if (o.Kind is ObjKind.FiberPit or ObjKind.Odf or ObjKind.CoreRouter or ObjKind.Spine or ObjKind.NocWall)
+            if (Catalog.IsHallSwitch(o.Kind) || o.Kind is ObjKind.DistSwitch or ObjKind.CoreRouter) lines.AddRange(NetworkPanel.InspectLines(_state, o));
+            if (o.Kind is ObjKind.FiberPit or ObjKind.Odf or ObjKind.NocWall)
                 actions.Add((Loc.T("net_overview"), OpenNetwork, true));
+            if (Catalog.IsHallSwitch(o.Kind) || o.Kind is ObjKind.DistSwitch or ObjKind.CoreRouter)
+                actions.Add((Loc.T("ntree_open"), () => OpenPanel(PanelKind.Network, NetworkPanel.TabTree), true));
             if (d.PowerKw > 0) lines.Add($"{d.PowerKw:0.#} kW");
             if (d.CoolingKw > 0) lines.Add(Loc.T("inspect_cooling", Math.Round(d.CoolingKw * Catalog.LevelFactor(o.Level))));
             if (d.RejectKw > 0) lines.Add(Loc.T("inspect_reject", Math.Round(d.RejectKw * Catalog.LevelFactor(o.Level))));
             if (d.CapacityKw > 0) lines.Add(Loc.T("inspect_capacity", d.CapacityKw));
+            if (Catalog.HasFeed(o.Kind))
+            {
+                var node = infra.Tree?.Node(o);
+                lines.Add(Loc.T("inspect_feed_side", o.Feed) + (node != null ? " · " + node.Name : ""));
+                if (d.Outlets > 0) lines.Add(Loc.T("inspect_outlets", node?.UsedOutlets ?? 0, d.Outlets, d.FeederAmps));
+                if (d.Outputs > 0) lines.Add(Loc.T("inspect_outputs", node?.UsedOutputs ?? 0, d.Outputs));
+                if (node != null)
+                {
+                    lines.Add(Loc.T("inspect_power_load", Kw(node.LoadKw), Kw(node.CapacityKw), Kw(node.FailoverKw)));
+                    if (node.Hall != null) lines.Add(Loc.T("inspect_pdu_hall", _state.HallCode(node.Hall)));
+                    if (node.Parent != null) lines.Add(Loc.T("ptree_fed_by", PowerPanel.NodeName(node.Parent)));
+                    foreach (var tip in PowerPanel.Tips(_state, infra, node)) lines.Add("⚠ " + tip);
+                }
+                else if (o.Status == ObjStatus.Live) lines.Add("⚠ " + Loc.T("ptree_not_connected"));
+                var target = o;
+                actions.Add((Loc.T("action_switch_feed", o.Feed == FeedSide.A ? "B" : "A"), () => Act(_state.SwitchFeed(target)), true));
+                actions.Add((Loc.T("nav_tab_power_tree"), () => OpenPowerTree(target), true));
+            }
             if (d.StorageKwh > 0) lines.Add(Loc.T("inspect_storage", d.StorageKwh));
             if (d.GenKw > 0) lines.Add(Loc.T("inspect_generator", d.GenKw));
             if (d.FuelLitres > 0) lines.Add(Loc.T("inspect_fuel", d.FuelLitres));
@@ -1177,7 +1475,7 @@ public partial class Main : Node3D
                     actions.Add((Loc.T("action_upgrade", o.Level + 1, Ui.Money(Catalog.UpgradeCost(d, o.Level))), () => Act(_state.UpgradeObject(target)), _state.CanUpgrade(o) == null));
                 }
             }
-            if (d.Rooms != null && o.Kind is ObjKind.Transformer or ObjKind.Switchgear or ObjKind.Ups or ObjKind.Battery)
+            if (d.Rooms != null && o.Kind is ObjKind.Transformer or ObjKind.Battery)
                 actions.Add((Loc.T("power_overview"), OpenPower, true));
             _hud.Inspect(Loc.T(d.NameKey), lines, actions);
             return;
@@ -1190,37 +1488,46 @@ public partial class Main : Node3D
             _hud.Inspect(Loc.T("grid_station"), lines, new List<(string, Action, bool)> { (Loc.T("power_overview"), OpenPower, true) });
             return;
         }
+        var duct = roof || f != 0 ? null : _state.DuctAt(c.X, c.Y);
+        if (duct != null && _state.BuildingAt(c.X, c.Y) == null)
+        {
+            InspectDuct(duct);
+            return;
+        }
         var r = roof ? null : _state.RoomAt(c.X, c.Y, f);
         var b = _state.BuildingAt(c.X, c.Y);
         if (r != null && !_world.Roofs)
         {
-            var lines = new List<string> { $"{r.W} × {r.D} m · {Ui.FloorName(f)}" };
+            var lines = new List<string> { (r.Walled ? $"{r.W} × {r.D} m" : $"{r.Area} m²") + $" · {Ui.FloorName(f)}" };
             var actions = new List<(string, Action, bool)>();
-            lines.Add(r.Stage == Stage.Done ? Loc.T("inspect_ready") : Loc.T("inspect_building_walls", Mathf.RoundToInt(GameState.StageProgress(r) * 100)));
+            (string, Func<Control>)? hallBody = null;
+            var issue = _state.RoomIssue(r);
+            lines.Add(r.Stage == Stage.Done ? Loc.T("inspect_ready")
+                : issue != null ? "⚠ " + Loc.T(issue)
+                : Loc.T("inspect_building_walls", Mathf.RoundToInt(GameState.StageProgress(r) * 100)));
+            // the room's checklist: what its function needs at least (✓ there, ○ still missing)
+            lines.Add(Loc.T("inspect_room_needs"));
+            foreach (var n in _state.RoomChecklist(r))
+                lines.Add((n.Ok ? "✓ " : "○ ") + Loc.T(n.Key) + (n.Need > 1 || n.Have > 1 ? $" ({n.Have}/{n.Need})" : ""));
+            if (r.Type is RoomType.DataHall or RoomType.MeetMe)
+            {
+                var (sec, doors) = _state.RoomBadges(r);
+                if (doors > 0) lines.Add((sec == doors ? "✓ " : "• ") + Loc.T("inspect_room_badges", sec, doors));
+            }
             if (r.Type == RoomType.DataHall)
             {
-                var hi = infra.Halls.FirstOrDefault(h => h.Room == r);
-                lines.Add(Loc.T("inspect_racks", _state.Objects.Count(x => x.Kind == ObjKind.Rack && x.Floor == r.Floor && r.Contains(x.X, x.Z) && x.Status == ObjStatus.Live),
-                    _state.Objects.Count(x => x.Kind == ObjKind.Rack && x.Floor == r.Floor && r.Contains(x.X, x.Z))));
-                var cont = Catalog.Containments[r.Containment];
-                lines.Add($"{Loc.T(cont.NameKey)} · PUE {Math.Max(1.08, cont.Pue - _state.PueSaving).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)}");
-                if (r.Containment == Containment.HotCold && !_state.Done("cool_corridor")) lines.Add(Loc.T("inspect_corridor_research"));
-                if (hi != null)
+                // power, network and cooling against what the racks need, redundancy and upgrades (infra sketch board 6)
+                var report = HallReport.Build(_state, r);
+                // why racks in this hall are off or offline, each with its fix
+                foreach (var outage in Outages.For(_state, infra, _state.Net).Where(x => x.Hall == r))
                 {
-                    lines.Add(Loc.T("inspect_hall_power", Kw(hi.ItKw), Kw(hi.DistributionKw), hi.ItKw <= 0 ? "-" : hi.AB ? "A+B" : Loc.T("hall_ab_no")));
-                    lines.Add(Loc.T("inspect_hall_cooling", Kw(hi.CrahKw), $"{r.Temp:0}"));
-                    if (hi.RunningRacks < hi.LiveRacks) lines.Add("⚠ " + Loc.T(r.Hot ? "inspect_hall_hot" : "inspect_hall_short", hi.LiveRacks - hi.RunningRacks));
+                    var fix = outage;
+                    lines.Add("⚠ " + OutageUi.Text(outage));
+                    actions.Add((OutageUi.FixText(outage), () => FixOutage(fix), true));
                 }
-                if (r.Upgrade != 0) lines.Add(Loc.T("inspect_upgrading", Math.Ceiling(r.UpgradeLeft)));
-                var hn = _state.Net.Halls.FirstOrDefault(h => h.Room == r);
-                if (hn != null && hn.Racks > 0) lines.Add((hn.Online < hn.Racks ? "⚠ " : "") + Loc.T("inspect_hall_net", hn.Online, hn.Racks, hn.Spines));
                 var hall = r;
-                if (r.Containment < Containment.ColdCorridor)
-                {
-                    var next = Catalog.Containments[r.Containment + 1];
-                    actions.Add((Loc.T("action_containment", Loc.T(next.NameKey), Ui.Money(GameState.HallUpgradeCost(r))), () => Act(_state.UpgradeHall(hall, false)), _state.CanUpgradeHall(r, false) == null));
-                }
-                if (!r.Busbar) actions.Add((Loc.T("action_busbar", Ui.Money(Catalog.BusbarCost)), () => Act(_state.UpgradeHall(hall, true)), _state.CanUpgradeHall(r, true) == null));
+                hallBody = (report.Sig() + Loc.Language + HallCard.Tab, () => HallCard.Build(_state, report, u => ApplyHallUpgrade(hall, u),
+                    () => OpenPowerTree(infra.Tree?.SourcesIn(hall).FirstOrDefault(n => n.Obj != null)?.Obj), () => OpenPanel(PanelKind.Network, NetworkPanel.TabTree), RefreshInspectNow));
                 lines.Add(Loc.T("inspect_zone", Loc.T("zone_" + r.Zone.ToString().ToLowerInvariant())));
                 var nextZone = (HallZone)(((int)r.Zone + 1) % Enum.GetValues<HallZone>().Length);
                 actions.Add((Loc.T("action_zone", Loc.T("zone_" + nextZone.ToString().ToLowerInvariant())), () => { _state.SetZone(hall, nextZone); Act(null); }, true));
@@ -1261,7 +1568,7 @@ public partial class Main : Node3D
                 lines.Add(r.Type == RoomType.MeetMe ? Loc.T("inspect_mmr", net.OdfPorts, net.OdfUsed, net.Cores, _state.CrossConnects) : net.Noc ? Loc.T("net_noc_on") : Loc.T("inspect_noc_needs_wall"));
                 actions.Add((Loc.T("net_overview"), OpenNetwork, true));
             }
-            _hud.Inspect(Loc.T(Catalog.Rooms[r.Type].NameKey), lines, actions);
+            _hud.Inspect(r.Type == RoomType.DataHall ? Loc.T(Catalog.Rooms[r.Type].NameKey) + " · " + _state.HallCode(r) : Loc.T(Catalog.Rooms[r.Type].NameKey), lines, actions, hallBody);
             return;
         }
         if (b != null)
@@ -1345,7 +1652,7 @@ public partial class Main : Node3D
         if (oi >= 0) System.IO.File.WriteAllText(args[oi + 1], json);
         GetTree().Quit();
     }
-    /// <summary>--screenshot path [--in-game] [--interior] [--new-game] [--info] [--options TAB] [--company TAB] [--category cat_x] [--nl] [--hours N] [--driveway] [--curves] [--curvetool] [--gate] [--barrier] [--cam yaw,pitch,dist,x,z]</summary>
+    /// <summary>--screenshot path [--in-game] [--interior] [--new-game] [--info] [--options TAB] [--company TAB] [--category cat_x] [--nl] [--hours N] [--driveway] [--curves] [--curvetool] [--gate] [--barrier] [--duct-demo [--ghost|--inspect]] [--cam yaw,pitch,dist,x,z]</summary>
     async System.Threading.Tasks.Task Screenshot(string path, string[] args)
     {
         if (args.Contains("--nl")) Loc.SetLanguage("nl");
@@ -1423,6 +1730,60 @@ public partial class Main : Node3D
                 _sim.Agents.Add(new Agent { Id = 990001, Role = Role.Engineer, X = 13.5, Z = 9.2, Heading = 0 });
                 _sim.Agents.Add(new Agent { Id = 990002, Role = Role.Staff, X = 20.5, Z = 8.6, Heading = Math.PI });
                 _cam.SetView(0.45f, 0.62f, 13, new Vector3(16, 0, 9));
+            }
+            if (args.Contains("--door-inspect"))
+            {
+                // doors changed on the spot: the front door gets a badge reader, the inspector shows a single door's swaps
+                var front = g.Doors.First(d => d.Type == DoorType.Double);
+                g.SwapDoor(front, DoorType.BadgeDouble);
+                InspectDoor(g.Doors.First(d => d.X == 13 && d.Z == 9));
+                _cam.SetView(0.45f, 0.75f, 15, new Vector3(16, 0, 11));
+            }
+        }
+        else if (args.Contains("--rooms-demo"))
+        {
+            // rooms by walls and paint: a datacenter split by a solid and a glass wall, painted as hall, UPS room and MMR
+            var g = GameState.New(new NewGameOptions { Company = "Polder Datacenters", Creative = true, CreativeOptions = new CreativeOptions { UnlimitedMoney = true, AllUnlocks = true, InstantBuild = true } });
+            g.AddBuilding(BuildingKind.Datacenter, 4, 4, 24, 14, 1);
+            g.AddWalls(0, 16, 4, 16, 18);
+            g.AddWalls(0, 16, 11, 28, 11, glass: true);
+            g.PaintRoom(RoomType.DataHall, 4, 4, 12, 14, 0, fill: true);
+            g.PaintRoom(RoomType.UpsRoom, 16, 4, 12, 7, 0, fill: true);
+            g.PaintRoom(RoomType.MeetMe, 16, 11, 12, 7, 0, fill: true);
+            g.AddDoor(DoorType.BadgeDouble, 8, 18, 1, 0);
+            g.AddDoor(DoorType.Single, 16, 7, 0, 0);
+            g.AddDoor(DoorType.Badge, 16, 14, 0, 0);
+            g.Touch(); g.RefreshRooms();
+            for (var x = 6; x <= 13; x++) { g.AddObject(ObjKind.Rack, x, 8, 0, 0); g.AddObject(ObjKind.Rack, x, 12, 2, 0); }
+            g.AddObject(ObjKind.Crah, 5, 16, 0, 0);
+            g.AddObject(ObjKind.Ups, 19, 5, 0, 0); g.AddObject(ObjKind.Battery, 24, 6, 0, 0);
+            g.AddObject(ObjKind.Odf, 20, 15, 0, 0);
+            StartGame(g, false);
+            SetView(0, false);
+            _speed = 0;
+            _cam.SetView(0.4f, 0.95f, 24, new Vector3(16, 0, 11));
+            var mode = Array.IndexOf(args, "--rooms-demo") + 1 < args.Length ? args[Array.IndexOf(args, "--rooms-demo") + 1] : "";
+            switch (mode)
+            {
+                case "wall":
+                    _hud.OpenCategory("cat_rooms");
+                    _hud.Pick(new BuildItem(Mode.Wall, 0));
+                    _wallStart = new Vector2I(4, 15); _hoverPoint = new Vector2(16, 15);
+                    UpdateGhost();
+                    break;
+                case "paint":
+                    _hud.OpenCategory("cat_rooms");
+                    _hud.Pick(new BuildItem(Mode.Room, (int)RoomType.Battery));
+                    _dragStart = new Vector2I(22, 5); _hoverCell = new Vector2I(26, 9);
+                    UpdateGhost();
+                    break;
+                case "erase":
+                    _hud.Pick(new BuildItem(Mode.Erase, (int)EraseKind.Wall));
+                    break;
+                case "inspect":
+                    Inspect(new Vector2I(22, 15));
+                    _cam.SetView(0.7f, 0.8f, 15, new Vector3(20, 0, 13));
+                    break;
             }
         }
         else if (args.Contains("--showcase"))
@@ -1564,6 +1925,27 @@ public partial class Main : Node3D
             _dragStart = new Vector2I(12, 16); _hoverCell = new Vector2I(24, 30);
             UpdateGhost();
         }
+        // --duct-demo [--ghost|--inspect]: the network view over the site with both cable entries and their main ducts;
+        // --ghost draws a third route from a new entry on the west border, --inspect opens a duct in the inspector
+        if (args.Contains("--duct-demo"))
+        {
+            SetView(0, true);
+            _cam.SetView(0.62f, 0.95f, 82, new Vector3(34, 0, 36));
+            SetOverlay(OverlayMode.Network);
+            if (args.Contains("--ghost"))
+            {
+                var w = _state.AddObject(ObjKind.FiberPit, 0, 50, 0, 0);
+                if (w != null) w.Status = ObjStatus.Live;
+                _hud.Pick(new BuildItem(Mode.Duct, 7));
+                _dragStart = new Vector2I(1, 50); _hoverCell = new Vector2I(7, 30);
+                UpdateGhost();
+            }
+            if (args.Contains("--inspect") && _state.Ducts.Count > 0)
+            {
+                var c = _state.Ducts[0].Cells()[_state.Ducts[0].Length / 2];
+                Inspect(new Vector2I(c.x, c.z));
+            }
+        }
         // --ghost-demo: one rack about to be placed, showing its front arrow and the aisles it needs
         var ghi = Array.IndexOf(args, "--ghost-demo");
         if (ghi >= 0 && ghi + 1 < args.Length)
@@ -1612,6 +1994,28 @@ public partial class Main : Node3D
         // step 10: --time 2027-12-20T21:00 --weather snow|rain|storm|fog|cloudy|clear --snow 0..1 --walk x,z,floor,yaw,pitch --migration
         var tmi = Array.IndexOf(args, "--time");
         if (tmi >= 0 && tmi + 1 < args.Length) _state.Hours = (DateTime.Parse(args[tmi + 1], System.Globalization.CultureInfo.InvariantCulture) - GameState.Epoch).TotalHours;
+        // --rush-hour H: run the site for H game hours from the --time given (people driving in, parking, walking to their desks)
+        var rhi = Array.IndexOf(args, "--rush-hour");
+        if (rhi >= 0 && rhi + 1 < args.Length && _sim != null)
+        {
+            if (_state.Staff.Count == 0)
+            {
+                // a day shift to bring in: technicians, cleaners and a helpdesk
+                var roles = new[] { StaffRole.Cleaner, StaffRole.Support, StaffRole.RemoteHands, StaffRole.Electrical, StaffRole.Cooling, StaffRole.NetworkEng, StaffRole.Helpdesk, StaffRole.Logistics };
+                for (var i = 0; i < 18; i++) _state.Staff.Add(new Employee { Id = 3000 + i * 7, Name = "Demo " + i, Role = roles[i % roles.Length], Shift = Shift.Day });
+            }
+            _sim.ResetCommute();
+            for (var left = double.Parse(args[rhi + 1], System.Globalization.CultureInfo.InvariantCulture); left > 1e-9; left -= 0.05)
+            {
+                var step = Math.Min(0.05, left);
+                _state.Hours += step;
+                _sim.Tick(step);
+            }
+            _speed = 0;
+            _cam.SetView(0.55f, 0.8f, 40, new Vector3(36, 0, 46));
+            if (args.Contains("--close")) _cam.SetView(0.6f, 0.75f, 22, new Vector3(33, 0, 50));
+            if (args.Contains("--desks")) { SetView(0, false); _cam.SetView(0.3f, 0.95f, 20, new Vector3(45, 0, 19)); }
+        }
         var wxi = Array.IndexOf(args, "--weather");
         if (wxi >= 0 && wxi + 1 < args.Length) _world.ForceWeather = Enum.Parse<WeatherKind>(args[wxi + 1], true);
         var sni = Array.IndexOf(args, "--snow");
@@ -1682,12 +2086,59 @@ public partial class Main : Node3D
         if (oi >= 0) OpenOptions(oi + 1 < args.Length && int.TryParse(args[oi + 1], out var tab) ? tab : 0);
         if (args.Contains("--power")) { _playing = true; OpenPower(); }
         if (args.Contains("--network")) { _playing = true; OpenNetwork(); }
+        // --pit-link: what a click on a pit line in the network screen does (screenshots)
+        if (args.Contains("--pit-link") && _state != null) ShowObject(_state.Objects.LastOrDefault(o => o.Kind == ObjKind.FiberPit));
+        // --power-tree [msb|ups|pdu]: the power tree with that kind of device selected
+        var pti = Array.IndexOf(args, "--power-tree");
+        if (pti >= 0 && _state != null)
+        {
+            _playing = true;
+            var what = pti + 1 < args.Length ? args[pti + 1] : "msb";
+            var pick = _state.Objects.Where(o => what == "pdu" ? Catalog.IsPdu(o.Kind) : o.Kind == (what == "ups" ? ObjKind.Ups : ObjKind.Switchgear)).OrderBy(o => o.Id).FirstOrDefault();
+            OpenPowerTree(pick);
+        }
         // --hall-clients: keep the first hall for banks and government and the second for AI companies (screenshots)
         if (args.Contains("--hall-clients") && _state != null)
         {
             var hs = _state.Rooms.Where(r => r.Type == RoomType.DataHall).ToList();
             if (hs.Count > 0) _state.SetHallClients(hs[0], new[] { CustomerType.Bank, CustomerType.Government });
             if (hs.Count > 1) _state.SetHallClients(hs[1], new[] { CustomerType.Ai });
+        }
+        // --outage-demo: the demo hall loses its busbar and most PDUs and switches, so warnings show their cause and fix
+        if (args.Contains("--outage-demo") && _state != null)
+        {
+            foreach (var h in _state.Rooms.Where(r => r.Type == RoomType.DataHall)) h.Busbar = false;
+            var pdus = _state.Objects.Where(o => Catalog.IsPdu(o.Kind)).OrderBy(o => o.Id).ToList();
+            if (pdus.Count > 0) { pdus[0].Kind = ObjKind.Pdu300; _state.Objects.RemoveAll(o => Catalog.IsPdu(o.Kind) && o != pdus[0]); }
+            var edges = _state.Objects.Where(o => Catalog.IsHallSwitch(o.Kind)).OrderBy(o => o.Id).ToList();
+            if (edges.Count > 0) { edges[^1].Kind = ObjKind.EdgeSwitch24; _state.Objects.RemoveAll(o => Catalog.IsHallSwitch(o.Kind) && o != edges[^1]); }
+            _state.Touch();
+            _world.Build(_state, _sim);
+            _outagesSeen.Clear(); _outagesPrimed = true;
+            CheckOutages();
+            // --outage-fix: press the fix of the first warning (camera jump, hall inspector, tool in hand)
+            if (args.Contains("--outage-fix")) { _playing = true; FixOutage(Outages.For(_state).FirstOrDefault()); }
+        }
+        if (args.Contains("--nettree-demo") && _state != null)
+        {
+            // network tree: without the spine the demo hall runs on two Edge 48s, not every rack gets a B port
+            _state.Objects.RemoveAll(o => o.Kind == ObjKind.Spine);
+            _state.Touch();
+        }
+        // --hall-demo [--upgrades]: click on the demo's data hall and show the hall card (infra sketch board 6)
+        if (args.Contains("--hall-demo") && _state != null)
+        {
+            _playing = true;
+            var hall = _state.Rooms.Where(r => r.Type == RoomType.DataHall).OrderByDescending(r => _state.Objects.Count(o => o.Kind == ObjKind.Rack && o.Floor == r.Floor && r.Contains(o.X, o.Z))).FirstOrDefault();
+            if (hall != null)
+            {
+                HallCard.Tab = args.Contains("--upgrades") ? HallCard.TabUpgrades : HallCard.TabCapacity;
+                SetView(hall.Floor, false);
+                var free = Enumerable.Range(hall.X, hall.W).SelectMany(x => Enumerable.Range(hall.Z, hall.D).Select(z => new Vector2I(x, z)))
+                    .FirstOrDefault(c => hall.Contains(c.X, c.Y) && _state.ObjectAt(c.X, c.Y, hall.Floor) == null);
+                _cam.SetView(0.6f, 0.95f, Math.Max(hall.W, hall.D) * 1.3f, new Vector3(hall.X + hall.W / 2f - 4, WorldView.Base(hall.Floor), hall.Z + hall.D / 2f));
+                Inspect(free);
+            }
         }
         var coi = Array.IndexOf(args, "--company");
         if (coi >= 0 && coi + 1 < args.Length) { _playing = true; OpenCompany(int.Parse(args[coi + 1])); }

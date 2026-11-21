@@ -105,6 +105,10 @@ public static class Org
 {
     static readonly Exec[] None = Array.Empty<Exec>();
 
+    /// <summary>The board: only these directors need an own director's office. The other managers work at a desk in an office room (playtest).</summary>
+    public static readonly HashSet<Exec> Board = new() { Exec.Ceo, Exec.Cfo, Exec.Hr, Exec.Sales, Exec.Operations };
+    public static bool IsBoard(Exec e) => Board.Contains(e);
+
     public static readonly Dictionary<Exec, ExecDef> Execs = new()
     {
         [Exec.Ceo] = new(Exec.Ceo, "exec_ceo", None, 9000, 15000, new long[] { 40000, 90000 }, new[] { 10, 20 }),
@@ -248,7 +252,10 @@ public partial class GameState
 
     /// <summary>Executive rooms with at least a desk and a chair: one per director.</summary>
     public int Offices => Rooms.Count(r => r.Type == RoomType.Executive && Furnished(r));
-    /// <summary>Workplaces for the sales team: desks in finished office rooms.</summary>
+    /// <summary>Board members (each in an own director's office) and the managers who work at a desk in an office room.</summary>
+    [JsonIgnore] public int BoardCount => Execs.Count(x => Org.IsBoard(x.Role));
+    [JsonIgnore] public int ManagerCount => Execs.Count - BoardCount;
+    /// <summary>Workplaces for the sales team and the managers: desks in finished office rooms.</summary>
     public int Workplaces => Rooms.Where(r => r.Type == RoomType.Office && r.Stage == Stage.Done)
         .Sum(r => Objects.Count(o => o.Kind == ObjKind.Desk && o.Floor == r.Floor && r.Contains(o.X, o.Z)));
 
@@ -257,7 +264,8 @@ public partial class GameState
         if (Hire(e) != null) return "msg_nothing_changed";
         foreach (var req in Org.Execs[e].Requires)
             if (!Has(req)) return "msg_needs_exec";
-        if (Offices <= Execs.Count) return e == Exec.Ceo ? "msg_needs_ceo_office" : "msg_needs_office";
+        if (Org.IsBoard(e) && Offices <= BoardCount) return e == Exec.Ceo ? "msg_needs_ceo_office" : "msg_needs_office";
+        if (!Org.IsBoard(e) && ManagerCount + SalesReps >= Workplaces) return "msg_needs_manager_desk";
         if (!CanAfford(Org.Execs[e].HireFee)) return "msg_no_money";
         return null;
     }
@@ -322,7 +330,7 @@ public partial class GameState
     public string CanAddRep(int delta)
     {
         if (!Has(Exec.Sales)) return "msg_needs_exec";
-        if (delta > 0 && SalesReps + delta > Workplaces) return "msg_needs_workplace";
+        if (delta > 0 && SalesReps + ManagerCount + delta > Workplaces) return "msg_needs_workplace";
         if (SalesReps + delta < 0) return "msg_nothing_changed";
         return null;
     }
@@ -415,7 +423,7 @@ public partial class GameState
 
     bool HallFits(Deal d, HallInfo h)
     {
-        if ((d.AB || d.Amp32 || d.TwoN) && !(Creative.NoPowerLimit || h.AB || (h.Feeds >= 2 && h.ItKw <= 0))) return false;
+        if ((d.AB || d.Amp32 || d.TwoN) && !(Creative.NoPowerLimit || h.AB || (h.Sides >= 2 && h.ItKw <= 0))) return false;
         if (d.Amp32 && h.Room.Containment == Containment.Open) return false;
         return true;
     }

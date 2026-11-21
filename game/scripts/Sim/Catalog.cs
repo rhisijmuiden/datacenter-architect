@@ -17,7 +17,7 @@ public enum Stage { Foundation, Walls, Roof, Done }
 
 public enum RoomType { DataHall, MeetMe, UpsRoom, Office, Executive, Meeting, Canteen, Lounge, Reception, Security, LoadingDock, Storage, Corridor, Transformer, Switchgear, Battery, Noc, Lab, Soc, Warehouse }
 
-public enum DoorType { Single, Double, Fire, Badge, RollUp, Mantrap }
+public enum DoorType { Single, Double, Fire, Badge, RollUp, Mantrap, BadgeDouble }
 
 public enum ObjKind
 {
@@ -41,6 +41,11 @@ public enum ObjKind
     ParkBench, PicnicTable, TerraceSet,
     // playtest: commuting by bike or electric car
     BikeShed, EvCharger,
+    // power distribution (infra sketch board 2): small and large floor PDUs next to the PDU 150
+    Pdu75, Pdu300,
+    // network tree: edge switches in the halls and the distribution switch in the MMR.
+    // The values leave room for Pdu75 and Pdu300 of the power tree, so saves keep their kinds whichever lands first.
+    EdgeSwitch24 = EvCharger + 3, EdgeSwitch48, DistSwitch,
 }
 
 /// <summary>Delivery chain for hall equipment: truck to the dock, fitter places it, engineer connects power and then fiber.</summary>
@@ -52,13 +57,17 @@ public enum Where { Outside, Room, Hall, Building, Fence, Paved, OutsideOrRoof, 
 /// <summary>Links of the power chain, from the grid operator to the racks.</summary>
 public enum PowerLink { Grid, Transformers, Switchgear, Ups, Distribution }
 
+/// <summary>The A or B side of the power distribution. Racks fed from both sides keep running when one side fails.</summary>
+public enum FeedSide : byte { A, B }
+
 /// <summary>Hall air management, upgraded step by step: more effective cooling and a lower PUE.</summary>
 public enum Containment { Open, HotCold, ColdCorridor }
 
 public record ObjDef(ObjKind Kind, string NameKey, int W, int D, long Cost, Where Where, bool Blocks,
     double PowerKw = 0, double CoolingKw = 0, double GenKw = 0, bool Chain = false, bool NeedsFiber = false,
     double CapacityKw = 0, double StorageKwh = 0, double FuelLitres = 0, double RejectKw = 0,
-    RoomType[] Rooms = null, int MaxLevel = 1, int Ports = 0, double Gbps = 0);
+    RoomType[] Rooms = null, int MaxLevel = 1, int Ports = 0, double Gbps = 0,
+    int Outlets = 0, int Outputs = 0, int FeederAmps = 0);
 
 /// <summary>Grid connection levels offered by the grid operator. Level 0 is the compact station every site starts with.</summary>
 public record GridLevelDef(int Level, double Mva, long Cost, int LeadDays, string NameKey);
@@ -79,7 +88,9 @@ public record SurfaceDef(Surface Surface, string NameKey, long Cost, bool Trucks
 public record FenceDef(FenceType Type, string NameKey, long Cost, float Height, int Security, bool NeedsResearch);
 public record BuildingDef(BuildingKind Kind, string NameKey, long CostPerCellPerFloor);
 public record RoomDef(RoomType Type, string NameKey, string Color);
-public record DoorDef(DoorType Type, string NameKey, int Width, long Cost, bool Wide);
+/// <summary>A door type. <paramref name="Carry"/>: a rack on a trolley fits through (every door but the mantrap);
+/// <paramref name="Secure"/>: it has a badge reader and counts for the security level.</summary>
+public record DoorDef(DoorType Type, string NameKey, int Width, long Cost, bool Carry, bool Secure = false);
 
 public static class Catalog
 {
@@ -91,6 +102,13 @@ public static class Catalog
 
     /// <summary>Whether people moving this way may use a floor link: carried loads need the freight lift.</summary>
     public static bool ShaftAllows(ObjKind k, NavMode m) => k == ObjKind.Lift || (m == NavMode.Walk && IsShaft(k));
+
+    /// <summary>Floor PDUs of every size.</summary>
+    public static bool IsPdu(ObjKind k) => k is ObjKind.Pdu or ObjKind.Pdu75 or ObjKind.Pdu300;
+    /// <summary>Power devices that belong to the A or the B side: main switchboards, UPS units and PDUs.</summary>
+    public static bool HasFeed(ObjKind k) => k is ObjKind.Switchgear or ObjKind.Ups || IsPdu(k);
+    /// <summary>The PDU sizes in the build menu, small to large.</summary>
+    public static readonly ObjKind[] PduKinds = { ObjKind.Pdu75, ObjKind.Pdu, ObjKind.Pdu300 };
 
     public static bool IsGate(ObjKind k) => IsVehicleGate(k) || k == ObjKind.PedGate;
     /// <summary>Things on the road that a vehicle waits for until they are open.</summary>
@@ -104,7 +122,7 @@ public static class Catalog
         [ObjKind.Rack] = new(ObjKind.Rack, "obj_rack", 1, 1, 4200, Where.Hall, true, PowerKw: 6, Chain: true, NeedsFiber: true),
         [ObjKind.Crah] = new(ObjKind.Crah, "obj_crah", 1, 2, 38000, Where.Hall, true, PowerKw: 4, CoolingKw: 120, Chain: true, MaxLevel: 3),
         [ObjKind.Generator] = new(ObjKind.Generator, "obj_generator", 3, 2, 410000, Where.Outside, true, GenKw: 1000, FuelLitres: 2000),
-        [ObjKind.FiberPit] = new(ObjKind.FiberPit, "obj_fiberpit", 1, 1, 25000, Where.Outside, false, MaxLevel: 3),
+        [ObjKind.FiberPit] = new(ObjKind.FiberPit, "obj_fiberpit", 1, 1, 25000, Where.Outside, false),
         [ObjKind.Lift] = new(ObjKind.Lift, "obj_lift", 2, 2, 85000, Where.Building, false),
         [ObjKind.PassengerLift] = new(ObjKind.PassengerLift, "obj_passenger_lift", 2, 2, 60000, Where.Building, false),
         [ObjKind.Stairs] = new(ObjKind.Stairs, "obj_stairs", 2, 5, 18000, Where.Building, false),
@@ -137,19 +155,26 @@ public static class Catalog
         [ObjKind.PedGate] = new(ObjKind.PedGate, "obj_ped_gate", 1, 1, 2500, Where.Fence, false),
         // power chain: transformer room, switchgear room, UPS and battery rooms, PDUs in the hall
         [ObjKind.Transformer] = new(ObjKind.Transformer, "obj_transformer", 2, 2, 220000, Where.Room, true, CapacityKw: 2500, Chain: true, Rooms: new[] { RoomType.Transformer }),
-        [ObjKind.Switchgear] = new(ObjKind.Switchgear, "obj_switchgear", 2, 1, 120000, Where.Room, true, CapacityKw: 4000, Chain: true, Rooms: new[] { RoomType.Switchgear }),
-        [ObjKind.Ups] = new(ObjKind.Ups, "obj_ups", 2, 1, 160000, Where.Room, true, CapacityKw: 500, Chain: true, Rooms: new[] { RoomType.UpsRoom }),
+        [ObjKind.Switchgear] = new(ObjKind.Switchgear, "obj_switchgear", 2, 1, 120000, Where.Room, true, CapacityKw: 4000, Chain: true, Rooms: new[] { RoomType.Switchgear }, Outputs: 8),
+        [ObjKind.Ups] = new(ObjKind.Ups, "obj_ups", 2, 1, 160000, Where.Room, true, CapacityKw: 500, Chain: true, Rooms: new[] { RoomType.UpsRoom }, Outputs: 6),
         [ObjKind.Battery] = new(ObjKind.Battery, "obj_battery", 1, 1, 30000, Where.Room, true, StorageKwh: 40, Chain: true, Rooms: new[] { RoomType.Battery, RoomType.UpsRoom }),
-        [ObjKind.Pdu] = new(ObjKind.Pdu, "obj_pdu", 1, 1, 18000, Where.Hall, true, CapacityKw: 150, Chain: true),
+        // a floor PDU feeds only racks in its own hall: one outlet per rack, up to its kW (each rack counted at full load)
+        [ObjKind.Pdu75] = new(ObjKind.Pdu75, "obj_pdu75", 1, 1, 11000, Where.Hall, true, CapacityKw: 75, Chain: true, Outlets: 12, FeederAmps: 125),
+        [ObjKind.Pdu] = new(ObjKind.Pdu, "obj_pdu", 1, 1, 18000, Where.Hall, true, CapacityKw: 150, Chain: true, Outlets: 24, FeederAmps: 250),
+        [ObjKind.Pdu300] = new(ObjKind.Pdu300, "obj_pdu300", 1, 1, 31000, Where.Hall, true, CapacityKw: 300, Chain: true, Outlets: 42, FeederAmps: 500),
         [ObjKind.DieselTank] = new(ObjKind.DieselTank, "obj_diesel_tank", 3, 1, 60000, Where.Outside, true, FuelLitres: 20000),
         [ObjKind.UndergroundTank] = new(ObjKind.UndergroundTank, "obj_underground_tank", 3, 2, 180000, Where.Underground, false, FuelLitres: 50000),
         // heat rejection outside or on the roof
         [ObjKind.Chiller] = new(ObjKind.Chiller, "obj_chiller", 3, 2, 260000, Where.OutsideOrRoof, true, PowerKw: 0, RejectKw: 600, MaxLevel: 3),
         [ObjKind.CoolingTower] = new(ObjKind.CoolingTower, "obj_cooling_tower", 2, 2, 340000, Where.OutsideOrRoof, true, RejectKw: 1000, MaxLevel: 3),
-        // network: patch frames and core routers in the meet-me room, spine switches in the halls, the NOC video wall
+        // network: patch frames, core routers and distribution switches in the meet-me room, edge (or spine) switches in the halls,
+        // the NOC video wall. A hall switch serves only the racks of its own hall: Ports = racks, Gbps = its uplink.
         [ObjKind.Odf] = new(ObjKind.Odf, "obj_odf", 1, 1, 9500, Where.Room, true, Chain: true, Ports: 48, Rooms: new[] { RoomType.MeetMe }),
         [ObjKind.CoreRouter] = new(ObjKind.CoreRouter, "obj_core_router", 1, 1, 180000, Where.Room, true, PowerKw: 3, Chain: true, Ports: 32, Gbps: 400, Rooms: new[] { RoomType.MeetMe }),
-        [ObjKind.Spine] = new(ObjKind.Spine, "obj_spine", 1, 1, 65000, Where.Hall, true, PowerKw: 2, Chain: true, Ports: 48, Gbps: 400),
+        [ObjKind.DistSwitch] = new(ObjKind.DistSwitch, "obj_dist_switch", 1, 1, 120000, Where.Room, true, PowerKw: 2.5, Chain: true, Ports: 64, Gbps: 800, Rooms: new[] { RoomType.MeetMe }),
+        [ObjKind.EdgeSwitch24] = new(ObjKind.EdgeSwitch24, "obj_edge24", 1, 1, 28000, Where.Hall, true, PowerKw: 0.6, Chain: true, Ports: 24, Gbps: 200),
+        [ObjKind.EdgeSwitch48] = new(ObjKind.EdgeSwitch48, "obj_edge48", 1, 1, 45000, Where.Hall, true, PowerKw: 1, Chain: true, Ports: 48, Gbps: 400),
+        [ObjKind.Spine] = new(ObjKind.Spine, "obj_spine", 1, 1, 65000, Where.Hall, true, PowerKw: 2, Chain: true, Ports: 96, Gbps: 3200),
         [ObjKind.NocWall] = new(ObjKind.NocWall, "obj_noc_wall", 3, 1, 48000, Where.Room, true, PowerKw: 1.5, Rooms: new[] { RoomType.Noc }),
         // security: cameras on poles outside and in the halls, the video wall and glass lodge in the security room, bollards against vehicles
         [ObjKind.CameraPole] = new(ObjKind.CameraPole, "obj_camera_pole", 1, 1, 6500, Where.Outside, false, PowerKw: 0.05),
@@ -205,19 +230,21 @@ public static class Catalog
         [Containment.ColdCorridor] = new(Containment.ColdCorridor, "hall_cold_corridor", 0.35, 1.30, 380, 72),
     };
 
-    /// <summary>Overhead busbar in a hall: two runs (A and B), each with this capacity.</summary>
+    /// <summary>Overhead busbar in a hall: two runs (A and B), each with this capacity and a tap-off box for every rack.</summary>
+    public const int BusbarAmps = 630;
     public const double BusbarKw = 400;
     public const long BusbarCost = 140_000;
     public const double BusbarHours = 24;
 
     // ---------------- network ----------------
-    /// <summary>Carrier pits in the pavement of the public road (x positions). Your own fiber pit connects to the nearest one.</summary>
+    /// <summary>Old carrier pits in the pavement (x positions), only kept so old land shifts still add up; ducts now start at your own cable entries.</summary>
     public static readonly int[] StreetPits = { 8, 30, 52 };
     /// <summary>Street pits sit in the pavement across the public road (plot edge + this many metres), never on the carriageway.</summary>
     public const float StreetPitOffset = 7.8f;
     public static string PitName(int pit) => ((char)('A' + pit)).ToString();
-    /// <summary>Subducts in your own fiber pit's duct per level: every carrier, IX port or dark fiber needs one.</summary>
-    public static int Subducts(int level) => level switch { >= 3 => 12, 2 => 8, _ => 4 };
+    /// <summary>Your own main fiber duct comes as a 4-, 7- or 12-way duct: that many subducts, one per carrier, IX port or dark fiber.</summary>
+    public static readonly int[] DuctWays = { 4, 7, 12 };
+    public static long DuctCostPerM(int ways) => ways >= 12 ? 180 : ways >= 7 ? 130 : 90;
     public const int FibersPerCable = 144;
     /// <summary>Port sizes in Gbit/s, with the monthly port fee and the one-off setup fee.</summary>
     public static readonly PortDef[] Ports =
@@ -231,6 +258,10 @@ public static class Catalog
     public const double BurstFactor = 1.5, BurstFactorNoc = 1.2;
     /// <summary>Average traffic of a running rack in Gbit/s; it follows the time of day.</summary>
     public const double RackGbps = 0.25;
+    /// <summary>Switches in a data hall that racks plug into: Edge 24, Edge 48 and the big Spine 400.</summary>
+    public static bool IsHallSwitch(ObjKind k) => k is ObjKind.EdgeSwitch24 or ObjKind.EdgeSwitch48 or ObjKind.Spine;
+    /// <summary>Uplinks of a hall switch to the distribution switch: 2 × 100G, 4 × 100G or 8 × 400G.</summary>
+    public static int Uplinks(ObjKind k) => k switch { ObjKind.EdgeSwitch24 => 2, ObjKind.EdgeSwitch48 => 4, ObjKind.Spine => 8, ObjKind.DistSwitch => 2, _ => 0 };
 
     public static readonly CarrierDef[] Carriers =
     {
@@ -310,12 +341,13 @@ public static class Catalog
 
     public static readonly Dictionary<DoorType, DoorDef> Doors = new()
     {
-        [DoorType.Single] = new(DoorType.Single, "door_single", 1, 600, false),
+        [DoorType.Single] = new(DoorType.Single, "door_single", 1, 600, true),
         [DoorType.Double] = new(DoorType.Double, "door_double", 2, 1400, true),
-        [DoorType.Fire] = new(DoorType.Fire, "door_fire", 1, 1800, false),
-        [DoorType.Badge] = new(DoorType.Badge, "door_badge", 1, 3200, false),
+        [DoorType.Fire] = new(DoorType.Fire, "door_fire", 1, 1800, true, true),
+        [DoorType.Badge] = new(DoorType.Badge, "door_badge", 1, 3200, true, true),
+        [DoorType.BadgeDouble] = new(DoorType.BadgeDouble, "door_badge_double", 2, 4400, true, true),
         [DoorType.RollUp] = new(DoorType.RollUp, "door_rollup", 3, 5200, true),
-        [DoorType.Mantrap] = new(DoorType.Mantrap, "door_mantrap", 1, 24000, false),
+        [DoorType.Mantrap] = new(DoorType.Mantrap, "door_mantrap", 1, 24000, false, true),
     };
 
     public static readonly Dictionary<Role, long> WagePerDay = new()

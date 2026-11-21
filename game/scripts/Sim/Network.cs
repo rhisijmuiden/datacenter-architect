@@ -5,7 +5,7 @@ using System.Linq;
 namespace DatacenterArchitect.Sim;
 
 /// <summary>Links of the network chain, from the carriers outside to the racks.</summary>
-public enum NetLink { Upstream, Ducts, Mmr, Core, Spine }
+public enum NetLink { Upstream, Ducts, Mmr, Core, Distribution, Spine }
 
 /// <summary>A carrier contract: a port of a given size with a commit, ordered at a carrier at one of the street pits.</summary>
 public class CarrierContract
@@ -42,29 +42,51 @@ public class NetLinkInfo
     public double Ratio => Capacity <= 0 ? (Load > 0 ? 9 : 0) : Load / Capacity;
 }
 
-/// <summary>Your own fiber pit with its duct to the nearest carrier pit in the street.</summary>
-public class PitInfo
-{
-    public PlacedObject Pit;
-    public int Street;
-    public int Subducts, Used;
-}
-
 public class CarrierInfo
 {
     public CarrierContract Contract;
     public CarrierDef Def;
-    /// <summary>In service and with a subduct to its street pit.</summary>
+    /// <summary>In service and with a subduct from a cable entry to the meet-me room.</summary>
     public bool Up;
     public bool Routed;
     public double Gbps;
 }
 
+/// <summary>
+/// One data hall in the network tree: its own edge switches (they never serve another hall), their ports and the racks on them.
+/// With two or more switches a rack gets an A and a B port on different switches (dual-homed) while ports last.
+/// </summary>
 public class HallNet
 {
     public Room Room;
+    /// <summary>Hall switches with an uplink (Spines), all hall switches (Switches) and their ports, racks and online racks.</summary>
     public int Spines, Ports, Racks, Online;
-    public double Gbps;
+    /// <summary>Racks with an A and a B port; ports in use (online + dual).</summary>
+    public int Dual, UsedPorts;
+    public double Gbps, UplinkGbps;
+    public readonly List<PlacedObject> Switches = new();
+    /// <summary>"-" without racks, "N-" when racks are left without a port, "N" all online, "2N" all racks on two switches (A/B).</summary>
+    public string Redundancy = "-";
+    public int Unlinked => Switches.Count - Spines;
+    public bool AB => Racks > 0 && Dual >= Racks;
+}
+
+/// <summary>A distribution switch in the MMR: hall switches hang on its ports, it takes one port on the core.</summary>
+public class DistNet
+{
+    public PlacedObject Obj;
+    public int Ports, Used;
+    public double Capacity, Load;
+    public bool Linked;
+    public readonly List<PlacedObject> Edges = new();
+}
+
+/// <summary>A core router with its share of the core ports and of the traffic.</summary>
+public class CoreNet
+{
+    public PlacedObject Obj;
+    public int Ports, Used;
+    public double Capacity, Load;
 }
 
 /// <summary>Snapshot of the network: routes, carriers, peering, MMR, core and spine switches, traffic and the racks that are online.</summary>
@@ -72,7 +94,11 @@ public class NetReport
 {
     public readonly List<NetLinkInfo> Links = new();
     public NetLinkInfo Bottleneck;
-    public readonly List<PitInfo> Pits = new();
+    /// <summary>Cable entries on the plot border and your own ducts to the meet-me rooms.</summary>
+    public readonly List<EntryInfo> Entries = new();
+    public readonly List<DuctInfo> Ducts = new();
+    public EntryInfo EntryOf(PlacedObject o) => Entries.FirstOrDefault(e => e.Entry == o);
+    public DuctInfo DuctOf(FiberDuct d) => Ducts.FirstOrDefault(x => x.Duct == d);
     public readonly List<CarrierInfo> Carriers = new();
     public readonly List<HallNet> Halls = new();
     public readonly HashSet<int> Offline = new();
@@ -81,8 +107,17 @@ public class NetReport
     public bool Upstream, Mmr, Noc;
     public int MmrRooms;
     public int OdfPorts, OdfUsed, External;
-    public int Cores, CorePorts;
+    public int Cores, CorePorts, CorePortsUsed;
     public double CoreGbps;
+    /// <summary>The tree: cores, distribution switches, hall switches straight on the core (no distribution switch free) and
+    /// each hall switch's uplink (distribution switch id, 0 = straight on the core, -1 = no free port anywhere).</summary>
+    public readonly List<CoreNet> CoreList = new();
+    public readonly List<DistNet> Dists = new();
+    public readonly List<PlacedObject> DirectEdges = new();
+    public readonly Dictionary<int, int> Uplink = new();
+    /// <summary>Incoming fiber pairs: one per carrier port, IX port and peering link.</summary>
+    public int Pairs => External;
+    public HallNet HallOf(Room room) => Halls.FirstOrDefault(h => h.Room == room);
     public int OnlineRacks, OfflineRacks;
     /// <summary>Traffic right now, and how it is split over the internet exchange, private peering and transit.</summary>
     public double DemandGbps, IxGbps, PeerGbps, TransitGbps, TransitCapacity, Overflow;
@@ -95,7 +130,7 @@ public class NetReport
 }
 
 /// <summary>
-/// Works out the network: own fiber pits and their ducts to the carrier pits in the street, carrier ports, the internet
+/// Works out the network: cable entries on the plot border and your own main ducts to the meet-me rooms, carrier ports, the internet
 /// exchange and private peering, patch ports (ODFs) in the meet-me room, core routers and the spine switches in each hall.
 /// Racks without a path to the internet are offline; when the traffic does not fit, part of it is dropped (congestion).
 /// </summary>
@@ -110,38 +145,13 @@ public static class Network
 
     static bool Live(PlacedObject o) => o.Status == ObjStatus.Live && !o.Broken;
 
-    public static int NearestStreetPit(GameState s, PlacedObject pit)
+    /// <summary>Is there a free subduct for one more connection from a cable entry to a meet-me room?</summary>
+    public static bool FreeSubduct(GameState s)
     {
-        var best = 0; var bd = double.MaxValue;
-        for (var i = 0; i < Catalog.StreetPits.Length; i++)
-        {
-            double dx = s.StreetPit(i) - pit.X, dz = s.PlotSize + Catalog.StreetPitOffset - pit.Z;
-            var d = dx * dx + dz * dz;
-            if (d < bd) { bd = d; best = i; }
-        }
-        return best;
-    }
-
-    /// <summary>Your own pits with their subducts, in placement order.</summary>
-    public static List<PitInfo> Pits(GameState s) => s.Objects.Where(o => o.Kind == ObjKind.FiberPit).OrderBy(o => o.Id)
-        .Select(o => new PitInfo { Pit = o, Street = NearestStreetPit(s, o), Subducts = Catalog.Subducts(o.Level) }).ToList();
-
-    /// <summary>Takes a free subduct towards a street pit (any street pit when street is -1). Returns false when none is free.</summary>
-    static bool Take(List<PitInfo> pits, int street)
-    {
-        var p = pits.FirstOrDefault(x => (street < 0 || x.Street == street) && x.Used < x.Subducts);
-        if (p == null) return false;
-        p.Used++;
-        return true;
-    }
-
-    /// <summary>Is there a free subduct for one more connection at this street pit (any when -1)?</summary>
-    public static bool FreeSubduct(GameState s, int street)
-    {
-        var pits = Pits(s);
-        foreach (var c in s.Contracts) Take(pits, Catalog.Carriers[c.Carrier].Pit);
-        foreach (var p in s.Peers.Where(p => p.State is PeerState.Building or PeerState.Active)) Take(pits, -1);
-        return pits.Any(x => (street < 0 || x.Street == street) && x.Used < x.Subducts);
+        var g = new DuctGraph(s);
+        foreach (var _ in s.Contracts) g.Take();
+        foreach (var _ in s.Peers.Where(p => p.State is PeerState.Building or PeerState.Active)) g.Take();
+        return g.Take();
     }
 
     public static bool MmrReady(GameState s) =>
@@ -157,20 +167,23 @@ public static class Network
         var live = s.Objects.Where(Live).ToList();
         r.Noc = NocReady(s);
 
-        // ---- outside: pits, ducts and who gets a subduct ----
-        var pits = Pits(s);
-        r.Pits.AddRange(pits);
+        // ---- outside: cable entries, your own ducts and who gets a subduct ----
+        var graph = new DuctGraph(s);
         foreach (var k in s.Contracts)
         {
             var def = Catalog.Carriers[k.Carrier];
-            var routed = Take(pits, def.Pit);
+            var routed = graph.Take();
             r.Carriers.Add(new CarrierInfo { Contract = k, Def = def, Routed = routed, Up = routed && k.Active });
         }
         var peers = new List<PeeringDeal>();
         foreach (var p in s.Peers.Where(p => p.State is PeerState.Building or PeerState.Active))
-            if (Take(pits, -1) && p.State == PeerState.Active) peers.Add(p);
+            if (graph.Take() && p.State == PeerState.Active) peers.Add(p);
+        var spare = graph.Spare();
+        r.Entries.AddRange(graph.Entries);
+        r.Ducts.AddRange(graph.Ducts);
         var up = r.Carriers.Where(x => x.Up).ToList();
-        r.Routes = r.Carriers.Where(x => x.Up).Select(x => x.Def.Pit).Distinct().Count();
+        var usedEntries = graph.Entries.Where(e => e.Used > 0).ToList();
+        r.Routes = usedEntries.Count == 0 ? 0 : graph.Diverse() ? Math.Max(2, usedEntries.Count) : 1;
         r.External = up.Count + peers.Count;
 
         // ---- meet-me room, core and spines ----
@@ -187,23 +200,48 @@ public static class Network
         r.CoreGbps = cores.Sum(o => o.Def.Gbps);
         r.Upstream = up.Count > 0 || peers.Count > 0;
 
-        // ---- racks: running racks need a spine port in their hall and a path up ----
+        // ---- the tree: distribution switches take a core port, hall switches a distribution port (else a core port) ----
         var halls = s.Rooms.Where(x => x.Type == RoomType.DataHall).ToList();
         var running = s.Objects.Where(o => o.Kind == ObjKind.Rack && Live(o) && !infra.Down.Contains(o.Id)).OrderBy(o => o.Id).ToList();
-        var spinesAll = live.Where(o => o.Kind == ObjKind.Spine).OrderBy(o => o.Id).ToList();
-        // every spine and every outside connection takes a core port
+        var edgesAll = live.Where(o => Catalog.IsHallSwitch(o.Kind)).OrderBy(o => o.Id).ToList();
         var corePortsLeft = r.CorePorts - r.External;
+        foreach (var d in live.Where(o => o.Kind == ObjKind.DistSwitch && InMmr(o)).OrderBy(o => o.Id))
+            r.Dists.Add(new DistNet { Obj = d, Ports = d.Def.Ports, Capacity = d.Def.Gbps, Linked = corePortsLeft-- > 0 });
         var linked = new HashSet<int>();
-        foreach (var sp in spinesAll) if (corePortsLeft-- > 0) linked.Add(sp.Id);
+        foreach (var e in edgesAll)
+        {
+            var dn = r.Dists.FirstOrDefault(x => x.Linked && x.Used < x.Ports);
+            if (dn != null) { dn.Used++; dn.Edges.Add(e); r.Uplink[e.Id] = dn.Obj.Id; linked.Add(e.Id); }
+            else if (corePortsLeft-- > 0) { r.Uplink[e.Id] = 0; r.DirectEdges.Add(e); linked.Add(e.Id); }
+            else r.Uplink[e.Id] = -1;
+        }
+        r.CorePortsUsed = Math.Min(r.CorePorts, r.External + r.Dists.Count(d => d.Linked) + r.DirectEdges.Count);
+        // the cores share the connections evenly
+        var ci = 0;
+        foreach (var co in cores.OrderBy(o => o.Id))
+        {
+            var used = Math.Min(co.Def.Ports, r.CorePortsUsed / cores.Count + (ci++ < r.CorePortsUsed % cores.Count ? 1 : 0));
+            r.CoreList.Add(new CoreNet { Obj = co, Ports = co.Def.Ports, Used = used, Capacity = co.Def.Gbps });
+        }
+
+        // ---- racks: a running rack needs a port on a switch in its own hall and a path up ----
         var chainOk = c.NoNetworkLimit || (r.Upstream && r.Mmr && r.Cores > 0);
         var online = new List<PlacedObject>();
         foreach (var h in halls)
         {
             var inHall = running.Where(o => o.Floor == h.Floor && h.Contains(o.X, o.Z)).ToList();
-            var sp = spinesAll.Where(o => o.Floor == h.Floor && h.Contains(o.X, o.Z) && linked.Contains(o.Id)).ToList();
-            var hn = new HallNet { Room = h, Spines = sp.Count, Ports = sp.Sum(o => o.Def.Ports), Racks = inHall.Count };
+            var hn = new HallNet { Room = h, Racks = inHall.Count };
+            hn.Switches.AddRange(edgesAll.Where(o => o.Floor == h.Floor && h.Contains(o.X, o.Z)));
+            var sp = hn.Switches.Where(o => linked.Contains(o.Id)).ToList();
+            hn.Spines = sp.Count;
+            hn.Ports = sp.Sum(o => o.Def.Ports);
+            hn.UplinkGbps = sp.Sum(o => o.Def.Gbps);
             var ok = c.NoNetworkLimit ? inHall : chainOk ? inHall.Take(hn.Ports).ToList() : new List<PlacedObject>();
             hn.Online = ok.Count;
+            // a B port on another switch for as many racks as the spare ports allow
+            hn.Dual = sp.Count >= 2 ? Math.Max(0, Math.Min(hn.Online, Math.Min(hn.Ports - hn.Online, hn.Ports - sp.Max(o => o.Def.Ports)))) : 0;
+            hn.UsedPorts = Math.Min(hn.Ports, hn.Online + hn.Dual);
+            hn.Redundancy = hn.Racks == 0 ? "-" : hn.Online < hn.Racks ? "N-" : hn.Dual >= hn.Racks ? "2N" : "N";
             online.AddRange(ok);
             r.Halls.Add(hn);
         }
@@ -216,39 +254,65 @@ public static class Network
         var demand = r.OnlineRacks * Catalog.RackGbps * DayCurve(s.Hours);
         Split(s, r, up, peers, demand);
         foreach (var hn in r.Halls) hn.Gbps = hn.Online * Catalog.RackGbps * DayCurve(s.Hours);
+        foreach (var dn in r.Dists) dn.Load = dn.Edges.Sum(e => EdgeLoad(r, e));
+        foreach (var cn in r.CoreList) cn.Load = r.Cores == 0 ? 0 : r.DemandGbps / r.Cores;
 
         // ---- the chain with redundancy ----
         var transitCaps = up.Select(x => (double)x.Contract.PortGbps).ToList();
         if (r.IxPort > 0) transitCaps.Add(r.IxPort);
-        var subducts = pits.Sum(p => p.Subducts);
-        var usedSub = pits.Sum(p => p.Used);
+        var usedSub = graph.Entries.Sum(e => e.Used);
+        var subducts = usedSub + spare;
         var worstSpine = "-";
-        foreach (var hn in r.Halls.Where(h => h.Racks > 0))
-        {
-            var red = Infra.Redundancy(Enumerable.Repeat((double)Catalog.Objects[ObjKind.Spine].Ports, hn.Spines).ToList(), hn.Racks);
-            worstSpine = Worse(worstSpine, red);
-        }
+        foreach (var hn in r.Halls.Where(h => h.Racks > 0)) worstSpine = Worse(worstSpine, hn.Redundancy);
+        var viaDist = r.Dists.Sum(d => d.Load);
         r.Links.Add(new NetLinkInfo { Link = NetLink.Upstream, Capacity = r.TransitCapacity + r.IxPort + peers.Count * 10, Load = r.DemandGbps, Units = up.Count + peers.Count,
             Redundancy = r.DemandGbps <= 0 ? "-" : Infra.Redundancy(transitCaps, r.TransitGbps + r.Overflow + r.IxGbps) });
-        r.Links.Add(new NetLinkInfo { Link = NetLink.Ducts, Capacity = subducts, Load = usedSub, Units = pits.Count,
-            Redundancy = usedSub <= 0 ? "-" : pits.Where(p => p.Used > 0).Select(p => p.Street).Distinct().Count() >= 2 ? "N+1" : "N" });
+        r.Links.Add(new NetLinkInfo { Link = NetLink.Ducts, Capacity = subducts, Load = usedSub, Units = graph.Ducts.Count,
+            Redundancy = usedSub <= 0 ? "-" : graph.Diverse() ? "N+1" : "N" });
         r.Links.Add(new NetLinkInfo { Link = NetLink.Mmr, Capacity = r.OdfPorts, Load = r.OdfUsed, Units = odfs.Count,
             Redundancy = r.OdfUsed <= 0 ? "-" : r.MmrRooms >= 2 ? "2N" : r.OdfUsed > r.OdfPorts ? "N-" : "N" });
         r.Links.Add(new NetLinkInfo { Link = NetLink.Core, Capacity = r.CoreGbps, Load = r.DemandGbps, Units = r.Cores,
             Redundancy = Infra.Redundancy(cores.Select(o => o.Def.Gbps).ToList(), r.DemandGbps) });
-        r.Links.Add(new NetLinkInfo { Link = NetLink.Spine, Capacity = r.Halls.Sum(h => h.Ports), Load = running.Count, Units = spinesAll.Count, Redundancy = worstSpine });
+        var liveDists = r.Dists.Where(d => d.Linked).ToList();
+        r.Links.Add(new NetLinkInfo { Link = NetLink.Distribution, Capacity = liveDists.Sum(d => d.Capacity), Load = viaDist, Units = r.Dists.Count,
+            Redundancy = viaDist <= 0 ? "-" : Infra.Redundancy(liveDists.Select(d => d.Capacity).ToList(), viaDist) });
+        r.Links.Add(new NetLinkInfo { Link = NetLink.Spine, Capacity = r.Halls.Sum(h => h.Ports), Load = running.Count, Units = edgesAll.Count, Redundancy = worstSpine });
         r.Bottleneck = r.Links.Where(l => l.Load > 0).OrderByDescending(l => l.Ratio).FirstOrDefault();
 
         // ---- single points of failure ----
         if (r.OnlineRacks > 0 || running.Count > 0)
         {
             if (up.Count(x => !x.Def.Ix) <= 1) r.Spofs.Add("spof_carrier");
-            if (pits.Count(p => p.Used > 0) <= 1 || pits.Where(p => p.Used > 0).Select(p => p.Street).Distinct().Count() <= 1) r.Spofs.Add("spof_route");
+            if (!graph.Diverse()) r.Spofs.Add("spof_route");
             if (r.MmrRooms <= 1) r.Spofs.Add("spof_mmr");
             if (r.Cores <= 1) r.Spofs.Add("spof_core");
+            if (r.Dists.Count(d => d.Linked) == 1 && r.Dists.Any(d => d.Edges.Count > 0)) r.Spofs.Add("spof_dist");
             if (r.Halls.Any(h => h.Racks > 0 && h.Spines <= 1)) r.Spofs.Add("spof_spine");
         }
         return r;
+    }
+
+    /// <summary>Traffic over one hall switch: its hall's traffic shared by port count.</summary>
+    public static double EdgeLoad(NetReport r, PlacedObject e)
+    {
+        var hn = r.Halls.FirstOrDefault(h => h.Switches.Contains(e));
+        if (hn == null || hn.Ports <= 0 || !r.Uplink.TryGetValue(e.Id, out var up) || up < 0) return 0;
+        return hn.Gbps * e.Def.Ports / hn.Ports;
+    }
+
+    /// <summary>Ports in use on one hall switch: the hall's used ports shared by port count (rounded so they add up).</summary>
+    public static int EdgePortsUsed(NetReport r, PlacedObject e)
+    {
+        var hn = r.Halls.FirstOrDefault(h => h.Switches.Contains(e));
+        if (hn == null || !r.Uplink.TryGetValue(e.Id, out var up) || up < 0) return 0;
+        var left = hn.UsedPorts;
+        foreach (var x in hn.Switches.Where(x => r.Uplink.TryGetValue(x.Id, out var u) && u >= 0))
+        {
+            var take = Math.Min(x.Def.Ports, (int)Math.Ceiling((double)hn.UsedPorts * x.Def.Ports / Math.Max(1, hn.Ports)));
+            take = Math.Min(take, left); left -= take;
+            if (x == e) return take;
+        }
+        return 0;
     }
 
     static string Worse(string a, string b)
