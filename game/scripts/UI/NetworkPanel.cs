@@ -17,6 +17,7 @@ public partial class NetworkPanel : Modal
     public const int TabOverview = 0, TabTree = 1;
     readonly Func<GameState> _state;
     readonly Action<string> _fail;
+    readonly Action<PlacedObject> _show;
     readonly Action<BuildItem> _pick;
     readonly ScrollContainer _scroll;
     int _tab;
@@ -32,9 +33,9 @@ public partial class NetworkPanel : Modal
     static string G(double v) => N(v, v >= 100 ? "N0" : "0.0") + " Gbit/s";
     static string Port(int gbps) => gbps + "G";
 
-    public NetworkPanel(Func<GameState> state, Action<string> fail, int tab = TabOverview, Action<BuildItem> pick = null) : base("net_title", 1100)
+    public NetworkPanel(Func<GameState> state, Action<string> fail, int tab = TabOverview, Action<BuildItem> pick = null, Action<PlacedObject> show = null) : base("net_title", 1100)
     {
-        _state = state; _fail = fail; _pick = pick; _tab = Math.Clamp(tab, TabOverview, TabTree);
+        _state = state; _fail = fail; _pick = pick; _show = show; _tab = Math.Clamp(tab, TabOverview, TabTree);
         var scroll = _scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 640), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         _content = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _content.AddThemeConstantOverride("separation", 8);
@@ -132,13 +133,21 @@ public partial class NetworkPanel : Modal
         for (var i = 0; i < n.Pits.Count; i++)
         {
             var idx = i;
-            left.AddChild(Dyn((l, _, r) =>
+            // each pit line is a link: click it and the camera goes to that pit and selects it
+            var link = new Button { Flat = true, Alignment = HorizontalAlignment.Left, MouseDefaultCursorShape = CursorShape.PointingHand,
+                TooltipText = Loc.T("net_pit_show"), AutoTranslateMode = AutoTranslateModeEnum.Disabled, ClipText = true, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+            link.AddThemeFontSizeOverride("font_size", 14);
+            link.Pressed += () => { var r = _state()?.Net; if (r != null && idx < r.Pits.Count) _show?.Invoke(r.Pits[idx].Pit); };
+            _updaters.Add((_, r) =>
             {
                 if (idx >= r.Pits.Count) return;
                 var p = r.Pits[idx];
-                l.Text = Loc.T("net_pit_line", idx + 1, Catalog.PitName(p.Street), p.Used, p.Subducts, p.Subducts * Catalog.FibersPerCable);
-                l.AddThemeColorOverride("font_color", p.Used >= p.Subducts ? Brand.Warning : Brand.Ink);
-            }, 14));
+                link.Text = "› " + Loc.T("net_pit_line", idx + 1, Catalog.PitName(p.Street), p.Used, p.Subducts, p.Subducts * Catalog.FibersPerCable);
+                var c = p.Used >= p.Subducts ? Brand.Warning : Brand.Ink;
+                foreach (var k in new[] { "font_color", "font_focus_color", "font_pressed_color" }) link.AddThemeColorOverride(k, c);
+                link.AddThemeColorOverride("font_hover_color", Brand.Fiber);
+            });
+            left.AddChild(link);
         }
         left.AddChild(Dyn((l, _, r) => { l.Text = Loc.T("net_routes_count", r.Routes); l.AddThemeColorOverride("font_color", r.Routes >= 2 ? Brand.Ok : Brand.InkDim); }, 14));
         left.AddChild(Ui.Text("net_routes_help", 12, Brand.InkDim));
@@ -296,6 +305,15 @@ public partial class NetworkPanel : Modal
             l.Text = tips.Count == 0 ? Loc.T("net_advice_ok") : string.Join("\n", tips.Select(t => "• " + Loc.T(t)));
             l.AddThemeColorOverride("font_color", tips.Count == 0 ? Brand.Ok : Brand.Ink);
         }, 14));
+        // a full pit: one click takes you to it
+        var go = Small(Loc.T("net_pit_goto_full"), () =>
+        {
+            var full = _state()?.Net.Pits.FirstOrDefault(p => p.Used >= p.Subducts);
+            if (full != null) _show?.Invoke(full.Pit);
+        });
+        go.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+        _updaters.Add((_, r) => go.Visible = _show != null && r.Pits.Any(p => p.Used >= p.Subducts));
+        _content.AddChild(go);
     }
 
     /// <summary>What the network is missing, most urgent first, followed by its single points of failure.</summary>

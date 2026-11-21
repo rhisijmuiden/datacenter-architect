@@ -188,6 +188,19 @@ public partial class Main : Node3D
         }
     }
 
+    /// <summary>Glide the camera to an object, switch to its floor and select it (links in the overview screens).</summary>
+    void ShowObject(PlacedObject o)
+    {
+        if (o == null || _cam == null) return;
+        if (_walking) return;
+        // close the screen so the object is in view
+        CloseDrawer();
+        var (w, d) = GameState.Footprint(o);
+        if (_world.ViewFloor != o.Floor || _world.Roofs) SetView(o.Floor, false);
+        _cam.FlyTo(new Vector3(o.X + w / 2f, 0, o.Z + d / 2f), 22);
+        Inspect(new Vector2I(o.X, o.Z));
+    }
+
     void SetView(int floor, bool roofs)
     {
         if (floor != GameState.BasementFloor) floor = Math.Clamp(floor, 0, Catalog.MaxFloors - 1);
@@ -274,7 +287,7 @@ public partial class Main : Node3D
             PanelKind.Growth => new GrowthPanel(() => _state, Fail, want),
             PanelKind.Power => new PowerPanel(() => _state, Fail, want),
             PanelKind.Progress => new ProgressPanel(() => _state, StartPhoto, want),
-            _ => new NetworkPanel(() => _state, Fail, want, item => _hud.Pick(item)),
+            _ => new NetworkPanel(() => _state, Fail, want, item => _hud.Pick(item), ShowObject),
         };
         m.Kind = e.Kind;
         m.Dock(Hud.LeftEdge - 2, section, tabIndex, (s, t) => OpenSectionTab(s, t));
@@ -1666,6 +1679,28 @@ public partial class Main : Node3D
         // step 10: --time 2027-12-20T21:00 --weather snow|rain|storm|fog|cloudy|clear --snow 0..1 --walk x,z,floor,yaw,pitch --migration
         var tmi = Array.IndexOf(args, "--time");
         if (tmi >= 0 && tmi + 1 < args.Length) _state.Hours = (DateTime.Parse(args[tmi + 1], System.Globalization.CultureInfo.InvariantCulture) - GameState.Epoch).TotalHours;
+        // --rush-hour H: run the site for H game hours from the --time given (people driving in, parking, walking to their desks)
+        var rhi = Array.IndexOf(args, "--rush-hour");
+        if (rhi >= 0 && rhi + 1 < args.Length && _sim != null)
+        {
+            if (_state.Staff.Count == 0)
+            {
+                // a day shift to bring in: technicians, cleaners and a helpdesk
+                var roles = new[] { StaffRole.Cleaner, StaffRole.Support, StaffRole.RemoteHands, StaffRole.Electrical, StaffRole.Cooling, StaffRole.NetworkEng, StaffRole.Helpdesk, StaffRole.Logistics };
+                for (var i = 0; i < 18; i++) _state.Staff.Add(new Employee { Id = 3000 + i * 7, Name = "Demo " + i, Role = roles[i % roles.Length], Shift = Shift.Day });
+            }
+            _sim.ResetCommute();
+            for (var left = double.Parse(args[rhi + 1], System.Globalization.CultureInfo.InvariantCulture); left > 1e-9; left -= 0.05)
+            {
+                var step = Math.Min(0.05, left);
+                _state.Hours += step;
+                _sim.Tick(step);
+            }
+            _speed = 0;
+            _cam.SetView(0.55f, 0.8f, 40, new Vector3(36, 0, 46));
+            if (args.Contains("--close")) _cam.SetView(0.6f, 0.75f, 22, new Vector3(33, 0, 50));
+            if (args.Contains("--desks")) { SetView(0, false); _cam.SetView(0.3f, 0.95f, 20, new Vector3(45, 0, 19)); }
+        }
         var wxi = Array.IndexOf(args, "--weather");
         if (wxi >= 0 && wxi + 1 < args.Length) _world.ForceWeather = Enum.Parse<WeatherKind>(args[wxi + 1], true);
         var sni = Array.IndexOf(args, "--snow");
@@ -1736,6 +1771,8 @@ public partial class Main : Node3D
         if (oi >= 0) OpenOptions(oi + 1 < args.Length && int.TryParse(args[oi + 1], out var tab) ? tab : 0);
         if (args.Contains("--power")) { _playing = true; OpenPower(); }
         if (args.Contains("--network")) { _playing = true; OpenNetwork(); }
+        // --pit-link: what a click on a pit line in the network screen does (screenshots)
+        if (args.Contains("--pit-link") && _state != null) ShowObject(_state.Objects.LastOrDefault(o => o.Kind == ObjKind.FiberPit));
         // --power-tree [msb|ups|pdu]: the power tree with that kind of device selected
         var pti = Array.IndexOf(args, "--power-tree");
         if (pti >= 0 && _state != null)

@@ -36,10 +36,10 @@ public partial class CameraRig : Node3D
 
     public Vector3 TargetPoint => _targetT;
 
-    /// <summary>Glide to a point and zoom in to at most this distance (warnings that show a spot).</summary>
+    /// <summary>Glide to a spot (keeps the angle), zooming in to at most <paramref name="dist"/>.</summary>
     public void FlyTo(Vector3 target, float dist)
     {
-        _targetT = target;
+        _targetT = new Vector3(Mathf.Clamp(target.X, Bounds.Position.X, Bounds.End.X), target.Y, Mathf.Clamp(target.Z, Bounds.Position.Y, Bounds.End.Y));
         _distT = Mathf.Clamp(Mathf.Min(_distT, dist), MinDistance, 160);
         if (!Smooth) { Position = _targetT; Distance = _distT; Apply(); }
     }

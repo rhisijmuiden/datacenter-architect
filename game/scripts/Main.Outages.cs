@@ -72,20 +72,11 @@ public partial class Main
         Inspect(new Vector2I(r.X + r.W / 2, r.Z + r.D / 2));
     }
 
-    /// <summary>Look at one object on its floor and inspect it.</summary>
-    void ShowPlaced(PlacedObject o)
-    {
-        if (o == null) return;
-        SetView(o.Floor, false);
-        _cam.FlyTo(new Vector3(o.X + 0.5f, WorldView.Base(o.Floor), o.Z + 0.5f), 22);
-        Inspect(new Vector2I(o.X, o.Z));
-    }
-
     /// <summary>Jump to the hall (or the room the fix goes in) and start the fix.</summary>
     void FixOutage(Outage o)
     {
         if (o == null || !_playing) return;
-        if (o.At != null) { CloseDrawer(); ShowPlaced(o.At); return; }
+        if (o.At != null) { CloseDrawer(); ShowObject(o.At); return; }
         switch (o.Fix)
         {
             case FixKind.Place:
