@@ -34,6 +34,8 @@ public class Agent
     public int ReverseFrom = -1;
     /// <summary>Up to (not including) this waypoint the agent drives backwards (a car backing out of a bay).</summary>
     public int ReverseTo;
+    /// <summary>Cars: how long this car has been held up by other traffic, and how long it may still squeeze past (to untangle a jam).</summary>
+    public double Blocked, Squeeze;
     /// <summary>Truck route on the plot (cells, starting at the entry), so the way back can keep to the right lane too.</summary>
     public List<Pt> Route;
     /// <summary>Engineer patching a cross-connect at the ODF in Target.</summary>
@@ -804,6 +806,34 @@ public partial class Simulation
         return o != null && Catalog.IsVehicleStop(o.Kind) && (!GateOpen.TryGetValue(o.Id, out var v) || v < 0.98);
     }
 
+    /// <summary>How far ahead a car looks along its route for other vehicles, and how close it may pass one.</summary>
+    const double CarLook = 7, CarClear = 2.2;
+
+    /// <summary>How far a car drives along its route before it comes within <see cref="CarClear"/> of the point, or MaxValue.</summary>
+    double RouteHits(Agent a, double x, double z)
+    {
+        if (a.WayI < a.ReverseTo) return double.MaxValue;
+        double px = a.X, pz = a.Z, travelled = 0;
+        if ((px - x) * (px - x) + (pz - z) * (pz - z) < CarClear * CarClear)
+        {
+            // already alongside: only in the way when it lies ahead
+            var hx = Math.Sin(a.Heading); var hz = Math.Cos(a.Heading);
+            return (x - px) * hx + (z - pz) * hz > 0.5 ? 0 : double.MaxValue;
+        }
+        for (var i = a.WayI; i < a.Way.Count && travelled < CarLook; i++)
+        {
+            var (tx, tz, _) = a.Way[i];
+            var seg = Math.Sqrt((tx - px) * (tx - px) + (tz - pz) * (tz - pz));
+            for (var d = 0.5; d <= seg + 1e-9 && travelled + d <= CarLook; d += 0.5)
+            {
+                double qx = px + (tx - px) * d / seg, qz = pz + (tz - pz) * d / seg;
+                if ((qx - x) * (qx - x) + (qz - z) * (qz - z) < CarClear * CarClear) return travelled + d;
+            }
+            travelled += seg; px = tx; pz = tz;
+        }
+        return double.MaxValue;
+    }
+
     /// <summary>Drives a truck along its way, stopping with its nose before a gate or barrier until it is open.</summary>
     bool Drive(Agent a, double dt, double cellsPerHour = TruckSpeed)
     {
@@ -821,20 +851,40 @@ public partial class Simulation
             travelled += seg; px = tx; pz = tz;
         }
         var allowed = stop == double.MaxValue ? double.MaxValue : Math.Max(0, stop - TruckNose);
-        // cars keep their distance to the car or truck in front going the same way (queueing at a gate, say)
-        if (a.Car && a.WayI >= a.ReverseTo)
+        // cars keep their distance to the car or truck in front going the same way (queueing at a gate, say), and stop
+        // before their own route runs into another vehicle (a junction, the aisle of a car park). When two cars are in each
+        // other's way, the one with the lower number goes first, so they never wait for each other; and a car that has
+        // still waited too long squeezes past, so a jam always untangles.
+        var held = false;
+        if (a.Car && a.WayI >= a.ReverseTo && a.Squeeze <= 0)
         {
             double hx = Math.Sin(a.Heading), hz = Math.Cos(a.Heading);
             foreach (var o in Agents)
             {
                 if (o == a || !(o.Car || o.Role == Role.Truck)) continue;
                 double dx = o.X - a.X, dz = o.Z - a.Z;
+                if (Math.Abs(dx) + Math.Abs(dz) > CarLook + 4) continue;
                 var ahead = dx * hx + dz * hz;
-                if (ahead <= 0.3 || ahead > 7 || Math.Abs(dx * hz - dz * hx) > 2.1) continue;
-                // oncoming traffic does not hold you up (it keeps to its own lane); a car turning in front of you does
-                if (Math.Cos(o.Heading - a.Heading) < -0.3 && (-dx * Math.Sin(o.Heading) - dz * Math.Cos(o.Heading)) > 0) continue;
-                allowed = Math.Min(allowed, Math.Max(0, ahead - (o.Role == Role.Truck ? 3.5 : 5.6)));
+                var same = Math.Cos(o.Heading - a.Heading);
+                double gap;
+                if (same > 0.7 && ahead > 0.3 && ahead <= 7 && Math.Abs(dx * hz - dz * hx) <= 2.1)
+                    gap = Math.Max(0, ahead - (o.Role == Role.Truck ? 3.5 : 5.6));
+                else
+                {
+                    var hit = RouteHits(a, o.X, o.Z);
+                    if (hit == double.MaxValue) continue;
+                    // both in each other's way: the lower number (or a truck) has right of way
+                    if (o.Car && o.Squeeze <= 0 && RouteHits(o, a.X, a.Z) < double.MaxValue && a.Id < o.Id) continue;
+                    gap = Math.Max(0, hit - 1.2);
+                }
+                if (gap < allowed) { allowed = gap; held = true; }
             }
+        }
+        if (a.Car)
+        {
+            a.Squeeze = Math.Max(0, a.Squeeze - dt);
+            if (held && allowed <= 0.05) a.Blocked += dt; else a.Blocked = Math.Max(0, a.Blocked - dt);
+            if (a.Blocked > 0.25) { a.Blocked = 0; a.Squeeze = 0.12; allowed = stop == double.MaxValue ? double.MaxValue : Math.Max(0, stop - TruckNose); }
         }
         if (allowed == double.MaxValue) return Move(a, dt, speed);
         if (allowed <= 1e-6) return false;

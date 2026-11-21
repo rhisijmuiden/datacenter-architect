@@ -47,6 +47,7 @@ public static partial class TestRunner
             ("hall names and placing", HallNameTests),
             ("add a floor", AddLevelTests),
             ("office life", OfficeLifeTests),
+            ("parking jam", ParkingJamTests),
             ("power tree", PowerTreeTests),
             ("network tree", NetTreeTests),
             ("fiber ducts", DuctTests),

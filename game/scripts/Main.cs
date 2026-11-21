@@ -2031,6 +2031,14 @@ public partial class Main : Node3D
                 // a day shift to bring in: technicians, cleaners and a helpdesk
                 var roles = new[] { StaffRole.Cleaner, StaffRole.Support, StaffRole.RemoteHands, StaffRole.Electrical, StaffRole.Cooling, StaffRole.NetworkEng, StaffRole.Helpdesk, StaffRole.Logistics };
                 for (var i = 0; i < 18; i++) _state.Staff.Add(new Employee { Id = 3000 + i * 7, Name = "Demo " + i, Role = roles[i % roles.Length], Shift = Shift.Day });
+                if (args.Contains("--busy-park"))
+                {
+                    // a shift change on a site with a big car park and a two-lane driveway (the parking jam test's layout)
+                    _state.PaintSurface(10, 38, 18, 16, Surface.Parking, out _);
+                    _state.PaintSurface(10, 36, 18, 2, Surface.Asphalt, out _);
+                    _state.PaintSurface(25, 34, 3, 26, Surface.Asphalt, out _);
+                    for (var i = 0; i < 16; i++) _state.Staff.Add(new Employee { Id = 4000 + i * 7, Name = "Night " + i, Role = roles[i % roles.Length], Shift = Shift.Night });
+                }
             }
             _sim.ResetCommute();
             for (var left = double.Parse(args[rhi + 1], System.Globalization.CultureInfo.InvariantCulture); left > 1e-9; left -= 0.05)
@@ -2042,6 +2050,7 @@ public partial class Main : Node3D
             _speed = 0;
             _cam.SetView(0.55f, 0.8f, 40, new Vector3(36, 0, 46));
             if (args.Contains("--close")) _cam.SetView(0.6f, 0.75f, 22, new Vector3(33, 0, 50));
+            if (args.Contains("--busy-park")) _cam.SetView(0.7f, 0.85f, 30, new Vector3(22, 0, 48));
             if (args.Contains("--desks")) { SetView(0, false); _cam.SetView(0.3f, 0.95f, 20, new Vector3(45, 0, 19)); }
         }
         var wxi = Array.IndexOf(args, "--weather");
