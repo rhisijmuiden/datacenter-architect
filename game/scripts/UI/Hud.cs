@@ -129,7 +129,7 @@ public partial class Hud : Control
             O(ObjKind.SolarPanel), O(ObjKind.WindTurbine), O(ObjKind.BatteryContainer),
         }),
         ("cat_cooling", new[] { O(ObjKind.Crah), O(ObjKind.Chiller), O(ObjKind.CoolingTower), O(ObjKind.DryCooler) }),
-        ("cat_network", new[] { O(ObjKind.FiberPit), O(ObjKind.Odf), O(ObjKind.CoreRouter), O(ObjKind.DistSwitch), O(ObjKind.EdgeSwitch24), O(ObjKind.EdgeSwitch48), O(ObjKind.Spine), O(ObjKind.NocWall) }),
+        ("cat_network", new[] { O(ObjKind.FiberPit), O(ObjKind.Odf), O(ObjKind.CarrierRack), O(ObjKind.CoreRouter), O(ObjKind.DistSwitch), O(ObjKind.EdgeSwitch24), O(ObjKind.EdgeSwitch48), O(ObjKind.Spine), O(ObjKind.NocWall) }),
     };
 
     public override void _Ready()

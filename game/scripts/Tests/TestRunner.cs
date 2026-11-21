@@ -47,6 +47,7 @@ public static partial class TestRunner
             ("add a floor", AddLevelTests),
             ("power tree", PowerTreeTests),
             ("network tree", NetTreeTests),
+            ("peering and IX ports", PeeringIxTests),
         };
         // DCA_TESTS=basement,stairs runs only the groups whose name contains one of the words
         var only = System.Environment.GetEnvironmentVariable("DCA_TESTS")?.Split(',', StringSplitOptions.RemoveEmptyEntries);
@@ -757,6 +758,8 @@ public static partial class TestRunner
         var hall = s.AddRoom(RoomType.DataHall, 4, 4, 20, 20, 0);
         var mmr = s.AddRoom(RoomType.MeetMe, 24, 9, 5, 5, 0);
         foreach (var r in s.Rooms) r.Stage = Stage.Done;
+        // a carrier rack for every carrier and IX the tests order
+        foreach (var x in new[] { 24, 25, 27, 28 }) Live(s, ObjKind.CarrierRack, x, 13);
         return (s, hall, mmr);
     }
 
@@ -838,6 +841,8 @@ public static partial class TestRunner
         s.AddRoom(RoomType.DataHall, 4, 4, 20, 20, 0); s.AddRoom(RoomType.MeetMe, 24, 9, 5, 5, 0);
         foreach (var r in s.Rooms) r.Stage = Stage.Done;
         Live(s, ObjKind.Odf, 25, 10); Live(s, ObjKind.FiberPit, 30, 62);
+        Check(s.CanOrderCarrier(1, 10) == "msg_needs_carrier_rack", "a carrier needs its own rack in the MMR");
+        Live(s, ObjKind.CarrierRack, 24, 13);
         var money = s.Money;
         Check(s.OrderCarrier(1, 10) == null && !s.ContractOf(1).Active && s.ContractOf(1).DaysLeft == Catalog.NewPortDays, "a new port takes 20 days");
         Check(s.Money == money - Catalog.Port(10).SetupFee, "the setup fee is paid");
@@ -870,7 +875,6 @@ public static partial class TestRunner
         Check(a.StartPeering(0) == null && a.PeerOf(0).State == PeerState.Active, "accepting builds the dark fiber (instant build)");
         var n = a.Net;
         Check(n.PeerFlows.ContainsKey(0) && n.PeerGbps > 0 && n.TransitGbps < n.DemandGbps, "peering takes traffic off transit");
-        Check(a.CanPeer(1, true) == "msg_peer_too_small", "a big rival is not interested in a small network");
         a.DeclinePeering(0);
         Check(a.PeerOf(0).State == PeerState.Declined && !a.Net.PeerFlows.ContainsKey(0), "ending peering");
         // customers order cross-connects as networks sit in the MMR

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json.Serialization;
 
 namespace DatacenterArchitect.Sim;
 
@@ -12,7 +13,11 @@ public class CarrierContract
 {
     public int Carrier { get; set; }
     public int PortGbps { get; set; } = 10;
+    /// <summary>Number of ports of this size; more than one only at an internet exchange.</summary>
+    public int Ports { get; set; } = 1;
     public double Commit { get; set; } = 1;
+    /// <summary>Ordered before carrier racks existed: it works without its own rack in the MMR.</summary>
+    public bool NoRackNeeded { get; set; }
     /// <summary>Days until the new port is delivered (0 = in service).</summary>
     public double DaysLeft { get; set; }
     /// <summary>A port upgrade on its way (0 = none) and the days it still takes.</summary>
@@ -21,16 +26,31 @@ public class CarrierContract
     /// <summary>Hourly traffic samples (Gbit/s) of this billing month, for the 95th percentile.</summary>
     public List<float> Samples { get; set; } = new();
     public bool Active => DaysLeft <= 0;
+    /// <summary>Total port capacity in Gbit/s.</summary>
+    [JsonIgnore] public int TotalGbps => PortGbps * Math.Max(1, Ports);
 }
 
-public enum PeerState { Requested, Building, Active, Declined }
+/// <summary>Requested = the rival asks you; Asking = you asked and wait for the answer; Offered = the rival offers less than you asked.</summary>
+public enum PeerState { Requested, Building, Active, Declined, Asking, Offered }
 
-/// <summary>Private peering with a rival datacenter over dark fiber between the two meet-me rooms.</summary>
+/// <summary>Private peering with a rival datacenter over dark fiber between the two meet-me rooms, on a port with an agreed capacity.</summary>
 public class PeeringDeal
 {
     public int Rival { get; set; }
     public PeerState State { get; set; }
+    /// <summary>Days until the fiber is built (Building), or until you may ask again (Declined).</summary>
     public double DaysLeft { get; set; }
+    /// <summary>Port size and the capacity the rival allows (0 = older save: a 10G port at 10 Gbit/s).</summary>
+    public int PortGbps { get; set; }
+    public double Granted { get; set; }
+    /// <summary>A request waiting for an answer: the capacity and port you asked for, and the days until the rival answers.</summary>
+    public double Asked { get; set; }
+    public int AskPort { get; set; }
+    public double AnswerDays { get; set; }
+    [JsonIgnore] public int Port => PortGbps > 0 ? PortGbps : 10;
+    [JsonIgnore] public double Capacity => Math.Min(Port, Granted > 0 ? Granted : 10);
+    /// <summary>A request for more capacity on a running peering.</summary>
+    [JsonIgnore] public bool Upgrading => State == PeerState.Active && AnswerDays > 0 && Asked > 0;
 }
 
 public class NetLinkInfo
@@ -54,9 +74,12 @@ public class CarrierInfo
 {
     public CarrierContract Contract;
     public CarrierDef Def;
-    /// <summary>In service and with a subduct to its street pit.</summary>
+    /// <summary>In service, with a subduct to its street pit and its own rack in the MMR.</summary>
     public bool Up;
     public bool Routed;
+    /// <summary>The carrier rack in the MMR it uses (null = none free).</summary>
+    public PlacedObject Rack;
+    public bool Racked;
     public double Gbps;
 }
 
@@ -125,7 +148,11 @@ public class NetReport
     public int OnlineRacks, OfflineRacks;
     /// <summary>Traffic right now, and how it is split over the internet exchange, private peering and transit.</summary>
     public double DemandGbps, IxGbps, PeerGbps, TransitGbps, TransitCapacity, Overflow;
+    /// <summary>Port capacity over all internet exchanges, and the traffic per exchange.</summary>
     public double IxPort;
+    public readonly Dictionary<int, double> IxFlows = new();
+    /// <summary>Carrier racks in the MMR, and how many a carrier or IX uses.</summary>
+    public int CarrierRacks, CarrierRacksUsed;
     public readonly Dictionary<int, double> PeerFlows = new();
     /// <summary>Share of the traffic that gets through (1 = no congestion).</summary>
     public double Served = 1;
@@ -199,22 +226,29 @@ public static class Network
         // ---- outside: pits, ducts and who gets a subduct ----
         var pits = Pits(s);
         r.Pits.AddRange(pits);
+        var mmrRooms = s.Rooms.Where(x => x.Type == RoomType.MeetMe && x.Stage == Stage.Done).ToList();
+        bool InMmr(PlacedObject o) => mmrRooms.Any(m => m.Floor == o.Floor && m.Contains(o.X, o.Z));
+        var racks = new Queue<PlacedObject>(live.Where(o => o.Kind == ObjKind.CarrierRack && InMmr(o)).OrderBy(o => o.Id));
+        r.CarrierRacks = racks.Count;
         foreach (var k in s.Contracts)
         {
             var def = Catalog.Carriers[k.Carrier];
             var routed = Take(pits, def.Pit);
-            r.Carriers.Add(new CarrierInfo { Contract = k, Def = def, Routed = routed, Up = routed && k.Active });
+            var info = new CarrierInfo { Contract = k, Def = def, Routed = routed };
+            if (k.NoRackNeeded || !s.CarrierRackRule) info.Racked = true;
+            else if (racks.Count > 0) { info.Rack = racks.Dequeue(); info.Racked = true; r.CarrierRacksUsed++; }
+            info.Up = routed && info.Racked && k.Active;
+            r.Carriers.Add(info);
         }
         var peers = new List<PeeringDeal>();
         foreach (var p in s.Peers.Where(p => p.State is PeerState.Building or PeerState.Active))
             if (Take(pits, -1) && p.State == PeerState.Active) peers.Add(p);
         var up = r.Carriers.Where(x => x.Up).ToList();
         r.Routes = r.Carriers.Where(x => x.Up).Select(x => x.Def.Pit).Distinct().Count();
-        r.External = up.Count + peers.Count;
+        // one fiber pair per port: an IX with two ports takes two
+        r.External = up.Sum(x => Math.Max(1, x.Contract.Ports)) + peers.Count;
 
         // ---- meet-me room, core and spines ----
-        var mmrRooms = s.Rooms.Where(x => x.Type == RoomType.MeetMe && x.Stage == Stage.Done).ToList();
-        bool InMmr(PlacedObject o) => mmrRooms.Any(m => m.Floor == o.Floor && m.Contains(o.X, o.Z));
         var odfs = live.Where(o => o.Kind == ObjKind.Odf && InMmr(o)).ToList();
         r.MmrRooms = mmrRooms.Count(m => odfs.Any(o => o.Floor == m.Floor && m.Contains(o.X, o.Z)));
         r.Mmr = odfs.Count > 0;
@@ -284,14 +318,13 @@ public static class Network
         foreach (var cn in r.CoreList) cn.Load = r.Cores == 0 ? 0 : r.DemandGbps / r.Cores;
 
         // ---- the chain with redundancy ----
-        var transitCaps = up.Select(x => (double)x.Contract.PortGbps).ToList();
-        if (r.IxPort > 0) transitCaps.Add(r.IxPort);
+        var transitCaps = up.Select(x => (double)x.Contract.TotalGbps).ToList();
         var subducts = pits.Sum(p => p.Subducts);
         var usedSub = pits.Sum(p => p.Used);
         var worstSpine = "-";
         foreach (var hn in r.Halls.Where(h => h.Racks > 0)) worstSpine = Worse(worstSpine, hn.Redundancy);
         var viaDist = r.Dists.Sum(d => d.Load);
-        r.Links.Add(new NetLinkInfo { Link = NetLink.Upstream, Capacity = r.TransitCapacity + r.IxPort + peers.Count * 10, Load = r.DemandGbps, Units = up.Count + peers.Count,
+        r.Links.Add(new NetLinkInfo { Link = NetLink.Upstream, Capacity = r.TransitCapacity + r.IxPort + peers.Sum(p => p.Capacity), Load = r.DemandGbps, Units = up.Count + peers.Count,
             Redundancy = r.DemandGbps <= 0 ? "-" : Infra.Redundancy(transitCaps, r.TransitGbps + r.Overflow + r.IxGbps) });
         r.Links.Add(new NetLinkInfo { Link = NetLink.Ducts, Capacity = subducts, Load = usedSub, Units = pits.Count,
             Redundancy = usedSub <= 0 ? "-" : pits.Where(p => p.Used > 0).Select(p => p.Street).Distinct().Count() >= 2 ? "N+1" : "N" });
@@ -347,19 +380,35 @@ public static class Network
         return Rank(b) < Rank(a) ? b : a;
     }
 
-    /// <summary>The internet exchange takes a share of the traffic, every private peer its own share; the rest goes over transit.</summary>
+    /// <summary>
+    /// The internet exchanges take their members' share of the traffic (several exchanges overlap: together they reach
+    /// 1 - (1 - a)(1 - b)...), each capped by its ports; every private peer takes its own share up to the capacity it allows;
+    /// the rest goes over transit.
+    /// </summary>
     static void Split(GameState s, NetReport r, List<CarrierInfo> up, List<PeeringDeal> peers, double demand)
     {
         r.DemandGbps = demand;
         var noc = r.Noc ? 1.25 : 1.0;
-        var ix = up.FirstOrDefault(x => x.Def.Ix);
-        r.IxPort = ix?.Contract.PortGbps ?? 0;
-        r.IxGbps = ix == null ? 0 : Math.Min(r.IxPort, demand * IxShare(s) * noc);
-        if (ix != null) ix.Gbps = r.IxGbps;
+        var ixs = up.Where(x => x.Def.Ix).ToList();
+        r.IxPort = ixs.Sum(x => x.Contract.TotalGbps);
+        r.IxGbps = 0; r.IxFlows.Clear();
+        if (ixs.Count > 0)
+        {
+            var reach = ixs.Select(x => IxReach(s, x.Def)).ToList();
+            var together = 1 - reach.Aggregate(1.0, (a, b) => a * (1 - b));
+            var sum = reach.Sum();
+            for (var i = 0; i < ixs.Count; i++)
+            {
+                var f = Math.Min(ixs[i].Contract.TotalGbps, demand * together * noc * reach[i] / sum);
+                ixs[i].Gbps = f;
+                r.IxFlows[ixs[i].Def.Id] = f;
+                r.IxGbps += f;
+            }
+        }
         r.PeerGbps = 0; r.PeerFlows.Clear();
         foreach (var p in peers)
         {
-            var f = Math.Min(10, demand * Catalog.Rivals[p.Rival].Share * noc);
+            var f = Math.Min(p.Capacity, demand * Catalog.Rivals[p.Rival].Share * noc);
             r.PeerFlows[p.Rival] = f;
             r.PeerGbps += f;
         }
@@ -374,8 +423,39 @@ public static class Network
         r.Served = demand <= 0 || s.Creative.NoNetworkLimit ? 1 : Math.Clamp(through / demand, 0, 1);
     }
 
-    /// <summary>Share of the traffic the internet exchange can carry: more members when rival datacenters are in the game.</summary>
-    public static double IxShare(GameState s) => (s.Options.AiCompetitors ? 0.25 : 0.18) + s.IxBonus;
+    /// <summary>Share of your traffic one internet exchange's members take: more members when rival datacenters are in the game.</summary>
+    public static double IxReach(GameState s, CarrierDef ix) => Math.Min(0.6, ix.Reach * (s.Options.AiCompetitors ? 1 : 0.72) + s.IxBonus);
+
+    /// <summary>Share of the traffic the first internet exchange (Polder-IX) can carry on its own.</summary>
+    public static double IxShare(GameState s) => IxReach(s, Catalog.Carriers[4]);
+
+    /// <summary>Your traffic at the evening peak with the racks online now.</summary>
+    public static double PeakGbps(NetReport r) => r.OnlineRacks * Catalog.RackGbps * 1.35;
+
+    /// <summary>
+    /// How much capacity a rival allows on a private peering. It looks at the traffic you would send it at the evening peak
+    /// (your peak × its share): it allows about four times that, at least its own minimum, never more than its own network can
+    /// take (about 10 Gbit/s per MW it runs) or than the port. A good reputation gets a quarter more. 0 = it says no: your
+    /// network is less than half its minimum.
+    /// </summary>
+    public static double PeerAllowance(GameState s, NetReport r, int rival, double asked, int port)
+    {
+        var rv = Catalog.Rivals[rival];
+        var peak = PeakGbps(r);
+        if (peak < rv.MinGbps * 0.5) return 0;
+        var willing = Math.Max(rv.MinGbps, peak * rv.Share * 4) * (s.Reputation >= 60 ? 1.25 : 1);
+        var comp = s.Competitors.FirstOrDefault(c => c.Id == rival);
+        var own = comp == null ? 100 : Math.Max(10, comp.CapacityMw * 10);
+        return StepDown(Math.Min(Math.Min(asked, port), Math.Min(willing, own)));
+    }
+
+    /// <summary>Rounds a capacity down to one of the peering steps (at least the smallest).</summary>
+    public static double StepDown(double gbps)
+    {
+        var best = Catalog.PeerSteps[0];
+        foreach (var x in Catalog.PeerSteps) if (x <= gbps + 1e-9) best = x;
+        return best;
+    }
 
     /// <summary>Traffic per contract at a moment with the given demand, for the hourly samples.</summary>
     public static Dictionary<CarrierContract, double> FlowsAt(GameState s, NetReport r, double hours)
@@ -396,12 +476,12 @@ public static class Network
         return sorted[Math.Clamp(i, 0, sorted.Count - 1)];
     }
 
-    /// <summary>Monthly cost of a contract without burst: port fee plus commit times the price per Mbit (the IX only charges the port).</summary>
+    /// <summary>Monthly cost of a contract without burst: port fee plus commit times the price per Mbit (an IX only charges its ports).</summary>
     public static double MonthlyCost(CarrierContract k)
     {
         var def = Catalog.Carriers[k.Carrier];
         var port = Catalog.Port(k.PortGbps).MonthlyFee;
-        return def.Ix ? port : port + k.Commit * 1000 * Catalog.PricePerMbit(def, k.Commit);
+        return def.Ix ? port * Math.Max(1, k.Ports) : port + k.Commit * 1000 * Catalog.PricePerMbit(def, k.Commit);
     }
 
     /// <summary>Burst bill for a month: the 95th percentile above the commit, at the burst price.</summary>

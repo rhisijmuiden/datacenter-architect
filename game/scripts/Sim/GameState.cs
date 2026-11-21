@@ -232,7 +232,7 @@ public partial class GameState
 
     public static GameState New(NewGameOptions o)
     {
-        var s = new GameState { Options = o, Money = o.StartMoney };
+        var s = new GameState { Options = o, Money = o.StartMoney, CarrierRackRule = true };
         s.EnsureGrids();
         s.EnsureCompetitors();
         return s;
@@ -333,6 +333,13 @@ public partial class GameState
             // so they alternate A, B, A ... per hall (PDUs) and over the site (switchboards and UPS units), as a player would.
             AssignFeedSides();
             if (Objects.Any(o => Catalog.HasFeed(o.Kind))) Notes.Add(("msg_power_tree_new", null));
+        }
+        if (!CarrierRackRule)
+        {
+            // carrier racks: from now on every new carrier or IX needs its own rack in the MMR; what is already ordered keeps working
+            foreach (var k in Contracts) k.NoRackNeeded = true;
+            if (Contracts.Count > 0) Notes.Add(("msg_carrier_racks_new", null));
+            CarrierRackRule = true;
         }
         MigrateGrowth();
         EnsureCompetitors();

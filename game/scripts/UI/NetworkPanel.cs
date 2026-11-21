@@ -65,7 +65,8 @@ public partial class NetworkPanel : Modal
         if (s == null) return;
         var n = s.Net;
         var sig = string.Join(",", s.Contracts.Select(k => $"{k.Carrier}:{k.PortGbps}:{k.UpgradeTo}:{k.Active}")) + "|" +
-                  string.Join(",", s.Peers.Select(p => $"{p.Rival}:{p.State}")) + $"|{n.Pits.Count}|{Loc.Language}|{s.Options.AiCompetitors}|{_tab}" +
+                  string.Join(",", s.Contracts.Select(k => k.Ports)) + "|" +
+                  string.Join(",", s.Peers.Select(p => $"{p.Rival}:{p.State}:{p.Upgrading}")) + $"|{n.Pits.Count}|{Loc.Language}|{s.Options.AiCompetitors}|{_tab}" +
                   (_tab == TabTree ? "|" + TreeSig(n) : "");
         if (sig != _sig) { _sig = sig; Build(s); }
         foreach (var u in _updaters) u(s, n);
@@ -144,62 +145,23 @@ public partial class NetworkPanel : Modal
         left.AddChild(Ui.Text("net_routes_help", 12, Brand.InkDim));
         left.AddChild(new HSeparator());
 
-        // ---- carriers and the IX ----
+        // ---- carriers (transit on a commit) and the internet exchanges (ports only) ----
         left.AddChild(Ui.Heading("net_carriers", 14, Brand.Fiber));
-        foreach (var def in Catalog.Carriers)
-        {
-            var d = def;
-            var head = d.Ix ? $"{d.Name} · {Loc.T("net_pit", Catalog.PitName(d.Pit))} · {Loc.T("net_ix")}"
-                            : $"{d.Name} · {Loc.T("net_pit", Catalog.PitName(d.Pit))} · € {N(d.PricePerMbit, "0.00")}/Mbit";
-            left.AddChild(Plain(head, 15, Brand.Ink, false));
-            left.AddChild(Plain(Loc.T(d.DescKey), 12, Brand.InkDim));
-            var k = s.ContractOf(d.Id);
-            if (k == null)
-            {
-                var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6);
-                foreach (var gbps in new[] { 1, 10, 100 })
-                {
-                    var g = gbps;
-                    var pd = Catalog.Port(g);
-                    row.AddChild(Small(Loc.T("net_order", Port(g), Ui.Money(pd.SetupFee)), () => Do(st => st.OrderCarrier(d.Id, g)), s.CanAfford(pd.SetupFee)));
-                }
-                left.AddChild(row);
-            }
-            else
-            {
-                var kk = k;
-                left.AddChild(Dyn((l, st, r) =>
-                {
-                    var info = r.Carriers.FirstOrDefault(x => x.Contract == kk);
-                    if (!kk.Active) { l.Text = Loc.T("net_delivering", Port(kk.PortGbps), Math.Ceiling(kk.DaysLeft)); l.AddThemeColorOverride("font_color", Brand.InkDim); return; }
-                    if (info != null && !info.Routed) { l.Text = "⚠ " + Loc.T("net_no_route"); l.AddThemeColorOverride("font_color", Brand.Critical); return; }
-                    var now = info?.Gbps ?? 0;
-                    l.Text = d.Ix ? Loc.T("net_ix_line", Port(kk.PortGbps), G(now))
-                                  : Loc.T("net_contract_line", Port(kk.PortGbps), G(kk.Commit), G(now), G(Network.P95(kk.Samples)));
-                    if (kk.UpgradeTo != 0) l.Text += "\n" + Loc.T("net_upgrading", Port(kk.UpgradeTo), Math.Ceiling(kk.UpgradeDaysLeft));
-                    l.AddThemeColorOverride("font_color", Brand.Ink);
-                }, 14));
-                left.AddChild(Bar((_, r) => { var info = r.Carriers.FirstOrDefault(x => x.Contract == kk); return info == null || !info.Up ? 0 : (info.Gbps + (d.Ix ? 0 : r.Overflow * kk.PortGbps / Math.Max(1, r.TransitCapacity))) / kk.PortGbps; }));
-                left.AddChild(Dyn((l, st, r) =>
-                {
-                    var month = Network.MonthlyCost(kk);
-                    var burst = Network.BurstCost(kk, r.Noc);
-                    l.Text = d.Ix ? Loc.T("net_cost_ix", Ui.Money((long)month)) : Loc.T("net_cost", Ui.Money((long)month), Ui.Money((long)burst));
-                }, 12, Brand.InkDim));
-                var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6);
-                if (!d.Ix)
-                {
-                    row.AddChild(Small(Loc.T("net_commit_down"), () => _state().StepCommit(kk, -1)));
-                    row.AddChild(Small(Loc.T("net_commit_up"), () => _state().StepCommit(kk, 1)));
-                }
-                var next = GameState.NextPort(kk.PortGbps);
-                if (next != 0) row.AddChild(Small(Loc.T("net_port_up", Port(next), Ui.Money(Catalog.Port(next).SetupFee)), () => Do(st => st.UpgradePort(kk)), s.CanUpgradePort(kk) == null));
-                row.AddChild(Small(Loc.T("net_cancel"), () => _state().CancelCarrier(kk)));
-                left.AddChild(row);
-            }
-            left.AddChild(new Control { CustomMinimumSize = new Vector2(0, 4) });
-        }
+        foreach (var def in Catalog.Carriers.Where(c => !c.Ix)) CarrierBlock(left, s, def);
         left.AddChild(Ui.Text("net_carriers_help", 12, Brand.InkDim));
+        left.AddChild(new HSeparator());
+        left.AddChild(Ui.Heading("net_ixes", 14, Brand.Fiber));
+        foreach (var def in Catalog.Carriers.Where(c => c.Ix)) CarrierBlock(left, s, def);
+        left.AddChild(Ui.Text("net_ixes_help", 12, Brand.InkDim));
+        left.AddChild(Dyn((l, st, r) =>
+        {
+            var need = st.Contracts.Count(k => !k.NoRackNeeded);
+            l.Text = Loc.T("net_carrier_racks", r.CarrierRacks, need);
+            l.AddThemeColorOverride("font_color", r.CarrierRacks < need ? Brand.Warning : Brand.InkDim);
+        }, 13));
+        var placeRow = new HBoxContainer();
+        placeRow.AddChild(PlaceButton(ObjKind.CarrierRack, "ntree_place_mmr", Loc.T("obj_carrier_rack")));
+        left.AddChild(placeRow);
 
         // ---- the chain ----
         right.AddChild(Ui.Heading("net_chain", 14, Brand.Fiber));
@@ -248,37 +210,10 @@ public partial class NetworkPanel : Modal
 
         // ---- peering ----
         right.AddChild(Ui.Heading("net_peering", 14, Brand.Fiber));
-        if (!s.Options.AiCompetitors) right.AddChild(Plain(Loc.T("net_no_rivals"), 14, Brand.InkDim));
+        var rivals = Catalog.Rivals.Where(rv => s.RivalOn(rv.Id)).ToList();
+        if (!s.Options.AiCompetitors || rivals.Count == 0) right.AddChild(Plain(Loc.T("net_no_rivals"), 14, Brand.InkDim));
         else
-            foreach (var rv in Catalog.Rivals)
-            {
-                var rival = rv;
-                var p = s.PeerOf(rv.Id);
-                right.AddChild(Plain(rv.Name, 15, Brand.Ink, false));
-                var terms = rv.Monthly >= 0 ? Loc.T("net_peer_terms_rack", Ui.Money(rv.SetupCost), Ui.Money(rv.Monthly), N(rv.Share * 100, "0"))
-                                            : Loc.T("net_peer_terms_pay", Ui.Money(rv.SetupCost), Ui.Money(-rv.Monthly), N(rv.Share * 100, "0"));
-                right.AddChild(Plain(terms, 12, Brand.InkDim));
-                var row = new HBoxContainer(); row.AddThemeConstantOverride("separation", 6);
-                switch (p?.State)
-                {
-                    case PeerState.Requested:
-                        row.AddChild(Plain(Loc.T("net_peer_requested"), 14, Brand.Fiber, false));
-                        row.AddChild(Small(Loc.T("net_peer_accept"), () => Do(st => st.StartPeering(rival.Id))));
-                        row.AddChild(Small(Loc.T("net_peer_decline"), () => _state().DeclinePeering(rival.Id)));
-                        break;
-                    case PeerState.Building:
-                        row.AddChild(Dyn((l, st, _) => l.Text = Loc.T("net_peer_building", Math.Ceiling(st.PeerOf(rival.Id)?.DaysLeft ?? 0)), 14, Brand.InkDim, false));
-                        break;
-                    case PeerState.Active:
-                        row.AddChild(Dyn((l, _, r) => l.Text = Loc.T("net_peer_active", G(r.PeerFlows.TryGetValue(rival.Id, out var f) ? f : 0)), 14, Brand.Ok, false));
-                        row.AddChild(Small(Loc.T("net_peer_end"), () => _state().DeclinePeering(rival.Id)));
-                        break;
-                    default:
-                        row.AddChild(Small(Loc.T("net_peer_propose"), () => Do(st => st.StartPeering(rival.Id))));
-                        break;
-                }
-                right.AddChild(row);
-            }
+            foreach (var rv in rivals) PeerBlock(right, s, rv);
         right.AddChild(Ui.Text("net_peering_help", 12, Brand.InkDim));
         right.AddChild(new HSeparator());
 
@@ -318,6 +253,8 @@ public partial class NetworkPanel : Modal
             if (r.Mmr && r.OdfUsed >= r.OdfPorts) list.Add("net_advice_odf");
             if (!r.Noc && s.Contracts.Count > 0) list.Add("net_advice_noc");
             if (r.IxPort <= 0 && s.Contracts.Count > 0) list.Add("net_advice_ix");
+            if (r.Carriers.Any(c => !c.Racked)) list.Add("net_advice_carrier_rack");
+            else if (r.IxPort > 0 && r.IxFlows.Any(f => { var k = s.ContractOf(f.Key); return k != null && f.Value >= k.TotalGbps * 0.95; })) list.Add("net_advice_ix_full");
         }
         list.AddRange(r.Spofs);
         return list;
