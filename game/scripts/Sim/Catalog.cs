@@ -43,6 +43,9 @@ public enum ObjKind
     BikeShed, EvCharger,
     // power distribution (infra sketch board 2): small and large floor PDUs next to the PDU 150
     Pdu75, Pdu300,
+    // network tree: edge switches in the halls and the distribution switch in the MMR.
+    // The values leave room for Pdu75 and Pdu300 of the power tree, so saves keep their kinds whichever lands first.
+    EdgeSwitch24 = EvCharger + 3, EdgeSwitch48, DistSwitch,
 }
 
 /// <summary>Delivery chain for hall equipment: truck to the dock, fitter places it, engineer connects power and then fiber.</summary>
@@ -162,10 +165,14 @@ public static class Catalog
         // heat rejection outside or on the roof
         [ObjKind.Chiller] = new(ObjKind.Chiller, "obj_chiller", 3, 2, 260000, Where.OutsideOrRoof, true, PowerKw: 0, RejectKw: 600, MaxLevel: 3),
         [ObjKind.CoolingTower] = new(ObjKind.CoolingTower, "obj_cooling_tower", 2, 2, 340000, Where.OutsideOrRoof, true, RejectKw: 1000, MaxLevel: 3),
-        // network: patch frames and core routers in the meet-me room, spine switches in the halls, the NOC video wall
+        // network: patch frames, core routers and distribution switches in the meet-me room, edge (or spine) switches in the halls,
+        // the NOC video wall. A hall switch serves only the racks of its own hall: Ports = racks, Gbps = its uplink.
         [ObjKind.Odf] = new(ObjKind.Odf, "obj_odf", 1, 1, 9500, Where.Room, true, Chain: true, Ports: 48, Rooms: new[] { RoomType.MeetMe }),
         [ObjKind.CoreRouter] = new(ObjKind.CoreRouter, "obj_core_router", 1, 1, 180000, Where.Room, true, PowerKw: 3, Chain: true, Ports: 32, Gbps: 400, Rooms: new[] { RoomType.MeetMe }),
-        [ObjKind.Spine] = new(ObjKind.Spine, "obj_spine", 1, 1, 65000, Where.Hall, true, PowerKw: 2, Chain: true, Ports: 48, Gbps: 400),
+        [ObjKind.DistSwitch] = new(ObjKind.DistSwitch, "obj_dist_switch", 1, 1, 120000, Where.Room, true, PowerKw: 2.5, Chain: true, Ports: 64, Gbps: 800, Rooms: new[] { RoomType.MeetMe }),
+        [ObjKind.EdgeSwitch24] = new(ObjKind.EdgeSwitch24, "obj_edge24", 1, 1, 28000, Where.Hall, true, PowerKw: 0.6, Chain: true, Ports: 24, Gbps: 200),
+        [ObjKind.EdgeSwitch48] = new(ObjKind.EdgeSwitch48, "obj_edge48", 1, 1, 45000, Where.Hall, true, PowerKw: 1, Chain: true, Ports: 48, Gbps: 400),
+        [ObjKind.Spine] = new(ObjKind.Spine, "obj_spine", 1, 1, 65000, Where.Hall, true, PowerKw: 2, Chain: true, Ports: 96, Gbps: 3200),
         [ObjKind.NocWall] = new(ObjKind.NocWall, "obj_noc_wall", 3, 1, 48000, Where.Room, true, PowerKw: 1.5, Rooms: new[] { RoomType.Noc }),
         // security: cameras on poles outside and in the halls, the video wall and glass lodge in the security room, bollards against vehicles
         [ObjKind.CameraPole] = new(ObjKind.CameraPole, "obj_camera_pole", 1, 1, 6500, Where.Outside, false, PowerKw: 0.05),
@@ -248,6 +255,10 @@ public static class Catalog
     public const double BurstFactor = 1.5, BurstFactorNoc = 1.2;
     /// <summary>Average traffic of a running rack in Gbit/s; it follows the time of day.</summary>
     public const double RackGbps = 0.25;
+    /// <summary>Switches in a data hall that racks plug into: Edge 24, Edge 48 and the big Spine 400.</summary>
+    public static bool IsHallSwitch(ObjKind k) => k is ObjKind.EdgeSwitch24 or ObjKind.EdgeSwitch48 or ObjKind.Spine;
+    /// <summary>Uplinks of a hall switch to the distribution switch: 2 × 100G, 4 × 100G or 8 × 400G.</summary>
+    public static int Uplinks(ObjKind k) => k switch { ObjKind.EdgeSwitch24 => 2, ObjKind.EdgeSwitch48 => 4, ObjKind.Spine => 8, ObjKind.DistSwitch => 2, _ => 0 };
 
     public static readonly CarrierDef[] Carriers =
     {

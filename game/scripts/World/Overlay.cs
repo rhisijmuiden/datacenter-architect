@@ -273,7 +273,8 @@ public partial class Overlay : Node3D
             bool InMmr(PlacedObject o) => mmr.Any(m => m.Floor == o.Floor && m.Contains(o.X, o.Z));
             var odfs = objs.Where(o => o.Kind == ObjKind.Odf && InMmr(o)).ToList();
             var cores = objs.Where(o => o.Kind == ObjKind.CoreRouter && InMmr(o)).ToList();
-            var spines = objs.Where(o => o.Kind == ObjKind.Spine).ToList();
+            var spines = objs.Where(o => Catalog.IsHallSwitch(o.Kind)).ToList();
+            var dists = objs.Where(o => o.Kind == ObjKind.DistSwitch && InMmr(o)).ToList();
             // carrier pits in the street, your pits and the ducts into the building
             foreach (var p in n.Pits)
             {
@@ -301,11 +302,20 @@ public partial class Overlay : Node3D
                 if (odf != null) Add(Top(s, odf, 2.3f), p, upRatio, upColor);
             }
             var coreRatio = (float)Math.Min(1.5, n.Link(NetLink.Core).Ratio);
+            // the tree: distribution switches on the core, hall switches on their distribution switch (or straight on the core)
+            foreach (var d in dists)
+            {
+                var p = Top(s, d, 2.3f);
+                var c = Nearest(cores, p, x => Top(s, x, 2.3f));
+                if (c != null) Add(Top(s, c, 2.3f), p, coreRatio, n.Link(NetLink.Core).Ratio > 1 ? bad : fiber);
+            }
             foreach (var sp in spines)
             {
                 var p = Top(s, sp, 2.4f);
-                var c = Nearest(cores, p, x => Top(s, x, 2.3f));
-                if (c != null) Add(Top(s, c, 2.3f), p, coreRatio, n.Link(NetLink.Core).Ratio > 1 ? bad : fiber);
+                n.Uplink.TryGetValue(sp.Id, out var up);
+                var ds = up > 0 ? dists.FirstOrDefault(x => x.Id == up) : null;
+                var c = ds ?? Nearest(cores, p, x => Top(s, x, 2.3f));
+                if (c != null) Add(Top(s, c, 2.3f), p, coreRatio, up < 0 || n.Link(NetLink.Core).Ratio > 1 ? bad : fiber);
             }
             foreach (var row in Rows(racks))
             {

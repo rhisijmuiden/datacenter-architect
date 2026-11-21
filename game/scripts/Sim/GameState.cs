@@ -164,7 +164,7 @@ public class NewGameOptions
 /// <summary>All state that goes into a savegame. Workers and trucks are not saved; they restart from this state.</summary>
 public partial class GameState
 {
-    public const int CurrentFormat = 10;
+    public const int CurrentFormat = 12;
     /// <summary>Floor value for objects that stand on the roof of a building.</summary>
     public const int RoofFloor = -1;
     /// <summary>Floor id of a basement. Kept apart from the storey numbers so roof (-1) and storeys (0..) stay as they were.</summary>
@@ -321,7 +321,13 @@ public partial class GameState
             // step 10: older games get the new looks, but the weather only plays along in new games
             Options.WeatherEffects = false;
         }
-        if (SaveFormat < 10)
+        if (SaveFormat < 11)
+        {
+            // network tree: spine switches stay where they are (now the big Spine 400 with 96 ports); edges hang straight on the
+            // core until a distribution switch stands in the MMR, so nothing that was online goes offline
+            if (Objects.Any(o => Catalog.IsHallSwitch(o.Kind))) Notes.Add(("msg_nettree_new", null));
+        }
+        if (SaveFormat < 12)
         {
             // power tree: switchboards, UPS units and PDUs now belong to an A or a B side. Older games had no sides,
             // so they alternate A, B, A ... per hall (PDUs) and over the site (switchboards and UPS units), as a player would.

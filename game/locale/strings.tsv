@@ -478,7 +478,7 @@ hint_curve	Click the start, click the end, then move the mouse to bend it and cl
 curve_width	{0} m wide	{0} m breed
 obj_odf	ODF patch frame	ODF-patchframe
 obj_core_router	Core router	Core-router
-obj_spine	Spine switch	Spine-switch
+obj_spine	Spine 400 switch	Spine 400-switch
 obj_noc_wall	NOC video wall	NOC-videowall
 room_noc	NOC	NOC
 res_network	Network	Netwerk
@@ -516,16 +516,16 @@ netlink_upstream	Carriers, IX and peering	Carriers, IX en peering
 netlink_ducts	Fiber ducts	Mantelbuizen
 netlink_mmr	MMR patch ports	Patchpoorten in de MMR
 netlink_core	Core routers	Core-routers
-netlink_spine	Spine switches	Spine-switches
+netlink_spine	Edge switches (halls)	Edge-switches (hallen)
 net_unit_subducts	{0} subducts	{0} subducts
 net_unit_ports	{0} ports	{0} poorten
 net_unlimited	Network is no limit (creative mode).	Netwerk is geen beperking (creatieve modus).
 net_online	{0} of {1} running racks online · {2}% of the traffic gets through	{0} van {1} draaiende racks online · {2}% van het verkeer komt door
-net_chain_help	A rack is online when it has a port on a spine switch in its hall, the spine has a port on a core router, and the core reaches a carrier, the IX or a peer through the ODFs in the meet-me room.	Een rack is online als het een poort heeft op een spine-switch in zijn hal, de spine een poort op een core-router, en de core via de ODF's in de meet-me room een carrier, de IX of een peer bereikt.
+net_chain_help	A rack is online when it has a port on an edge switch in its own hall, the edge switch has an uplink to a distribution switch (or straight to a core router), and the core reaches a carrier, the IX or a peer through the ODFs in the meet-me room.	Een rack is online als het een poort heeft op een edge-switch in zijn eigen hal, die edge-switch een uplink heeft naar een distributieswitch (of rechtstreeks naar een core-router), en de core via de ODF's in de meet-me room een carrier, de IX of een peer bereikt.
 net_traffic	Traffic	Verkeer
 net_traffic_now	Now {0}: {1} via the IX, {2} via peering, {3} via transit	Nu {0}: {1} via de IX, {2} via peering, {3} via transit
 net_dropped	{0} does not fit: customers notice congestion and pay less	{0} past niet: klanten merken vertraging en betalen minder
-net_hall_line	Hall {0}: {1} of {2} racks online · {3} spines · {4}	Hal {0}: {1} van {2} racks online · {3} spines · {4}
+net_hall_line	Hall {0}: {1} of {2} racks online · {3} edge switches · {4}	Hal {0}: {1} van {2} racks online · {3} edge-switches · {4}
 net_peering	Peering with other datacenters	Peering met andere datacenters
 net_no_rivals	There are no rival datacenters in this game, so private peering is not available. The IX still works.	In dit spel zijn er geen concurrerende datacenters, dus private peering is niet beschikbaar. De IX werkt wel.
 net_peer_terms_rack	Dark fiber {0} · they rent a rack in your MMR: +{1}/month · carries about {2}% of your traffic	Dark fiber {0} · zij huren een rack in jouw MMR: +{1}/maand · neemt ongeveer {2}% van je verkeer
@@ -547,8 +547,8 @@ net_advice_pit	Place a fiber pit on your plot, near a carrier pit in the street.
 net_advice_mmr	Build a meet-me room (MMR) with an ODF patch frame: this is where the carriers come in.	Bouw een meet-me room (MMR) met een ODF-patchframe: hier komen de carriers binnen.
 net_advice_core	Place a core router in the MMR.	Zet een core-router in de MMR.
 net_advice_carrier	Order a port at a carrier or at the internet exchange.	Bestel een poort bij een carrier of bij de internet exchange.
-net_advice_spine	A hall with racks has no spine switch: those racks are offline.	Een hal met racks heeft geen spine-switch: die racks zijn offline.
-net_advice_spine_ports	Some racks have no free spine port, or a spine has no free core port: add a spine switch or a core router.	Een deel van de racks heeft geen vrije spinepoort, of een spine heeft geen vrije corepoort: zet er een spine-switch of core-router bij.
+net_advice_spine	A hall with racks has no edge switch: those racks are offline. An edge switch only serves its own hall.	Een hal met racks heeft geen edge-switch: die racks zijn offline. Een edge-switch bedient alleen zijn eigen hal.
+net_advice_spine_ports	Some racks have no free port on an edge switch in their hall: add an Edge 24 or Edge 48 to that hall.	Een deel van de racks heeft geen vrije poort op een edge-switch in hun hal: zet er een Edge 24 of Edge 48 bij in die hal.
 net_advice_congested	Traffic does not fit: upgrade a port, add a carrier or peer more.	Het verkeer past niet: upgrade een poort, neem een extra carrier of peer meer.
 net_advice_transit_tight	Transit is almost full at peak time.	De transit zit in de piek bijna vol.
 net_advice_ducts	All subducts are taken: upgrade a fiber pit or add one.	Alle subducts zijn bezet: upgrade een glasvezelput of leg er een bij.
@@ -559,7 +559,7 @@ spof_carrier	Single point of failure: only one transit carrier.	Enkel punt van f
 spof_route	Single point of failure: all fiber comes in over one route.	Enkel punt van falen: alle glasvezel komt via één route binnen.
 spof_mmr	Single point of failure: one meet-me room. A second MMR gives redundancy.	Enkel punt van falen: één meet-me room. Een tweede MMR geeft redundantie.
 spof_core	Single point of failure: one core router.	Enkel punt van falen: één core-router.
-spof_spine	Single point of failure: a hall with only one spine switch.	Enkel punt van falen: een hal met maar één spine-switch.
+spof_spine	Single point of failure: a hall with only one edge switch (no B side).	Enkel punt van falen: een hal met maar één edge-switch (geen B-kant).
 msg_carrier_exists	You already have a port at this carrier.	Je hebt al een poort bij deze carrier.
 msg_needs_mmr	First build a meet-me room with an ODF patch frame.	Bouw eerst een meet-me room met een ODF-patchframe.
 msg_duct_full	No free subduct towards that street pit. Upgrade the fiber pit.	Geen vrije subduct naar die straatput. Upgrade de glasvezelput.
@@ -586,7 +586,7 @@ inspect_ports	{0} ports	{0} poorten
 inspect_pit	Duct to street pit {0}: {1}	Mantelbuis naar straatput {0}: {1}
 inspect_subducts	Subducts {0}/{1} in use	Subducts {0}/{1} in gebruik
 action_duct	Upgrade duct to {0} subducts · {1}	Mantelbuis upgraden naar {0} subducts · {1}
-inspect_hall_net	Network: {0} of {1} racks online · {2} spines	Netwerk: {0} van {1} racks online · {2} spines
+inspect_hall_net	Network: {0} of {1} racks online · {2} edge switches	Netwerk: {0} van {1} racks online · {2} edge-switches
 inspect_mmr	{0} patch ports, {1} in use · {2} core routers · {3} cross-connects	{0} patchpoorten, {1} in gebruik · {2} core-routers · {3} cross-connects
 inspect_noc_needs_wall	Place a video wall to start the NOC.	Zet een videowall neer om de NOC te starten.
 msg_needs_mmr_room	This goes in a meet-me room (MMR).	Dit hoort in een meet-me room (MMR).
@@ -837,7 +837,7 @@ staff_electrical_desc	Maintains and repairs transformers, switchgear, UPS units,
 staff_cooling	Cooling technician	Koeltechnicus
 staff_cooling_desc	Maintains and repairs CRAH units, chillers and cooling towers.	Onderhoudt en repareert CRAH-units, chillers en koeltorens.
 staff_network	Network engineer	Netwerkengineer
-staff_network_desc	Maintains routers, spines and ODFs, and repairs cable cuts.	Onderhoudt routers, spines en ODF's, en repareert kabelbreuken.
+staff_network_desc	Maintains routers, switches and ODFs, and repairs cable cuts.	Onderhoudt routers, switches en ODF's, en repareert kabelbreuken.
 staff_noc	NOC operator	NOC-operator
 staff_noc_desc	Watches power, cooling and network around the clock: faults are noticed at once instead of after two hours. Needs a NOC room.	Bewaakt 24/7 stroom, koeling en netwerk: storingen worden meteen gezien in plaats van na twee uur. Vraagt een NOC-ruimte.
 staff_guard	Guard	Beveiliger
@@ -1767,7 +1767,7 @@ ov_adv_grid	The grid is down: check fuel and generators.	Het stroomnet ligt erui
 ov_adv_faults	{0} faults are waiting for a repair.	{0} storingen wachten op een reparatie.
 ov_adv_power	Power is over 85%: expand the grid connection or the UPS.	Stroom zit boven 85%: breid de netaansluiting of de UPS uit.
 ov_adv_cooling	Cooling is over 85%: add CRAH units or chillers.	Koeling zit boven 85%: plaats extra CRAH-units of koelmachines.
-ov_adv_network	{0} racks are offline: check spines, core and carriers.	{0} racks zijn offline: controleer spines, core en carriers.
+ov_adv_network	{0} racks are offline: check edge switches, core and carriers.	{0} racks zijn offline: controleer edge-switches, core en carriers.
 ov_adv_leads	{0} new customer requests are waiting.	{0} nieuwe klantaanvragen wachten.
 ov_adv_proposals	{0} proposals from your team are waiting for an answer.	{0} voorstellen van je team wachten op antwoord.
 ov_adv_goal	Next goal: {0}	Volgende doel: {0}
@@ -1907,3 +1907,79 @@ inspect_hall_pdus	PDUs/busbars {0} · {1}/{2} racks fed · {3} connections free	
 inspect_hall_tip_nopdu	{0} racks have no power: place a PDU in this hall	{0} racks hebben geen stroom: zet een PDU in deze hal
 inspect_hall_tip_pdu	{0} racks have no PDU connection: place an extra PDU in this hall	{0} racks hebben geen PDU-aansluiting: zet een extra PDU in deze hal
 inspect_hall_tip_ab	{0} racks have only one feed: add a PDU on the other side for A+B	{0} racks hebben maar één voeding: zet een PDU aan de andere zijde voor A+B
+obj_edge24	Edge switch 24	Edge-switch 24
+obj_edge48	Edge switch 48	Edge-switch 48
+obj_dist_switch	Distribution switch	Distributieswitch
+netlink_distribution	Distribution switches	Distributieswitches
+nav_tab_nettree	Network tree	Netwerkboom
+ntree_open	Network tree	Netwerkboom
+ntree_title	Network tree: from fiber pair to rack	Netwerkboom: van fiberpaar tot rack
+ntree_help	Incoming fiber pairs, core routers, distribution switches and the edge switches of each hall. An edge switch only connects racks in its own hall. Click a row for details.	Binnenkomende fiberparen, core-routers, distributieswitches en de edge-switches per hal. Een edge-switch sluit alleen racks in zijn eigen hal aan. Klik op een regel voor details.
+ntree_hall	Hall {0}	Hal {0}
+ntree_incoming	Incoming fiber · MMR × {0}	Binnenkomend · MMR × {0}
+ntree_incoming_sub	{0} fiber pairs · ODF {1} / {2} ports · {3} routes	{0} fiberparen · ODF {1} / {2} poorten · {3} routes
+ntree_pairs	{0} pairs	{0} paren
+ntree_one_pair	1 pair	1 paar
+ntree_transit	transit	transit
+ntree_peering	peering	peering
+ntree_delivering	being delivered	wordt geleverd
+ntree_no_route	no duct	geen mantelbuis
+ntree_no_carriers	No carriers yet: order a port under Network	Nog geen carriers: bestel een poort onder Netwerk
+ntree_no_core	No core router	Geen core-router
+ntree_no_core_sub	Place a core router in the meet-me room: everything below it hangs on its ports.	Zet een core-router in de meet-me room: alles hieronder hangt aan zijn poorten.
+ntree_redundant	(redundant)	(redundant)
+ntree_core_sub	{0} / {1} ports in use ({2} free)	{0} / {1} poorten in gebruik ({2} vrij)
+ntree_dist_sub	{0} / {1} ports · {2} edge switches	{0} / {1} poorten · {2} edge-switches
+ntree_no_core_port	No free core port: add a core router	Geen vrije corepoort: zet er een core-router bij
+ntree_direct	Straight on the core (no free distribution port)	Rechtstreeks op de core (geen vrije distributiepoort)
+ntree_not_connected	Not connected	Niet aangesloten
+ntree_no_halls	No data halls yet.	Nog geen datahallen.
+ntree_no_edge	No edge switch	Geen edge-switch
+ntree_no_edge_sub	{0} racks offline: place an edge switch in this hall	{0} racks offline: zet een edge-switch in deze hal
+ntree_edge_sub	{0} / {1} ports · {2} / {3} racks	{0} / {1} poorten · {2} / {3} racks
+ntree_no_b	no B switch	geen B-switch
+ntree_tile_uplink	Uplink	Uplink
+ntree_tile_uplink_sub	in use {0} ({1}%)	gebruik {0} ({1}%)
+ntree_tile_racks	Racks online	Racks online
+ntree_tile_racks_sub	{0} of {1} halls fully A/B	{0} van {1} hallen volledig A/B
+ntree_selected	Selected	Geselecteerd
+ntree_types	Switch types	Switchtypes
+ntree_type_edge	{0} racks · {1} · {2}	{0} racks · {1} · {2}
+ntree_type_dist	{0} ports · {1} · {2}	{0} poorten · {1} · {2}
+ntree_types_help	Edge and spine switches stand in a data hall and serve only that hall. The distribution switch stands in the meet-me room and takes one core port for up to 64 hall switches.	Edge- en spine-switches staan in een datahal en bedienen alleen die hal. De distributieswitch staat in de meet-me room en neemt één corepoort voor maximaal 64 hal-switches.
+ntree_f_ports	Ports	Poorten
+ntree_f_uplink	Uplink	Uplink
+ntree_f_only	Only	Alleen
+ntree_f_load	Load	Belasting
+ntree_f_capacity	Capacity	Capaciteit
+ntree_f_pairs	Fiber pairs	Fiberparen
+ntree_f_odf	ODF ports	ODF-poorten
+ntree_f_routes	Routes	Routes
+ntree_rack_ports	Rack ports	Rackpoorten
+ntree_ports_legend	{0} racks with an A port · {1} also with a B port · {2} free	{0} racks met een A-poort · {1} ook met een B-poort · {2} vrij
+ntree_via_core	core router	core-router
+ntree_via_none	no free port	geen vrije poort
+ntree_uplink_to	uplink to {0}	uplink naar {0}
+ntree_ports_of	{0} / {1} ports	{0} / {1} poorten
+ntree_tip	Tip:	Tip:
+ntree_tip_no_edge	{0} racks have no port. Place an Edge 24 or Edge 48 in this hall; two switches give every rack an A and a B side.	{0} racks hebben geen poort. Zet een Edge 24 of Edge 48 in deze hal; met twee switches krijgt elk rack een A- en een B-kant.
+ntree_tip_full	Full: {0} racks have no port. Add an edge switch in this hall.	Vol: {0} racks hebben geen poort. Zet er een edge-switch bij in deze hal.
+ntree_tip_no_b	Full or without spare: place a second edge switch in this hall for A/B, then the racks stay online when one fails.	Vol en zonder reserve: zet een tweede edge-switch in deze hal voor A/B, dan blijven de racks online als er één uitvalt.
+ntree_tip_partial_ab	{0} racks only have an A port. A bigger or extra edge switch gives them a B side too.	{0} racks hebben alleen een A-poort. Een grotere of extra edge-switch geeft ze ook een B-kant.
+ntree_tip_uplink	An edge switch in this hall has no uplink: no free port on a distribution switch or core router. Add a distribution switch in the meet-me room.	Een edge-switch in deze hal heeft geen uplink: geen vrije poort op een distributieswitch of core-router. Zet een distributieswitch in de meet-me room.
+ntree_tip_ab_ok	Every rack has an A and a B port on different switches: one switch can fail without racks going offline.	Elk rack heeft een A- en een B-poort op verschillende switches: één switch kan uitvallen zonder dat racks offline gaan.
+ntree_tip_dist_core	This distribution switch has no free core port. Add a core router.	Deze distributieswitch heeft geen vrije corepoort. Zet er een core-router bij.
+ntree_tip_dist_single	Only one distribution switch: if it fails, every hall behind it goes offline. A second one in the meet-me room takes over.	Maar één distributieswitch: valt hij uit, dan gaan alle hallen erachter offline. Een tweede in de meet-me room neemt het over.
+ntree_tip_dist_ok	Two or more distribution switches: one can fail.	Twee of meer distributieswitches: er kan er één uitvallen.
+ntree_tip_core_single	Only one core router: a second one in the meet-me room takes over when this one fails.	Maar één core-router: een tweede in de meet-me room neemt het over als deze uitvalt.
+ntree_tip_core_ok	Two or more core routers share the traffic; one can fail.	Twee of meer core-routers verdelen het verkeer; er kan er één uitvallen.
+ntree_core_ports_help	Core ports: {0} for carriers, IX and peers, {1} for distribution switches, {2} for edge switches straight on the core.	Corepoorten: {0} voor carriers, IX en peers, {1} voor distributieswitches, {2} voor edge-switches rechtstreeks op de core.
+ntree_pairs_help	Every carrier port, IX port and peering link comes in on its own fiber pair and lands on an ODF port in the meet-me room.	Elke carrierpoort, IX-poort en peeringlink komt binnen op een eigen fiberpaar en landt op een ODF-poort in de meet-me room.
+ntree_place	Place {0}	Plaats {0}
+ntree_place_mmr	Place {0}	Plaats {0}
+ntree_place_help	Place it inside {0}: an edge switch only serves racks in the hall it stands in.	Plaats hem in {0}: een edge-switch bedient alleen racks in de hal waar hij staat.
+ntree_inspect_edge	Serves only {0} · {1} rack ports · uplink {2}	Bedient alleen {0} · {1} rackpoorten · uplink {2}
+ntree_advice_uplink	An edge switch has no free uplink port: add a distribution switch (or a core router) in the meet-me room.	Een edge-switch heeft geen vrije uplinkpoort: zet een distributieswitch (of core-router) in de meet-me room.
+ntree_advice_dist	Many edge switches hang straight on the core: a distribution switch in the meet-me room keeps core ports free.	Veel edge-switches hangen rechtstreeks op de core: een distributieswitch in de meet-me room houdt corepoorten vrij.
+spof_dist	Single point of failure: only one distribution switch.	Enkel punt van falen: maar één distributieswitch.
+msg_nettree_new	New: the network tree (Infrastructure › Network tree) shows every switch with its ports. Spine switches now have 96 ports; Edge 24 and Edge 48 are cheaper switches for a hall.	Nieuw: de netwerkboom (Infrastructuur › Netwerkboom) toont elke switch met zijn poorten. Spine-switches hebben nu 96 poorten; Edge 24 en Edge 48 zijn goedkopere switches voor een hal.
