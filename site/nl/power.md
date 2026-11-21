@@ -93,8 +93,12 @@ De UPS overbrugt de seconden tot de generatoren draaien. De autonomie in minuten
 ## Energie
 
 - **Leveranciers** (verzonnen): Polder Energie (vast), Delta Stroom (variabel, volgt de markt), Noordwind Groen (groen, vast) en Kustlicht (groen, variabel). De stroomrekening is IT-last × PUE × prijs.
-- **Eigen energie**: zonnepanelen op daken of velden, windmolens en **batterijcontainers** die laden als stroom goedkoop is en terugleveren als hij duur is (Infrastructuur › Energie en ESG).
-- Groene contracten en eigen energie verhogen je **ESG-score**, waar groene klanten, investeerders en de beurskoers naar kijken.
+- **Eigen energie**: zonnevelden op daken of grond, windturbines (alleen op het terrein) en **batterijcontainers**. Ze worden per uur berekend: zon volgt de zon en het weer, wind het seizoen en het weer.
+- **Eigen stroom gaat voor.** Elk uur voedt eigen stroom eerst je site, laadt daarna de batterij en wordt dan verkocht aan het net tegen 60% van de marktprijs (tot je netaansluiting). Wat dan nog ontbreekt komt van het net.
+- **Batterijbeleid** (Infrastructuur › Eigen energie): *eigen stroom opslaan* (standaard), *handelen op de markt* (goedkoop laden van het net, duur verkopen) of *slim combineren* (eerst eigen overschot, de rest handelt). Een reserve (standaard 20%) blijft geladen voor stroomuitval. Verkopen kan uit.
+- **Scherm Eigen energie**: het deel van je verbruik uit eigen zon, wind en batterij (per dag en over 30 dagen), opwek, net, verkocht, batterijlading, een grafiek per uur en waar je stroom heen ging. De bovenbalk toont het 30-dagenpercentage.
+- **Groen datacenter**: 30 dagen op 50% eigen energie of meer geeft een **nominatie**; daarna levert de audit (Reputatie › Certificaten, ook PUE 1,45 of lager) het groene keurmerk op. **Groen Goud** vraagt 80% en PUE 1,30. Onder de drempel heb je 60 dagen respijt, daarna wordt het keurmerk geschorst tot je er weer boven zit. Een groen stroomcontract geeft ESG-punten maar telt niet mee voor het keurmerk.
+- Groene contracten en eigen energie verhogen je **ESG-score**, waar investeerders en de beurskoers naar kijken.
 
 ## Checklist stroom
 

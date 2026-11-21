@@ -43,7 +43,7 @@ Your **sales director** brings in requests (up to eight at a time, each valid fo
 
 ### Customer types
 
-Startups, small businesses, hosting companies, web hosting, video streaming, social media, crypto mining, cloud services, municipalities, ministries, and through tenders banks, hyperscalers and AI companies. Each type has its own size, products, traffic per rack, number of carriers, and a chance of asking for 32 A, 2N, green power, security or certificates. Bigger and more demanding customers come with a higher **reputation**.
+Startups, small businesses, hosting companies, web hosting, video streaming, social media, crypto mining, cloud services, municipalities, ministries, sustainable clouds (only once you hold the green label), and through tenders banks, hyperscalers and AI companies. Each type has its own size, products, traffic per rack, number of carriers, and a chance of asking for 32 A, 2N, green power, security or certificates. Bigger and more demanding customers come with a higher **reputation**.
 
 ### What you sell: hall zones
 
@@ -69,7 +69,7 @@ Per data hall you choose what you sell (in the hall inspector or Company › Sal
 | 2N UPS | UPS capacity at least twice the IT load |
 | Generators N+1 | One generator more than needed (a warning, not a blocker) |
 | Bandwidth and carriers | Unsold transit capacity and enough carriers |
-| Green energy | A green energy contract |
+| Green energy | The green datacenter label (some ministries want Green Gold) |
 | Security | Security manager and a minimum security level |
 | Certificates | ISO 27001, Tier III, PCI DSS, government seal or green label |
 

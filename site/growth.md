@@ -29,7 +29,7 @@ The **security level** (0 to 100) is built from seven parts. Banks, municipaliti
 
 ## Certificates
 
-ISO 27001, Tier III, PCI DSS, the government seal and a green label. Each has requirements (security level, redundancy, policies, green power, PUE), an audit of 20 to 45 days and a price, and lasts three years with a yearly check. A compliance officer handles them. Government asks for the government seal plus ISO, banks for PCI, cloud, hyperscalers and AI for Tier III.
+ISO 27001, Tier III, PCI DSS, the government seal, the green label and Green Gold (see Power › Energy). Each has requirements (security level, redundancy, policies, own energy share, PUE), an audit of 20 to 45 days and a price, and lasts three years with a yearly check. A compliance officer handles them. Government asks for the government seal plus ISO, banks for PCI, cloud, hyperscalers and AI for Tier III.
 
 ## Research
 

@@ -29,7 +29,7 @@ Het **beveiligingsniveau** (0 tot 100) bestaat uit zeven onderdelen. Banken, gem
 
 ## Certificaten
 
-ISO 27001, Tier III, PCI DSS, het overheidskeurmerk en een groen label. Elk heeft eisen (beveiligingsniveau, redundantie, policies, groene stroom, PUE), een audit van 20 tot 45 dagen en een prijs, en geldt drie jaar met een jaarlijkse controle. Een compliance officer regelt ze. De overheid vraagt het overheidskeurmerk plus ISO, banken PCI, cloud, hyperscalers en AI willen Tier III.
+ISO 27001, Tier III, PCI DSS, het overheidskeurmerk, het groene keurmerk en Groen Goud (zie Stroom › Energie). Elk heeft eisen (beveiligingsniveau, redundantie, policies, aandeel eigen energie, PUE), een audit van 20 tot 45 dagen en een prijs, en geldt drie jaar met een jaarlijkse controle. Een compliance officer regelt ze. De overheid vraagt het overheidskeurmerk plus ISO, banken PCI, cloud, hyperscalers en AI willen Tier III.
 
 ## Research
 

@@ -43,7 +43,7 @@ Je **salesdirecteur** brengt aanvragen binnen (maximaal acht tegelijk, elk 12 to
 
 ### Klanttypes
 
-Startups, MKB, hostingbedrijven, websitehosting, videostreaming, social media, cryptomining, clouddiensten, gemeentes, ministeries, en via aanbestedingen banken, hyperscalers en AI-bedrijven. Elk type heeft een eigen omvang, producten, verkeer per rack, aantal carriers, en een kans om 32 A, 2N, groene stroom, beveiliging of certificaten te vragen. Grotere en veeleisendere klanten komen bij een hogere **reputatie**.
+Startups, MKB, hostingbedrijven, websitehosting, videostreaming, social media, cryptomining, clouddiensten, gemeentes, ministeries, duurzame clouds (pas als je het groene keurmerk hebt), en via aanbestedingen banken, hyperscalers en AI-bedrijven. Elk type heeft een eigen omvang, producten, verkeer per rack, aantal carriers, en een kans om 32 A, 2N, groene stroom, beveiliging of certificaten te vragen. Grotere en veeleisendere klanten komen bij een hogere **reputatie**.
 
 ### Wat je verkoopt: zones per hal
 
@@ -69,7 +69,7 @@ Per datahal kies je wat je verkoopt (in het infopaneel van de hal of Bedrijf ›
 | 2N UPS | UPS-capaciteit minstens twee keer de IT-last |
 | Generatoren N+1 | Eén generator meer dan nodig (een waarschuwing, geen blokkade) |
 | Bandbreedte en carriers | Onverkochte transitcapaciteit en genoeg carriers |
-| Groene energie | Een groen energiecontract |
+| Groene energie | Het keurmerk groen datacenter (sommige ministeries willen Groen Goud) |
 | Beveiliging | Security manager en een minimaal beveiligingsniveau |
 | Certificaten | ISO 27001, Tier III, PCI DSS, overheidskeurmerk of groen label |
 

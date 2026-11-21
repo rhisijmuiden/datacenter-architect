@@ -341,7 +341,8 @@ public partial class CompanyPanel : Modal
         if (d.TwoN) parts.Add("2N"); else if (d.AB) parts.Add("A/B");
         if (d.Gbps > 0) parts.Add(N(d.Gbps, d.Gbps >= 10 ? "0" : "0.#") + " Gbit/s");
         if (d.Carriers > 1) parts.Add(Loc.T("deal_carriers", d.Carriers));
-        if (d.Green) parts.Add(Loc.T("deal_green"));
+        if (d.GreenGold) parts.Add(Loc.T("deal_green_gold"));
+        else if (d.Green) parts.Add(Loc.T("deal_green"));
         if (d.Security) parts.Add(Loc.T("deal_security"));
         return string.Join(" · ", parts);
     }

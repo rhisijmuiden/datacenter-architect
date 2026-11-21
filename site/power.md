@@ -93,8 +93,12 @@ The UPS bridges the seconds until the generators run. Its autonomy in minutes is
 ## Energy
 
 - **Suppliers** (fictional): Polder Energie (fixed), Delta Stroom (variable, follows the market), Noordwind Groen (green, fixed) and Kustlicht (green, variable). The energy bill is IT load × PUE × price.
-- **Own energy**: solar panels on roofs or fields, wind turbines and **battery containers** that charge when power is cheap and sell back when it is expensive (Infrastructure › Energy and ESG).
-- Green contracts and own energy raise your **ESG score**, which green customers, investors and the share price look at.
+- **Own energy**: solar fields on roofs or ground, wind turbines (ground only) and **battery containers**. They are worked out hour by hour: solar follows the sun and the weather, wind the season and the weather.
+- **Your own power comes first.** Every hour own power feeds your site, then charges the battery, then is sold to the grid at 60% of the market price (up to your grid connection). Whatever is still missing comes from the grid.
+- **Battery policy** (Infrastructure › Own energy): *store own power* (default), *trade on the market* (charge cheap from the grid, sell dear) or *smart* (own surplus first, the rest trades). A reserve (20% by default) stays charged for outages. Selling can be switched off.
+- **Own energy screen**: the share of your use that came from your own sun, wind and battery (per day and over 30 days), generation, grid, sold, battery charge, an hourly chart and where your power went. The top bar shows the 30-day share.
+- **Green datacenter**: 30 days at 50% own energy or more brings a **nomination**; then the audit (Reputation › Certificates, also PUE 1.45 or lower) gives the green label. **Green Gold** needs 80% and PUE 1.30. Under the threshold you get 60 days of grace, then the label is suspended until you are back above it. A green supplier contract gives ESG points but does not count for the label.
+- Green contracts and own energy raise your **ESG score**, which investors and the share price look at.
 
 ## Power checklist
 
