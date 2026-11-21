@@ -805,6 +805,12 @@ public partial class Hud : Control
     public void Pick(BuildItem item)
     {
         _item = item;
+        // show the tray that holds the item (a fix button can pick a tool from another category)
+        if (item.Mode != Mode.Select && !Categories.Any(c => c.cat == _category && c.items.Contains(item)))
+        {
+            var home = Categories.FirstOrDefault(c => c.items.Contains(item)).cat;
+            if (home != null && (_catBtns?.ContainsKey(home) ?? false)) _category = home;
+        }
         if (item.Mode is Mode.Room or Mode.Door) ToggleRoofsIfNeeded();
         RefreshCategory();
         ToolChanged?.Invoke(item);
@@ -1086,7 +1092,8 @@ public partial class Hud : Control
         for (var i = 0; i < _speedBtns.Count; i++) Active(_speedBtns[i], i == s);
     }
 
-    public void Notify(string text, Color? accent = null)
+    /// <summary>A message in the top right corner; with <paramref name="go"/> it can be clicked (jump to the spot and fix it).</summary>
+    public void Notify(string text, Color? accent = null, Action go = null)
     {
         var p = new PanelContainer();
         var s = Ui.Box(Brand.Panel, 8, null, 0, 10);
@@ -1096,9 +1103,22 @@ public partial class Hud : Control
         l.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
         p.AddChild(l);
         p.MouseFilter = MouseFilterEnum.Ignore;
+        if (go != null)
+        {
+            l.MouseFilter = MouseFilterEnum.Ignore;
+            p.MouseFilter = MouseFilterEnum.Stop;
+            p.MouseDefaultCursorShape = CursorShape.PointingHand;
+            p.TooltipText = Loc.T("outage_click");
+            p.GuiInput += e =>
+            {
+                if (e is not InputEventMouseButton { Pressed: true, ButtonIndex: MouseButton.Left }) return;
+                go();
+                p.Visible = false;
+            };
+        }
         p.SizeFlagsHorizontal = SizeFlags.ShrinkEnd;
         _notes.AddChild(p);
-        History.Insert(0, new HudMessage(_date?.Text ?? "", text, accent ?? Brand.Amber));
+        History.Insert(0, new HudMessage(_date?.Text ?? "", text, accent ?? Brand.Amber, go));
         if (History.Count > 200) History.RemoveAt(History.Count - 1);
         World.UiSounds.Instance?.Chime();
         // remove (not only queue) the oldest, or a burst of messages in one frame never leaves this loop
