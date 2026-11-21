@@ -932,7 +932,7 @@ public partial class WorldView : Node3D
         var leaf = d.Type switch
         {
             DoorType.Fire => new Color("#c0392b"),
-            DoorType.Badge => new Color("#3a4652"),
+            DoorType.Badge or DoorType.BadgeDouble => new Color("#3a4652"),
             DoorType.RollUp => new Color("#9aa4ab"),
             DoorType.Mantrap => new Color("#9fd3ee", 0.45f),
             _ => new Color("#8a6b4f"),
@@ -958,7 +958,7 @@ public partial class WorldView : Node3D
                 reg?.Hinges.Add((hinge, i % 2 == 0 ? -1f : 1f));
                 Box(hinge, new Vector3(i % 2 == 0 ? 0.45f : -0.45f, h / 2, 0), new Vector3(0.88f, h - 0.05f, 0.05f), leaf);
             }
-            if (d.Type is DoorType.Badge or DoorType.Mantrap) Box(n, new Vector3(w / 2f + 0.15f, 1.2f, 0.16f), new Vector3(0.12f, 0.18f, 0.04f), Brand.Ok, glow: true);
+            if (d.Type is DoorType.Badge or DoorType.BadgeDouble or DoorType.Mantrap) Box(n, new Vector3(w / 2f + 0.15f, 1.2f, 0.16f), new Vector3(0.12f, 0.18f, 0.04f), Brand.Ok, glow: true);
             if (d.Type == DoorType.Mantrap)
             {
                 // a round glass booth with two sliding doors: one person at a time

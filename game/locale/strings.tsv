@@ -209,9 +209,10 @@ room_storage	Storage	Opslag
 room_corridor	Corridor	Gang
 door_single	Single door	Enkele deur
 door_double	Double door	Dubbele deur
-door_fire	Fire door	Branddeur
-door_badge	Badge door	Badgedeur
+door_fire	Fire door (badge reader)	Branddeur (met paslezer)
+door_badge	Badge door	Deur met paslezer
 door_rollup	Roll-up door	Roldeur
+door_badge_double	Double badge door	Dubbele deur met paslezer
 stage_foundation	Foundation	Fundering
 stage_walls	Walls	Muren
 stage_roof	Roof	Dak
@@ -259,7 +260,7 @@ msg_room_done	{0} is ready.	{0} is klaar.
 msg_need_dock	Racks are waiting: build a loading dock with a roll-up door onto asphalt.	Er wachten racks: bouw een laadperron met een roldeur aan het asfalt.
 msg_dock_no_road	Trucks cannot reach the loading dock. Connect it to the road with asphalt.	Vrachtwagens kunnen het laadperron niet bereiken. Sluit het met asfalt aan op de weg.
 msg_dock_unreachable	Fitters cannot reach the loading dock.	Monteurs kunnen het laadperron niet bereiken.
-msg_hall_needs_wide_door	Fitters cannot get racks into the hall. Racks need double doors or roll-up doors all the way.	Monteurs krijgen de racks de hal niet in. Racks hebben de hele route dubbele deuren of roldeuren nodig.
+msg_hall_needs_wide_door	Fitters cannot get racks into the hall. There must be a route with doors; a rack does not fit through a mantrap.	Monteurs krijgen de racks de hal niet in. Er moet een route met deuren zijn; een rack past niet door een sluisdeur.
 msg_hall_needs_lift	Racks for an upper floor need a freight lift.	Racks voor een hogere verdieping hebben een goederenlift nodig.
 msg_rack_unreachable	An engineer cannot reach a rack. Leave an aisle next to it.	Een engineer kan een rack niet bereiken. Laat er een gang naast.
 msg_first_rack_live	Your first rack is live and ready to sell!	Je eerste rack is live en klaar voor verkoop!
@@ -1145,7 +1146,7 @@ sec_gate_tip	Guard booth, a barrier (number plate recognition after research), a
 sec_cameras	Cameras	Camera's
 sec_cameras_tip	Cameras on poles outside, and a dome camera in every hall and meet-me room. AI video analysis (research) adds more.	Camera's op palen buiten, en een dome-camera in elke hal en meet-me room. AI-videoanalyse (research) voegt meer toe.
 sec_access	Access control	Toegangscontrole
-sec_access_tip	Only badge doors (or fire doors) into halls and meet-me rooms, biometric readers (research) and a mantrap at the entrance (research).	Alleen badgedeuren (of branddeuren) naar hallen en meet-me rooms, biometrische lezers (research) en een sluisdeur bij de ingang (research).
+sec_access_tip	Only doors with a badge reader (badge doors, double badge doors, fire doors) into halls and meet-me rooms, biometric readers (research) and a mantrap at the entrance (research). Click a door to add a reader on the spot.	Alleen deuren met paslezer (deur met paslezer, dubbele deur met paslezer, branddeur) naar hallen en meet-me rooms, biometrische lezers (research) en een sluisdeur bij de ingang (research). Klik op een deur om er direct een lezer op te zetten.
 sec_room	Security room	Beveiligingsruimte
 sec_room_tip	A security video wall in the security room and a glass lodge where the guard sits.	Een videowall in de beveiligingsruimte en een glazen loge waar de beveiliger zit.
 sec_people	Guards and management	Beveiligers en leiding
@@ -1829,3 +1830,17 @@ hud_day_night_off	Always daylight. Click to let the sun follow the clock again.	
 hud_weather	Weather	Weer
 hud_weather_on	Weather: on (rain, fog, snow, storms). Click to always have clear skies.	Weer: aan (regen, mist, sneeuw, onweer). Klik voor altijd helder weer.
 hud_weather_off	Weather: off, always clear. Click to turn rain, fog and snow back on.	Weer: uit, altijd helder. Klik om regen, mist en sneeuw weer aan te zetten.
+msg_door_swap_width	A door can only change into a type of the same width or narrower.	Een deur kan alleen veranderen in een type met dezelfde breedte of smaller.
+action_door_swap	Change to {0} · {1}	Wijzig naar {0} · {1}
+action_door_swap_back	Change to {0} · {1} back	Wijzig naar {0} · {1} terug
+inspect_door_width	{0} m wide · {1}	{0} m breed · {1}
+inspect_door_secure	Badge reader: counts for access control	Paslezer: telt mee voor toegangscontrole
+inspect_door_open	No badge reader	Geen paslezer
+inspect_door_racks	Racks fit through	Racks kunnen erdoor
+inspect_door_no_racks	Racks do not fit through	Racks kunnen er niet door
+inspect_door_rooms	Between: {0}	Tussen: {0}
+room_none	corridor / outside	gang / buiten
+msg_door_swapped	Door changed into {0}.	Deur gewijzigd in {0}.
+sec_secure_doors	Badge readers on all hall and MMR doors ({0}) · {1}	Paslezers op alle hal- en MMR-deuren ({0}) · {1}
+sec_doors_ok	All hall and MMR doors have a badge reader.	Alle hal- en MMR-deuren hebben een paslezer.
+msg_doors_secured	{0} doors got a badge reader.	{0} deuren hebben een paslezer gekregen.

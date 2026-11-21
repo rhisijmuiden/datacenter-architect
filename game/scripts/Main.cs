@@ -176,7 +176,7 @@ public partial class Main : Node3D
         _ui.AddChild(_planBar);
         _ui.MoveChild(_planBar, 2);
         _playing = true; _speed = 1; _autosaveTimer = 0; _item = BuildItem.Select; _bankruptShown = false;
-        _inspectCell = null; SetOverlay(OverlayMode.None);
+        _inspectCell = null; _inspectDoor = -1; SetOverlay(OverlayMode.None);
         _hud.UpdateStats(_state);
         _history.Clear(); RefreshUndo();
         UpdateGoals();
@@ -541,7 +541,7 @@ public partial class Main : Node3D
         if (_item.Mode != Mode.Select) _hud.Pick(BuildItem.Select);
         _world.ClearGhost();
         _world.GridVisible = false;
-        _inspectCell = null;
+        _inspectCell = null; _inspectDoor = -1;
         _fp.Bounds = _cam.Bounds;
         var floor = _world.Roofs ? 0 : _world.ViewFloor;
         _fp.Begin(_state, _sim.Nav, _cam.TargetPoint, floor, _cam.Yaw);
@@ -589,7 +589,7 @@ public partial class Main : Node3D
         StopWalk();
         CloseDrawer();
         if (_item.Mode != Mode.Select) _hud.Pick(BuildItem.Select);
-        _world.ClearGhost(); _inspectCell = null;
+        _world.ClearGhost(); _inspectCell = null; _inspectDoor = -1;
         _speedBeforePhoto = _speed; _speed = 0; _hud.SetSpeed(0);
         _gridBeforePhoto = _world.GridVisible; _world.GridVisible = false;
         _hud.Visible = false;
@@ -765,7 +765,8 @@ public partial class Main : Node3D
                 {
                     case Mode.Select:
                         var roof = _world.Roofs ? RoofCell(mb.Position) : null;
-                        Inspect(roof ?? c, roof != null);
+                        if (roof == null && !_world.Roofs && DoorNear(p.Value) is { } near) InspectDoor(near);
+                        else Inspect(roof ?? c, roof != null);
                         break;
                     case Mode.Object: PlaceObject(RoofItem ? RoofCell(mb.Position) ?? c : c); break;
                     case Mode.Door: PlaceDoor(DoorAt(p.Value)); break;
@@ -871,7 +872,9 @@ public partial class Main : Node3D
                 break;
             case Mode.Door:
                 var door = DoorAt(_hoverPoint);
-                _world.ShowGhostDoor(door, _state.CanDoor(door) == null);
+                if (SwapTarget(door) is { } swap)
+                    _world.ShowGhostDoor(new Door { Type = door.Type, X = swap.X, Z = swap.Z, Dir = swap.Dir, Floor = swap.Floor }, _state.CanSwapDoor(swap, door.Type) == null);
+                else _world.ShowGhostDoor(door, _state.CanDoor(door) == null);
                 break;
             case Mode.Object:
                 var gk = (ObjKind)_item.Arg;
@@ -1062,8 +1065,17 @@ public partial class Main : Node3D
         _hud.UpdateStats(_state);
     }
 
+    /// <summary>An existing door under a new door of another type that it can be changed into on the spot.</summary>
+    Door SwapTarget(Door d)
+    {
+        var existing = _state.Doors.FirstOrDefault(o => o.Floor == d.Floor && o.Edges().Intersect(d.Edges()).Any());
+        return existing != null && existing.Type != d.Type && _state.DoorSwaps(existing).Contains(d.Type) ? existing : null;
+    }
+
     void PlaceDoor(Door d)
     {
+        // a door of another type on top of an existing one: change it on the spot instead of refusing
+        if (SwapTarget(d) is { } existing) { SwapDoor(existing, d.Type); return; }
         _state.Planning = _planMode;
         var why = _state.CanDoor(d);
         _state.Planning = false;
@@ -1098,7 +1110,69 @@ public partial class Main : Node3D
 
     void RefreshInspect()
     {
-        if (_inspectCell != null) Inspect(_inspectCell.Value, _inspectRoof);
+        if (_inspectDoor >= 0) { var d = _state.Doors.FirstOrDefault(x => x.Id == _inspectDoor); if (d != null) InspectDoor(d); else { _inspectDoor = -1; _hud.Inspect(null, null); } }
+        else if (_inspectCell != null) Inspect(_inspectCell.Value, _inspectRoof);
+    }
+
+    /// <summary>The door being shown in the inspector (-1 = none).</summary>
+    int _inspectDoor = -1;
+
+    /// <summary>A door on the view floor whose opening lies close to the mouse, or null.</summary>
+    Door DoorNear(Vector2 p)
+    {
+        const float reach = 0.35f;
+        foreach (var d in _state.Doors.Where(x => x.Floor == _world.ViewFloor))
+            foreach (var (x, z, dir) in d.Edges())
+            {
+                var near = dir == 0 ? Math.Abs(p.X - x) < reach && p.Y >= z && p.Y <= z + 1 : Math.Abs(p.Y - z) < reach && p.X >= x && p.X <= x + 1;
+                if (near) return d;
+            }
+        return null;
+    }
+
+    /// <summary>Door inspector: what the door is, the rooms it joins, and swaps on the spot (badge reader, narrower, fire door).</summary>
+    void InspectDoor(Door d)
+    {
+        _inspectDoor = d.Id; _inspectCell = null;
+        var def = Catalog.Doors[d.Type];
+        var lines = new List<string>
+        {
+            Loc.T("inspect_door_width", def.Width, Ui.FloorName(d.Floor)),
+            def.Secure ? Loc.T("inspect_door_secure") : Loc.T("inspect_door_open"),
+            def.Carry ? Loc.T("inspect_door_racks") : Loc.T("inspect_door_no_racks"),
+        };
+        var (ex, ez, dir) = d.Edges().First();
+        var a = dir == 0 ? _state.RoomAt(ex - 1, ez, d.Floor) : _state.RoomAt(ex, ez - 1, d.Floor);
+        var b = _state.RoomAt(ex, ez, d.Floor);
+        string Name(Room r) => r == null ? Loc.T("room_none") : Loc.T(Catalog.Rooms[r.Type].NameKey);
+        lines.Add(Loc.T("inspect_door_rooms", Name(a) + " ↔ " + Name(b)));
+        var actions = new List<(string, Action, bool)>();
+        // the badge-reader version first: that is what the player usually comes for
+        var swaps = _state.DoorSwaps(d).OrderByDescending(t => GameState.BadgeVersion(d) == t).ThenBy(t => Catalog.Doors[t].Cost).ToList();
+        foreach (var t in swaps)
+        {
+            if (t == DoorType.Mantrap && !_state.Done("sec_mantrap")) continue;
+            var cost = _state.DoorSwapCost(d, t);
+            var to = t; var door = d;
+            var label = cost >= 0 ? Loc.T("action_door_swap", Loc.T(Catalog.Doors[t].NameKey), Ui.Money(cost)) : Loc.T("action_door_swap_back", Loc.T(Catalog.Doors[t].NameKey), Ui.Money(-cost));
+            actions.Add((label, () => SwapDoor(door, to), _state.CanSwapDoor(d, t) == null));
+        }
+        _hud.Inspect(Loc.T(def.NameKey), lines, actions);
+    }
+
+    /// <summary>Change a door on the spot, recorded for undo.</summary>
+    void SwapDoor(Door d, DoorType t)
+    {
+        var before = UndoHistory.Take(_state);
+        var why = _state.SwapDoor(d, t);
+        if (why == null)
+        {
+            Record(before, Catalog.Doors[t].NameKey);
+            _hud.Notify(Loc.T("msg_door_swapped", Loc.T(Catalog.Doors[t].NameKey)), Brand.Ok);
+            var now = _state.Doors.FirstOrDefault(x => x.Id == d.Id);
+            if (now != null && _inspectDoor == d.Id) InspectDoor(now);
+        }
+        Act(why);
     }
 
     static string Kw(double v) => $"{v:0} kW";
@@ -1107,7 +1181,7 @@ public partial class Main : Node3D
 
     void Inspect(Vector2I c, bool roof = false)
     {
-        _inspectCell = c; _inspectRoof = roof;
+        _inspectCell = c; _inspectRoof = roof; _inspectDoor = -1;
         var f = _world.ViewFloor;
         var infra = _state.Infra;
         var o = roof ? _state.ObjectAt(c.X, c.Y, GameState.RoofFloor) : _state.ObjectAt(c.X, c.Y, f);

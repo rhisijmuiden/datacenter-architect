@@ -242,6 +242,8 @@ Binnen een gebouw **teken je zelf ruimtes**: muren trekken, deuren plaatsen en e
 **Toegang en beveiliging**
 
 - Ruimtes hebben toegangsniveaus. Deuren met een badgelezer laten alleen bevoegde mensen door.
+- **Deuren en racks** (wens van Reinder, 21 november 2026): een rack op een karretje past door **elke deur** behalve de mantrap. Een enkele deur is genoeg; door een dubbele deur of roldeur gaat het iets vlotter, dus monteurs kiezen die als hij er is. Er is een **dubbele deur met paslezer** naast de enkele deur met paslezer en de branddeur (ook met lezer).
+- **Deuren direct wijzigen**: klik op een deur (of plaats een ander deurtype eroverheen) om hem op dezelfde plek te veranderen: paslezer erop, versmallen, branddeur. Geen bouwtijd; je betaalt het prijsverschil, een goedkopere deur geeft een kwart van het verschil terug. Ongedaan maken werkt. In Beveiliging zet één knop paslezers op alle deuren van datazalen en MMR's, zodat de volle punten voor toegangscontrole altijd haalbaar zijn.
 - Een **mantrap** (sluis) tussen de publieke zone en de datazalen is een eis bij veel grote contracten.
 
 ## Meerdere verdiepingen

@@ -45,6 +45,7 @@ public static partial class TestRunner
             ("basement", BasementTests),
             ("customers per hall", HallClientTests),
             ("add a floor", AddLevelTests),
+            ("door swaps and badge readers", DoorSwapTests),
         };
         // DCA_TESTS=basement,stairs runs only the groups whose name contains one of the words
         var only = System.Environment.GetEnvironmentVariable("DCA_TESTS")?.Split(',', StringSplitOptions.RemoveEmptyEntries);
@@ -399,16 +400,18 @@ public static partial class TestRunner
         hall.Stage = dock.Stage = Stage.Done;
         s.PaintSurface(30, 36, 3, 4, Surface.Asphalt, out _);
         s.AddDoor(DoorType.RollUp, 30, 36, 1, 0);
-        s.AddDoor(DoorType.Single, 30, 30, 0, 0);
+        // a mantrap is a one-person sluice: no rack fits through it
+        var trap = new Door { Id = s.NextId++, Type = DoorType.Mantrap, X = 30, Z = 30, Dir = 0, Floor = 0 };
+        s.Doors.Add(trap); s.Touch();
         var racks = Enumerable.Range(0, 4).Select(i => s.AddObject(ObjKind.Rack, 24 + i, 28, 0, 0)).ToList();
         Check(sim.Docks().Count == 1, "a roll-up door makes one loading bay");
         Run(sim, 60, () => racks.All(r => r.Status == ObjStatus.Delivered));
         Check(racks.All(r => r.Status == ObjStatus.Delivered), "truck delivers racks to the dock");
         Run(sim, 20);
-        Check(racks.All(r => r.Status == ObjStatus.Delivered), "racks do not fit through a single door");
-        Check(sim.Messages.Any(m => m.key == "msg_hall_needs_wide_door"), "player is told a wide door is needed");
-        s.Erase(30, 30, 1, 1, 0);
-        s.AddDoor(DoorType.Double, 30, 30, 0, 0);
+        Check(racks.All(r => r.Status == ObjStatus.Delivered), "racks do not fit through a mantrap");
+        Check(sim.Messages.Any(m => m.key == "msg_hall_needs_wide_door"), "player is told the racks cannot get in");
+        // a plain single door is enough for a rack trolley now
+        Check(s.SwapDoor(trap, DoorType.Single) == null, "the mantrap is swapped for a single door on the spot");
         Run(sim, 120, () => racks.All(r => r.Status == ObjStatus.Live));
         Check(racks.All(r => r.Status == ObjStatus.Live), "fitters place racks, engineer connects power and fiber");
         Check(s.LiveRacks == 4 && s.PowerDemandKw >= 24, "live racks draw power");
@@ -424,7 +427,7 @@ public static partial class TestRunner
         Check(inside == null, "closed building cannot be entered");
         s.AddDoor(DoorType.Single, 12, 18, 1, 0);
         Check(nav.Find(new Pt(5, 5, 0), 0, (x, z) => x == 12 && z == 12, NavMode.Walk) != null, "door lets people in");
-        Check(nav.Find(new Pt(5, 5, 0), 0, (x, z) => x == 12 && z == 12, NavMode.Carry) == null, "single door is too narrow for a rack");
+        Check(nav.Find(new Pt(5, 5, 0), 0, (x, z) => x == 12 && z == 12, NavMode.Carry) != null, "a rack trolley fits through a single door");
         Check(nav.Find(new Pt(5, 5, 0), 1, (x, z) => x == 12 && z == 12, NavMode.Walk) == null, "upper floor needs a lift");
         s.AddObject(ObjKind.Lift, 14, 14, 0, 0);
         var up = nav.Find(new Pt(5, 5, 0), 1, (x, z) => x == 12 && z == 12, NavMode.Walk);
@@ -442,7 +445,7 @@ public static partial class TestRunner
         Check(!nav2.Connected(5, 5, 12, 12, 0, NavMode.Walk) && nav2.Find(new Pt(5, 5, 0), 0, (x, z) => x == 12 && z == 12, NavMode.Walk, (12, 12)) == null, "a closed room is not connected");
         s2.AddDoor(DoorType.Single, 12, 18, 1, 0);
         Check(nav2.Connected(5, 5, 12, 12, 0, NavMode.Walk) && nav2.Find(new Pt(5, 5, 0), 0, (x, z) => x == 12 && z == 12, NavMode.Walk, (12, 12)) != null, "a door joins the areas");
-        Check(!nav2.Connected(5, 5, 12, 12, 0, NavMode.Carry), "a single door does not join them for carried racks");
+        Check(nav2.Connected(5, 5, 12, 12, 0, NavMode.Carry), "a single door joins them for carried racks too");
     }
 
     static void UndoTests()

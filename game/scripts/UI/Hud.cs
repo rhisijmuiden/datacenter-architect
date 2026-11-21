@@ -112,7 +112,7 @@ public partial class Hud : Control
             new BuildItem(Mode.Building, (int)BuildingKind.Warehouse), O(ObjKind.Stairs), O(ObjKind.PassengerLift), O(ObjKind.Lift),
             new BuildItem(Mode.Door, (int)DoorType.Single), new BuildItem(Mode.Door, (int)DoorType.Double),
             new BuildItem(Mode.Door, (int)DoorType.Fire), new BuildItem(Mode.Door, (int)DoorType.Badge),
-            new BuildItem(Mode.Door, (int)DoorType.RollUp),
+            new BuildItem(Mode.Door, (int)DoorType.BadgeDouble), new BuildItem(Mode.Door, (int)DoorType.RollUp),
         }),
         ("cat_rooms", Enum.GetValues<RoomType>().Select(t => new BuildItem(Mode.Room, (int)t)).ToArray()),
         ("cat_interior", new[]

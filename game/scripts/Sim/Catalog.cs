@@ -17,7 +17,7 @@ public enum Stage { Foundation, Walls, Roof, Done }
 
 public enum RoomType { DataHall, MeetMe, UpsRoom, Office, Executive, Meeting, Canteen, Lounge, Reception, Security, LoadingDock, Storage, Corridor, Transformer, Switchgear, Battery, Noc, Lab, Soc, Warehouse }
 
-public enum DoorType { Single, Double, Fire, Badge, RollUp, Mantrap }
+public enum DoorType { Single, Double, Fire, Badge, RollUp, Mantrap, BadgeDouble }
 
 public enum ObjKind
 {
@@ -79,7 +79,9 @@ public record SurfaceDef(Surface Surface, string NameKey, long Cost, bool Trucks
 public record FenceDef(FenceType Type, string NameKey, long Cost, float Height, int Security, bool NeedsResearch);
 public record BuildingDef(BuildingKind Kind, string NameKey, long CostPerCellPerFloor);
 public record RoomDef(RoomType Type, string NameKey, string Color);
-public record DoorDef(DoorType Type, string NameKey, int Width, long Cost, bool Wide);
+/// <summary>A door type. <paramref name="Carry"/>: a rack on a trolley fits through (every door but the mantrap);
+/// <paramref name="Secure"/>: it has a badge reader and counts for the security level.</summary>
+public record DoorDef(DoorType Type, string NameKey, int Width, long Cost, bool Carry, bool Secure = false);
 
 public static class Catalog
 {
@@ -310,12 +312,13 @@ public static class Catalog
 
     public static readonly Dictionary<DoorType, DoorDef> Doors = new()
     {
-        [DoorType.Single] = new(DoorType.Single, "door_single", 1, 600, false),
+        [DoorType.Single] = new(DoorType.Single, "door_single", 1, 600, true),
         [DoorType.Double] = new(DoorType.Double, "door_double", 2, 1400, true),
-        [DoorType.Fire] = new(DoorType.Fire, "door_fire", 1, 1800, false),
-        [DoorType.Badge] = new(DoorType.Badge, "door_badge", 1, 3200, false),
+        [DoorType.Fire] = new(DoorType.Fire, "door_fire", 1, 1800, true, true),
+        [DoorType.Badge] = new(DoorType.Badge, "door_badge", 1, 3200, true, true),
+        [DoorType.BadgeDouble] = new(DoorType.BadgeDouble, "door_badge_double", 2, 4400, true, true),
         [DoorType.RollUp] = new(DoorType.RollUp, "door_rollup", 3, 5200, true),
-        [DoorType.Mantrap] = new(DoorType.Mantrap, "door_mantrap", 1, 24000, false),
+        [DoorType.Mantrap] = new(DoorType.Mantrap, "door_mantrap", 1, 24000, false, true),
     };
 
     public static readonly Dictionary<Role, long> WagePerDay = new()
