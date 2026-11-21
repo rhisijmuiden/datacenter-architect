@@ -268,7 +268,7 @@ public partial class Main : Node3D
             PanelKind.Growth => new GrowthPanel(() => _state, Fail, want),
             PanelKind.Power => new PowerPanel(() => _state, Fail),
             PanelKind.Progress => new ProgressPanel(() => _state, StartPhoto, want),
-            _ => new NetworkPanel(() => _state, Fail),
+            _ => new NetworkPanel(() => _state, Fail, want, item => _hud.Pick(item)),
         };
         m.Kind = e.Kind;
         m.Dock(Hud.LeftEdge - 2, section, tabIndex, (s, t) => OpenSectionTab(s, t));
@@ -1158,8 +1158,11 @@ public partial class Main : Node3D
                     actions.Add((Loc.T("action_duct", Catalog.Subducts(o.Level + 1), Ui.Money(Catalog.UpgradeCost(d, o.Level))), () => Act(_state.UpgradeObject(target)), _state.CanUpgrade(o) == null));
                 }
             }
-            if (o.Kind is ObjKind.FiberPit or ObjKind.Odf or ObjKind.CoreRouter or ObjKind.Spine or ObjKind.NocWall)
+            if (Catalog.IsHallSwitch(o.Kind) || o.Kind is ObjKind.DistSwitch or ObjKind.CoreRouter) lines.AddRange(NetworkPanel.InspectLines(_state, o));
+            if (o.Kind is ObjKind.FiberPit or ObjKind.Odf or ObjKind.NocWall)
                 actions.Add((Loc.T("net_overview"), OpenNetwork, true));
+            if (Catalog.IsHallSwitch(o.Kind) || o.Kind is ObjKind.DistSwitch or ObjKind.CoreRouter)
+                actions.Add((Loc.T("ntree_open"), () => OpenPanel(PanelKind.Network, NetworkPanel.TabTree), true));
             if (d.PowerKw > 0) lines.Add($"{d.PowerKw:0.#} kW");
             if (d.CoolingKw > 0) lines.Add(Loc.T("inspect_cooling", Math.Round(d.CoolingKw * Catalog.LevelFactor(o.Level))));
             if (d.RejectKw > 0) lines.Add(Loc.T("inspect_reject", Math.Round(d.RejectKw * Catalog.LevelFactor(o.Level))));
@@ -1213,7 +1216,8 @@ public partial class Main : Node3D
                 }
                 if (r.Upgrade != 0) lines.Add(Loc.T("inspect_upgrading", Math.Ceiling(r.UpgradeLeft)));
                 var hn = _state.Net.Halls.FirstOrDefault(h => h.Room == r);
-                if (hn != null && hn.Racks > 0) lines.Add((hn.Online < hn.Racks ? "⚠ " : "") + Loc.T("inspect_hall_net", hn.Online, hn.Racks, hn.Spines));
+                if (hn != null && hn.Racks > 0) lines.Add((hn.Online < hn.Racks ? "⚠ " : "") + Loc.T("inspect_hall_net", hn.Online, hn.Racks, hn.Spines)
+                    + " · " + Loc.T("ntree_ports_of", hn.UsedPorts, hn.Ports) + (hn.AB ? " · A/B" : ""));
                 var hall = r;
                 if (r.Containment < Containment.ColdCorridor)
                 {
@@ -1688,6 +1692,12 @@ public partial class Main : Node3D
             var hs = _state.Rooms.Where(r => r.Type == RoomType.DataHall).ToList();
             if (hs.Count > 0) _state.SetHallClients(hs[0], new[] { CustomerType.Bank, CustomerType.Government });
             if (hs.Count > 1) _state.SetHallClients(hs[1], new[] { CustomerType.Ai });
+        }
+        if (args.Contains("--nettree-demo") && _state != null)
+        {
+            // network tree: without the spine the demo hall runs on two Edge 48s, not every rack gets a B port
+            _state.Objects.RemoveAll(o => o.Kind == ObjKind.Spine);
+            _state.Touch();
         }
         var coi = Array.IndexOf(args, "--company");
         if (coi >= 0 && coi + 1 < args.Length) { _playing = true; OpenCompany(int.Parse(args[coi + 1])); }

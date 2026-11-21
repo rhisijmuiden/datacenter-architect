@@ -45,6 +45,7 @@ public static partial class TestRunner
             ("basement", BasementTests),
             ("customers per hall", HallClientTests),
             ("add a floor", AddLevelTests),
+            ("network tree", NetTreeTests),
         };
         // DCA_TESTS=basement,stairs runs only the groups whose name contains one of the words
         var only = System.Environment.GetEnvironmentVariable("DCA_TESTS")?.Split(',', StringSplitOptions.RemoveEmptyEntries);
@@ -777,11 +778,11 @@ public static partial class TestRunner
         n = s.Net;
         Check(n.Upstream && n.OnlineRacks == 0, "no core router and no spine: still offline");
         Live(s, ObjKind.CoreRouter, 27, 10);
-        var sp = Live(s, ObjKind.Spine, 5, 20);
+        var sp = Live(s, ObjKind.EdgeSwitch48, 5, 20);
         n = s.Net;
-        Check(n.OnlineRacks == 48 && n.OfflineRacks == 2, $"one spine has 48 ports: 48 online ({n.OnlineRacks})");
+        Check(n.OnlineRacks == 48 && n.OfflineRacks == 2, $"one Edge 48 has 48 ports: 48 online ({n.OnlineRacks})");
         Check(n.Halls[0].Spines == 1 && n.Spofs.Contains("spof_spine") && n.Spofs.Contains("spof_core"), "single spine and core are flagged");
-        Live(s, ObjKind.Spine, 6, 20);
+        Live(s, ObjKind.EdgeSwitch48, 6, 20);
         n = s.Net;
         Check(n.OnlineRacks == 50 && n.Link(NetLink.Spine).Redundancy == "N" && !n.Spofs.Contains("spof_spine"), "a second spine brings all racks online");
         // traffic: 50 racks × 0.25 Gbit/s × time of day
