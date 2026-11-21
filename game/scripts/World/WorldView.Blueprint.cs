@@ -59,7 +59,7 @@ public partial class WorldView
                 var (dx, dz) = GameState.FrontDir(o.Rot);
                 aisle.SetInstanceTransform(i, new Transform3D(Basis.Identity, p + new Vector3(dx, 0.09f, dz)));
             }
-            _ghost.AddChild(new MultiMeshInstance3D { Multimesh = box, MaterialOverride = GhostMat(ok ? new Color("#8FE3F7") : Brand.Critical), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
+            _ghost.AddChild(new MultiMeshInstance3D { Multimesh = box, MaterialOverride = GhostFlat(ok ? new Color("#16293A") : Brand.Critical, 0.8f), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
             _ghost.AddChild(new MultiMeshInstance3D { Multimesh = aisle, MaterialOverride = GhostFlat(Brand.Cooling, 0.35f), CastShadow = GeometryInstance3D.ShadowCastingSetting.Off });
         }
         foreach (var o in bp.Objects.Where(o => o.Kind != ObjKind.Rack))
