@@ -1,0 +1,32 @@
+# Left menu of the player guide. "page" is the file name without .md (index = home); the same file exists in nl/.
+groups:
+  - en: Start
+    nl: Start
+    items:
+      - { page: index, en: Home, nl: Home, icon: home }
+      - { page: getting-started, en: Your first datacenter, nl: Je eerste datacenter, icon: flag }
+      - { page: design, en: How the game thinks, nl: Hoe de game denkt, icon: compass }
+  - en: Build
+    nl: Bouwen
+    items:
+      - { page: buildings, en: Site and buildings, nl: Terrein en gebouwen, icon: building }
+      - { page: rooms, en: Rooms, nl: Ruimtes, icon: rooms }
+      - { page: racks, en: Racks online, nl: Racks online krijgen, icon: rack }
+  - en: Systems
+    nl: Systemen
+    items:
+      - { page: power, en: Power and redundancy, nl: Stroom en redundantie, icon: bolt, color: power }
+      - { page: cooling, en: Cooling, nl: Koeling, icon: snow, color: cooling }
+      - { page: network, en: Network and fiber, nl: Netwerk en glasvezel, icon: fiber, color: fiber }
+  - en: Run
+    nl: Runnen
+    items:
+      - { page: company, en: Company and customers, nl: Bedrijf en klanten, icon: org }
+      - { page: staff, en: Staff and incidents, nl: Personeel en storingen, icon: crew }
+      - { page: growth, en: "Security, research, growth", nl: "Beveiliging, research, groei", icon: star }
+      - { page: world, en: World and progress, nl: Wereld en voortgang, icon: sun }
+  - en: Help
+    nl: Hulp
+    items:
+      - { page: tips, en: Tips and tricks, nl: Tips en trucs, icon: bulb }
+      - { page: game, en: "Install, updates, saves", nl: "Installeren, updates, saves", icon: gear }
