@@ -231,7 +231,7 @@ public class HallReport
             Upgrades.Add(new HallUpgrade { Kind = HallUpgradeKind.Pdu, Obj = kind, Count = count, Cost = Catalog.Objects[kind].Cost * count, Priority = short_ ? 0 : 3,
                 Blocked = s.CanAfford(Catalog.Objects[kind].Cost) ? null : "msg_no_money" });
         }
-        if (!room.Busbar)
+        if (!room.Busbar && !room.UpgradeQueue.Contains(2))
             Upgrades.Add(new HallUpgrade { Kind = HallUpgradeKind.Busbar, Cost = Catalog.BusbarCost, Hours = Catalog.BusbarHours, Priority = PowerLevel < HallLevel.AB && Racks > 0 ? 4 : 7,
                 Blocked = room.Upgrade == 2 ? "msg_upgrade_busy" : s.CanUpgradeHall(room, true) });
 
@@ -269,19 +269,20 @@ public class HallReport
             Upgrades.Add(new HallUpgrade { Kind = HallUpgradeKind.Crah, Obj = ObjKind.Crah, Count = count, Cost = d.Cost * count, Priority = CoolLevel == HallLevel.Short ? 2 : 6,
                 Blocked = s.CanAfford(d.Cost) ? null : "msg_no_money" });
         }
-        if (room.Containment < Containment.ColdCorridor)
+        if (GameState.PendingContainment(room) < Containment.ColdCorridor || room.Upgrade == 1)
             Upgrades.Add(new HallUpgrade { Kind = HallUpgradeKind.Containment, Cost = GameState.HallUpgradeCost(room), Hours = Catalog.Containments[room.Containment + 1].Hours, Priority = 8,
                 Blocked = room.Upgrade == 1 ? "msg_upgrade_busy" : s.CanUpgradeHall(room, false) });
         Upgrades.Sort((x, y) => x.Priority.CompareTo(y.Priority));
     }
 
     /// <summary>Extra CRAH units (level 1) the hall needs so it still cools every rack when one unit fails.</summary>
-    public int CrahsForNPlus1(GameState s)
+    public int CrahsForNPlus1(GameState s, Containment? level = null)
     {
-        var cont = Catalog.Containments[Room.Containment];
+        var cont = Catalog.Containments[level ?? Room.Containment];
         var caps = s.Objects.Where(o => o.Kind == ObjKind.Crah && o.Status == ObjStatus.Live && !o.Broken && o.Floor == Room.Floor && Room.Contains(o.X, o.Z))
             .Select(o => o.Def.CoolingKw * Catalog.LevelFactor(o.Level) * (1 + cont.CoolingBonus) * s.CrahFactor).ToList();
-        var unit = CrahUnit(s, Room);
+        var unit = CrahUnit(s, Room, 1, level);
+        if (caps.Count >= 2 && caps.Sum() - caps.Max() + 1e-6 >= NeedKw) return 0;
         for (var n = 1; n < 200; n++)
         {
             caps.Add(unit);

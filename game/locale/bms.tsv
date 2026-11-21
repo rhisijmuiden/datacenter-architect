@@ -1,0 +1,55 @@
+key	en	nl
+# Building management: every data hall in one table (infra sketch board 9)
+bms_title	Building management	Gebouwbeheer
+nav_tab_bms	Building management	Gebouwbeheer
+bms_intro	Power, network, cooling and redundancy of every data hall. Tick halls and bring them level with the same upgrades in one go.	Stroom, netwerk, koeling en redundantie van elke datahal. Vink hallen aan en trek ze in één keer gelijk met dezelfde upgrades.
+bms_filter_all	All halls ({0})	Alle hallen ({0})
+bms_filter_non1	Without N+1 ({0})	Zonder N+1 ({0})
+bms_filter_nobusbar	Without busbar ({0})	Zonder busbar ({0})
+bms_filter_hot	Cooling short ({0})	Koeling tekort ({0})
+bms_filter_notonline	Not fully online ({0})	Niet volledig online ({0})
+bms_filter_empty	No hall matches this filter.	Geen hal past bij dit filter.
+bms_tile_it	IT load	IT-last
+bms_tile_it_sub	{0} when every rack runs	{0} als elk rack draait
+bms_tile_ab	Power A+B	Stroom A+B
+bms_tile_ab_sub	halls with a second feed for every rack	hallen met dubbele voeding per rack
+bms_tile_net	Network N+1	Netwerk N+1
+bms_tile_net_sub	{0} of {1} Gbit/s uplink in use	{0} van {1} Gbit/s uplink in gebruik
+bms_tile_cool	Cooling N+1	Koeling N+1
+bms_tile_cool_sub	halls where one CRAH may fail	hallen waar één CRAH mag uitvallen
+bms_tile_hot	{0} hall(s) short on cooling or too hot · warmest {1} °C	{0} hal(len) met te weinig koeling of te warm · warmste {1} °C
+bms_tile_pue	Average PUE	PUE gemiddeld
+bms_tile_pue_sub	with cold corridors everywhere: {0}	met koude gangen overal: {0}
+bms_tile_pue_none	weighted by IT load	gewogen naar IT-last
+bms_select_all	Tick every hall shown	Vink alle getoonde hallen aan
+bms_col_hall	Hall	Hal
+bms_col_racks	Online	Online
+bms_col_dist	Distribution	Verdeling
+bms_col_air	Aisles	Gangen
+bms_col_pue	PUE	PUE
+bms_col_customer	Sold as	Verkocht als
+bms_show_hall	Show this hall	Toon deze hal
+bms_busy	upgrading · {0} h ({1} step(s))	upgrade bezig · {0} u ({1} stap(pen))
+bms_building	under construction	in aanbouw
+bms_building_sub	Shows up here once the hall is finished.	Verschijnt hier zodra de hal klaar is.
+bms_room_for	room for {0} more	ruimte voor nog {0}
+bms_unfed	{0} PDU(s) without a feed	{0} PDU('s) zonder voeding
+bms_pick_halls	Tick halls to level them up	Vink hallen aan om ze gelijk te trekken
+bms_picked	{0} hall(s) ticked	{0} hal(len) gekozen
+bms_step_busbar	Busbar A+B	Dubbele busbar (A+B)
+bms_step_containment	Cold corridor	Koude-gang-insluiting
+bms_step_powerab	Power to A+B (PDUs)	Stroom naar A+B (PDU's)
+bms_step_netn1	Network to N+1	Netwerk naar N+1
+bms_step_cooln1	Cooling to N+1	Koeling naar N+1
+bms_level_up	Level up	Gelijktrekken
+bms_help	The upgrades you tick are done in every ticked hall. What a hall already has is skipped; PDUs, edge switches and CRAHs are placed along the hall walls.	De aangevinkte upgrades komen in elke gekozen hal. Wat een hal al heeft wordt overgeslagen; PDU's, edge switches en CRAH's worden langs de halwanden geplaatst.
+bms_nothing	already level	al op niveau
+bms_skip_has	{0}: already there	{0}: zit er al in
+bms_skip_research	{0}: research the cold corridor first	{0}: onderzoek eerst de koude gang
+bms_skip_empty	{0}: no racks yet	{0}: nog geen racks
+bms_skip_busbar	{0}: the busbar gives A+B	{0}: de busbar geeft al A+B
+bms_skip_note	Hall upgrades run one after the other in a hall and are paid now. Click a hall code to see the hall itself.	Halupgrades lopen per hal na elkaar en worden nu betaald. Klik op een halcode voor de hal zelf.
+msg_level_up	Halls levelled up: {0} hall upgrade(s) started or queued, {1} device(s) placed.	Hallen gelijkgetrokken: {0} halupgrade(s) gestart of ingepland, {1} apparaat/apparaten geplaatst.
+msg_level_up_noroom	{0} device(s) found no free spot along the walls.	{0} apparaat/apparaten vonden geen vrije plek langs de wanden.
+ev_level_up	Building management levelled up halls ({0} jobs).	Gebouwbeheer heeft hallen gelijkgetrokken ({0} klussen).
+bms_customers	{0} customer(s)	{0} klant(en)

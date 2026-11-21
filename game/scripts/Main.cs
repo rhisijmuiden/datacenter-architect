@@ -295,6 +295,7 @@ public partial class Main : Node3D
             PanelKind.Growth => new GrowthPanel(() => _state, Fail, want),
             PanelKind.Power => new PowerPanel(() => _state, Fail, want),
             PanelKind.Progress => new ProgressPanel(() => _state, StartPhoto, want),
+            PanelKind.Building => new BuildingPanel(() => _state, Fail, r => { CloseDrawer(); ShowRoom(r); }, LevelUpHalls),
             _ => new NetworkPanel(() => _state, Fail, want, item => _hud.Pick(item), ShowObject),
         };
         m.Kind = e.Kind;
@@ -1335,6 +1336,24 @@ public partial class Main : Node3D
         }
     }
 
+    /// <summary>The building-management screen brings the ticked halls level; says what happened.</summary>
+    LevelUpResult LevelUpHalls(LevelUpPlan plan)
+    {
+        if (plan.Actions.Count == 0) return new(0, 0, 0, "msg_nothing_changed");
+        if (!_state.CanAfford(plan.Cost)) return new(0, 0, 0, "msg_no_money");
+        // hall upgrades are paid works like the hall card's buttons; the placed devices can be undone
+        var a = _state.LevelUp(plan, devices: false);
+        var before = UndoHistory.Take(_state);
+        var b = _state.LevelUp(plan, upgrades: false);
+        if (b.Placed > 0) Record(before, "bms_level_up");
+        var res = new LevelUpResult(a.Upgrades, b.Placed, b.NoRoom, null);
+        _hud.Notify(Loc.T("msg_level_up", res.Upgrades, res.Placed) + (res.NoRoom > 0 ? " " + Loc.T("msg_level_up_noroom", res.NoRoom) : ""), res.NoRoom > 0 ? Brand.Warning : Brand.Ok);
+        _hud.UpdateStats(_state); RefreshInspect();
+        return res;
+    }
+
+    static void BuildingPanelSelect(params Room[] halls) => BuildingPanel.Select(halls.Select(h => h.Id));
+
     void Act(string why) { if (why != null) Fail(why); _hud.UpdateStats(_state); RefreshInspect(); }
 
     /// <summary>Inspector of a main fiber duct: size, length, subducts in use, handholes and where it runs.</summary>
@@ -2154,6 +2173,47 @@ public partial class Main : Node3D
                 _cam.SetView(0.6f, 0.95f, Math.Max(hall.W, hall.D) * 1.3f, new Vector3(hall.X + hall.W / 2f - 4, WorldView.Base(hall.Floor), hall.Z + hall.D / 2f));
                 Inspect(free);
             }
+        }
+        // --bms-demo: a second datacenter with three more halls in different states, then building management (infra sketch board 9)
+        if (args.Contains("--bms-demo") && _state != null)
+        {
+            _playing = true;
+            var st = _state;
+            st.Money += 40_000_000;
+            Building dc = null;
+            st.Grow(st.PlotSize + 20);
+            CheckLand();
+            for (var z = 2; z < st.PlotSize - 14 && dc == null; z++)
+                for (var x = 2; x < st.PlotSize - 30 && dc == null; x++)
+                    dc = st.AddBuilding(BuildingKind.Datacenter, x, z, 30, 14, 2);
+            GD.Print(dc == null ? "bms-demo: no room for a second datacenter" : $"bms-demo: datacenter at {dc.X},{dc.Z}");
+            if (dc != null)
+            {
+                dc.Stage = Stage.Done;
+                PlacedObject Raw(ObjKind k, int x, int z, int f = 0) { var o = new PlacedObject { Id = st.NextId++, Kind = k, X = x, Z = z, Floor = f, Status = ObjStatus.Live }; if (Catalog.HasFeed(k)) o.Feed = st.NextFeed(o); st.Objects.Add(o); return o; }
+                var south = st.AddRoom(RoomType.DataHall, dc.X, dc.Z, 15, 14, 0);
+                var cage = st.AddRoom(RoomType.DataHall, dc.X + 15, dc.Z, 15, 14, 0);
+                var east = st.AddRoom(RoomType.DataHall, dc.X, dc.Z, 15, 14, 1);
+                if (south != null && cage != null)
+                {
+                    south.Stage = cage.Stage = Stage.Done;
+                    south.Name = "South"; cage.Name = "Cages"; cage.Zone = HallZone.Cage;
+                    for (var i = 0; i < 24; i++) Raw(ObjKind.Rack, south.X + 2 + i % 12, south.Z + 4 + i / 12 * 4);
+                    Raw(ObjKind.Pdu300, south.X, south.Z + 1); Raw(ObjKind.EdgeSwitch48, south.X, south.Z + 3); Raw(ObjKind.Crah, south.X + 14, south.Z + 2);
+                    for (var i = 0; i < 16; i++) Raw(ObjKind.Rack, cage.X + 3 + i % 8, cage.Z + 4 + i / 8 * 4);
+                    Raw(ObjKind.Pdu, cage.X, cage.Z + 1); Raw(ObjKind.Pdu, cage.X, cage.Z + 2);
+                    Raw(ObjKind.EdgeSwitch24, cage.X, cage.Z + 4); Raw(ObjKind.EdgeSwitch24, cage.X, cage.Z + 5);
+                    Raw(ObjKind.Crah, cage.X + 14, cage.Z + 2); Raw(ObjKind.Crah, cage.X + 14, cage.Z + 5);
+                    cage.Containment = Containment.HotCold;
+                    BuildingPanelSelect(south, cage);
+                }
+                if (east != null) { east.Name = "East"; east.Stage = Stage.Walls; }
+                st.Touch();
+                _world.Build(st, _sim);
+            }
+            var main = st.Rooms.FirstOrDefault(r => r.Type == RoomType.DataHall);
+            if (main != null && string.IsNullOrEmpty(main.Name)) main.Name = "North";
+            OpenPanel(PanelKind.Building, 0);
         }
         var coi = Array.IndexOf(args, "--company");
         if (coi >= 0 && coi + 1 < args.Length) { _playing = true; OpenCompany(int.Parse(args[coi + 1])); }

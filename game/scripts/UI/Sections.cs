@@ -5,7 +5,7 @@ using Godot;
 namespace DatacenterArchitect.UI;
 
 /// <summary>The screens that can open in the management drawer.</summary>
-public enum PanelKind { Overview, Company, Staff, Reputation, Growth, Power, Network, Progress }
+public enum PanelKind { Overview, Company, Staff, Reputation, Growth, Power, Network, Progress, Building }
 
 /// <summary>One tab in a management section: which screen it opens and at which of that screen's own tabs.</summary>
 public record SectionTab(string Key, string Icon, PanelKind Kind, int Tab);
@@ -52,6 +52,7 @@ public static class Sections
             new("nav_tab_nettree", "tree", PanelKind.Network, NetworkPanel.TabTree),
             new("nav_tab_own_energy", "leaf", PanelKind.Power, PowerPanel.TabEnergy),
             new("gr_tab_energy", "chart", PanelKind.Growth, GrowthPanel.TabEnergy),
+            new("nav_tab_bms", "cat_halls", PanelKind.Building, 0),
         }),
         new("nav_staff", "nav_staff_short", "crew", Brand.Cooling, Key.F5, new SectionTab[]
         {
