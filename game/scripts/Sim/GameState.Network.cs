@@ -6,7 +6,7 @@ namespace DatacenterArchitect.Sim;
 /// <summary>Network actions and the network's clock: carrier ports, commits and burst billing, peering and cross-connects.</summary>
 public partial class GameState
 {
-    bool _warnOffline, _warnCongested, _warnNoc;
+    bool _warnCongested, _warnNoc;
 
     public CarrierContract ContractOf(int carrier) => Contracts.FirstOrDefault(k => k.Carrier == carrier);
 
@@ -179,8 +179,7 @@ public partial class GameState
             var flows = Network.FlowsAt(this, net, h);
             foreach (var (k, g) in flows) k.Samples.Add((float)g);
         }
-        if (!_warnOffline && net.OfflineRacks > 0 && !Creative.NoNetworkLimit) { _warnOffline = true; Notes.Add(("msg_net_offline", null)); }
-        else if (_warnOffline && net.OfflineRacks == 0) _warnOffline = false;
+        // offline racks are told per hall with their cause and a fix (Outages, Main.CheckOutages)
         if (!_warnCongested && net.Served < 0.999 && net.OnlineRacks > 0) { _warnCongested = true; Notes.Add(("msg_net_congested", null)); }
         else if (_warnCongested && net.Served >= 0.999) _warnCongested = false;
         // the NOC sees the transit filling up before it overflows

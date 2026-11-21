@@ -50,6 +50,7 @@ public static partial class TestRunner
             ("network tree", NetTreeTests),
             ("door swaps and badge readers", DoorSwapTests),
             ("walls and painted rooms", WallPaintTests),
+            ("outages", OutageTests),
         };
         // DCA_TESTS=basement,stairs runs only the groups whose name contains one of the words
         var only = System.Environment.GetEnvironmentVariable("DCA_TESTS")?.Split(',', StringSplitOptions.RemoveEmptyEntries);
