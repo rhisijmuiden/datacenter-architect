@@ -47,6 +47,7 @@ public static partial class TestRunner
             ("add a floor", AddLevelTests),
             ("power tree", PowerTreeTests),
             ("network tree", NetTreeTests),
+            ("outages", OutageTests),
         };
         // DCA_TESTS=basement,stairs runs only the groups whose name contains one of the words
         var only = System.Environment.GetEnvironmentVariable("DCA_TESTS")?.Split(',', StringSplitOptions.RemoveEmptyEntries);

@@ -131,7 +131,7 @@ public partial class Main : Node3D
 
     void StartGame(GameState s, bool fresh)
     {
-        StopWalk(); StopPhoto();
+        StopWalk(); StopPhoto(); ResetOutages();
         Profile.Instance.Merge(s.Achieved, s.ScenarioId, s.ScenarioMedal, s.Date.ToString("yyyy-MM-dd"));
         _menu?.QueueFree(); _menu = null;
         _hud?.QueueFree();
@@ -267,7 +267,7 @@ public partial class Main : Node3D
         }
         Modal m = e.Kind switch
         {
-            PanelKind.Overview => new OverviewPanel(() => _state, () => _hud?.Goals ?? Array.Empty<(string, bool)>(), () => _hud?.History ?? new List<HudMessage>(), OpenPanel, want),
+            PanelKind.Overview => new OverviewPanel(() => _state, () => _hud?.Goals ?? Array.Empty<(string, bool)>(), () => _hud?.History ?? new List<HudMessage>(), OpenPanel, want) { Fix = FixOutage },
             PanelKind.Company => new CompanyPanel(() => _state, Fail, want),
             PanelKind.Staff => new StaffPanel(() => _state, Fail, want),
             PanelKind.Reputation => new ReputationPanel(() => _state, Fail, want),
@@ -481,7 +481,7 @@ public partial class Main : Node3D
         CheckLand();
         _hud.UpdateStats(_state);
         _goalTimer -= delta;
-        if (_goalTimer <= 0) { _goalTimer = 1; _hud.SetWeather(_world.Now, AppSettings.Instance.Weather, _state); UpdateGoals(); UpdateProjects(); RefreshInspect(); _coach?.Refresh(); _planBar?.Refresh(); }
+        if (_goalTimer <= 0) { _goalTimer = 1; _hud.SetWeather(_world.Now, AppSettings.Instance.Weather, _state); UpdateGoals(); UpdateProjects(); CheckOutages(); RefreshInspect(); _coach?.Refresh(); _planBar?.Refresh(); }
         _autosaveTimer += delta;
         if (_autosaveTimer > AppSettings.Instance.AutosaveMinutes * 60) { _autosaveTimer = 0; Autosave(); _hud.Notify(Loc.T("msg_autosaved"), Brand.Ok); }
     }
@@ -1157,6 +1157,13 @@ public partial class Main : Node3D
                 if (fa != null) lines.Add(fb != null ? Loc.T("inspect_rack_feeds_ab", fa.Kind == PowerNodeKind.Busbar ? PowerPanel.NodeName(fa) : fa.Name, fb.Kind == PowerNodeKind.Busbar ? PowerPanel.NodeName(fb) : fb.Name)
                     : Loc.T("inspect_rack_feed_one", fa.Kind == PowerNodeKind.Busbar ? PowerPanel.NodeName(fa) : fa.Name, fa.Side == FeedSide.A ? "B" : "A"));
                 if (!infra.Down.Contains(o.Id)) lines.Add(_state.Net.Offline.Contains(o.Id) ? "⚠ " + Loc.T("inspect_offline") : Loc.T("inspect_online"));
+                if (hall?.Type == RoomType.DataHall) lines.Add(Loc.T("inspect_hall_code", _state.HallCode(hall)));
+                var outage = OutageFor(o, infra);
+                if (outage != null)
+                {
+                    lines.Add("⚠ " + OutageUi.Text(outage));
+                    actions.Add((OutageUi.FixText(outage), () => FixOutage(outage), true));
+                }
                 var owner = _state.RackOwners().TryGetValue(o.Id, out var dealId) ? _state.DealById(dealId) : null;
                 lines.Add(owner != null ? Loc.T("inspect_rented", CompanyPanel.DealName(owner)) : hall?.Zone == HallZone.PerU ? Loc.T("inspect_peru") : Loc.T("inspect_for_sale"));
             }
@@ -1247,10 +1254,15 @@ public partial class Main : Node3D
                 {
                     lines.Add(Loc.T("inspect_hall_power", Kw(hi.ItKw), Kw(hi.DistributionKw), PowerPanel.RedundancyText(hi)));
                     lines.Add(Loc.T("inspect_hall_pdus", hi.Feeds, hi.FedRacks, hi.LiveRacks, hi.FreeOutlets == int.MaxValue ? "∞" : hi.FreeOutlets.ToString()));
-                    if (hi.LiveRacks > hi.FedRacks) lines.Add("⚠ " + Loc.T(hi.Feeds == 0 ? "inspect_hall_tip_nopdu" : "inspect_hall_tip_pdu", hi.LiveRacks - hi.FedRacks));
-                    else if (hi.LiveRacks > 0 && !hi.AB) lines.Add(Loc.T("inspect_hall_tip_ab", hi.LiveRacks - hi.DualRacks));
+                    if (hi.LiveRacks > 0 && hi.LiveRacks <= hi.FedRacks && !hi.AB) lines.Add(Loc.T("inspect_hall_tip_ab", hi.LiveRacks - hi.DualRacks));
                     lines.Add(Loc.T("inspect_hall_cooling", Kw(hi.CrahKw), $"{r.Temp:0}"));
-                    if (hi.RunningRacks < hi.LiveRacks) lines.Add("⚠ " + Loc.T(r.Hot ? "inspect_hall_hot" : "inspect_hall_short", hi.LiveRacks - hi.RunningRacks));
+                }
+                // why racks in this hall are off or offline, each with its fix
+                foreach (var outage in Outages.For(_state, infra, _state.Net).Where(x => x.Hall == r))
+                {
+                    var fix = outage;
+                    lines.Add("⚠ " + OutageUi.Text(outage));
+                    actions.Add((OutageUi.FixText(outage), () => FixOutage(fix), true));
                 }
                 if (r.Upgrade != 0) lines.Add(Loc.T("inspect_upgrading", Math.Ceiling(r.UpgradeLeft)));
                 var hn = _state.Net.Halls.FirstOrDefault(h => h.Room == r);
@@ -1739,6 +1751,21 @@ public partial class Main : Node3D
             var hs = _state.Rooms.Where(r => r.Type == RoomType.DataHall).ToList();
             if (hs.Count > 0) _state.SetHallClients(hs[0], new[] { CustomerType.Bank, CustomerType.Government });
             if (hs.Count > 1) _state.SetHallClients(hs[1], new[] { CustomerType.Ai });
+        }
+        // --outage-demo: the demo hall loses its busbar and most PDUs and switches, so warnings show their cause and fix
+        if (args.Contains("--outage-demo") && _state != null)
+        {
+            foreach (var h in _state.Rooms.Where(r => r.Type == RoomType.DataHall)) h.Busbar = false;
+            var pdus = _state.Objects.Where(o => Catalog.IsPdu(o.Kind)).OrderBy(o => o.Id).ToList();
+            if (pdus.Count > 0) { pdus[0].Kind = ObjKind.Pdu300; _state.Objects.RemoveAll(o => Catalog.IsPdu(o.Kind) && o != pdus[0]); }
+            var edges = _state.Objects.Where(o => Catalog.IsHallSwitch(o.Kind)).OrderBy(o => o.Id).ToList();
+            if (edges.Count > 0) { edges[^1].Kind = ObjKind.EdgeSwitch24; _state.Objects.RemoveAll(o => Catalog.IsHallSwitch(o.Kind) && o != edges[^1]); }
+            _state.Touch();
+            _world.Build(_state, _sim);
+            _outagesSeen.Clear(); _outagesPrimed = true;
+            CheckOutages();
+            // --outage-fix: press the fix of the first warning (camera jump, hall inspector, tool in hand)
+            if (args.Contains("--outage-fix")) { _playing = true; FixOutage(Outages.For(_state).FirstOrDefault()); }
         }
         if (args.Contains("--nettree-demo") && _state != null)
         {

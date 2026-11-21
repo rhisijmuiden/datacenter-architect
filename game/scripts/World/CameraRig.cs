@@ -36,6 +36,14 @@ public partial class CameraRig : Node3D
 
     public Vector3 TargetPoint => _targetT;
 
+    /// <summary>Glide to a point and zoom in to at most this distance (warnings that show a spot).</summary>
+    public void FlyTo(Vector3 target, float dist)
+    {
+        _targetT = target;
+        _distT = Mathf.Clamp(Mathf.Min(_distT, dist), MinDistance, 160);
+        if (!Smooth) { Position = _targetT; Distance = _distT; Apply(); }
+    }
+
     public void RotateStep(int dir) => _yawT += dir * Mathf.Pi / 2;
 
     public override void _UnhandledInput(InputEvent e)
