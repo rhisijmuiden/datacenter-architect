@@ -131,7 +131,7 @@ public partial class Main : Node3D
 
     void StartGame(GameState s, bool fresh)
     {
-        StopWalk(); StopPhoto();
+        StopWalk(); StopPhoto(); ResetOutages();
         Profile.Instance.Merge(s.Achieved, s.ScenarioId, s.ScenarioMedal, s.Date.ToString("yyyy-MM-dd"));
         _menu?.QueueFree(); _menu = null;
         _hud?.QueueFree();
@@ -186,6 +186,19 @@ public partial class Main : Node3D
             _hud.Notify(Loc.T("msg_start_hint"), Brand.Cooling);
             if (s.Scenario is ScenarioDef sd) _hud.Notify(Loc.T("msg_scenario_start", Loc.T("sc_" + sd.Id), Loc.T("sc_" + sd.Id + "_goal")), Brand.Amber);
         }
+    }
+
+    /// <summary>Glide the camera to an object, switch to its floor and select it (links in the overview screens).</summary>
+    void ShowObject(PlacedObject o)
+    {
+        if (o == null || _cam == null) return;
+        if (_walking) return;
+        // close the screen so the object is in view
+        CloseDrawer();
+        var (w, d) = GameState.Footprint(o);
+        if (_world.ViewFloor != o.Floor || _world.Roofs) SetView(o.Floor, false);
+        _cam.FlyTo(new Vector3(o.X + w / 2f, 0, o.Z + d / 2f), 22);
+        Inspect(new Vector2I(o.X, o.Z));
     }
 
     void SetView(int floor, bool roofs)
@@ -267,14 +280,14 @@ public partial class Main : Node3D
         }
         Modal m = e.Kind switch
         {
-            PanelKind.Overview => new OverviewPanel(() => _state, () => _hud?.Goals ?? Array.Empty<(string, bool)>(), () => _hud?.History ?? new List<HudMessage>(), OpenPanel, want),
+            PanelKind.Overview => new OverviewPanel(() => _state, () => _hud?.Goals ?? Array.Empty<(string, bool)>(), () => _hud?.History ?? new List<HudMessage>(), OpenPanel, want) { Fix = FixOutage },
             PanelKind.Company => new CompanyPanel(() => _state, Fail, want),
             PanelKind.Staff => new StaffPanel(() => _state, Fail, want),
             PanelKind.Reputation => new ReputationPanel(() => _state, Fail, want),
             PanelKind.Growth => new GrowthPanel(() => _state, Fail, want),
             PanelKind.Power => new PowerPanel(() => _state, Fail, want),
             PanelKind.Progress => new ProgressPanel(() => _state, StartPhoto, want),
-            _ => new NetworkPanel(() => _state, Fail, want, item => _hud.Pick(item)),
+            _ => new NetworkPanel(() => _state, Fail, want, item => _hud.Pick(item), ShowObject),
         };
         m.Kind = e.Kind;
         m.Dock(Hud.LeftEdge - 2, section, tabIndex, (s, t) => OpenSectionTab(s, t));
@@ -481,7 +494,7 @@ public partial class Main : Node3D
         CheckLand();
         _hud.UpdateStats(_state);
         _goalTimer -= delta;
-        if (_goalTimer <= 0) { _goalTimer = 1; _hud.SetWeather(_world.Now, AppSettings.Instance.Weather, _state); UpdateGoals(); UpdateProjects(); RefreshInspect(); _coach?.Refresh(); _planBar?.Refresh(); }
+        if (_goalTimer <= 0) { _goalTimer = 1; _hud.SetWeather(_world.Now, AppSettings.Instance.Weather, _state); UpdateGoals(); UpdateProjects(); CheckOutages(); RefreshInspect(); _coach?.Refresh(); _planBar?.Refresh(); }
         _autosaveTimer += delta;
         if (_autosaveTimer > AppSettings.Instance.AutosaveMinutes * 60) { _autosaveTimer = 0; Autosave(); _hud.Notify(Loc.T("msg_autosaved"), Brand.Ok); }
     }
@@ -1174,6 +1187,13 @@ public partial class Main : Node3D
                 if (fa != null) lines.Add(fb != null ? Loc.T("inspect_rack_feeds_ab", fa.Kind == PowerNodeKind.Busbar ? PowerPanel.NodeName(fa) : fa.Name, fb.Kind == PowerNodeKind.Busbar ? PowerPanel.NodeName(fb) : fb.Name)
                     : Loc.T("inspect_rack_feed_one", fa.Kind == PowerNodeKind.Busbar ? PowerPanel.NodeName(fa) : fa.Name, fa.Side == FeedSide.A ? "B" : "A"));
                 if (!infra.Down.Contains(o.Id)) lines.Add(_state.Net.Offline.Contains(o.Id) ? "⚠ " + Loc.T("inspect_offline") : Loc.T("inspect_online"));
+                if (hall?.Type == RoomType.DataHall) lines.Add(Loc.T("inspect_hall_code", _state.HallCode(hall)));
+                var outage = OutageFor(o, infra);
+                if (outage != null)
+                {
+                    lines.Add("⚠ " + OutageUi.Text(outage));
+                    actions.Add((OutageUi.FixText(outage), () => FixOutage(outage), true));
+                }
                 var owner = _state.RackOwners().TryGetValue(o.Id, out var dealId) ? _state.DealById(dealId) : null;
                 lines.Add(owner != null ? Loc.T("inspect_rented", CompanyPanel.DealName(owner)) : hall?.Zone == HallZone.PerU ? Loc.T("inspect_peru") : Loc.T("inspect_for_sale"));
             }
@@ -1257,6 +1277,13 @@ public partial class Main : Node3D
             {
                 // power, network and cooling against what the racks need, redundancy and upgrades (infra sketch board 6)
                 var report = HallReport.Build(_state, r);
+                // why racks in this hall are off or offline, each with its fix
+                foreach (var outage in Outages.For(_state, infra, _state.Net).Where(x => x.Hall == r))
+                {
+                    var fix = outage;
+                    lines.Add("⚠ " + OutageUi.Text(outage));
+                    actions.Add((OutageUi.FixText(outage), () => FixOutage(fix), true));
+                }
                 var hall = r;
                 hallBody = (report.Sig() + Loc.Language + HallCard.Tab, () => HallCard.Build(_state, report, u => ApplyHallUpgrade(hall, u),
                     () => OpenPowerTree(infra.Tree?.SourcesIn(hall).FirstOrDefault(n => n.Obj != null)?.Obj), () => OpenPanel(PanelKind.Network, NetworkPanel.TabTree), RefreshInspectNow));
@@ -1651,6 +1678,28 @@ public partial class Main : Node3D
         // step 10: --time 2027-12-20T21:00 --weather snow|rain|storm|fog|cloudy|clear --snow 0..1 --walk x,z,floor,yaw,pitch --migration
         var tmi = Array.IndexOf(args, "--time");
         if (tmi >= 0 && tmi + 1 < args.Length) _state.Hours = (DateTime.Parse(args[tmi + 1], System.Globalization.CultureInfo.InvariantCulture) - GameState.Epoch).TotalHours;
+        // --rush-hour H: run the site for H game hours from the --time given (people driving in, parking, walking to their desks)
+        var rhi = Array.IndexOf(args, "--rush-hour");
+        if (rhi >= 0 && rhi + 1 < args.Length && _sim != null)
+        {
+            if (_state.Staff.Count == 0)
+            {
+                // a day shift to bring in: technicians, cleaners and a helpdesk
+                var roles = new[] { StaffRole.Cleaner, StaffRole.Support, StaffRole.RemoteHands, StaffRole.Electrical, StaffRole.Cooling, StaffRole.NetworkEng, StaffRole.Helpdesk, StaffRole.Logistics };
+                for (var i = 0; i < 18; i++) _state.Staff.Add(new Employee { Id = 3000 + i * 7, Name = "Demo " + i, Role = roles[i % roles.Length], Shift = Shift.Day });
+            }
+            _sim.ResetCommute();
+            for (var left = double.Parse(args[rhi + 1], System.Globalization.CultureInfo.InvariantCulture); left > 1e-9; left -= 0.05)
+            {
+                var step = Math.Min(0.05, left);
+                _state.Hours += step;
+                _sim.Tick(step);
+            }
+            _speed = 0;
+            _cam.SetView(0.55f, 0.8f, 40, new Vector3(36, 0, 46));
+            if (args.Contains("--close")) _cam.SetView(0.6f, 0.75f, 22, new Vector3(33, 0, 50));
+            if (args.Contains("--desks")) { SetView(0, false); _cam.SetView(0.3f, 0.95f, 20, new Vector3(45, 0, 19)); }
+        }
         var wxi = Array.IndexOf(args, "--weather");
         if (wxi >= 0 && wxi + 1 < args.Length) _world.ForceWeather = Enum.Parse<WeatherKind>(args[wxi + 1], true);
         var sni = Array.IndexOf(args, "--snow");
@@ -1721,6 +1770,8 @@ public partial class Main : Node3D
         if (oi >= 0) OpenOptions(oi + 1 < args.Length && int.TryParse(args[oi + 1], out var tab) ? tab : 0);
         if (args.Contains("--power")) { _playing = true; OpenPower(); }
         if (args.Contains("--network")) { _playing = true; OpenNetwork(); }
+        // --pit-link: what a click on a pit line in the network screen does (screenshots)
+        if (args.Contains("--pit-link") && _state != null) ShowObject(_state.Objects.LastOrDefault(o => o.Kind == ObjKind.FiberPit));
         // --power-tree [msb|ups|pdu]: the power tree with that kind of device selected
         var pti = Array.IndexOf(args, "--power-tree");
         if (pti >= 0 && _state != null)
@@ -1736,6 +1787,21 @@ public partial class Main : Node3D
             var hs = _state.Rooms.Where(r => r.Type == RoomType.DataHall).ToList();
             if (hs.Count > 0) _state.SetHallClients(hs[0], new[] { CustomerType.Bank, CustomerType.Government });
             if (hs.Count > 1) _state.SetHallClients(hs[1], new[] { CustomerType.Ai });
+        }
+        // --outage-demo: the demo hall loses its busbar and most PDUs and switches, so warnings show their cause and fix
+        if (args.Contains("--outage-demo") && _state != null)
+        {
+            foreach (var h in _state.Rooms.Where(r => r.Type == RoomType.DataHall)) h.Busbar = false;
+            var pdus = _state.Objects.Where(o => Catalog.IsPdu(o.Kind)).OrderBy(o => o.Id).ToList();
+            if (pdus.Count > 0) { pdus[0].Kind = ObjKind.Pdu300; _state.Objects.RemoveAll(o => Catalog.IsPdu(o.Kind) && o != pdus[0]); }
+            var edges = _state.Objects.Where(o => Catalog.IsHallSwitch(o.Kind)).OrderBy(o => o.Id).ToList();
+            if (edges.Count > 0) { edges[^1].Kind = ObjKind.EdgeSwitch24; _state.Objects.RemoveAll(o => Catalog.IsHallSwitch(o.Kind) && o != edges[^1]); }
+            _state.Touch();
+            _world.Build(_state, _sim);
+            _outagesSeen.Clear(); _outagesPrimed = true;
+            CheckOutages();
+            // --outage-fix: press the fix of the first warning (camera jump, hall inspector, tool in hand)
+            if (args.Contains("--outage-fix")) { _playing = true; FixOutage(Outages.For(_state).FirstOrDefault()); }
         }
         if (args.Contains("--nettree-demo") && _state != null)
         {

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace DatacenterArchitect.Sim;
 
@@ -111,5 +112,52 @@ public static class ParkingLayout
                     : new Line(minX + a0, minZ + p, minX + a1, minZ + p));
             }
         }
+    }
+
+    /// <summary>
+    /// One parking bay: its centre, the yaw of its long axis (0 = along z, π/2 = along x), its size, and whether it is an
+    /// EV bay next to a charging point. <see cref="Hash"/> is fixed per position, for car models and colours.
+    /// </summary>
+    public readonly record struct Bay(double X, double Z, double Yaw, double Width, double Depth, bool Ev, uint Hash);
+
+    /// <summary>Bays between neighbouring dividers of the same row; bays within 3.2 m of a charging point are EV bays.</summary>
+    public static List<Bay> BayList(List<Line> lines, IEnumerable<(double x, double z)> chargers = null)
+    {
+        var ch = chargers?.ToList() ?? new List<(double x, double z)>();
+        var rows = new Dictionary<(bool, double, double), List<Line>>();
+        foreach (var l in lines)
+        {
+            var vertical = Math.Abs(l.Ax - l.Bx) < 1e-6;
+            var key = vertical ? (true, Math.Round(l.Az, 2), Math.Round(l.Bz, 2)) : (false, Math.Round(l.Ax, 2), Math.Round(l.Bx, 2));
+            if (!rows.TryGetValue(key, out var list)) rows[key] = list = new();
+            list.Add(l);
+        }
+        var bays = new List<Bay>();
+        foreach (var (key, row) in rows.OrderBy(r => r.Key.Item1).ThenBy(r => r.Key.Item2).ThenBy(r => r.Key.Item3))
+        {
+            // dividers along z sit side by side in x, and the other way round
+            var sorted = key.Item1 ? row.OrderBy(l => l.Ax).ToList() : row.OrderBy(l => l.Az).ToList();
+            for (var i = 0; i + 1 < sorted.Count; i++)
+            {
+                var a = sorted[i]; var b = sorted[i + 1];
+                var cx = (a.Ax + a.Bx + b.Ax + b.Bx) / 4; var cz = (a.Az + a.Bz + b.Az + b.Bz) / 4;
+                var h = (uint)((int)Math.Round(cx * 10) * 73856093) ^ (uint)((int)Math.Round(cz * 10) * 19349663);
+                var bw = key.Item1 ? Math.Abs(b.Ax - a.Ax) : Math.Abs(b.Az - a.Az);
+                var bd = key.Item1 ? Math.Abs(a.Bz - a.Az) : Math.Abs(a.Bx - a.Ax);
+                var ev = ch.Any(c => Math.Sqrt((c.x - cx) * (c.x - cx) + (c.z - cz) * (c.z - cz)) < 3.2);
+                bays.Add(new Bay(cx, cz, key.Item1 ? 0 : Math.PI / 2, bw, bd, ev, h));
+            }
+        }
+        return bays;
+    }
+
+    /// <summary>The bays of a site, exactly as they are painted (curved roads cut through parking).</summary>
+    public static List<Bay> SiteBays(GameState s)
+    {
+        var n = s.PlotSize;
+        var curve = s.Curves.SelectMany(c => c.Cells).ToHashSet();
+        var lines = Lines(n, (x, z) => s.SurfaceAt(x, z) == Surface.Parking && !curve.Contains(z * n + x),
+            (x, z) => s.SurfaceAt(x, z) == Surface.Asphalt || curve.Contains(z * n + x));
+        return BayList(lines, Commute.Chargers(s).Select(o => (o.X + 0.5, o.Z + 0.5)));
     }
 }

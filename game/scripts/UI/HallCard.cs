@@ -162,12 +162,12 @@ public static class HallCard
             var text = new VBoxContainer { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill };
             text.AddThemeConstantOverride("separation", 0);
             var t = Ui.Text(title, 14, Brand.Ink, Ui.BodySemi); t.AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled;
-            t.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+            t.AutowrapMode = TextServer.AutowrapMode.WordSmart; t.CustomMinimumSize = new Vector2(230, 0);
             text.AddChild(t);
-            text.AddChild(Dim(sub, 12));
+            text.AddChild(Dim(sub, 12, null, 230));
             var cost = Ui.Money(u.Cost) + (u.Hours > 0 ? " · " + Loc.T("hall_hours", u.Hours) : "");
-            text.AddChild(Dim(cost, 12, Brand.Ink));
-            if (u.Blocked != null && u.Blocked != "msg_no_money") text.AddChild(Dim(Loc.T(u.Blocked), 12, Brand.Warning));
+            text.AddChild(Dim(cost, 12, Brand.Ink, 230));
+            if (u.Blocked != null && u.Blocked != "msg_no_money") text.AddChild(Dim(Loc.T(u.Blocked), 12, Brand.Warning, 230));
             h.AddChild(text);
             var place = u.Obj != default && u.Kind is HallUpgradeKind.Pdu or HallUpgradeKind.EdgeSwitch or HallUpgradeKind.Crah;
             var target = u;
@@ -182,12 +182,12 @@ public static class HallCard
     }
 
     // ---------------- pieces ----------------
-    static Label Dim(string text, int size, Color? c = null)
+    static Label Dim(string text, int size, Color? c = null, float width = Width - 40)
     {
         var l = Ui.Text(text, size, c ?? Brand.InkDim);
         l.AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled;
         l.AutowrapMode = TextServer.AutowrapMode.WordSmart;
-        l.CustomMinimumSize = new Vector2(Width - 40, 0);
+        l.CustomMinimumSize = new Vector2(width, 0);
         return l;
     }
 
@@ -237,7 +237,7 @@ public static class HallCard
         head.AddChild(new Control { SizeFlagsHorizontal = Control.SizeFlags.ExpandFill });
         var col = LevelColor(level);
         head.AddChild(TreeRow.Chip(LevelText(level), new Color(col, 0.2f), col.Lightened(0.2f)));
-        var goal = Ui.Text(Loc.T(goalKey), 12, Brand.InkDim); goal.AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled;
+        var goal = Ui.Text(Loc.T(goalKey), 12, Brand.InkDim); goal.AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled; goal.AutowrapMode = TextServer.AutowrapMode.Off;
         head.AddChild(goal);
         box.AddChild(head);
         return box;
@@ -247,9 +247,9 @@ public static class HallCard
     {
         var h = new HBoxContainer(); h.AddThemeConstantOverride("separation", 8);
         var l = Ui.Text(left, 13, Brand.Ink); l.AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled;
-        l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill; l.ClipText = true; l.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
+        l.SizeFlagsHorizontal = Control.SizeFlags.ExpandFill; l.AutowrapMode = TextServer.AutowrapMode.Off; l.ClipText = true; l.TextOverrunBehavior = TextServer.OverrunBehavior.TrimEllipsis;
         h.AddChild(l);
-        var rt = Ui.Text(right, 14, rightColor ?? Brand.Ink, Ui.DisplaySemi); rt.AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled;
+        var rt = Ui.Text(right, 14, rightColor ?? Brand.Ink, Ui.DisplaySemi); rt.AutoTranslateMode = Node.AutoTranslateModeEnum.Disabled; rt.AutowrapMode = TextServer.AutowrapMode.Off;
         h.AddChild(rt);
         parent.AddChild(h);
     }

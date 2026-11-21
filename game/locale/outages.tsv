@@ -1,0 +1,41 @@
+key	en	nl
+# why racks are off or offline: cause per hall and a fix button (infra sketch board 4)
+outage_nohall	{1} racks are off: they stand outside a data hall. Racks only get power and cooling inside a data hall.	{1} racks staan uit: ze staan buiten een datahal. Racks krijgen alleen stroom en koeling in een datahal.
+outage_nopdu	{0}: {1} racks are off: there is no PDU or busbar in this hall. A PDU only feeds racks in its own hall.	{0}: {1} racks staan uit: er staat geen PDU of busbar in deze hal. Een PDU voedt alleen racks in zijn eigen hal.
+outage_pdu_unfed	{0}: {1} racks are off: the PDU has no power. Build a switchgear room with a main switchboard (MSB) first.	{0}: {1} racks staan uit: de PDU krijgt geen stroom. Bouw eerst een schakelruimte met een hoofdverdeler (MSB).
+outage_pdu_unfed_full	{0}: {1} racks are off: the PDU has no free output on a UPS or main switchboard. Add a UPS or an extra MSB.	{0}: {1} racks staan uit: de PDU vindt geen vrije uitgang op een UPS of hoofdverdeler. Plaats een UPS of een extra MSB.
+outage_pdufull	{0}: {1} racks are off: every PDU connection in this hall is used ({3} of {4} connections, {5} kW).	{0}: {1} racks staan uit: alle PDU-aansluitingen in deze hal zijn bezet ({3} van {4} aansluitingen, {5} kW).
+outage_chain	{0}: {1} racks are off: the power chain is too small. The bottleneck is: {2}.	{0}: {1} racks staan uit: de stroomketen is te klein. De bottleneck is: {2}.
+outage_blackout	{0}: {1} racks are off: the grid is down and the generators cannot carry the site.	{0}: {1} racks staan uit: het stroomnet ligt eruit en de generatoren kunnen het terrein niet dragen.
+outage_heat_crah	{0}: {1} racks are off: the hall is too hot. CRAH units cool {2} kW, the racks make {3} kW.	{0}: {1} racks staan uit: de hal is te warm. De CRAH-units koelen {2} kW, de racks maken {3} kW.
+outage_heat_reject	{0}: {1} racks are off: the hall is too hot. Chillers outside get rid of {2} kW, the site makes {3} kW.	{0}: {1} racks staan uit: de hal is te warm. Koelmachines buiten voeren {2} kW af, het terrein maakt {3} kW.
+outage_suppressed	{0}: {1} racks are off: the gas extinguishing system went off. They start again when it is reset.	{0}: {1} racks staan uit: het gasblussysteem is afgegaan. Ze starten weer zodra het gereset is.
+outage_nocarrier	{0}: {1} racks are offline: there is no carrier contract that is live yet.	{0}: {1} racks zijn offline: er is nog geen actief carriercontract.
+outage_nommr	{0}: {1} racks are offline: there is no ODF in a finished meet-me room.	{0}: {1} racks zijn offline: er staat geen ODF in een afgebouwde meet-me room.
+outage_nocore	{0}: {1} racks are offline: there is no core router in the meet-me room.	{0}: {1} racks zijn offline: er staat geen core router in de meet-me room.
+outage_noedge	{0}: {1} racks are offline: there is no edge switch in this hall. An edge switch only serves its own hall.	{0}: {1} racks zijn offline: er staat geen edge-switch in deze hal. Een edge-switch bedient alleen zijn eigen hal.
+outage_nouplink	{0}: {1} racks are offline: the edge switch has no uplink, every core port is in use.	{0}: {1} racks zijn offline: de edge-switch heeft geen uplink, alle core-poorten zijn bezet.
+outage_edgefull	{0}: {1} racks are offline: the edge switches are full ({2} of {3} ports).	{0}: {1} racks zijn offline: de edge-switches zitten vol ({2} van {3} poorten).
+fix_show_rack	Show rack	Toon rack
+fix_place_pdu	Place PDU {0} kW in {1} ({2} racks)	Plaats PDU {0} kW in {1} ({2} racks)
+fix_place_pdus	Place {3} × PDU {0} kW in {1} ({2} racks each)	Plaats {3} × PDU {0} kW in {1} (elk {2} racks)
+fix_place_pdu_extra	Place extra PDU {0} kW in {1} ({2} racks)	Plaats extra PDU {0} kW in {1} ({2} racks)
+fix_place_msb	Place main switchboard	Plaats hoofdverdeler
+fix_build_switch_room	Open power tree	Open stroomboom
+fix_open_power	Power overview	Stroomoverzicht
+fix_open_power_tree	Open power tree	Open stroomboom
+fix_place_crah	Place {0} CRAH in {1}	Plaats {0} CRAH in {1}
+fix_place_chiller	Place chiller outside	Plaats koelmachine buiten
+fix_open_incidents	Incidents	Incidenten
+fix_open_carriers	Sign a carrier	Sluit een carrier
+fix_place_odf	Place ODF in the meet-me room	Plaats ODF in de meet-me room
+fix_build_mmr	Network overview	Netwerkoverzicht
+fix_place_core	Place core router	Plaats core router
+fix_place_edge	Place edge switch {0} ports in {1}	Plaats edge-switch {0} poorten in {1}
+fix_place_edge_extra	Place extra edge switch {0} ports in {1}	Plaats extra edge-switch {0} poorten in {1}
+fix_place_dist	Place distribution switch	Plaats distributieswitch
+outage_title	Racks off	Racks uit
+outage_none	All racks are running and online.	Alle racks draaien en zijn online.
+outage_show	Show	Toon
+outage_click	Click for the fix	Klik voor de oplossing
+inspect_hall_code	Hall {0}	Hal {0}
