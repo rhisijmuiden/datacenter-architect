@@ -16,6 +16,7 @@ public static class Demo
         s.PaintSurface(31, 50, 15, 2, Surface.Asphalt, out _);
         s.PaintSurface(46, 44, 8, 8, Surface.Yard, out _);
         s.PaintSurface(33, 40, 10, 8, Surface.Parking, out _);
+        s.PaintSurface(31, 42, 2, 4, Surface.Asphalt, out _); // the car park's entrance from the driveway
         s.PaintSurface(14, 34, 14, 1, Surface.Footpath, out _);
         s.PaintSurface(31, 36, 2, 1, Surface.Footpath, out _);
         s.PaintSurface(38, 28, 2, 12, Surface.Footpath, out _);

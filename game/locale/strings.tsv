@@ -661,7 +661,7 @@ msg_org_new	New: customers now sign contracts. Your current racks stay with your
 msg_needs_netmgr	Hire a network manager first: they arrange carrier and peering contracts.	Neem eerst een netwerkmanager aan: die regelt carrier- en peeringcontracten.
 msg_needs_exec	Hire the director or manager this role reports to first.	Neem eerst de directeur of manager aan waar deze functie onder valt.
 msg_needs_ceo_office	Build a director's office first: an executive room with a desk and a chair.	Bouw eerst een directiekamer: een directieruimte met een bureau en een stoel.
-msg_needs_office	Every director needs an own office: build another executive room with a desk and a chair.	Elke directeur heeft een eigen kantoor nodig: bouw nog een directieruimte met een bureau en een stoel.
+msg_needs_office	Every board member (CEO, CFO, HR, sales and operations) needs an own office: build another executive room with a desk and a chair.	Elk directielid (CEO, CFO, HR, sales en operations) heeft een eigen kantoor nodig: bouw nog een directieruimte met een bureau en een stoel.
 msg_exec_needed	Others report to this role. Let them go first.	Er vallen anderen onder deze functie. Laat die eerst gaan.
 msg_needs_workplace	No free workplace: put more desks in an office room.	Geen vrije werkplek: zet meer bureaus in een kantoorruimte.
 msg_needs_hr	Hire an HR manager to recruit more staff.	Neem een HR-manager aan om meer personeel te werven.
@@ -698,8 +698,8 @@ co_tab_tenders	Tenders	Aanbestedingen
 co_tab_finance	Finance	Financiën
 co_reputation	Reputation {0} / 100	Reputatie {0} / 100
 co_revenue	Revenue {0} / month	Omzet {0} / maand
-org_help	You are the owner. Directors and managers each need an own furnished office and unlock new parts of the game. They run their own teams: no micromanagement.	Jij bent de eigenaar. Directeuren en managers hebben elk een eigen ingericht kantoor nodig en ontgrendelen nieuwe onderdelen van het spel. Ze regelen hun eigen team: geen micromanagement.
-org_offices	Offices in use: {0} of {1} furnished director's offices	Kantoren in gebruik: {0} van {1} ingerichte directiekamers
+org_help	You are the owner. The board (CEO, CFO, HR, sales and operations) each need an own furnished director's office; the other managers work at a desk in an office room. They unlock new parts of the game and run their own teams: no micromanagement.	Jij bent de eigenaar. De directie (CEO, CFO, HR, sales en operations) heeft elk een eigen ingerichte directiekamer nodig; de andere managers werken aan een bureau in een kantoorruimte. Ze ontgrendelen nieuwe onderdelen van het spel en regelen hun eigen team: geen micromanagement.
+org_offices	Board: {0} of {1} furnished director's offices in use	Directie: {0} van {1} ingerichte directiekamers in gebruik
 org_all_unlocked	Creative mode: everything is unlocked.	Creatieve modus: alles is ontgrendeld.
 org_status_legacy	Arranged in your existing company	Geregeld in je bestaande bedrijf
 org_status_creative	Unlocked (creative)	Ontgrendeld (creatief)
@@ -1882,6 +1882,10 @@ hud_day_night_off	Always daylight. Click to let the sun follow the clock again.	
 hud_weather	Weather	Weer
 hud_weather_on	Weather: on (rain, fog, snow, storms). Click to always have clear skies.	Weer: aan (regen, mist, sneeuw, onweer). Klik voor altijd helder weer.
 hud_weather_off	Weather: off, always clear. Click to turn rain, fog and snow back on.	Weer: uit, altijd helder. Klik om regen, mist en sneeuw weer aan te zetten.
+net_pit_show	Show this fiber pit on the site	Toon deze glasvezelput op het terrein
+net_pit_goto_full	Go to the full fiber pit	Ga naar de volle glasvezelput
+msg_needs_manager_desk	Managers work at a desk in an office room: put another desk in an office room.	Managers werken aan een bureau in een kantoorruimte: zet nog een bureau in een kantoorruimte.
+org_manager_desks	Managers and sales reps: {0} + {1} at {2} office desks	Managers en verkopers: {0} + {1} aan {2} kantoorbureaus
 spec_pdu	{0} kW · {1} racks	{0} kW · {1} racks
 spec_outputs	{0} kW · {1} outputs	{0} kW · {1} uitgangen
 msg_power_tree_new	New: the power tree. Switchboards, UPS units and PDUs now have an A or a B side, PDUs have a number of rack connections, and the power tree (Infrastructure, F4) shows what feeds what.	Nieuw: de stroomboom. Hoofdverdelers, UPS'en en PDU's hebben nu een A- of B-zijde, PDU's hebben een aantal rack-aansluitingen en de stroomboom (Infrastructuur, F4) laat zien wat wat voedt.
