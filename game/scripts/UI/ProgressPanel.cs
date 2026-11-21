@@ -25,7 +25,7 @@ public partial class ProgressPanel : Modal
     readonly Action _photo;
     readonly List<Button> _tabBtns = new();
     readonly VBoxContainer _content;
-    readonly ScrollContainer _scroll;
+    readonly StableScroll _scroll;
     int _tab;
     static int _range = 1;
     string _sig;
@@ -70,7 +70,7 @@ public partial class ProgressPanel : Modal
         var tabLine = new VSeparator();
         split.AddChild(tabLine);
         OwnTabs(tabs, tabLine);
-        _scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 620), SizeFlagsHorizontal = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        _scroll = new StableScroll { CustomMinimumSize = new Vector2(0, 620), SizeFlagsHorizontal = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         _content = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _content.AddThemeConstantOverride("separation", 10);
         var pad = Ui.Pad(_content, 0, 0, 14, 0); pad.SizeFlagsHorizontal = SizeFlags.ExpandFill;
@@ -119,7 +119,6 @@ public partial class ProgressPanel : Modal
         if (_tab == TabTimelapse) sig = $"{_tab}|{Loc.Language}|{Timelapse.Frames(s.GameId).Count}";
         if (!force && sig == _sig) return;
         _sig = sig;
-        var keep = _scroll.ScrollVertical;
         for (var i = 0; i < _tabBtns.Count; i++) Mark(_tabBtns[i], i == _tab);
         foreach (var c in _content.GetChildren()) c.QueueFree();
         _lapseView = null; _lapsePlay = null;
@@ -131,7 +130,6 @@ public partial class ProgressPanel : Modal
             case TabAwards: AwardsTab(s); break;
             default: TimelapseTab(s); break;
         }
-        _scroll.SetDeferred("scroll_vertical", keep);
     }
 
     static void Mark(Button b, bool on)

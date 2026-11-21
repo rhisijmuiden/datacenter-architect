@@ -22,7 +22,7 @@ public partial class StaffPanel : Modal
     readonly Action<string> _fail;
     readonly List<Button> _tabBtns = new();
     readonly VBoxContainer _content;
-    readonly ScrollContainer _scroll;
+    readonly StableScroll _scroll;
     readonly List<(Label l, Func<GameState, string> f)> _dyn = new();
     int _tab;
     string _sig;
@@ -67,7 +67,7 @@ public partial class StaffPanel : Modal
         var tabLine = new VSeparator();
         split.AddChild(tabLine);
         OwnTabs(tabs, tabLine);
-        _scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 600), SizeFlagsHorizontal = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        _scroll = new StableScroll { CustomMinimumSize = new Vector2(0, 600), SizeFlagsHorizontal = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         _content = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _content.AddThemeConstantOverride("separation", 8);
         var pad = Ui.Pad(_content, 0, 0, 14, 0); pad.SizeFlagsHorizontal = SizeFlags.ExpandFill;
@@ -107,7 +107,6 @@ public partial class StaffPanel : Modal
         var sig = Signature(s);
         if (!force && sig == _sig) return;
         _sig = sig;
-        var scroll = _scroll.ScrollVertical;
         for (var i = 0; i < _tabBtns.Count; i++) Mark(_tabBtns[i], i == _tab);
         foreach (var c in _content.GetChildren()) c.QueueFree();
         switch (_tab)
@@ -118,7 +117,6 @@ public partial class StaffPanel : Modal
             default: IncidentsTab(s); break;
         }
         NoWrapInRows(_content);
-        _scroll.SetDeferred("scroll_vertical", scroll);
     }
 
     static void NoWrapInRows(Node n)

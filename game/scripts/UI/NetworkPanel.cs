@@ -19,7 +19,7 @@ public partial class NetworkPanel : Modal
     readonly Action<string> _fail;
     readonly Action<PlacedObject> _show;
     readonly Action<BuildItem> _pick;
-    readonly ScrollContainer _scroll;
+    readonly StableScroll _scroll;
     int _tab;
     /// <summary>Selected row of the network tree: "in", "core:id", "dist:id", "hall:roomId", "nohall:roomId".</summary>
     string _sel;
@@ -36,7 +36,7 @@ public partial class NetworkPanel : Modal
     public NetworkPanel(Func<GameState> state, Action<string> fail, int tab = TabOverview, Action<BuildItem> pick = null, Action<PlacedObject> show = null) : base("net_title", 1100)
     {
         _state = state; _fail = fail; _pick = pick; _show = show; _tab = Math.Clamp(tab, TabOverview, TabTree);
-        var scroll = _scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 640), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        var scroll = _scroll = new StableScroll { CustomMinimumSize = new Vector2(0, 640), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         _content = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _content.AddThemeConstantOverride("separation", 8);
         scroll.AddChild(_content);

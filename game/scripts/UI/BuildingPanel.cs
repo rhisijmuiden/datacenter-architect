@@ -45,7 +45,7 @@ public partial class BuildingPanel : Modal
     public BuildingPanel(Func<GameState> state, Action<string> fail, Action<Room> show, Func<LevelUpPlan, LevelUpResult> apply) : base("bms_title", W)
     {
         _state = state; _fail = fail; _show = show; _apply = apply;
-        var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 640), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        var scroll = new StableScroll { CustomMinimumSize = new Vector2(0, 640), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         _content = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _content.AddThemeConstantOverride("separation", 12);
         scroll.AddChild(_content);

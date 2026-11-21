@@ -22,7 +22,7 @@ public partial class CompanyPanel : Modal
     readonly Action<string> _fail;
     readonly List<Button> _tabBtns = new();
     readonly VBoxContainer _content;
-    readonly ScrollContainer _scroll;
+    readonly StableScroll _scroll;
     int _tab;
     string _sig;
     double _timer;
@@ -59,7 +59,7 @@ public partial class CompanyPanel : Modal
         var tabLine = new VSeparator();
         split.AddChild(tabLine);
         OwnTabs(tabs, tabLine);
-        _scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 600), SizeFlagsHorizontal = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        _scroll = new StableScroll { CustomMinimumSize = new Vector2(0, 600), SizeFlagsHorizontal = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         _content = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _content.AddThemeConstantOverride("separation", 8);
         var pad = Ui.Pad(_content, 0, 0, 14, 0); pad.SizeFlagsHorizontal = SizeFlags.ExpandFill;
@@ -103,7 +103,6 @@ public partial class CompanyPanel : Modal
         var sig = Signature(s);
         if (!force && sig == _sig) return;
         _sig = sig;
-        var scroll = _scroll.ScrollVertical;
         for (var i = 0; i < _tabBtns.Count; i++) Mark(_tabBtns[i], i == _tab);
         foreach (var c in _content.GetChildren()) c.QueueFree();
         switch (_tab)
@@ -116,7 +115,6 @@ public partial class CompanyPanel : Modal
             default: FinanceTab(s); break;
         }
         NoWrapInRows(_content);
-        _scroll.SetDeferred("scroll_vertical", scroll);
     }
 
     /// <summary>Labels side by side in a row keep their natural width; only the one that fills the row wraps.</summary>
@@ -130,7 +128,7 @@ public partial class CompanyPanel : Modal
     }
 
     string Signature(GameState s) => _tab == TabBrand ? $"{_tab}|{Loc.Language}|{s.Logo.Version}|{s.Options.Company}" :
-        $"{_tab}|{Loc.Language}|{(int)s.Day}|{s.Money / 1000}|{s.Execs.Count}:{string.Join(",", s.Execs.Select(x => $"{x.Role}{x.Training}{x.TrainingDaysLeft > 0}"))}|{s.Offices}|{s.Workplaces}|{s.SalesReps}|" +
+        $"{_tab}|{Loc.Language}|{(int)s.Day}|{s.Money / (_tab == TabFinance ? 1000 : 250000)}|{s.Execs.Count}:{string.Join(",", s.Execs.Select(x => $"{x.Role}{x.Training}{x.TrainingDaysLeft > 0}"))}|{s.Offices}|{s.Workplaces}|{s.SalesReps}|" +
         string.Join(",", s.Deals.Select(d => $"{d.Id}{d.State}{string.Join("+", d.HallIds)}")) + "|" + string.Join(",", s.Rooms.Where(r => r.Type == RoomType.DataHall).Select(r => $"{r.Name}{r.Band}{r.Zone}{r.ShowLogo}{r.Stage}{r.Clients.Count}")) + $"|{s.Loans.Count}|{s.InvestorShare}|{s.Rooms.Count}|{s.Supplier}|{s.Revision / 50}";
 
     static void Mark(Button b, bool on)

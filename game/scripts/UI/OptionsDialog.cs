@@ -62,7 +62,7 @@ public partial class OptionsDialog : Modal
         split.AddChild(tabs);
         split.AddChild(new VSeparator());
 
-        var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 480), SizeFlagsHorizontal = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        var scroll = new StableScroll { CustomMinimumSize = new Vector2(0, 480), SizeFlagsHorizontal = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         _content = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _content.AddThemeConstantOverride("separation", 10);
         var pad = Ui.Pad(_content, 0, 0, 14, 0);

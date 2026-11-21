@@ -30,7 +30,7 @@ public partial class PowerPanel : Modal
     public PowerPanel(Func<GameState> state, Action<string> fail, int tab = 0) : base("power_title", 980)
     {
         _state = state; _fail = fail; _tab = Math.Clamp(tab, 0, 2);
-        var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 640), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        var scroll = new StableScroll { CustomMinimumSize = new Vector2(0, 640), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         _content = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _content.AddThemeConstantOverride("separation", 8);
         scroll.AddChild(_content);
