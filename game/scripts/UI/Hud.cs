@@ -341,6 +341,8 @@ public partial class Hud : Control
         GetViewport().SetInputAsHandled();
     }
 
+    public bool TrayOpen => _tray != null && _tray.IsVisibleInTree();
+
     /// <summary>One wheel notch moves the tray about one card.</summary>
     public const int TrayScrollStep = 170;
 
@@ -348,6 +350,9 @@ public partial class Hud : Control
     public bool TrayScroll(Vector2 at, MouseButton button, float factor = 1f)
     {
         if (_tray == null || _trayScroll == null || !_tray.IsVisibleInTree() || !_tray.GetGlobalRect().HasPoint(at)) return false;
+        // only when the tray itself is under the mouse: a screen or dialog over it (the drawer reaches down over the tray)
+        // gets the wheel for its own list
+        if (IsInsideTree() && GetViewport().GuiGetHoveredControl() is { } over && over != _tray && !_tray.IsAncestorOf(over)) return false;
         var dir = button switch
         {
             MouseButton.WheelUp or MouseButton.WheelLeft => -1,

@@ -220,7 +220,7 @@ public partial class SaveLoadDialog : Modal
             }));
             Body.AddChild(row);
         }
-        var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 300), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        var scroll = new StableScroll { CustomMinimumSize = new Vector2(0, 300), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         _list = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _list.AddThemeConstantOverride("separation", 6);
         scroll.AddChild(_list);

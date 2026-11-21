@@ -247,6 +247,52 @@ public partial class Main : Node3D
 
     // ---------------- management drawer (GUI v2) ----------------
     Modal _drawer;
+
+    /// <summary>Test aid (--scroll-probe): scrolls the open drawer down like a player would and logs whether it stays there while the game runs.</summary>
+    async System.Threading.Tasks.Task ScrollProbe()
+    {
+        for (var i = 0; i < 20; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+        var sc = _drawer == null ? null : FindScroll(_drawer);
+        if (sc == null) { GD.Print("PROBE no scroll"); return; }
+        var panel = sc.GetParent() as Control;
+        while (panel != null && panel is not PanelContainer) panel = panel.GetParent() as Control;
+        GD.Print($"PROBE window {GetViewport().GetVisibleRect().Size} drawer min {panel?.GetCombinedMinimumSize()} size {panel?.Size} scroll size {sc.Size} min {sc.GetCombinedMinimumSize()}");
+        if (OS.GetCmdlineUserArgs().Contains("--probe-only")) { GetTree().Quit(); return; }
+        _speed = 3;
+        if (OS.GetCmdlineUserArgs().Contains("--probe-wheel"))
+        {
+            // the wheel low over the drawer, where the build tray lies underneath it
+            var at = new Vector2(panel.GetGlobalRect().Position.X + 500, panel.GetGlobalRect().End.Y - 60) * GetTree().Root.ContentScaleFactor;
+            GD.Print($"PROBE tray open {_hud.TrayOpen} wheel at {at}");
+            for (var i = 0; i < 6; i++)
+            {
+                foreach (var pressed in new[] { true, false })
+                    Input.ParseInputEvent(new InputEventMouseButton { ButtonIndex = MouseButton.WheelDown, Pressed = pressed, Position = at, GlobalPosition = at, Factor = 1 });
+                await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            }
+            await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
+            GD.Print($"PROBE after 6 notches scroll={sc.ScrollVertical}");
+            GetTree().Quit();
+            return;
+        }
+        sc.ScrollVertical = 400;
+        for (var i = 0; i < 24; i++)
+        {
+            await ToSignal(GetTree().CreateTimer(0.25), SceneTreeTimer.SignalName.Timeout);
+            GD.Print($"PROBE t={i * 0.25:0.00} scroll={sc.ScrollVertical} max={sc.GetVScrollBar().MaxValue}");
+        }
+        GetTree().Quit();
+    }
+
+    static ScrollContainer FindScroll(Node n)
+    {
+        foreach (var c in n.GetChildren())
+        {
+            if (c is ScrollContainer s && s.VerticalScrollMode != ScrollContainer.ScrollMode.Disabled) return s;
+            if (FindScroll(c) is { } f) return f;
+        }
+        return null;
+    }
     OverlayMode _overlayBeforeDrawer;
     bool _drawerSetOverlay;
 
@@ -2234,6 +2280,7 @@ public partial class Main : Node3D
             OpenSectionTab(int.Parse(parts[0]), parts.Length > 1 ? int.Parse(parts[1]) : 0);
         }
         if (args.Contains("--goals-open")) _hud?.ToggleGoals();
+        if (args.Contains("--scroll-probe")) _ = ScrollProbe();
         if (args.Contains("--overlay-network") && !args.Contains("--interior")) { SetOverlay(OverlayMode.Network); _cam.SetView(0.62f, 0.9f, 70, new Vector3(30, 0, 40)); }
         for (var i = 0; i < 50; i++) await ToSignal(GetTree(), SceneTree.SignalName.ProcessFrame);
         if (args.Contains("--new-game"))

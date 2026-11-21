@@ -336,7 +336,23 @@ public partial class Modal : Control
         Body.SizeFlagsHorizontal = SizeFlags.ExpandFill; Body.SizeFlagsVertical = SizeFlags.ExpandFill;
         split.AddChild(Body);
         _frame.AddChild(split);
+        // the drawer is as tall as the window: lists take the height there is, so their last rows never fall off the
+        // bottom of the screen (a big UI scale or a small window) where the wheel cannot reach them
+        LowerListHeights(Body);
         MarkSectionTabs();
+    }
+
+    static void LowerListHeights(Node n)
+    {
+        foreach (var c in n.GetChildren())
+        {
+            if (c is ScrollContainer sc && sc.CustomMinimumSize.Y > 200)
+            {
+                sc.CustomMinimumSize = new Vector2(sc.CustomMinimumSize.X, 200);
+                sc.SizeFlagsVertical |= SizeFlags.ExpandFill;
+            }
+            LowerListHeights(c);
+        }
     }
 
     void MarkSectionTabs()
@@ -366,5 +382,48 @@ public partial class Modal : Control
         if (IsQueuedForDeletion()) return;
         OnClosed?.Invoke();
         QueueFree();
+    }
+}
+
+/// <summary>
+/// A vertical scroll list that stays where the player put it. Screens rebuild their rows every half second or so when the
+/// game changes; fresh rows only get their real height a frame or two later, so a plain ScrollContainer gets clamped back
+/// up and the list seems to ignore the mouse wheel. This one remembers the position the player chose (wheel, scroll bar,
+/// keyboard) and puts it back once the rows are tall enough again.
+/// </summary>
+public partial class StableScroll : ScrollContainer
+{
+    int _want;
+    ulong _userFrame;
+
+    /// <summary>Sets the position as if the player chose it (0 = back to the top, on a tab switch).</summary>
+    public new int ScrollVertical
+    {
+        get => base.ScrollVertical;
+        set { base.ScrollVertical = value; _want = value; }
+    }
+
+    public override void _Ready()
+    {
+        HorizontalScrollMode = ScrollMode.Disabled;
+        var bar = GetVScrollBar();
+        bar.Scrolling += Touched;
+        bar.GuiInput += _ => Touched();
+    }
+
+    void Touched() => _userFrame = Engine.GetProcessFrames();
+
+    public override void _GuiInput(InputEvent e)
+    {
+        if (e is InputEventMouseButton or InputEventPanGesture or InputEventScreenDrag or InputEventKey) Touched();
+    }
+
+    public override void _Process(double delta)
+    {
+        var now = Engine.GetProcessFrames();
+        var cur = base.ScrollVertical;
+        if (now - _userFrame <= 4) { _want = cur; return; }
+        // not the player: the rows were rebuilt and the list got clamped; go back to where they were once it fits again
+        if (cur != _want) base.ScrollVertical = _want;
     }
 }

@@ -143,7 +143,7 @@ public partial class BlueprintLibraryDialog : Modal
         _place = place; _changed = changed;
         var note = Ui.Text("bp_library_note", 13, Brand.InkDim); note.AutowrapMode = TextServer.AutowrapMode.WordSmart;
         Body.AddChild(note);
-        var scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 420), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        var scroll = new StableScroll { CustomMinimumSize = new Vector2(0, 420), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         _list = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _list.AddThemeConstantOverride("separation", 8);
         scroll.AddChild(_list);

@@ -27,7 +27,7 @@ public partial class OverviewPanel : Modal
     /// <summary>Jump to a hall and start the fix of an outage (racks off or offline).</summary>
     public Action<Outage> Fix;
     readonly VBoxContainer _content;
-    readonly ScrollContainer _scroll;
+    readonly StableScroll _scroll;
     int _tab;
     string _sig;
     double _timer;
@@ -40,7 +40,7 @@ public partial class OverviewPanel : Modal
     {
         _state = state; _goals = goals; _messages = messages; _open = open;
         _tab = Math.Clamp(tab, 0, Tabs.Length - 1);
-        _scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 600), SizeFlagsHorizontal = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
+        _scroll = new StableScroll { CustomMinimumSize = new Vector2(0, 600), SizeFlagsHorizontal = SizeFlags.ExpandFill, HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         _content = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _content.AddThemeConstantOverride("separation", 10);
         var pad = Ui.Pad(_content, 0, 0, 14, 0); pad.SizeFlagsHorizontal = SizeFlags.ExpandFill;
@@ -74,7 +74,6 @@ public partial class OverviewPanel : Modal
         var sig = $"{_tab}|{Loc.Language}|{(long)(s.Hours * 2)}|{goals.Count(g => g.done)}|{msgs.Count}|{(msgs.Count > 0 ? msgs[0].Text : "")}";
         if (!force && sig == _sig) return;
         _sig = sig;
-        var keep = _scroll.ScrollVertical;
         foreach (var c in _content.GetChildren()) c.QueueFree();
         switch (_tab)
         {
@@ -82,7 +81,6 @@ public partial class OverviewPanel : Modal
             case TabGoals: Goals(goals); break;
             default: Messages(msgs); break;
         }
-        _scroll.SetDeferred("scroll_vertical", keep);
     }
 
     static Label Plain(string text, int size = 15, Color? color = null)
