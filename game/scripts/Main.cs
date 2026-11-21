@@ -167,7 +167,7 @@ public partial class Main : Node3D
             ToggleRoofs = () => SetView(_world.ViewFloor, !_world.Roofs),
             FloorUp = () => SetView(StepFloor(1), false),
             FloorDown = () => SetView(StepFloor(-1), StepFloor(-1) == 0 && _world.Roofs),
-            OpenInfo = OpenInfo, OpenOptions = OpenOptions, OpenMenu = OpenPause, ToggleLanguage = ToggleLanguage,
+            OpenInfo = OpenInfo, OpenHelp = () => OpenHelp(), OpenOptions = OpenOptions, OpenMenu = OpenPause, ToggleLanguage = ToggleLanguage,
             OpenSection = ToggleSection,
             Undo = DoUndo, Redo = DoRedo, TogglePlan = TogglePlan, OpenBlueprints = OpenBlueprintLibrary,
             OpenPower = OpenPower, OpenNetwork = OpenNetwork, OpenCompany = OpenCompany, OpenStaff = OpenStaff, OpenReputation = OpenReputation, OpenGrowth = OpenGrowth, ToggleOverlay = m => SetOverlay(_world.Overlay.Mode == (OverlayMode)m ? OverlayMode.None : (OverlayMode)m),
@@ -451,6 +451,9 @@ public partial class Main : Node3D
     }
 
     void OpenInfo() => _ui.AddChild(new InfoDialog(() => { if (_playing) Autosave(); }));
+
+    /// <summary>The in-game help, on a room or a topic ("redundancy", "power", "cooling", "network").</summary>
+    void OpenHelp(RoomType? room = null, string topic = null) => _ui.AddChild(new HelpPanel(room, topic));
 
     void OpenPause()
     {
@@ -1573,6 +1576,8 @@ public partial class Main : Node3D
             lines.Add(r.Stage == Stage.Done ? Loc.T("inspect_ready")
                 : issue != null ? "⚠ " + Loc.T(issue)
                 : Loc.T("inspect_building_walls", Mathf.RoundToInt(GameState.StageProgress(r) * 100)));
+            // what the room is for, and the help page on it
+            lines.Add(HelpPanel.Summary(r.Type));
             // the room's checklist: what its function needs at least (✓ there, ○ still missing)
             lines.Add(Loc.T("inspect_room_needs"));
             foreach (var n in _state.RoomChecklist(r))
@@ -1642,6 +1647,8 @@ public partial class Main : Node3D
                 lines.Add(r.Type == RoomType.MeetMe ? Loc.T("inspect_mmr", net.OdfPorts, net.OdfUsed, net.Cores, _state.CrossConnects) : net.Noc ? Loc.T("net_noc_on") : Loc.T("inspect_noc_needs_wall"));
                 actions.Add((Loc.T("net_overview"), OpenNetwork, true));
             }
+            var helpRoom = r.Type;
+            actions.Add((Loc.T("help_more"), () => OpenHelp(helpRoom), true));
             _hud.Inspect(r.Type == RoomType.DataHall ? _state.HallTitle(r) : Loc.T(Catalog.Rooms[r.Type].NameKey), lines, actions, hallBody);
             return;
         }
@@ -2167,6 +2174,13 @@ public partial class Main : Node3D
         var ci = Array.IndexOf(args, "--category");
         if (ci >= 0 && ci + 1 < args.Length) _hud?.ShowCategory(args[ci + 1]);
         if (args.Contains("--info")) OpenInfo();
+        // --help-page DataHall|redundancy|...: the in-game help on a room or a topic
+        var hpi = Array.IndexOf(args, "--help-page");
+        if (hpi >= 0 && hpi + 1 < args.Length)
+        {
+            if (Enum.TryParse<RoomType>(args[hpi + 1], out var hr)) OpenHelp(hr);
+            else OpenHelp(topic: args[hpi + 1]);
+        }
         var oi = Array.IndexOf(args, "--options");
         if (oi >= 0) OpenOptions(oi + 1 < args.Length && int.TryParse(args[oi + 1], out var tab) ? tab : 0);
         if (args.Contains("--power")) { _playing = true; OpenPower(); }

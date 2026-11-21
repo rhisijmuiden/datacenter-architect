@@ -49,7 +49,7 @@ public partial class Hud : Control
     public Action TogglePlan;
     /// <summary>Infra sketch board 8: open the blueprint library.</summary>
     public Action OpenBlueprints;
-    public Action RotateLeft, RotateRight, ToggleGrid, ToggleRoofs, FloorUp, FloorDown, OpenInfo, OpenOptions, OpenMenu, ToggleLanguage, OpenPower, OpenNetwork;
+    public Action RotateLeft, RotateRight, ToggleGrid, ToggleRoofs, FloorUp, FloorDown, OpenInfo, OpenHelp, OpenOptions, OpenMenu, ToggleLanguage, OpenPower, OpenNetwork;
     public Action<int> ToggleOverlay, OpenCompany, OpenStaff, OpenReputation, OpenGrowth;
     public Func<GameState> State;
     /// <summary>Opens a section of the management rail (GUI v2); the rail sits on the left, F1 to F7.</summary>
@@ -190,7 +190,7 @@ public partial class Hud : Control
         }
         v.AddChild(new Control { SizeFlagsVertical = SizeFlags.ExpandFill });
         v.AddChild(new HSeparator());
-        foreach (var (icon, tip, act) in new (string, string, Action)[] { ("settings", "hud_options", () => OpenOptions?.Invoke()), ("info", "hud_info", () => OpenInfo?.Invoke()), ("menu", "hud_menu", () => OpenMenu?.Invoke()) })
+        foreach (var (icon, tip, act) in new (string, string, Action)[] { ("help", "hud_help", () => OpenHelp?.Invoke()), ("settings", "hud_options", () => OpenOptions?.Invoke()), ("info", "hud_info", () => OpenInfo?.Invoke()), ("menu", "hud_menu", () => OpenMenu?.Invoke()) })
         {
             var b = Ui.IconButton(icon, tip, act);
             b.CustomMinimumSize = new Vector2(RailWidth - 8, 40);
@@ -697,6 +697,8 @@ public partial class Hud : Control
         name.SizeFlagsHorizontal = SizeFlags.ExpandFill;
         top.AddChild(name);
         v.AddChild(top);
+        // rooms: what the room is for, so you know before you paint it (the help has the rest)
+        if (it.Mode == Mode.Room) b.TooltipText += "\n" + HelpPanel.Summary((RoomType)it.Arg);
         var spec = SpecText(it);
         if (spec != "")
         {

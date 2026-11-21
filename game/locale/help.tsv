@@ -1,0 +1,86 @@
+key	en	nl
+# In-game help: rooms and redundancy (playtest)
+help_title	Help	Help
+help_intro	What every room is for, when you need it and what has to go inside, plus how redundancy works. The checklist under each room comes straight from the game: the same rules the room inspector checks.	Waar elke ruimte voor is, wanneer je hem nodig hebt en wat erin moet, plus hoe redundantie werkt. De checklist bij elke ruimte komt rechtstreeks uit het spel: dezelfde regels die de inspector van de ruimte controleert.
+help_group_dc	Datacenter rooms	Datacenterruimtes
+help_group_office	Office rooms	Kantoorruimtes
+help_group_topics	How it works	Hoe het werkt
+help_what	What it does	Wat het doet
+help_when	When you need it	Wanneer heb je het nodig
+help_minimum	Minimum inside	Minimaal erin
+help_tip	Tip	Tip
+help_door_any	A door (or, for a painted room, closed walls with a door)	Een deur (of bij een geschilderde ruimte: dichte muren met een deur)
+help_door_rollup	A roll-up door in an outer wall	Een roldeur in een buitenmuur
+help_badge_advised	Advised: badge readers on the doors (security level, certificates)	Aangeraden: badgelezers op de deuren (beveiligingsniveau, certificaten)
+help_nothing_inside	No equipment needed	Geen apparatuur nodig
+help_open	Help	Help
+help_more	More in the help	Meer in de help
+hud_help	Help: rooms and redundancy	Help: ruimtes en redundantie
+help_datahall_what	Holds the racks you rent out to customers. This is where the money is made; everything else on the site exists to keep these racks powered, cooled and connected.	Hier staan de racks die je aan klanten verhuurt. Hier wordt het geld verdiend; al het andere op het terrein is er om deze racks van stroom, koeling en netwerk te voorzien.
+help_datahall_when	From the start: no data hall, no customers.	Vanaf het begin: zonder datahal geen klanten.
+help_datahall_tip	Place racks in rows with a free aisle in front and behind. Give it a double door so racks fit through. PDUs on both the A and the B side give A+B power; two hall switches give a redundant network. Purpose, customer types, containment and busbar are set per hall.	Zet racks in rijen met een vrij pad ervoor en erachter. Geef de hal een dubbele deur zodat racks erdoor passen. PDU's aan zowel de A- als de B-zijde geven A+B-stroom; twee halswitches geven een redundant netwerk. Doel, klanttypes, insluiting en busbar stel je per hal in.
+help_meetme_what	The network heart of the building. Carriers, the internet exchange and peers arrive here over the fiber duct; customers order cross-connects to them.	Het netwerkhart van het gebouw. Carriers, de internet exchange en peers komen hier binnen via de glasvezelduct; klanten bestellen cross-connects naar hen.
+help_meetme_when	Before any rack can go online: racks need a network path through the meet-me room.	Voordat er een rack online kan: racks hebben een netwerkpad via de meet-me-ruimte nodig.
+help_meetme_tip	ODFs are patch frames (48 ports each), core routers carry the traffic. A distribution switch here connects the switches of every hall. Two core routers and two cable entries on different sides make the network N+1.	ODF's zijn patchframes (48 poorten elk), core routers dragen het verkeer. Een distributieswitch hier verbindt de switches van elke hal. Twee core routers en twee kabelinvoeren aan verschillende kanten maken het netwerk N+1.
+help_upsroom_what	Bridges a power cut with batteries until the generators have started, so the racks never notice.	Overbrugt een stroomstoring met accu's tot de generatoren draaien, zodat de racks er niets van merken.
+help_upsroom_when	From the first live rack. Without a UPS racks go dark in every power cut.	Vanaf het eerste live rack. Zonder UPS gaan racks uit bij elke stroomstoring.
+help_upsroom_tip	Each UPS (500 kW) has 6 outputs for PDUs or busbars. One more UPS than the load needs gives N+1; twice the load gives 2N.	Elke UPS (500 kW) heeft 6 uitgangen voor PDU's of busbars. Eén UPS meer dan de last nodig heeft geeft N+1; twee keer de last geeft 2N.
+help_battery_what	Extra room for UPS battery cabinets: more minutes on batteries during a power cut.	Extra ruimte voor UPS-accukasten: meer minuten op accu's bij een stroomstoring.
+help_battery_when	When the UPS room is full or you want a longer autonomy.	Als de UPS-ruimte vol is of je een langere autonomie wilt.
+help_battery_tip	Battery cabinets (40 kWh) can also stand in the UPS room. Separate it from the data hall with a fire door.	Accukasten (40 kWh) mogen ook in de UPS-ruimte. Scheid de ruimte van de datahal met een branddeur.
+help_switchgear_what	Main distribution of the building. Its main switchboards (MSB, 8 outputs each) feed the UPS units, and its ATS switches to the generators when the grid fails.	Hoofdverdeling van het gebouw. De hoofdverdelers (MSB, 8 uitgangen elk) voeden de UPS'en, en de ATS schakelt over op de generatoren als het net uitvalt.
+help_switchgear_when	From the first live rack. Without switchgear the generators cannot take over.	Vanaf het eerste live rack. Zonder schakelruimte kunnen de generatoren het niet overnemen.
+help_switchgear_tip	A second switchboard for the B side is the step from A+B to real 2N: then the two feeds of a rack share nothing.	Een tweede hoofdverdeler voor de B-zijde is de stap van A+B naar echte 2N: dan delen de twee voedingen van een rack niets meer.
+help_transformer_what	Steps down the medium voltage of the grid connection for the building.	Transformeert de middenspanning van de netaansluiting naar de spanning van het gebouw.
+help_transformer_when	When you upgrade the grid connection beyond the compact station you start with.	Als je de netaansluiting uitbreidt voorbij het compacte station waarmee je begint.
+help_transformer_tip	Each transformer carries 2.5 MVA. One extra gives N+1 on this link.	Elke transformator draagt 2,5 MVA. Eén extra geeft N+1 op deze schakel.
+help_loadingdock_what	Trucks deliver racks, equipment and customer servers here; fitters wheel them through the corridors to the halls.	Hier leveren vrachtwagens racks, apparatuur en klantservers af; monteurs rijden ze via de gangen naar de hallen.
+help_loadingdock_when	Before you can install racks or equipment.	Voordat je racks of apparatuur kunt laten plaatsen.
+help_loadingdock_tip	Every roll-up door next to asphalt gets its own numbered loading bay: more doors, more trucks at once. Not possible in a basement.	Elke roldeur naast asfalt krijgt een eigen genummerde laadplaats: meer deuren, meer vrachtwagens tegelijk. Kan niet in een kelder.
+help_storage_what	Stock of spare parts and pallets, so repairs do not wait for a delivery.	Voorraad reserveonderdelen en pallets, zodat reparaties niet op een levering hoeven te wachten.
+help_storage_when	When equipment starts to wear and break down.	Zodra apparatuur slijt en kapotgaat.
+help_storage_tip	Logistics staff work here. Pallet racks hold the stock.	Logistiek personeel werkt hier. Palletstellingen houden de voorraad.
+help_corridor_what	Connects rooms. People, trolleys and racks move through corridors.	Verbindt ruimtes. Mensen, karren en racks verplaatsen zich door gangen.
+help_corridor_when	Always: keep a corridor from the loading dock to every hall and technical room.	Altijd: houd een gang vrij van het laadperron naar elke hal en technische ruimte.
+help_corridor_tip	Camera domes can hang here for the security level.	Hier kunnen camerakoepels hangen voor het beveiligingsniveau.
+help_noc_what	Network operations centre: operators watch power, cooling and network around the clock.	Network operations centre: operators bewaken stroom, koeling en netwerk dag en nacht.
+help_noc_when	For NOC operators; it brings more traffic over the internet exchange and peering, and cheaper burst.	Voor NOC-operators; het geeft meer verkeer via de internet exchange en peering, en goedkopere burst.
+help_noc_tip	A NOC video wall and desks.	Een NOC-videowand en bureaus.
+help_soc_what	Security operations centre: analysts defend the site against cyber attacks.	Security operations centre: analisten verdedigen het terrein tegen cyberaanvallen.
+help_soc_when	For SOC analysts and the 24/7 SOC; lowers the cyber risk.	Voor SOC-analisten en de 24/7 SOC; verlaagt het cyberrisico.
+help_soc_tip	SOC desks, one analyst per desk.	SOC-bureaus, één analist per bureau.
+help_lab_what	Research and development: researchers work through the research tree.	Onderzoek en ontwikkeling: onderzoekers werken de onderzoeksboom af.
+help_lab_when	For the research tree (better cooling, security, efficiency).	Voor de onderzoeksboom (betere koeling, beveiliging, efficiëntie).
+help_lab_tip	One researcher per lab bench. Research only runs on days the lab is staffed.	Eén onderzoeker per labtafel. Onderzoek loopt alleen op dagen dat het lab bemand is.
+help_warehouse_what	Servers and parts for your own hosting company, prepared on workbenches before they go into the own-cloud halls.	Servers en onderdelen voor je eigen hostingbedrijf, voorbereid op werkbanken voordat ze de eigen-cloudhallen in gaan.
+help_warehouse_when	When you start your own hosting company.	Als je je eigen hostingbedrijf start.
+help_warehouse_tip	Pallet racks hold 24 servers each. Only in a warehouse building.	Palletstellingen houden elk 24 servers. Alleen in een magazijngebouw.
+help_executive_what	Own office for a board member: CEO, CFO, HR, sales or operations director.	Eigen kantoor voor een directielid: CEO, CFO, HR, sales- of operationeel directeur.
+help_executive_when	One per board member, from the CEO onwards. Other managers work at an office desk.	Eén per directielid, vanaf de CEO. Andere managers werken aan een bureau in een kantoor.
+help_executive_tip	A desk and a chair; a plant makes it nicer. Directors drive in on weekdays and work here.	Een bureau en een stoel; een plant maakt het mooier. Directeuren rijden op werkdagen in en werken hier.
+help_office_what	Workplaces for managers, sales reps, support and helpdesk staff.	Werkplekken voor managers, verkopers, support- en helpdeskmedewerkers.
+help_office_when	When you hire managers, sales people or support staff: one desk per person.	Als je managers, verkopers of supportmedewerkers aanneemt: één bureau per persoon.
+help_office_tip	Offices furnish themselves in a style. The inspector shows how many desks are free.	Kantoren richten zichzelf in volgens een stijl. De inspector laat zien hoeveel bureaus vrij zijn.
+help_meeting_what	Meetings with colleagues and customers.	Overleg met collega's en klanten.
+help_meeting_when	From about 6 people in the company.	Vanaf ongeveer 6 mensen in het bedrijf.
+help_meeting_tip	A meeting table with chairs.	Een vergadertafel met stoelen.
+help_canteen_what	Staff eat and take a break here; it keeps them happy.	Personeel eet en pauzeert hier; het houdt ze tevreden.
+help_canteen_when	From about 10 people; a canteen worker makes it better.	Vanaf ongeveer 10 mensen; een kantinemedewerker maakt het beter.
+help_canteen_tip	A coffee machine, vending machine or microwave, and tables.	Een koffieautomaat, snoepautomaat of magnetron, en tafels.
+help_lounge_what	Visiting customers wait and work here.	Bezoekende klanten wachten en werken hier.
+help_lounge_when	From about 25 people; customers like it (reputation).	Vanaf ongeveer 25 mensen; klanten waarderen het (reputatie).
+help_lounge_tip	Sofas, terminals and coffee.	Banken, terminals en koffie.
+help_reception_what	Receives customers and visitors and lets them in.	Ontvangt klanten en bezoekers en laat ze binnen.
+help_reception_when	Always one, near the entrance; a receptionist works here.	Altijd één, bij de ingang; een receptionist werkt hier.
+help_reception_tip	A desk or a glass lodge. Not possible in a basement.	Een bureau of glazen loge. Kan niet in een kelder.
+help_security_what	Guards watch the site and the cameras from here.	Bewakers houden vanuit hier het terrein en de camera's in de gaten.
+help_security_when	For guards and a higher security level (or use a guard booth at the gate).	Voor bewakers en een hoger beveiligingsniveau (of gebruik een wachthuisje bij de poort).
+help_security_tip	A security video wall.	Een beveiligingsvideowand.
+help_topic_redundancy	Redundancy: N, N+1 and 2N	Redundantie: N, N+1 en 2N
+help_topic_redundancy_body	Every link in the chain (generators, transformers, switchgear, UPS, the PDUs in a hall, cooling, network) gets a label.\n\nN: just enough. If one unit fails, something goes down.\nN+1: one spare. Take away the largest unit and the rest still carries the load.\n2N: everything twice. At least two units that together carry twice the load.\n\nHow to get N+1: add one unit more than you need. The rule always takes away the biggest unit, so a small extra unit does not count.\nHow to get 2N: make the total at least double the load. For racks this means A+B power: PDUs on both sides of the hall, fed by different UPS units and switchboards.\n\nThe power tree (Infrastructure › Power tree) shows the label of every link and the next step to take.	Elke schakel in de keten (generatoren, transformatoren, schakelruimte, UPS, de PDU's in een hal, koeling, netwerk) krijgt een label.\n\nN: precies genoeg. Valt één unit uit, dan gaat er iets uit.\nN+1: één reserve. Haal de grootste unit weg en de rest draagt de last nog.\n2N: alles dubbel. Minstens twee units die samen twee keer de last dragen.\n\nZo haal je N+1: zet één unit meer neer dan je nodig hebt. De regel haalt altijd de grootste unit weg, dus een kleine extra unit telt niet.\nZo haal je 2N: zorg dat het totaal minstens het dubbele van de last is. Voor racks betekent dat A+B-stroom: PDU's aan beide zijden van de hal, gevoed door verschillende UPS'en en hoofdverdelers.\n\nDe stroomboom (Infrastructuur › Stroomboom) laat bij elke schakel het label en de volgende stap zien.
+help_topic_power	The power chain	De stroomketen
+help_topic_power_body	Every rack needs the whole chain: grid connection › transformers › switchgear (main switchboards with the ATS and the generators) › UPS › PDU or busbar in the hall › rack. The weakest link decides how many racks run.\n\nA main switchboard has 8 outputs for UPS units; a UPS has 6 outputs for PDUs or busbar runs; a PDU has a number of outlets for racks. When a device is full, the tree says so and tells you what to add.\n\nGenerators only take over when there is an ATS in a switchgear room. Generator redundancy is measured against the whole site load (IT × PUE plus offices and cooling).	Elk rack heeft de hele keten nodig: netaansluiting › transformatoren › schakelruimte (hoofdverdelers met de ATS en de generatoren) › UPS › PDU of busbar in de hal › rack. De zwakste schakel bepaalt hoeveel racks draaien.\n\nEen hoofdverdeler heeft 8 uitgangen voor UPS'en; een UPS heeft 6 uitgangen voor PDU's of busbarbanen; een PDU heeft een aantal aansluitingen voor racks. Als een apparaat vol zit, zegt de power tree dat en wat je moet bijzetten.\n\nGeneratoren nemen het alleen over als er een ATS in een schakelruimte staat. Generatorredundantie wordt gemeten tegen de last van het hele terrein (IT × PUE plus kantoren en koeling).
+help_topic_cooling	Cooling	Koeling
+help_topic_cooling_body	Every kW in a rack becomes a kW of heat. CRAH units in the hall take it away; chillers or cooling towers outside get rid of it. Without enough cooling the hall warms up and racks shut down.\n\nOne CRAH more than the heat needs gives N+1. Containment (hot or cold aisles) makes the same CRAH units cool more and lowers the PUE.	Elke kW in een rack wordt een kW warmte. CRAH-units in de hal voeren die af; chillers of koeltorens buiten raken hem kwijt. Zonder genoeg koeling warmt de hal op en schakelen racks uit.\n\nEén CRAH meer dan de warmte nodig heeft geeft N+1. Insluiting (warme of koude gangen) laat dezelfde CRAH-units meer koelen en verlaagt de PUE.
+help_topic_network	Network	Netwerk
+help_topic_network_body	Carriers come in at a cable entry on the edge of the plot and run over your own fiber duct to the meet-me room. There, ODFs and core routers connect them; a distribution switch connects the switches in every hall, and the hall switches connect the racks.\n\nFor N+1: two cable entries on different sides that share no duct, two core routers, and two switches per hall. The network screen warns about single points of failure.	Carriers komen binnen bij een kabelinvoer aan de rand van het terrein en lopen via je eigen glasvezelduct naar de meet-me-ruimte. Daar verbinden ODF's en core routers ze; een distributieswitch verbindt de switches in elke hal, en de halswitches verbinden de racks.\n\nVoor N+1: twee kabelinvoeren aan verschillende kanten die geen duct delen, twee core routers, en twee switches per hal. Het netwerkscherm waarschuwt voor single points of failure.

@@ -11,6 +11,7 @@ description: Every room in Datacenter Architect, what it does, what goes inside 
 2. Put a **door** in a wall (Buildings › Doors). People and racks only get in through a door; racks and big equipment need a **double door** or a **roll-up door**.
 3. Furnish the room (Interior, Power, Cooling, Network). Equipment that belongs in a specific room can only be placed there: a UPS only goes in a UPS room, a core router only in the meet-me room.
 4. Click the room to open the **inspector**: it shows what the room does, what it holds and what it still lacks.
+5. Not sure what a room is for? The **?** button at the bottom of the left rail opens the in-game **help**: every room with what it does, when you need it and what has to go inside, plus pages on redundancy, power, cooling and network. The tooltip of each room in the build bar and the **More in the help** button in the inspector lead there too.
 
 Rooms connect through **corridors**. Keep a corridor running from the loading dock to every hall and technical room, so fitters can wheel equipment in.
 

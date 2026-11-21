@@ -55,6 +55,8 @@ For every link the power screen shows how redundant it is. The game uses the rea
 
 ### How to reach N+1
 
+The **power tree** (Infrastructure › Power tree) has a card **Route to N+1 and 2N** at the top: for the generators, transformers, switchboards, UPS and every hall with racks it shows the level now and the next step to take.
+
 Add **one unit more than you need** on that link. A 900 kW IT load needs two UPS units of 500 kW (N); with a third one it is N+1. Same for switchgear and transformers. The rule always takes away the biggest unit, so mixing sizes does not help.
 
 ### How to reach 2N

@@ -116,6 +116,7 @@ public partial class PowerPanel
             chain.AddChild(b);
         }
         _content.AddChild(chain);
+        _content.AddChild(RouteCard());
 
         if (t == null || t.Msbs.Count == 0 && t.Unconnected.Count == 0 && t.Sources.Count == 0)
         {
@@ -310,6 +311,111 @@ public partial class PowerPanel
             v.AddChild(b);
         }
         return card;
+    }
+
+    /// <summary>
+    /// The route to N+1 and 2N (playtest): per link of the chain (generators, transformers, switchboards, UPS) and per
+    /// hall the level now and the next concrete step. Updates with the load, the rest of the tree only on a new shape.
+    /// </summary>
+    Control RouteCard()
+    {
+        var box = new PanelContainer();
+        box.AddThemeStyleboxOverride("panel", Ui.Box(new Color(Brand.Power, 0.06f), 8, new Color(Brand.Power, 0.3f), 1, 12));
+        var v = new VBoxContainer();
+        v.AddThemeConstantOverride("separation", 4);
+        box.AddChild(v);
+        var head = new HBoxContainer();
+        var title = Ui.Heading("ptree_route_title", 13, Brand.Power);
+        title.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+        head.AddChild(title);
+        var help = Ui.Secondary(Loc.T("help_open"), () => GetParent()?.AddChild(new HelpPanel(topic: "redundancy")));
+        help.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
+        help.CustomMinimumSize = new Vector2(0, 28);
+        head.AddChild(help);
+        v.AddChild(head);
+        var lines = new VBoxContainer();
+        lines.AddThemeConstantOverride("separation", 3);
+        v.AddChild(lines);
+        string last = null;
+        _updaters.Add((s, r) =>
+        {
+            var route = Route(s, r);
+            var sig = string.Join("|", route.Select(x => x.level + x.text));
+            if (sig == last) return;
+            last = sig;
+            foreach (var c in lines.GetChildren()) { lines.RemoveChild(c); c.QueueFree(); }
+            if (route.Count == 0) { lines.AddChild(Plain(Loc.T("ptree_route_none"), 13, Brand.InkDim)); return; }
+            foreach (var (level, text) in route)
+            {
+                var row = new HBoxContainer();
+                row.AddThemeConstantOverride("separation", 8);
+                var chip = new PanelContainer { CustomMinimumSize = new Vector2(52, 0) };
+                var col = LevelColor(level);
+                chip.AddThemeStyleboxOverride("panel", Ui.Box(new Color(col, 0.2f), 5, null, 0, 4));
+                var lv = Plain(level, 12, col, false);
+                lv.HorizontalAlignment = HorizontalAlignment.Center;
+                chip.AddChild(lv);
+                row.AddChild(chip);
+                var l = Plain(text, 13, Brand.Ink);
+                l.SizeFlagsHorizontal = SizeFlags.ExpandFill;
+                row.AddChild(l);
+                lines.AddChild(row);
+            }
+        });
+        return box;
+    }
+
+    static Color LevelColor(string level) => level switch
+    {
+        "2N" => Brand.Ok,
+        "N+1" or "A+B" => Brand.Power,
+        "N-" => Brand.Critical,
+        _ => Brand.Warning,
+    };
+
+    /// <summary>Per link and per hall with racks: the redundancy level now and what to add for the next level.</summary>
+    public static List<(string level, string text)> Route(GameState s, InfraReport r)
+    {
+        var list = new List<(string, string)>();
+        if (r == null || r.ItDemandKw <= 0) return list;
+        void Link(string unitKey, string level, IReadOnlyCollection<double> caps, double load)
+        {
+            if (level == "-" || caps.Count == 0 || load <= 0) return;
+            var name = Loc.T(unitKey);
+            var sum = caps.Sum();
+            var text = level switch
+            {
+                "N-" => Loc.T("ptree_route_short", name, Kw(load - sum)),
+                "N" => Loc.T("ptree_route_n", name),
+                "N+1" => Loc.T("ptree_route_n1", name, Kw(Math.Max(1, 2 * load - sum))),
+                _ => Loc.T("ptree_route_2n", name),
+            };
+            list.Add((level, text));
+        }
+        var gens = s.Objects.Where(o => o.Kind == ObjKind.Generator).Select(o => o.Def.GenKw).ToList();
+        if (!r.Ats) list.Add(("N-", Loc.T("ptree_route_no_ats")));
+        else Link("ptree_route_gen", r.GenRedundancy, gens, r.ItDemandKw * r.Pue + r.OtherKw);
+        foreach (var (link, key) in new[] { (PowerLink.Transformers, "ptree_route_trafo"), (PowerLink.Switchgear, "ptree_route_msb"), (PowerLink.Ups, "ptree_route_ups") })
+        {
+            var l = r.Links.FirstOrDefault(x => x.Link == link);
+            if (l == null || l.Units == 0) continue;
+            // the units of a link are all one size in this game: split the capacity evenly
+            var caps = Enumerable.Repeat(l.CapacityKw / l.Units, l.Units).ToList();
+            Link(key, l.Redundancy, caps, l.LoadKw);
+        }
+        foreach (var h in r.Halls.Where(h => h.LiveRacks > 0))
+        {
+            var code = s.HallCode(h.Room);
+            var text = h.Redundancy switch
+            {
+                "2N" => Loc.T("ptree_route_hall_2n", code),
+                "A+B" => Loc.T("ptree_route_hall_ab", code),
+                "partial" => Loc.T("ptree_route_hall_partial", code, h.DualRacks, h.LiveRacks),
+                _ => Loc.T("ptree_route_hall_n", code),
+            };
+            list.Add((h.Redundancy == "partial" ? "N" : h.Redundancy, text));
+        }
+        return list;
     }
 
     /// <summary>What to do about this device, in plain words. Empty when it is fine.</summary>
