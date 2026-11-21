@@ -378,7 +378,7 @@ public partial class GameState
 
     public OfficeLease LeaseOf(Room r) => Leases.FirstOrDefault(l => l.RoomId == r.Id);
 
-    public long Rent(Room r, bool customer) => (long)Math.Round(r.W * r.D * OfficeRentPerM2 * (1 + 0.1 * Training(Exec.OfficeManager)) * (customer ? CustomerOfficePremium : 1) / 10) * 10;
+    public long Rent(Room r, bool customer) => (long)Math.Round(r.Area * OfficeRentPerM2 * (1 + 0.1 * Training(Exec.OfficeManager)) * (customer ? CustomerOfficePremium : 1) / 10) * 10;
 
     /// <summary>A whole office building let to one tenant earns a little more.</summary>
     public bool WholeBuilding(OfficeLease l)

@@ -66,7 +66,59 @@ public class Room
     public HallZone Zone { get; set; }
     /// <summary>Data halls: the customer types hosted here. Empty means every type is welcome.</summary>
     public List<CustomerType> Clients { get; set; } = new();
-    public bool Contains(int x, int z) => x >= X && z >= Z && x < X + W && z < Z + D;
+    /// <summary>
+    /// True for a room drawn as a rectangle with its own walls around it (the "room with walls" tool and every room
+    /// from before free walls). False for a room painted on the floor tiles of a space closed by separate walls.
+    /// </summary>
+    public bool Walled { get; set; } = true;
+    /// <summary>Painted rooms: the floor cells (<see cref="Key"/>). Empty means the whole X/Z/W/D rectangle.</summary>
+    public List<int> Cells { get; set; } = new();
+    /// <summary>Optional name the player gave the room.</summary>
+    public string Name { get; set; }
+
+    HashSet<int> _set;
+    public static int Key(int x, int z) => z * 4096 + x;
+    public static (int x, int z) Unkey(int k) => (k % 4096, k / 4096);
+
+    public bool Contains(int x, int z)
+    {
+        if (x < X || z < Z || x >= X + W || z >= Z + D) return false;
+        if (Cells.Count == 0) return true;
+        _set ??= Cells.ToHashSet();
+        return _set.Contains(Key(x, z));
+    }
+
+    /// <summary>Floor area in m² (cells).</summary>
+    [JsonIgnore] public int Area => Cells.Count == 0 ? W * D : Cells.Count;
+
+    /// <summary>Every floor cell of the room.</summary>
+    public IEnumerable<(int x, int z)> CellList()
+    {
+        if (Cells.Count > 0) { foreach (var k in Cells) yield return Unkey(k); yield break; }
+        for (var z = Z; z < Z + D; z++)
+            for (var x = X; x < X + W; x++) yield return (x, z);
+    }
+
+    /// <summary>Set the floor cells and the bounding box around them.</summary>
+    public void SetCells(IEnumerable<(int x, int z)> cells)
+    {
+        var list = cells.Distinct().ToList();
+        Cells = list.Select(c => Key(c.x, c.z)).OrderBy(k => k).ToList();
+        _set = null;
+        if (list.Count == 0) { W = D = 0; return; }
+        X = list.Min(c => c.x); Z = list.Min(c => c.z);
+        W = list.Max(c => c.x) - X + 1; D = list.Max(c => c.z) - Z + 1;
+    }
+
+    /// <summary>A copy (lists copied too), so a change can be undone by swapping the old object back.</summary>
+    public Room Copy()
+    {
+        var r = (Room)MemberwiseClone();
+        r.Clients = new List<CustomerType>(Clients);
+        r.Cells = new List<int>(Cells);
+        r._set = null;
+        return r;
+    }
 }
 
 /// <summary>A door sits on wall edges. Dir 0 = the wall line x = X running along z; dir 1 = the line z = Z running along x.</summary>
@@ -249,6 +301,9 @@ public partial class GameState
     public void Migrate()
     {
         EnsureGrids();
+        // free walls (2026-11-21): rooms from older saves keep their own walls (Walled defaults to true)
+        Walls ??= new();
+        foreach (var r in Rooms) r.Cells ??= new();
         if (SaveFormat < 2)
         {
             // v1 kinds were Foundation, Rack, Crah, Generator, FiberPit; the foundation is now a finished building.
@@ -441,8 +496,11 @@ public partial class GameState
             if (b.HasFloor(floor) && (!builtOnly || b.Stage == Stage.Done))
                 foreach (var e in Perimeter(b.X, b.Z, b.W, b.D)) set.Add(e);
         foreach (var r in Rooms)
-            if (r.Floor == floor && (!builtOnly || r.Stage == Stage.Done))
+            if (r.Walled && r.Floor == floor && (!builtOnly || r.Stage == Stage.Done))
                 foreach (var e in Perimeter(r.X, r.Z, r.W, r.D)) set.Add(e);
+        foreach (var w in Walls)
+            if (w.Floor == floor && (!builtOnly || w.Stage == Stage.Done))
+                foreach (var e in w.Edges()) set.Add(e);
         return set;
     }
 
@@ -457,7 +515,7 @@ public partial class GameState
         Stage.Roof => (int)Math.Ceiling(b.W * b.D / 8.0),
         _ => 0,
     };
-    public static int MaterialNeed(Room r) => r.Stage == Stage.Done ? 0 : (int)Math.Ceiling((r.W + r.D) * 2 / 3.0) + 1;
+    public static int MaterialNeed(Room r) => r.Stage == Stage.Done || !r.Walled ? 0 : (int)Math.Ceiling((r.W + r.D) * 2 / 3.0) + 1;
     public static double WorkNeed(Building b) => MaterialNeed(b) * WorkPerMaterial;
     public static double WorkNeed(Room r) => MaterialNeed(r) * WorkPerMaterial;
     public static long BuildingCost(BuildingKind k, int w, int d, int floors, bool basement = false) =>
@@ -846,15 +904,19 @@ public partial class GameState
             Objects.Remove(o); RefundRemoved(o.Id, o.Def.Cost / 2); changed = true; layout |= ShapesLayout(o);
         }
         foreach (var door in Doors.Where(o => o.Floor == floor && In(o.X, o.Z)).ToList()) { Doors.Remove(door); if (IsPlanned(door.Id)) Planned.Remove(door.Id); changed = true; layout = true; }
-        if (changed) { Touch(layout); return true; }
+        if (changed) { Touch(layout); RefreshRooms(); return true; }
+        // separate walls whose both sides lie in the drag
+        var wallEdges = Walls.Where(x => x.Floor == floor).SelectMany(x => x.Edges()).Where(e => { var (a, b) = Sides(e); return In(a.x, a.z) && In(b.x, b.z); }).ToList();
+        if (wallEdges.Count > 0) { RemoveWallEdges(floor, wallEdges); RefreshRooms(); return true; }
         foreach (var r in Rooms.Where(r => r.Floor == floor && In(r.X, r.Z) && In(r.X + r.W - 1, r.Z + r.D - 1)).ToList())
         {
-            RemoveRoom(r); changed = true;
+            DemolishRoom(r); changed = true;
         }
-        if (changed) { Touch(); return true; }
+        if (changed) { Touch(); RefreshRooms(); return true; }
         foreach (var b in Buildings.Where(b => floor == 0 && In(b.X, b.Z) && In(b.X + b.W - 1, b.Z + b.D - 1)).ToList())
         {
             foreach (var r in Rooms.Where(r => r.BuildingId == b.Id).ToList()) RemoveRoom(r);
+            Walls.RemoveAll(w => w.BuildingId == b.Id);
             Objects.RemoveAll(o => b.Contains(o.X, o.Z));
             Doors.RemoveAll(o => Perimeter(b.X, b.Z, b.W, b.D).Intersect(o.Edges()).Any());
             Buildings.Remove(b);
@@ -880,7 +942,7 @@ public partial class GameState
         var edges = Perimeter(r.X, r.Z, r.W, r.D).ToHashSet();
         Doors.RemoveAll(o => o.Floor == r.Floor && o.Edges().Any(edges.Contains) && !o.Edges().Any(IsOuterEdge));
         Rooms.Remove(r);
-        RefundRemoved(r.Id, Catalog.RoomCost(r.W, r.D) / 4);
+        RefundRemoved(r.Id, r.Walled ? Catalog.RoomCost(r.W, r.D) / 4 : 0);
     }
 
     // ---------------- derived resources ----------------
@@ -1047,7 +1109,7 @@ public partial class GameState
 
     public static double RaiseProgress(Building b) => b.RaiseHours <= 0 ? 0 : Math.Clamp(1 - b.RaiseLeft / b.RaiseHours, 0, 1);
 
-    public static long HallUpgradeCost(Room r) => r.Containment >= Containment.ColdCorridor ? 0 : Catalog.Containments[r.Containment + 1].CostPerM2 * r.W * r.D;
+    public static long HallUpgradeCost(Room r) => r.Containment >= Containment.ColdCorridor ? 0 : Catalog.Containments[r.Containment + 1].CostPerM2 * r.Area;
 
     public string CanUpgradeHall(Room r, bool busbar)
     {
@@ -1133,6 +1195,7 @@ public partial class GameState
         var before = (int)(Hours / 24);
         var hourBefore = (int)Hours;
         Hours += hours;
+        RefreshRooms();
         UpdateOps(hours);
         UpdateInfra(hours);
         UpdateNetwork(hours, hourBefore);

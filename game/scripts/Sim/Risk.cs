@@ -175,7 +175,7 @@ public partial class GameState
                 if (hall != null)
                 {
                     StartEvent(EventKind.Flood, 18 + rng.Next(30), hall.Id);
-                    damage += 80_000 + hall.W * hall.D * 150L;
+                    damage += 80_000 + hall.Area * 150L;
                 }
                 else damage += 30_000;
                 break;

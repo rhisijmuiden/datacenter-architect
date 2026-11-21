@@ -72,7 +72,7 @@ cat_customers	Customers	Klanten
 hud_coming_soon	Coming in a later update	Komt in een volgende update
 hint_select	Click a building, room or rack for details. Right-drag rotates, wheel zooms, WASD pans, Q and E turn. T shows roofs, Page Up and Down change floor. P shows the power overlay, H the cooling overlay, N the network overlay. Ctrl+Z undoes, Ctrl+Y redoes.	Klik op een gebouw, ruimte of rack voor details. Rechts slepen draait, scrollwiel zoomt, WASD schuift, Q en E draaien. T toont daken, Page Up en Down wisselen van verdieping. P toont de stroomweergave, H de koelweergave, N de netwerkweergave. Ctrl+Z maakt ongedaan, Ctrl+Y doet opnieuw.
 hint_place	Click to place. R rotates. Red means it cannot go there.	Klik om te plaatsen. R draait. Rood betekent dat het daar niet kan.
-hint_erase	Drag over what you want to remove. Objects and doors go first, then rooms, then buildings and paving.	Sleep over wat je wilt weghalen. Eerst objecten en deuren, dan ruimtes, dan gebouwen en bestrating.
+hint_tool_erase	Drag over what you want to remove. Objects and doors go first, then walls and rooms, then buildings and paving.	Sleep over wat je wilt weghalen. Eerst objecten en deuren, dan muren en ruimtes, dan gebouwen en bestrating.
 hud_rotate_left	Rotate left (Q)	Links draaien (Q)
 hud_rotate_right	Rotate right (E)	Rechts draaien (E)
 hud_grid	Show or hide the grid	Grid tonen of verbergen
@@ -98,8 +98,8 @@ msg_start_hint	Start with an asphalt driveway from the road and a building mater
 hint_surface	Drag to pave. Trucks drive on asphalt, parking and the materials yard.	Sleep om te bestraten. Vrachtwagens rijden over asfalt, parkeerplaatsen en de materialenplek.
 hint_fence	Drag a line, or a rectangle to fence it all round. Put a sliding gate where the driveway crosses.	Sleep een lijn, of een rechthoek om alles te omheinen. Zet een schuifpoort waar de oprit het hek kruist.
 hint_building	Drag out the floor plan. Builders lay the foundation, put up the walls and the roof. Material comes by truck to your yard.	Sleep de plattegrond uit. Bouwvakkers storten de fundering en bouwen muren en dak. Materiaal komt per vrachtwagen naar je materialenplek.
-hint_room	Drag a room inside a finished building. Builders put up the inner walls. Lights are added automatically.	Sleep een ruimte binnen een afgebouwd gebouw. Bouwvakkers zetten de binnenmuren. Verlichting komt er vanzelf in.
-hint_door	Point at a wall and click. Racks only fit through double doors and roll-up doors.	Wijs een muur aan en klik. Racks passen alleen door dubbele deuren en roldeuren.
+hint_room	Paint floor tiles inside a building to give a space its function. Paint over another room to change its type. Tick 'room with walls' to drag a whole room with walls at once.	Verf vloertegels binnen een gebouw om een ruimte zijn functie te geven. Verf over een andere ruimte om het soort te wijzigen. Vink 'ruimte met muren' aan om in één keer een hele ruimte met muren te slepen.
+hint_door	Point at a wall and click. Racks fit through every door except a mantrap. Place a door over an existing one to swap it straight away.	Wijs een muur aan en klik. Racks passen door elke deur behalve een mantrap. Plaats een deur over een bestaande deur om hem meteen te wisselen.
 hint_row	Drag a row of up to 24 racks; R turns the fronts. Drag wider to fill a block of rows in one go: pairs face each other across a cold aisle, with hot aisles between the pairs (R starts with the backs).	Sleep een rij van maximaal 24 racks; R draait de voorkanten. Sleep breder om in één keer een blok rijen te vullen: paren kijken elkaar aan over een koude gang, met warme gangen ertussen (R begint met de achterkanten).
 cat_rooms	Rooms	Ruimtes
 cat_interior	Interior	Inrichting
@@ -1998,3 +1998,36 @@ msg_door_swapped	Door changed into {0}.	Deur gewijzigd in {0}.
 sec_secure_doors	Badge readers on all hall and MMR doors ({0}) · {1}	Paslezers op alle hal- en MMR-deuren ({0}) · {1}
 sec_doors_ok	All hall and MMR doors have a badge reader.	Alle hal- en MMR-deuren hebben een paslezer.
 msg_doors_secured	{0} doors got a badge reader.	{0} deuren hebben een paslezer gekregen.
+wall_inner	Inner wall	Binnenmuur
+wall_glass	Glass wall	Glazen wand
+hint_wall	Drag along the grid lines inside a building to put up a wall. Close a space with walls and a door, then paint it with a room type.	Sleep langs de rasterlijnen binnen een gebouw om een muur te zetten. Sluit een ruimte af met muren en een deur en verf hem daarna met een ruimtesoort.
+msg_wall_done	Wall finished.	Muur klaar.
+msg_wall_in_building	Walls go inside a finished building.	Muren horen binnen een afgebouwd gebouw.
+msg_wall_through_object	A wall cannot go through equipment.	Een muur kan niet door apparatuur heen.
+tool_unpaint	Remove room type	Ruimtesoort wissen
+hint_unpaint	Drag over painted tiles to remove the room type. Walls, doors and equipment stay.	Sleep over geverfde tegels om de ruimtesoort te wissen. Muren, deuren en apparatuur blijven staan.
+erase_all	Everything	Alles
+erase_room	Room	Ruimte
+erase_wall	Walls	Muren
+erase_door	Doors	Deuren
+erase_interior	Interior	Inrichting
+hint_erase_room	Drag over a room to remove it with its walls, doors and equipment.	Sleep over een ruimte om hem met muren, deuren en apparatuur te slopen.
+hint_erase_wall	Drag along walls to take them down. Doors in those walls go too.	Sleep langs muren om ze af te breken. Deuren in die muren gaan mee.
+hint_erase_door	Drag over doors to remove only the doors.	Sleep over deuren om alleen de deuren weg te halen.
+hint_erase_interior	Drag over a room to clear the equipment and furniture, the room stays.	Sleep over een ruimte om apparatuur en meubels weg te halen, de ruimte blijft.
+hud_room_fill	Fill space	Hele ruimte
+hud_room_fill_tip	One click paints the whole enclosed space.	Eén klik verft de hele afgesloten ruimte.
+hud_room_walls	Room with walls	Ruimte met muren
+hud_room_walls_tip	Drag a rectangle and get the room with walls at once (the old way).	Sleep een rechthoek en krijg de ruimte meteen met muren (de oude manier).
+paint_changes	Changes: {0}	Wijzigt: {0}
+msg_room_has_tenants	Customers rent racks here. Move them first.	Klanten huren hier racks. Verplaats ze eerst.
+room_issue_building	Not finished: the walls around this space are still being built.	Nog niet klaar: de muren rond deze ruimte worden nog gebouwd.
+room_issue_two_types	Not finished: two room types share this space. Add a wall.	Nog niet klaar: twee ruimtesoorten delen deze ruimte. Zet er een muur tussen.
+room_issue_no_door	Not finished: close the space with walls and add a door.	Nog niet klaar: sluit de ruimte af met muren en zet er een deur in.
+inspect_room_needs	Needs at least:	Heeft minimaal nodig:
+inspect_room_badges	Badge readers on {0} of {1} doors (advice)	Paslezer op {0} van {1} deuren (advies)
+need_closed	Closed space with a door	Afgesloten ruimte met deur
+need_door	A door	Een deur
+need_pdu	PDU or busbar	PDU of busbar
+need_hall_switch	Hall switch	Halswitch
+need_kitchen	Coffee machine, vending machine or microwave	Koffieautomaat, snoepautomaat of magnetron
