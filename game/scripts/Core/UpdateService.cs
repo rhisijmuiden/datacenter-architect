@@ -254,11 +254,11 @@ public static class UpdateService
     /// </summary>
     public static string MacBundle(string executable)
     {
+        // plain '/' handling: a macOS path, whatever system the tests run on
         if (string.IsNullOrEmpty(executable)) return null;
-        var macos = Path.GetDirectoryName(executable);
-        var contents = Path.GetDirectoryName(macos ?? "");
-        var app = Path.GetDirectoryName(contents ?? "");
-        if (Path.GetFileName(macos) != "MacOS" || Path.GetFileName(contents) != "Contents" || app == null || !app.EndsWith(".app", StringComparison.Ordinal)) return null;
+        var parts = executable.Split('/');
+        if (parts.Length < 5 || parts[^2] != "MacOS" || parts[^3] != "Contents" || !parts[^4].EndsWith(".app", StringComparison.Ordinal)) return null;
+        var app = string.Join('/', parts[..^3]);
         if (app.Contains("/AppTranslocation/", StringComparison.Ordinal)) return null;
         return app;
     }

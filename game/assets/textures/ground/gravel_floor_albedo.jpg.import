@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://daiqudqf3i7e6"
 path.s3tc="res://.godot/imported/gravel_floor_albedo.jpg-8eea304909fafb45fb8c22df49336498.s3tc.ctex"
+path.etc2="res://.godot/imported/gravel_floor_albedo.jpg-8eea304909fafb45fb8c22df49336498.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/textures/ground/gravel_floor_albedo.jpg"
-dest_files=["res://.godot/imported/gravel_floor_albedo.jpg-8eea304909fafb45fb8c22df49336498.s3tc.ctex"]
+dest_files=["res://.godot/imported/gravel_floor_albedo.jpg-8eea304909fafb45fb8c22df49336498.s3tc.ctex", "res://.godot/imported/gravel_floor_albedo.jpg-8eea304909fafb45fb8c22df49336498.etc2.ctex"]
 
 [params]
 

@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://csqg4tb4oq8f4"
 path.s3tc="res://.godot/imported/red_brick_albedo.jpg-82095dd7178b542209c329a369089fa6.s3tc.ctex"
+path.etc2="res://.godot/imported/red_brick_albedo.jpg-82095dd7178b542209c329a369089fa6.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/textures/ground/red_brick_albedo.jpg"
-dest_files=["res://.godot/imported/red_brick_albedo.jpg-82095dd7178b542209c329a369089fa6.s3tc.ctex"]
+dest_files=["res://.godot/imported/red_brick_albedo.jpg-82095dd7178b542209c329a369089fa6.s3tc.ctex", "res://.godot/imported/red_brick_albedo.jpg-82095dd7178b542209c329a369089fa6.etc2.ctex"]
 
 [params]
 

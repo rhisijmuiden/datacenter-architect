@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://dfvu7oc8oikwx"
 path.s3tc="res://.godot/imported/square_concrete_pavers_normal.jpg-23321e6743752642a3012d980c58634f.s3tc.ctex"
+path.etc2="res://.godot/imported/square_concrete_pavers_normal.jpg-23321e6743752642a3012d980c58634f.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/textures/ground/square_concrete_pavers_normal.jpg"
-dest_files=["res://.godot/imported/square_concrete_pavers_normal.jpg-23321e6743752642a3012d980c58634f.s3tc.ctex"]
+dest_files=["res://.godot/imported/square_concrete_pavers_normal.jpg-23321e6743752642a3012d980c58634f.s3tc.ctex", "res://.godot/imported/square_concrete_pavers_normal.jpg-23321e6743752642a3012d980c58634f.etc2.ctex"]
 
 [params]
 

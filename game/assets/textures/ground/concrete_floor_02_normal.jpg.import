@@ -4,15 +4,16 @@ importer="texture"
 type="CompressedTexture2D"
 uid="uid://cj67rkgrky7lb"
 path.s3tc="res://.godot/imported/concrete_floor_02_normal.jpg-fd2e2234ca4cea4930d40c421cd21fce.s3tc.ctex"
+path.etc2="res://.godot/imported/concrete_floor_02_normal.jpg-fd2e2234ca4cea4930d40c421cd21fce.etc2.ctex"
 metadata={
-"imported_formats": ["s3tc_bptc"],
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
 "vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/textures/ground/concrete_floor_02_normal.jpg"
-dest_files=["res://.godot/imported/concrete_floor_02_normal.jpg-fd2e2234ca4cea4930d40c421cd21fce.s3tc.ctex"]
+dest_files=["res://.godot/imported/concrete_floor_02_normal.jpg-fd2e2234ca4cea4930d40c421cd21fce.s3tc.ctex", "res://.godot/imported/concrete_floor_02_normal.jpg-fd2e2234ca4cea4930d40c421cd21fce.etc2.ctex"]
 
 [params]
 
