@@ -72,6 +72,8 @@ public class Deal
     /// <summary>Tenders: the bid as a percentage of the asking price (85, 100 or 115).</summary>
     public int BidPercent { get; set; }
     public List<int> RackIds { get; set; } = new();
+    /// <summary>Data hall the player placed this contract in (0 = sales picks one). Whole halls and cages keep the hall they got.</summary>
+    public int HallId { get; set; }
     public double Satisfaction { get; set; } = 80;
     public double Served { get; set; } = 1;
     public bool Legacy { get; set; }
@@ -420,9 +422,12 @@ public partial class GameState
         return true;
     }
 
-    static HallZone ZoneFor(Product p) => p switch { Product.PerU => HallZone.PerU, Product.Cage => HallZone.Cage, Product.Hall => HallZone.PrivateHall, _ => HallZone.FullRacks };
+    public static HallZone ZoneFor(Product p) => p switch { Product.PerU => HallZone.PerU, Product.Cage => HallZone.Cage, Product.Hall => HallZone.PrivateHall, _ => HallZone.FullRacks };
 
-    /// <summary>Free racks that could go to this deal, grouped by hall (cages and halls must fit in one hall).</summary>
+    /// <summary>
+    /// Free racks that could go to this deal, grouped by hall (cages and halls must fit in one hall). A deal placed in a hall
+    /// by the player only looks there; halls rented whole or reserved for another customer are skipped.
+    /// </summary>
     public List<int> FreeRacksFor(Deal d, out int bestHall)
     {
         bestHall = 0;
@@ -431,10 +436,13 @@ public partial class GameState
         var inf = Infra;
         var zone = ZoneFor(d.Product);
         var pick = new List<int>();
-        foreach (var h in inf.Halls.Where(h => h.Room.Zone == zone && h.Room.Stage == Stage.Done && HallTakes(h.Room, d.Type) && HallFits(d, h)))
+        foreach (var h in inf.Halls.Where(h => h.Room.Stage == Stage.Done && HallTakes(h.Room, d.Type) && HallFits(d, h)))
         {
+            if (d.HallId != 0 ? h.Room.Id != d.HallId : h.Room.Zone != zone) continue;
+            if (HeldByOther(h.Room, d, owners)) continue;
             var racks = Objects.Where(o => o.Kind == ObjKind.Rack && o.Floor == h.Room.Floor && h.Room.Contains(o.X, o.Z)).ToList();
-            if (d.Product == Product.Hall && racks.Any(o => owners.ContainsKey(o.Id))) continue; // a private hall has one tenant
+            // a picked hall of another zone only works while nobody else rents racks there
+            if (h.Room.Zone != zone && racks.Any(o => owners.TryGetValue(o.Id, out var id) && id != d.Id)) continue;
             var free = racks.Where(o => !owners.ContainsKey(o.Id) && working.Contains(o.Id)).OrderBy(o => o.Id).Select(o => o.Id).ToList();
             if (d.Product is Product.Cage or Product.Hall)
             {
@@ -478,14 +486,21 @@ public partial class GameState
             var free = FreeRacksFor(d, out _).Count;
             list.Add(new Req(d.Product switch { Product.Cage => "req_cage", Product.Hall => "req_hall", _ => "req_racks" }, free.ToString(), d.Racks.ToString(), free >= d.Racks ? ReqStatus.Ok : ReqStatus.Fail));
         }
-        var zoneHalls = Rooms.Where(r => r.Type == RoomType.DataHall && r.Zone == ZoneFor(d.Product)).ToList();
+        var picked = d.HallId != 0 ? Rooms.FirstOrDefault(r => r.Id == d.HallId && r.Type == RoomType.DataHall) : null;
+        bool InScope(Room r) => picked != null ? r == picked : r.Zone == ZoneFor(d.Product);
+        if (picked != null)
+        {
+            var problem = HallChoices(d).FirstOrDefault(c => c.Hall == picked)?.Problem;
+            list.Add(new Req("req_place", HallCode(picked), "", problem is null or "place_short" ? ReqStatus.Ok : ReqStatus.Fail));
+        }
+        var zoneHalls = Rooms.Where(r => r.Type == RoomType.DataHall && InScope(r)).ToList();
         if (zoneHalls.Count > 0 && !zoneHalls.Any(r => HallTakes(r, d.Type)))
         {
             list.Add(new Req("req_hall_clients", "", "", ReqStatus.Fail));
         }
         if (d.Amp32 || d.AB || d.TwoN)
         {
-            var anyAb = Creative.NoPowerLimit || Infra.Halls.Any(h => h.Room.Zone == ZoneFor(d.Product) && HallTakes(h.Room, d.Type) && HallFits(d, h));
+            var anyAb = Creative.NoPowerLimit || Infra.Halls.Any(h => InScope(h.Room) && HallTakes(h.Room, d.Type) && HallFits(d, h));
             list.Add(new Req(d.Amp32 ? "req_amp32" : "req_ab", "", "", anyAb ? ReqStatus.Ok : ReqStatus.Fail));
         }
         if (d.TwoN)
@@ -544,7 +559,13 @@ public partial class GameState
 
     void Activate(Deal d)
     {
-        d.RackIds = d.Product == Product.PerU ? new List<int>() : FreeRacksFor(d, out _).Take(d.Racks).ToList();
+        var owners = RackOwners();
+        var best = 0;
+        d.RackIds = d.Product == Product.PerU ? new List<int>() : FreeRacksFor(d, out best).Take(d.Racks).ToList();
+        // cages and whole halls stay in the hall they got; a picked hall becomes the right zone when nobody else rents there
+        if (d.Product is Product.Cage or Product.Hall && best != 0) d.HallId = best;
+        if (d.HallId != 0 && Rooms.FirstOrDefault(r => r.Id == d.HallId) is { } hall && hall.Zone != ZoneFor(d.Product) && RentedIn(hall, owners) == 0)
+            hall.Zone = ZoneFor(d.Product);
         d.State = DealState.Active;
         d.StartDay = Day;
         d.EndDay = Day + d.Months * 30;

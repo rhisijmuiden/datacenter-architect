@@ -66,6 +66,14 @@ public class Room
     public HallZone Zone { get; set; }
     /// <summary>Data halls: the customer types hosted here. Empty means every type is welcome.</summary>
     public List<CustomerType> Clients { get; set; } = new();
+    /// <summary>Data halls: fixed number for the code DH-01, DH-02 ... (given once, kept when other halls go).</summary>
+    public int HallNo { get; set; }
+    /// <summary>Data halls: a name the player picks, shown on the wall and in lists. Empty = only the code.</summary>
+    public string Name { get; set; } = "";
+    /// <summary>Data halls: colour band (index in GameState.HallBands, -1 = one per hall number).</summary>
+    public int Band { get; set; } = -1;
+    /// <summary>Data halls: show the logo of a customer who rents the whole hall on its wall.</summary>
+    public bool ShowLogo { get; set; } = true;
     public bool Contains(int x, int z) => x >= X && z >= Z && x < X + W && z < Z + D;
 }
 
@@ -334,6 +342,8 @@ public partial class GameState
             AssignFeedSides();
             if (Objects.Any(o => Catalog.HasFeed(o.Kind))) Notes.Add(("msg_power_tree_new", null));
         }
+        // hall names (sketch board 7): halls get a fixed number in the order they were drawn, so codes match older games
+        NumberHalls();
         MigrateGrowth();
         EnsureCompetitors();
         SaveFormat = CurrentFormat;
@@ -618,6 +628,7 @@ public partial class GameState
         var b = BuildingAt(x, z);
         var r = new Room { Id = NextId++, BuildingId = b.Id, Floor = floor, Type = t, X = x, Z = z, W = w, D = d, Stage = Creative.InstantBuild ? Stage.Done : Stage.Walls };
         Rooms.Add(r);
+        if (t == RoomType.DataHall) NumberHalls();
         Touch();
         return r;
     }

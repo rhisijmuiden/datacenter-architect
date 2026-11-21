@@ -628,8 +628,7 @@ goal_contract	Sign your first customer	Teken je eerste klant
 inspect_rented	Rented to {0}	Verhuurd aan {0}
 inspect_peru	Shared rack, sold per U	Gedeeld rack, per U verkocht
 inspect_for_sale	For sale	Te koop
-inspect_zone	Zone: {0}	Zone: {0}
-action_zone	Sell as: {0}	Verkopen als: {0}
+inspect_zone	Sold as: {0}	Verkocht als: {0}
 inspect_office_ready	Furnished: a director can work here	Ingericht: hier kan een directeur werken
 inspect_office_needs	Needs a desk and a chair	Heeft een bureau en een stoel nodig
 inspect_workplaces	{0} workplace(s) for the sales team	{0} werkplek(ken) voor het salesteam
@@ -709,10 +708,8 @@ sales_team	Sales team	Salesteam
 sales_needs_director	Hire a sales director to start a sales team. Without sales no customers come in.	Neem een salesdirecteur aan om een salesteam te starten. Zonder sales komen er geen klanten.
 sales_reps	{0} sales rep(s) · {1} workplace(s) · {2} / month each	{0} verkoper(s) · {1} werkplek(ken) · {2} / maand per persoon
 sales_help	Each sales rep needs a desk in an office room. More reps bring more and bigger customer requests.	Elke verkoper heeft een bureau in een kantoorruimte nodig. Meer verkopers geven meer en grotere klantaanvragen.
-zones_title	Hall zones	Zones per hal
 zones_help	Choose what each data hall is sold as and which customers it hosts. Customers only get racks in halls with the matching zone that take their type.	Kies per datahal wat je verkoopt en welke klanten er komen. Klanten krijgen alleen racks in een hal met de passende zone die hun type toelaat.
 zones_none	No data halls yet.	Nog geen datahallen.
-zones_hall	Hall {0}: {1} racks · {2} rented · {3} for sale	Hal {0}: {1} racks · {2} verhuurd · {3} te koop
 zone_fullracks	Full racks	Volle racks
 zone_peru	Colocation per U	Colocatie per U
 zone_cage	Cages	Kooien
@@ -1816,7 +1813,6 @@ msg_not_in_basement	This room needs daylight and a street door; it cannot go in 
 hall_clients_all	All customers	Alle klanten
 hall_clients_tip	Which customers this hall hosts. Pick one or more types to keep the hall for them, for example banks and government in a secure hall or AI companies in a 32 A hall.	Welke klanten deze hal host. Kies een of meer types om de hal voor hen te houden, bijvoorbeeld banken en overheid in een beveiligde hal of AI-bedrijven in een 32 A-hal.
 inspect_hall_clients	Customers: {0}	Klanten: {0}
-action_hall_clients	Choose customers	Klanten kiezen
 req_hall_clients	A hall that hosts this customer type	Een hal die dit klanttype host
 msg_building_not_ready	The building is not finished yet.	Het gebouw is nog niet af.
 msg_max_floors	This building already has the maximum of 4 floors.	Dit gebouw heeft al het maximum van 4 verdiepingen.
@@ -1983,3 +1979,38 @@ ntree_advice_uplink	An edge switch has no free uplink port: add a distribution s
 ntree_advice_dist	Many edge switches hang straight on the core: a distribution switch in the meet-me room keeps core ports free.	Veel edge-switches hangen rechtstreeks op de core: een distributieswitch in de meet-me room houdt corepoorten vrij.
 spof_dist	Single point of failure: only one distribution switch.	Enkel punt van falen: maar één distributieswitch.
 msg_nettree_new	New: the network tree (Infrastructure › Network tree) shows every switch with its ports. Spine switches now have 96 ports; Edge 24 and Edge 48 are cheaper switches for a hall.	Nieuw: de netwerkboom (Infrastructuur › Netwerkboom) toont elke switch met zijn poorten. Spine-switches hebben nu 96 poorten; Edge 24 en Edge 48 zijn goedkopere switches voor een hal.
+zones_moved	What each data hall is sold as and which customers it hosts is set under Contracts, next to the halls and their names.	Wat elke datahal verkoopt en welke klanten er komen, stel je in onder Contracten, bij de hallen en hun namen.
+halls_title	Data halls	Datahallen
+halls_help	Name each hall, choose what it is sold as and which customers it hosts. The code and the name hang on the wall beside the door; a customer who rents a whole hall gets its logo there too.	Geef elke hal een naam en kies wat je er verkoopt en welke klanten er komen. De code en de naam hangen op de muur naast de deur; een klant die een hele hal huurt, krijgt daar ook zijn logo.
+halls_name_hint	Name, for example Private hall north	Naam, bijvoorbeeld Private hal noord
+halls_name_tip	Shown on the wall, on the floor and in every list. Press Enter to save.	Staat op de muur, op de vloer en in elke lijst. Druk op Enter om op te slaan.
+zones_hall_short	{0} racks · {1} rented · {2} for sale	{0} racks · {1} verhuurd · {2} te koop
+halls_sold_as	Sold as	Verkopen als
+halls_band	Colour band of this hall	Kleurband van deze hal
+halls_rented	Whole hall rented to {0} ({1} racks)	Hele hal verhuurd aan {0} ({1} racks)
+halls_reserved	Reserved for {0}: being built for {1} racks	Gereserveerd voor {0}: wordt gebouwd voor {1} racks
+halls_logo	Customer logo on the wall	Klantlogo op de muur
+halls_customers	{0} customers: {1}	{0} klanten: {1}
+place_in	Place in	Plaatsen in
+place_auto	Sales picks a hall	Sales kiest een hal
+place_free	{0} of {1} racks free	{0} van {1} racks vrij
+place_fits	fits	past
+place_taken	taken by another customer	bezet door een andere klant
+place_other_zone	other customers rent racks here	hier huren al andere klanten
+place_clients	does not host this customer type	host dit klanttype niet
+place_building	still being built	nog in aanbouw
+place_aisles	needs hot/cold aisles for 32 A	heeft warme/koude gangen nodig voor 32 A
+place_ab	needs A/B power	heeft A/B-stroom nodig
+place_short	not enough working racks yet	nog niet genoeg werkende racks
+msg_place_taken	That hall is rented or reserved by another customer.	Die hal is verhuurd aan of gereserveerd voor een andere klant.
+msg_place_other_zone	Other customers already rent racks in that hall.	In die hal huren al andere klanten racks.
+msg_place_clients	That hall does not host this customer type. Change it under Contracts.	Die hal host dit klanttype niet. Pas dat aan onder Contracten.
+msg_pick_hall	First pick the hall you will build for this customer.	Kies eerst de hal die je voor deze klant gaat bouwen.
+deal_sign_build	Sign and build ({0} days)	Tekenen en bouwen ({0} dagen)
+deal_sign_build_tip	The customer signs now and moves into the hall you picked when it is ready. You have {0} days; after that you pay three months of rent as a penalty.	De klant tekent nu en trekt in de gekozen hal zodra die klaar is. Je hebt {0} dagen; daarna betaal je drie maanden huur als boete.
+msg_signed_build	Signed with {0}: build the hall you picked, the customer moves in when it is ready.	Getekend met {0}: bouw de gekozen hal, de klant trekt erin zodra die klaar is.
+contracts_in	In: {0}	In: {0}
+req_place	In the hall you picked	In de hal die je koos
+inspect_hall_tenant	Whole hall rented to {0}	Hele hal verhuurd aan {0}
+inspect_hall_reserved	Reserved for {0} (being built)	Gereserveerd voor {0} (in aanbouw)
+action_hall_contracts	Name, purpose and customers	Naam, bestemming en klanten

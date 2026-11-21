@@ -350,6 +350,7 @@ public partial class WorldView : Node3D
     {
         if (_state == null) return;
         SyncLogo();
+        SyncHallTenants();
         if (_layoutRev != _state.LayoutRevision) { _layoutRev = _state.LayoutRevision; RebuildLayout(); _siteTimer = 0; _lampEnergy = -1; }
         if (_objRev != _state.Revision) { _objRev = _state.Revision; RebuildObjects(); _lampEnergy = -1; }
         _siteTimer -= delta;
@@ -848,6 +849,7 @@ public partial class WorldView : Node3D
                 {
                     RoomFloor(root, r, Base(f));
                     if (r.Stage == Stage.Done) RoomLights(root, r, Base(f));
+                    if (r.Type == RoomType.DataHall) HallSigns(root, r, Base(f), h);
                 }
         }
         if (!open)
@@ -978,6 +980,7 @@ public partial class WorldView : Node3D
         var floor = Box(root, new Vector3(r.X + r.W / 2f, y + 0.015f, r.Z + r.D / 2f), new Vector3(r.W - 0.12f, 0.01f, r.D - 0.12f), col, 0.95f);
         // a finished data hall gets a light raised floor of 600 mm tiles
         if (r.Type == RoomType.DataHall && r.Stage == Stage.Done) floor.MaterialOverride = HallLook.Floor;
+        if (r.Type == RoomType.DataHall) { HallFloorMark(root, r, y); return; }
         var label = new Label3D
         {
             Text = Loc.T(Catalog.Rooms[r.Type].NameKey).ToUpperInvariant(),

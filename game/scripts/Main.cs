@@ -1263,11 +1263,11 @@ public partial class Main : Node3D
                     actions.Add((Loc.T("action_containment", Loc.T(next.NameKey), Ui.Money(GameState.HallUpgradeCost(r))), () => Act(_state.UpgradeHall(hall, false)), _state.CanUpgradeHall(r, false) == null));
                 }
                 if (!r.Busbar) actions.Add((Loc.T("action_busbar", Ui.Money(Catalog.BusbarCost)), () => Act(_state.UpgradeHall(hall, true)), _state.CanUpgradeHall(r, true) == null));
-                lines.Add(Loc.T("inspect_zone", Loc.T("zone_" + r.Zone.ToString().ToLowerInvariant())));
-                var nextZone = (HallZone)(((int)r.Zone + 1) % Enum.GetValues<HallZone>().Length);
-                actions.Add((Loc.T("action_zone", Loc.T("zone_" + nextZone.ToString().ToLowerInvariant())), () => { _state.SetZone(hall, nextZone); Act(null); }, true));
-                lines.Add(Loc.T("inspect_hall_clients", CompanyPanel.ClientsText(r)));
-                actions.Add((Loc.T("action_hall_clients"), () => OpenCompany(CompanyPanel.TabSales), true));
+                // what the hall is sold as and for whom is set only in Company › Contracts (sketch board 7); here it is shown
+                var tenant = _state.HallTenant(r);
+                lines.Add(tenant != null ? Loc.T(tenant.State == DealState.Building ? "inspect_hall_reserved" : "inspect_hall_tenant", CompanyPanel.DealName(tenant))
+                    : Loc.T("inspect_zone", Loc.T("zone_" + r.Zone.ToString().ToLowerInvariant())) + " · " + Loc.T("inspect_hall_clients", CompanyPanel.ClientsText(r)));
+                actions.Add((Loc.T("action_hall_contracts"), () => OpenCompany(CompanyPanel.TabContracts), true));
             }
             if (r.Type is RoomType.Executive or RoomType.Office)
             {
@@ -1303,7 +1303,7 @@ public partial class Main : Node3D
                 lines.Add(r.Type == RoomType.MeetMe ? Loc.T("inspect_mmr", net.OdfPorts, net.OdfUsed, net.Cores, _state.CrossConnects) : net.Noc ? Loc.T("net_noc_on") : Loc.T("inspect_noc_needs_wall"));
                 actions.Add((Loc.T("net_overview"), OpenNetwork, true));
             }
-            _hud.Inspect(Loc.T(Catalog.Rooms[r.Type].NameKey), lines, actions);
+            _hud.Inspect(r.Type == RoomType.DataHall ? _state.HallTitle(r) : Loc.T(Catalog.Rooms[r.Type].NameKey), lines, actions);
             return;
         }
         if (b != null)
@@ -1740,6 +1740,8 @@ public partial class Main : Node3D
             if (hs.Count > 0) _state.SetHallClients(hs[0], new[] { CustomerType.Bank, CustomerType.Government });
             if (hs.Count > 1) _state.SetHallClients(hs[1], new[] { CustomerType.Ai });
         }
+        // --hall-names: name the halls and rent the first one whole to a customer (sketch board 7 screenshots)
+        if (args.Contains("--hall-names") && _state != null) HallNamesDemo();
         if (args.Contains("--nettree-demo") && _state != null)
         {
             // network tree: without the spine the demo hall runs on two Edge 48s, not every rack gets a B port
@@ -1768,6 +1770,29 @@ public partial class Main : Node3D
         }
         GetViewport().GetTexture().GetImage().SavePng(path);
         GetTree().Quit();
+    }
+
+    /// <summary>Screenshot setup for hall names: DH-01 rented whole to a cloud customer with its logo, a named second hall, a lead for an own hall.</summary>
+    void HallNamesDemo()
+    {
+        var s = _state;
+        var hs = s.Rooms.Where(r => r.Type == RoomType.DataHall).OrderBy(r => r.HallNo).ToList();
+        if (hs.Count == 0) return;
+        var hall = hs[0];
+        s.RenameHall(hall, Loc.Language == "nl" ? "Private hal Nordwind" : "Private hall Nordwind");
+        var racks = s.Objects.Where(o => o.Kind == ObjKind.Rack && o.Floor == hall.Floor && hall.Contains(o.X, o.Z)).Select(o => o.Id).ToHashSet();
+        foreach (var d in s.Deals) d.RackIds.RemoveAll(racks.Contains);
+        s.Deals.Add(new Deal
+        {
+            Id = s.NextId++, Name = "Nordwind Cloud", Type = CustomerType.Cloud, Product = Product.Hall, Racks = racks.Count, RackIds = racks.ToList(), HallId = hall.Id,
+            State = DealState.Active, AB = true, Monthly = 412_000, Months = 60, StartDay = s.Day, EndDay = s.Day + 1800, Satisfaction = 88,
+        });
+        hall.Zone = HallZone.PrivateHall;
+        if (hs.Count > 1) s.RenameHall(hs[1], "Colocation east");
+        var lead = s.MakeLead((int)s.Day, new Random(11), CustomerType.Cloud);
+        lead.Name = "Haven Compute"; lead.Product = Product.Hall; lead.Racks = 24; lead.ExpiresDay = s.Day + 14;
+        s.Deals.Add(lead);
+        s.Touch();
     }
 
     /// <summary>Screenshot setup for step 11: two years of figures, a scenario with a medal, some achievements and a timelapse picture.</summary>
