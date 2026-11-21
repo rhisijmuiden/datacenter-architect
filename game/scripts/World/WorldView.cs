@@ -186,13 +186,6 @@ public partial class WorldView : Node3D
         Plane(root, new Vector3(s / 2f, -0.012f, s + 7.8f), new Vector2(900, 1.6f), new Color("#c9c1b2")).MaterialOverride = SurfaceMat(new Color("#c9c1b2"));
         // side road heading north along the west of the plot
         Plane(root, new Vector3(-9, -0.014f, s / 2f - 60), new Vector2(6, 2 * s + 120), Brand.Asphalt).MaterialOverride = SurfaceMat(Brand.Asphalt);
-        // fibre pits of carriers along the road (orange = fiber)
-        foreach (var x in Catalog.StreetPits.Select((_, i) => _state.StreetPit(i)))
-        {
-            // flush cover in the pavement with a grey frame, like a real handhole
-            Plane(root, new Vector3(x + 0.5f, -0.009f, s + Catalog.StreetPitOffset), new Vector2(1.1f, 1.1f), new Color("#8d8a84"));
-            Plane(root, new Vector3(x + 0.5f, -0.006f, s + Catalog.StreetPitOffset), new Vector2(0.9f, 0.9f), Brand.Fiber);
-        }
         // plot corner posts
         foreach (var c in new[] { new Vector3(0, 0, 0), new Vector3(s, 0, 0), new Vector3(0, 0, s), new Vector3(s, 0, s) })
             Box(root, c + new Vector3(0, 0.6f, 0), new Vector3(0.25f, 1.2f, 0.25f), Brand.Power);
@@ -467,6 +460,7 @@ public partial class WorldView : Node3D
             return;
         }
         Surfaces(_layout);
+        DuctCovers(_layout);
         DockBays(_layout);
         PlotMeadow(_layout);
         FencesLayer(_layout);

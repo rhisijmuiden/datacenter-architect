@@ -164,7 +164,7 @@ public class NewGameOptions
 /// <summary>All state that goes into a savegame. Workers and trucks are not saved; they restart from this state.</summary>
 public partial class GameState
 {
-    public const int CurrentFormat = 12;
+    public const int CurrentFormat = 13;
     /// <summary>Floor value for objects that stand on the roof of a building.</summary>
     public const int RoofFloor = -1;
     /// <summary>Floor id of a basement. Kept apart from the storey numbers so roof (-1) and storeys (0..) stay as they were.</summary>
@@ -333,6 +333,12 @@ public partial class GameState
             // so they alternate A, B, A ... per hall (PDUs) and over the site (switchboards and UPS units), as a player would.
             AssignFeedSides();
             if (Objects.Any(o => Catalog.HasFeed(o.Kind))) Notes.Add(("msg_power_tree_new", null));
+        }
+        Ducts ??= new();
+        if (SaveFormat < 13)
+        {
+            // own main fiber duct: there are no street fiber pits any more; old pits become cable entries with a free duct
+            MigrateDucts();
         }
         MigrateGrowth();
         EnsureCompetitors();
@@ -567,6 +573,8 @@ public partial class GameState
         if (w < 4 || d < 4) return "msg_too_small";
         if (floors < 1 || floors > Catalog.MaxFloors) return "msg_bad_floors";
         if (basement && !BasementAllowed(k)) return "msg_no_basement";
+        // a building never goes on top of your own fiber duct: run the duct around it or move it first
+        if (Ducts.Any(dc => dc.Cells().Any(c => c.x >= x && c.x < x + w && c.z >= z && c.z < z + d))) return "msg_duct_in_way";
         for (var i = x; i < x + w; i++)
             for (var j = z; j < z + d; j++)
             {
@@ -712,6 +720,7 @@ public partial class GameState
             }
         }
         if (o.Kind == ObjKind.Rack && RackAccess(o) is { } access) return access;
+        if (o.Kind == ObjKind.FiberPit && !OnBorder(o.X, o.Z)) return "msg_entry_border";
         if (def.Blocks && o.Floor >= 0 && BlocksRack(o)) return "msg_blocks_rack";
         if (!CanAfford(def.Cost)) return "msg_no_money";
         return null;
@@ -846,6 +855,11 @@ public partial class GameState
             Objects.Remove(o); RefundRemoved(o.Id, o.Def.Cost / 2); changed = true; layout |= ShapesLayout(o);
         }
         foreach (var door in Doors.Where(o => o.Floor == floor && In(o.X, o.Z)).ToList()) { Doors.Remove(door); if (IsPlanned(door.Id)) Planned.Remove(door.Id); changed = true; layout = true; }
+        if (floor == 0)
+            foreach (var duct in Ducts.Where(dc => dc.Cells().Any(c => In(c.x, c.z))).ToList())
+            {
+                Ducts.Remove(duct); RefundRemoved(duct.Id, DuctCost(duct) / 2); changed = true; layout = true;
+            }
         if (changed) { Touch(layout); return true; }
         foreach (var r in Rooms.Where(r => r.Floor == floor && In(r.X, r.Z) && In(r.X + r.W - 1, r.Z + r.D - 1)).ToList())
         {

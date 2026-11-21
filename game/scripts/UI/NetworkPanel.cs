@@ -65,7 +65,7 @@ public partial class NetworkPanel : Modal
         if (s == null) return;
         var n = s.Net;
         var sig = string.Join(",", s.Contracts.Select(k => $"{k.Carrier}:{k.PortGbps}:{k.UpgradeTo}:{k.Active}")) + "|" +
-                  string.Join(",", s.Peers.Select(p => $"{p.Rival}:{p.State}")) + $"|{n.Pits.Count}|{Loc.Language}|{s.Options.AiCompetitors}|{_tab}" +
+                  string.Join(",", s.Peers.Select(p => $"{p.Rival}:{p.State}")) + $"|{n.Entries.Count}:{n.Ducts.Count}|{Loc.Language}|{s.Options.AiCompetitors}|{_tab}" +
                   (_tab == TabTree ? "|" + TreeSig(n) : "");
         if (sig != _sig) { _sig = sig; Build(s); }
         foreach (var u in _updaters) u(s, n);
@@ -126,20 +126,35 @@ public partial class NetworkPanel : Modal
         right.AddThemeConstantOverride("separation", 6);
         cols.AddChild(left); cols.AddChild(right);
 
-        // ---- routes: own pits and ducts ----
+        // ---- routes: cable entries on the plot border and your own main ducts to the MMR ----
         left.AddChild(Ui.Heading("net_routes", 14, Brand.Fiber));
-        if (n.Pits.Count == 0) left.AddChild(Plain(Loc.T("net_no_pits"), 14, Brand.Warning));
-        for (var i = 0; i < n.Pits.Count; i++)
+        if (n.Entries.Count == 0) left.AddChild(Plain(Loc.T("net_no_entries"), 14, Brand.Warning));
+        for (var i = 0; i < n.Entries.Count; i++)
         {
             var idx = i;
             left.AddChild(Dyn((l, _, r) =>
             {
-                if (idx >= r.Pits.Count) return;
-                var p = r.Pits[idx];
-                l.Text = Loc.T("net_pit_line", idx + 1, Catalog.PitName(p.Street), p.Used, p.Subducts, p.Subducts * Catalog.FibersPerCable);
-                l.AddThemeColorOverride("font_color", p.Used >= p.Subducts ? Brand.Warning : Brand.Ink);
+                if (idx >= r.Entries.Count) return;
+                var e = r.Entries[idx];
+                l.Text = EntryLine(idx, e);
+                l.AddThemeColorOverride("font_color", !e.Connected || e.Entry.Broken ? Brand.Warning : Brand.Ink);
             }, 14));
         }
+        for (var i = 0; i < n.Ducts.Count; i++)
+        {
+            var idx = i;
+            left.AddChild(Dyn((l, _, r) =>
+            {
+                if (idx >= r.Ducts.Count) return;
+                var d = r.Ducts[idx];
+                l.Text = DuctLine(idx, d);
+                l.AddThemeColorOverride("font_color", d.Used >= d.Duct.Ways || !d.ToMmr ? Brand.Warning : Brand.InkDim);
+            }, 13));
+        }
+        var tools = new HBoxContainer(); tools.AddThemeConstantOverride("separation", 6);
+        tools.AddChild(Small(Loc.T("net_place_entry"), () => _pick?.Invoke(new BuildItem(Mode.Object, (int)ObjKind.FiberPit)), _pick != null));
+        tools.AddChild(Small(Loc.T("net_draw_duct"), () => _pick?.Invoke(new BuildItem(Mode.Duct, 12)), _pick != null));
+        left.AddChild(tools);
         left.AddChild(Dyn((l, _, r) => { l.Text = Loc.T("net_routes_count", r.Routes); l.AddThemeColorOverride("font_color", r.Routes >= 2 ? Brand.Ok : Brand.InkDim); }, 14));
         left.AddChild(Ui.Text("net_routes_help", 12, Brand.InkDim));
         left.AddChild(new HSeparator());
@@ -149,8 +164,8 @@ public partial class NetworkPanel : Modal
         foreach (var def in Catalog.Carriers)
         {
             var d = def;
-            var head = d.Ix ? $"{d.Name} · {Loc.T("net_pit", Catalog.PitName(d.Pit))} · {Loc.T("net_ix")}"
-                            : $"{d.Name} · {Loc.T("net_pit", Catalog.PitName(d.Pit))} · € {N(d.PricePerMbit, "0.00")}/Mbit";
+            var head = d.Ix ? $"{d.Name} · {Loc.T("net_ix")}"
+                            : $"{d.Name} · € {N(d.PricePerMbit, "0.00")}/Mbit";
             left.AddChild(Plain(head, 15, Brand.Ink, false));
             left.AddChild(Plain(Loc.T(d.DescKey), 12, Brand.InkDim));
             var k = s.ContractOf(d.Id);
@@ -298,13 +313,24 @@ public partial class NetworkPanel : Modal
         }, 14));
     }
 
+    public static string SideName(int side) => Loc.T("side_" + side);
+
+    public static string EntryLine(int idx, EntryInfo e) =>
+        Loc.T("net_entry_line", idx + 1, SideName(e.Side), e.Used)
+        + " · " + (e.Entry.Broken ? Loc.T("net_entry_cut") : e.Connected ? Loc.T("net_entry_ok", e.Ways) : Loc.T("net_entry_no_duct"));
+
+    public static string DuctLine(int idx, DuctInfo d) =>
+        Loc.T("net_duct_line", idx + 1, d.Duct.Ways, d.Duct.Length, d.Used, d.Duct.Handholes().Count)
+        + (d.ToMmr ? "" : " · " + Loc.T("net_duct_open"));
+
     /// <summary>What the network is missing, most urgent first, followed by its single points of failure.</summary>
     public static List<string> Advice(GameState s, NetReport r)
     {
         var list = new List<string>();
         if (!s.Creative.NoNetworkLimit)
         {
-            if (r.Pits.Count == 0) list.Add("net_advice_pit");
+            if (r.Entries.Count == 0) list.Add("net_advice_entry");
+            else if (!r.Entries.Any(e => e.Connected)) list.Add("net_advice_duct");
             if (!r.Mmr) list.Add("net_advice_mmr");
             if (r.Cores == 0) list.Add("net_advice_core");
             if (s.Contracts.Count == 0) list.Add("net_advice_carrier");
@@ -314,7 +340,7 @@ public partial class NetworkPanel : Modal
             else if (r.Dists.Count == 0 && r.DirectEdges.Count >= 6) list.Add("ntree_advice_dist");
             if (r.Served < 0.999) list.Add("net_advice_congested");
             else if (r.TransitCapacity > 0 && r.TransitRatio > 0.85) list.Add("net_advice_transit_tight");
-            if (r.Pits.Count > 0 && r.Pits.All(p => p.Used >= p.Subducts)) list.Add("net_advice_ducts");
+            if (r.Entries.Any(e => e.Connected) && r.Link(NetLink.Ducts) is { Load: > 0 } dl && dl.Load >= dl.Capacity) list.Add("net_advice_ducts");
             if (r.Mmr && r.OdfUsed >= r.OdfPorts) list.Add("net_advice_odf");
             if (!r.Noc && s.Contracts.Count > 0) list.Add("net_advice_noc");
             if (r.IxPort <= 0 && s.Contracts.Count > 0) list.Add("net_advice_ix");

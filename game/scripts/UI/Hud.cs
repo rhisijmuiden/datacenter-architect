@@ -7,7 +7,7 @@ using Godot;
 
 namespace DatacenterArchitect.UI;
 
-public enum Mode { Select, Erase, Surface, Fence, Building, Room, Door, Object, Row, Curve }
+public enum Mode { Select, Erase, Surface, Fence, Building, Room, Door, Object, Row, Curve, Duct }
 
 /// <summary>What the player is about to build: a mode plus the surface, fence, building, room, door or object kind.</summary>
 public readonly record struct BuildItem(Mode Mode, int Arg = 0)
@@ -22,6 +22,7 @@ public readonly record struct BuildItem(Mode Mode, int Arg = 0)
         Mode.Door => Catalog.Doors[(DoorType)Arg].NameKey,
         Mode.Object or Mode.Row => Catalog.Objects[(ObjKind)Arg].NameKey,
         Mode.Curve => (Surface)Arg switch { Surface.Footpath => "curve_footpath", Surface.BikePath => "curve_bikepath", _ => "curve_asphalt" },
+        Mode.Duct => "duct_" + Arg + "way",
         Mode.Erase => "tool_erase",
         _ => "tool_select",
     };
@@ -129,7 +130,7 @@ public partial class Hud : Control
             O(ObjKind.SolarPanel), O(ObjKind.WindTurbine), O(ObjKind.BatteryContainer),
         }),
         ("cat_cooling", new[] { O(ObjKind.Crah), O(ObjKind.Chiller), O(ObjKind.CoolingTower), O(ObjKind.DryCooler) }),
-        ("cat_network", new[] { O(ObjKind.FiberPit), O(ObjKind.Odf), O(ObjKind.CoreRouter), O(ObjKind.DistSwitch), O(ObjKind.EdgeSwitch24), O(ObjKind.EdgeSwitch48), O(ObjKind.Spine), O(ObjKind.NocWall) }),
+        ("cat_network", new[] { O(ObjKind.FiberPit), new BuildItem(Mode.Duct, 4), new BuildItem(Mode.Duct, 7), new BuildItem(Mode.Duct, 12), O(ObjKind.Odf), O(ObjKind.CoreRouter), O(ObjKind.DistSwitch), O(ObjKind.EdgeSwitch24), O(ObjKind.EdgeSwitch48), O(ObjKind.Spine), O(ObjKind.NocWall) }),
     };
 
     public override void _Ready()
@@ -692,6 +693,7 @@ public partial class Hud : Control
     /// <summary>Key numbers of power devices on their card: kW and rack connections (PDU) or outputs (MSB, UPS).</summary>
     static string SpecText(BuildItem i)
     {
+        if (i.Mode == Mode.Duct) return Loc.T("spec_duct", i.Arg);
         if (i.Mode != Mode.Object) return "";
         var d = Catalog.Objects[(ObjKind)i.Arg];
         if (d.Outlets > 0) return Loc.T("spec_pdu", d.CapacityKw, d.Outlets);
@@ -703,6 +705,7 @@ public partial class Hud : Control
     {
         Mode.Surface or Mode.Curve => Ui.Money(Catalog.Surfaces[(Surface)i.Arg].Cost) + " /m²",
         Mode.Fence => Ui.Money(Catalog.Fences[(FenceType)i.Arg].Cost) + " /m",
+        Mode.Duct => Ui.Money(Catalog.DuctCostPerM(i.Arg)) + " /m",
         Mode.Building => Ui.Money(Catalog.Buildings[(BuildingKind)i.Arg].CostPerCellPerFloor) + " /m²",
         Mode.Room => "",
         Mode.Door => Ui.Money(Catalog.Doors[(DoorType)i.Arg].Cost),
@@ -762,7 +765,7 @@ public partial class Hud : Control
         _toolHint.Text = Loc.T(_item.Mode switch
         {
             Mode.Erase => "hint_erase", Mode.Surface => "hint_surface", Mode.Fence => "hint_fence", Mode.Building => "hint_building",
-            Mode.Curve => "hint_curve", Mode.Room => "hint_room", Mode.Door => "hint_door", Mode.Row => "hint_row", Mode.Object => "hint_place", _ => "hint_select",
+            Mode.Curve => "hint_curve", Mode.Room => "hint_room", Mode.Door => "hint_door", Mode.Row => "hint_row", Mode.Duct => "hint_duct", Mode.Object => _item.Arg == (int)ObjKind.FiberPit ? "hint_entry" : "hint_place", _ => "hint_select",
         });
         FitTray();
     }
@@ -806,6 +809,12 @@ public partial class Hud : Control
     {
         _item = item;
         if (item.Mode is Mode.Room or Mode.Door) ToggleRoofsIfNeeded();
+        // a tool picked from elsewhere (a panel or the inspector) opens its own category in the build bar
+        if (item.Mode is not (Mode.Select or Mode.Erase) && !Categories.Any(c => c.cat == _category && c.items.Contains(item)))
+        {
+            var home = Categories.FirstOrDefault(c => c.items.Contains(item)).cat;
+            if (home != null) _category = home;
+        }
         RefreshCategory();
         ToolChanged?.Invoke(item);
     }

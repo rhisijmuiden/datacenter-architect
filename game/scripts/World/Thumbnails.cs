@@ -133,6 +133,9 @@ public partial class Thumbnails : Node
             case Mode.Fence:
                 FenceRun(n, (FenceType)item.Arg);
                 break;
+            case Mode.Duct:
+                DuctRun(n, item.Arg);
+                break;
             case Mode.Building:
                 BuildingBlock(n, (BuildingKind)item.Arg);
                 break;
@@ -228,6 +231,32 @@ public partial class Thumbnails : Node
             for (var i = 0; i < 3; i++) Box(n, new Vector3(-0.9f + i * 0.9f, 0.03f, 0), new Vector3(0.45f, 0.01f, 0.06f), new Color("#f2f2ee"));
         if (s == Surface.Yard)
             for (var i = 0; i < 2; i++) Box(n, new Vector3(-0.5f + i * 1.0f, 0.25f, 0), new Vector3(0.8f, 0.45f, 0.8f), new Color("#a07a4f"));
+    }
+
+    /// <summary>A cut-away trench with the duct in it: one orange subduct per way in a grey bundle, and a handhole at the corner.</summary>
+    static void DuctRun(Node3D n, int ways)
+    {
+        Box(n, new Vector3(0, -0.03f, 0.3f), new Vector3(4.2f, 0.06f, 1.6f), Brand.PlotGrass, 0.95f).MaterialOverride = WorldView.GrassMat(Brand.PlotGrass, 14);
+        Box(n, new Vector3(-0.3f, -0.02f, 0.2f), new Vector3(3.4f, 0.05f, 0.7f), new Color("#5a4632"), 0.95f);
+        var cols = ways >= 12 ? 4 : ways >= 7 ? 4 : 2;
+        var rows = (ways + cols - 1) / cols;
+        var mat = new StandardMaterial3D { AlbedoColor = Brand.Fiber, Roughness = 0.5f };
+        var duct = new StandardMaterial3D { AlbedoColor = new Color("#3b4148"), Roughness = 0.7f };
+        var outer = new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = 0.06f * cols + 0.05f, BottomRadius = 0.06f * cols + 0.05f, Height = 3.0f, RadialSegments = 24 }, MaterialOverride = duct };
+        outer.RotationDegrees = new Vector3(0, 0, 90); outer.Position = new Vector3(-0.5f, 0.22f, 0.2f);
+        n.AddChild(outer);
+        for (var i = 0; i < ways; i++)
+        {
+            var c = i % cols; var r = i / cols;
+            var tube = new MeshInstance3D { Mesh = new CylinderMesh { TopRadius = 0.045f, BottomRadius = 0.045f, Height = 3.2f, RadialSegments = 12 }, MaterialOverride = mat };
+            tube.RotationDegrees = new Vector3(0, 0, 90);
+            tube.Position = new Vector3(-0.4f, 0.22f + (r - (rows - 1) / 2f) * 0.1f, 0.2f + (c - (cols - 1) / 2f) * 0.1f);
+            n.AddChild(tube);
+        }
+        // the handhole at the end: concrete rim and a flush lid
+        Box(n, new Vector3(1.5f, 0.03f, 0.2f), new Vector3(0.9f, 0.08f, 0.9f), Brand.Concrete);
+        Box(n, new Vector3(1.5f, 0.075f, 0.2f), new Vector3(0.72f, 0.02f, 0.72f), new Color("#4a4f55"), 0.6f, 0.5f);
+        Box(n, new Vector3(1.5f, 0.09f, 0.2f), new Vector3(0.3f, 0.01f, 0.08f), Brand.Fiber);
     }
 
     static void FenceRun(Node3D n, FenceType type)
