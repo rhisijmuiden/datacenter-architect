@@ -1109,6 +1109,23 @@ public partial class Main : Node3D
 
     static string Kw(double v) => $"{v:0} kW";
 
+    /// <summary>Redraw the inspector right away (a tab of the hall card changed).</summary>
+    void RefreshInspectNow() => CallDeferred(nameof(RefreshInspect));
+
+    /// <summary>An upgrade from the hall card: a hall upgrade starts, a device to place picks its build tool.</summary>
+    void ApplyHallUpgrade(Room hall, HallUpgrade u)
+    {
+        switch (u.Kind)
+        {
+            case HallUpgradeKind.Containment: Act(_state.UpgradeHall(hall, false)); break;
+            case HallUpgradeKind.Busbar: Act(_state.UpgradeHall(hall, true)); break;
+            default:
+                _hud.Pick(new BuildItem(Mode.Object, (int)u.Obj));
+                if (_world.ViewFloor != hall.Floor || _world.Roofs) SetView(hall.Floor, false);
+                break;
+        }
+    }
+
     void Act(string why) { if (why != null) Fail(why); _hud.UpdateStats(_state); RefreshInspect(); }
 
     void Inspect(Vector2I c, bool roof = false)
@@ -1234,35 +1251,15 @@ public partial class Main : Node3D
         {
             var lines = new List<string> { $"{r.W} × {r.D} m · {Ui.FloorName(f)}" };
             var actions = new List<(string, Action, bool)>();
+            (string, Func<Control>)? hallBody = null;
             lines.Add(r.Stage == Stage.Done ? Loc.T("inspect_ready") : Loc.T("inspect_building_walls", Mathf.RoundToInt(GameState.StageProgress(r) * 100)));
             if (r.Type == RoomType.DataHall)
             {
-                var hi = infra.Halls.FirstOrDefault(h => h.Room == r);
-                lines.Add(Loc.T("inspect_racks", _state.Objects.Count(x => x.Kind == ObjKind.Rack && x.Floor == r.Floor && r.Contains(x.X, x.Z) && x.Status == ObjStatus.Live),
-                    _state.Objects.Count(x => x.Kind == ObjKind.Rack && x.Floor == r.Floor && r.Contains(x.X, x.Z))));
-                var cont = Catalog.Containments[r.Containment];
-                lines.Add($"{Loc.T(cont.NameKey)} · PUE {Math.Max(1.08, cont.Pue - _state.PueSaving).ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)}");
-                if (r.Containment == Containment.HotCold && !_state.Done("cool_corridor")) lines.Add(Loc.T("inspect_corridor_research"));
-                if (hi != null)
-                {
-                    lines.Add(Loc.T("inspect_hall_power", Kw(hi.ItKw), Kw(hi.DistributionKw), PowerPanel.RedundancyText(hi)));
-                    lines.Add(Loc.T("inspect_hall_pdus", hi.Feeds, hi.FedRacks, hi.LiveRacks, hi.FreeOutlets == int.MaxValue ? "∞" : hi.FreeOutlets.ToString()));
-                    if (hi.LiveRacks > hi.FedRacks) lines.Add("⚠ " + Loc.T(hi.Feeds == 0 ? "inspect_hall_tip_nopdu" : "inspect_hall_tip_pdu", hi.LiveRacks - hi.FedRacks));
-                    else if (hi.LiveRacks > 0 && !hi.AB) lines.Add(Loc.T("inspect_hall_tip_ab", hi.LiveRacks - hi.DualRacks));
-                    lines.Add(Loc.T("inspect_hall_cooling", Kw(hi.CrahKw), $"{r.Temp:0}"));
-                    if (hi.RunningRacks < hi.LiveRacks) lines.Add("⚠ " + Loc.T(r.Hot ? "inspect_hall_hot" : "inspect_hall_short", hi.LiveRacks - hi.RunningRacks));
-                }
-                if (r.Upgrade != 0) lines.Add(Loc.T("inspect_upgrading", Math.Ceiling(r.UpgradeLeft)));
-                var hn = _state.Net.Halls.FirstOrDefault(h => h.Room == r);
-                if (hn != null && hn.Racks > 0) lines.Add((hn.Online < hn.Racks ? "⚠ " : "") + Loc.T("inspect_hall_net", hn.Online, hn.Racks, hn.Spines)
-                    + " · " + Loc.T("ntree_ports_of", hn.UsedPorts, hn.Ports) + (hn.AB ? " · A/B" : ""));
+                // power, network and cooling against what the racks need, redundancy and upgrades (infra sketch board 6)
+                var report = HallReport.Build(_state, r);
                 var hall = r;
-                if (r.Containment < Containment.ColdCorridor)
-                {
-                    var next = Catalog.Containments[r.Containment + 1];
-                    actions.Add((Loc.T("action_containment", Loc.T(next.NameKey), Ui.Money(GameState.HallUpgradeCost(r))), () => Act(_state.UpgradeHall(hall, false)), _state.CanUpgradeHall(r, false) == null));
-                }
-                if (!r.Busbar) actions.Add((Loc.T("action_busbar", Ui.Money(Catalog.BusbarCost)), () => Act(_state.UpgradeHall(hall, true)), _state.CanUpgradeHall(r, true) == null));
+                hallBody = (report.Sig() + Loc.Language + HallCard.Tab, () => HallCard.Build(_state, report, u => ApplyHallUpgrade(hall, u),
+                    () => OpenPowerTree(infra.Tree?.SourcesIn(hall).FirstOrDefault(n => n.Obj != null)?.Obj), () => OpenPanel(PanelKind.Network, NetworkPanel.TabTree), RefreshInspectNow));
                 lines.Add(Loc.T("inspect_zone", Loc.T("zone_" + r.Zone.ToString().ToLowerInvariant())));
                 var nextZone = (HallZone)(((int)r.Zone + 1) % Enum.GetValues<HallZone>().Length);
                 actions.Add((Loc.T("action_zone", Loc.T("zone_" + nextZone.ToString().ToLowerInvariant())), () => { _state.SetZone(hall, nextZone); Act(null); }, true));
@@ -1303,7 +1300,7 @@ public partial class Main : Node3D
                 lines.Add(r.Type == RoomType.MeetMe ? Loc.T("inspect_mmr", net.OdfPorts, net.OdfUsed, net.Cores, _state.CrossConnects) : net.Noc ? Loc.T("net_noc_on") : Loc.T("inspect_noc_needs_wall"));
                 actions.Add((Loc.T("net_overview"), OpenNetwork, true));
             }
-            _hud.Inspect(Loc.T(Catalog.Rooms[r.Type].NameKey), lines, actions);
+            _hud.Inspect(r.Type == RoomType.DataHall ? Loc.T(Catalog.Rooms[r.Type].NameKey) + " · " + _state.HallCode(r) : Loc.T(Catalog.Rooms[r.Type].NameKey), lines, actions, hallBody);
             return;
         }
         if (b != null)
@@ -1745,6 +1742,21 @@ public partial class Main : Node3D
             // network tree: without the spine the demo hall runs on two Edge 48s, not every rack gets a B port
             _state.Objects.RemoveAll(o => o.Kind == ObjKind.Spine);
             _state.Touch();
+        }
+        // --hall-demo [--upgrades]: click on the demo's data hall and show the hall card (infra sketch board 6)
+        if (args.Contains("--hall-demo") && _state != null)
+        {
+            _playing = true;
+            var hall = _state.Rooms.Where(r => r.Type == RoomType.DataHall).OrderByDescending(r => _state.Objects.Count(o => o.Kind == ObjKind.Rack && o.Floor == r.Floor && r.Contains(o.X, o.Z))).FirstOrDefault();
+            if (hall != null)
+            {
+                HallCard.Tab = args.Contains("--upgrades") ? HallCard.TabUpgrades : HallCard.TabCapacity;
+                SetView(hall.Floor, false);
+                var free = Enumerable.Range(hall.X, hall.W).SelectMany(x => Enumerable.Range(hall.Z, hall.D).Select(z => new Vector2I(x, z)))
+                    .FirstOrDefault(c => hall.Contains(c.X, c.Y) && _state.ObjectAt(c.X, c.Y, hall.Floor) == null);
+                _cam.SetView(0.6f, 0.95f, Math.Max(hall.W, hall.D) * 1.3f, new Vector3(hall.X + hall.W / 2f - 4, WorldView.Base(hall.Floor), hall.Z + hall.D / 2f));
+                Inspect(free);
+            }
         }
         var coi = Array.IndexOf(args, "--company");
         if (coi >= 0 && coi + 1 < args.Length) { _playing = true; OpenCompany(int.Parse(args[coi + 1])); }
