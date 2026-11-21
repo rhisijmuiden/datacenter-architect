@@ -17,6 +17,7 @@ public partial class NetworkPanel : Modal
     public const int TabOverview = 0, TabTree = 1;
     readonly Func<GameState> _state;
     readonly Action<string> _fail;
+    readonly Action<PlacedObject> _show;
     readonly Action<BuildItem> _pick;
     readonly ScrollContainer _scroll;
     int _tab;
@@ -32,9 +33,9 @@ public partial class NetworkPanel : Modal
     static string G(double v) => N(v, v >= 100 ? "N0" : "0.0") + " Gbit/s";
     static string Port(int gbps) => gbps + "G";
 
-    public NetworkPanel(Func<GameState> state, Action<string> fail, int tab = TabOverview, Action<BuildItem> pick = null) : base("net_title", 1100)
+    public NetworkPanel(Func<GameState> state, Action<string> fail, int tab = TabOverview, Action<BuildItem> pick = null, Action<PlacedObject> show = null) : base("net_title", 1100)
     {
-        _state = state; _fail = fail; _pick = pick; _tab = Math.Clamp(tab, TabOverview, TabTree);
+        _state = state; _fail = fail; _pick = pick; _show = show; _tab = Math.Clamp(tab, TabOverview, TabTree);
         var scroll = _scroll = new ScrollContainer { CustomMinimumSize = new Vector2(0, 640), HorizontalScrollMode = ScrollContainer.ScrollMode.Disabled };
         _content = new VBoxContainer { SizeFlagsHorizontal = SizeFlags.ExpandFill };
         _content.AddThemeConstantOverride("separation", 8);
@@ -132,13 +133,21 @@ public partial class NetworkPanel : Modal
         for (var i = 0; i < n.Entries.Count; i++)
         {
             var idx = i;
-            left.AddChild(Dyn((l, _, r) =>
+            // each entry line is a link: click it and the camera goes to that cable entry and selects it
+            var link = new Button { Flat = true, Alignment = HorizontalAlignment.Left, MouseDefaultCursorShape = CursorShape.PointingHand,
+                TooltipText = Loc.T("net_pit_show"), AutoTranslateMode = AutoTranslateModeEnum.Disabled, ClipText = true, SizeFlagsHorizontal = SizeFlags.ExpandFill };
+            link.AddThemeFontSizeOverride("font_size", 14);
+            link.Pressed += () => { var r = _state()?.Net; if (r != null && idx < r.Entries.Count) _show?.Invoke(r.Entries[idx].Entry); };
+            _updaters.Add((_, r) =>
             {
                 if (idx >= r.Entries.Count) return;
                 var e = r.Entries[idx];
-                l.Text = EntryLine(idx, e);
-                l.AddThemeColorOverride("font_color", !e.Connected || e.Entry.Broken ? Brand.Warning : Brand.Ink);
-            }, 14));
+                link.Text = "› " + EntryLine(idx, e);
+                var c = !e.Connected || e.Entry.Broken ? Brand.Warning : Brand.Ink;
+                foreach (var k in new[] { "font_color", "font_focus_color", "font_pressed_color" }) link.AddThemeColorOverride(k, c);
+                link.AddThemeColorOverride("font_hover_color", Brand.Fiber);
+            });
+            left.AddChild(link);
         }
         for (var i = 0; i < n.Ducts.Count; i++)
         {
@@ -311,6 +320,18 @@ public partial class NetworkPanel : Modal
             l.Text = tips.Count == 0 ? Loc.T("net_advice_ok") : string.Join("\n", tips.Select(t => "• " + Loc.T(t)));
             l.AddThemeColorOverride("font_color", tips.Count == 0 ? Brand.Ok : Brand.Ink);
         }, 14));
+        // an entry without a duct to the MMR, or with every route full: one click takes you to it
+        static EntryInfo Stuck(NetReport r) => r.Entries.FirstOrDefault(e => !e.Connected)
+            ?? (r.Link(NetLink.Ducts) is { Load: > 0 } dl && dl.Load >= dl.Capacity ? r.Entries.FirstOrDefault(e => e.Used > 0) : null);
+        var go = Small(Loc.T("net_pit_goto_full"), () =>
+        {
+            var r = _state()?.Net;
+            var e = r == null ? null : Stuck(r);
+            if (e != null) _show?.Invoke(e.Entry);
+        });
+        go.SizeFlagsHorizontal = SizeFlags.ShrinkBegin;
+        _updaters.Add((_, r) => go.Visible = _show != null && Stuck(r) != null);
+        _content.AddChild(go);
     }
 
     public static string SideName(int side) => Loc.T("side_" + side);

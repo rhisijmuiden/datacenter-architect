@@ -43,7 +43,8 @@ public partial class GameState
         if (Planned is not { Count: > 0 }) yield break;
         var set = PlanSet;
         foreach (var b in Buildings.Where(b => set.Contains(b.Id))) yield return ("building", b.Id, Catalog.Buildings[b.Kind].NameKey, BuildingCost(b));
-        foreach (var r in Rooms.Where(r => set.Contains(r.Id))) yield return ("room", r.Id, Catalog.Rooms[r.Type].NameKey, Catalog.RoomCost(r.W, r.D));
+        foreach (var r in Rooms.Where(r => set.Contains(r.Id))) yield return ("room", r.Id, Catalog.Rooms[r.Type].NameKey, r.Walled ? Catalog.RoomCost(r.W, r.D) : 0);
+        foreach (var w in Walls.Where(w => set.Contains(w.Id))) yield return ("wall", w.Id, w.Glass ? "wall_glass" : "wall_inner", WallCost(w.Len, w.Glass));
         foreach (var d in Doors.Where(d => set.Contains(d.Id))) yield return ("door", d.Id, Catalog.Doors[d.Type].NameKey, Catalog.Doors[d.Type].Cost);
         foreach (var o in Objects.Where(o => set.Contains(o.Id))) yield return ("object", o.Id, o.Def.NameKey, o.Def.Cost);
     }
@@ -59,18 +60,19 @@ public partial class GameState
     {
         Planned ??= new();
         var n = 0;
-        foreach (var id in Buildings.Select(b => b.Id).Concat(Rooms.Select(r => r.Id)).Concat(Doors.Select(d => d.Id)).Concat(Objects.Select(o => o.Id)))
+        foreach (var id in LayoutIds())
             if (!before.Contains(id) && !IsPlanned(id)) { Planned.Add(id); n++; }
         foreach (var o in Objects.Where(o => IsPlanned(o.Id))) o.Status = ObjStatus.Ordered;
         // with instant building a new building is finished at once: a blueprint is not
         foreach (var b in Buildings.Where(b => IsPlanned(b.Id) && b.Stage == Stage.Done)) b.Stage = Stage.Foundation;
         foreach (var r in Rooms.Where(r => IsPlanned(r.Id) && r.Stage == Stage.Done)) r.Stage = Stage.Walls;
+        foreach (var w in Walls.Where(w => IsPlanned(w.Id) && w.Stage == Stage.Done)) w.Stage = Stage.Walls;
         if (n > 0) Touch();
         return n;
     }
 
     /// <summary>All ids of the layout now, for <see cref="MarkPlanned"/>.</summary>
-    public HashSet<int> LayoutIds() => Buildings.Select(b => b.Id).Concat(Rooms.Select(r => r.Id)).Concat(Doors.Select(d => d.Id)).Concat(Objects.Select(o => o.Id)).ToHashSet();
+    public HashSet<int> LayoutIds() => Buildings.Select(b => b.Id).Concat(Rooms.Select(r => r.Id)).Concat(Doors.Select(d => d.Id)).Concat(Walls.Select(w => w.Id)).Concat(Objects.Select(o => o.Id)).ToHashSet();
 
     /// <summary>Why the plan cannot be built now, or null.</summary>
     public string CanBuildPlan()
@@ -96,11 +98,13 @@ public partial class GameState
         if (Creative.InstantBuild)
         {
             foreach (var b in Buildings.Where(b => set.Contains(b.Id))) b.Stage = Stage.Done;
-            foreach (var r in Rooms.Where(r => set.Contains(r.Id))) r.Stage = Stage.Done;
+            foreach (var r in Rooms.Where(r => set.Contains(r.Id) && r.Walled)) r.Stage = Stage.Done;
+            foreach (var w in Walls.Where(w => set.Contains(w.Id))) w.Stage = Stage.Done;
         }
         Planned.Clear();
-        if (Creative.InstantBuild) foreach (var r in Rooms.Where(r => set.Contains(r.Id)).ToList()) RoomFinished(r);
+        if (Creative.InstantBuild) foreach (var r in Rooms.Where(r => set.Contains(r.Id) && r.Walled).ToList()) RoomFinished(r);
         Touch();
+        RefreshRooms();
         return null;
     }
 
@@ -112,11 +116,13 @@ public partial class GameState
         var n = PlanCount;
         Objects.RemoveAll(o => set.Contains(o.Id));
         Doors.RemoveAll(d => set.Contains(d.Id));
+        Walls.RemoveAll(w => set.Contains(w.Id));
         Rooms.RemoveAll(r => set.Contains(r.Id));
         foreach (var b in Buildings.Where(b => set.Contains(b.Id)).ToList())
         {
             Objects.RemoveAll(o => b.Contains(o.X, o.Z));
             Rooms.RemoveAll(r => r.BuildingId == b.Id);
+            Walls.RemoveAll(w => w.BuildingId == b.Id);
             Buildings.Remove(b);
         }
         Planned.Clear();

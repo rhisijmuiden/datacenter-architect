@@ -213,6 +213,16 @@ Volgorde van een bezoek: openbare weg → oprit → meldzuil → poort open (van
 
 Binnen een gebouw **teken je zelf ruimtes**: muren trekken, deuren plaatsen en een ruimtetype kiezen. Elk type heeft eisen (minimale grootte, verplichte objecten, toegangsniveau) en werkt pas als daaraan is voldaan.
 
+**Muren, deuren en de verftool (2026-11-21, Reinder)**
+
+- De volgorde is: eerst een datacentergebouw bouwen, dan met **losse muren** (binnenmuur of glazen wand, prijs per meter) en **deuren** ruimtes afsluiten, en daarna met de **verftool** vloertegels een functie geven.
+- Een geverfde ruimte werkt pas als zijn ruimte helemaal is afgesloten door afgebouwde muren, er een deur (of trap/lift) in zit en er geen tweede ruimtesoort in dezelfde afgesloten ruimte ligt. De inspector zegt wat er nog mist.
+- **Hele ruimte** verft met één klik de hele afgesloten ruimte. Verf je over een ruimte van een ander soort, dan verandert die hele ruimte van soort; apparatuur die daar niet thuishoort gaat weg (de helft terug). **Ruimtesoort wissen** haalt alleen het soort weg, muren en deuren blijven.
+- Een nieuwe muur door een ruimte maakt er twee ruimtes van; haal je de muur weg, dan worden twee ruimtes van hetzelfde soort weer één.
+- **Ruimte met muren** (vinkje) is de oude manier: een rechthoek slepen en de muren komen er vanzelf bij. Raak je een muur van zo'n ruimte aan, dan wordt hij een geverfde ruimte binnen losse muren.
+- **Slopen met keuze**: alles (zoals vroeger), ruimte (met zijn eigen muren, deuren en inhoud; muren naast een andere ruimte blijven), muren, deuren of inrichting. Een datazaal waar klanten racks huren kan niet gesloopt of omgeverfd worden.
+- **Checklist per ruimte**: elke functie vraagt minimale apparatuur (datazaal: rack, CRAH, PDU of busbar, halswitch; MMR: ODF en core router; UPS-ruimte: UPS en accu; NOC: schermwand en bureau; kantine: koffie-, snoep- of magnetronapparaat; enzovoort). De inspector toont ✓ en ○ per regel en voor zalen en MMR's een advies over paslezers op de deuren. De checklist is informatie, geen blokkade.
+
 | Ruimte | Functie | Verplichte objecten |
 |---|---|---|
 | **Datazaal** | Racks van klanten | Racks, CRAH-units, kabelgoten, PDU's |
@@ -242,6 +252,8 @@ Binnen een gebouw **teken je zelf ruimtes**: muren trekken, deuren plaatsen en e
 **Toegang en beveiliging**
 
 - Ruimtes hebben toegangsniveaus. Deuren met een badgelezer laten alleen bevoegde mensen door.
+- **Deuren en racks** (wens van Reinder, 21 november 2026): een rack op een karretje past door **elke deur** behalve de mantrap. Een enkele deur is genoeg; door een dubbele deur of roldeur gaat het iets vlotter, dus monteurs kiezen die als hij er is. Er is een **dubbele deur met paslezer** naast de enkele deur met paslezer en de branddeur (ook met lezer).
+- **Deuren direct wijzigen**: klik op een deur (of plaats een ander deurtype eroverheen) om hem op dezelfde plek te veranderen: paslezer erop, versmallen, branddeur. Geen bouwtijd; je betaalt het prijsverschil, een goedkopere deur geeft een kwart van het verschil terug. Ongedaan maken werkt. In Beveiliging zet één knop paslezers op alle deuren van datazalen en MMR's, zodat de volle punten voor toegangscontrole altijd haalbaar zijn.
 - Een **mantrap** (sluis) tussen de publieke zone en de datazalen is een eis bij veel grote contracten.
 
 ## Meerdere verdiepingen
@@ -535,7 +547,7 @@ Je begint als eigenaar met een leeg terrein. Functies en mogelijkheden komen vri
 
 - Het eerste wat je bouwt, is een **kantoortje voor de algemeen directeur** (CEO). Dat kan in een tijdelijke unit of in een echt kantoorpand.
 - Kantoren richt je zelf in: een **bureau, stoel, kast, plant, vergadertafel**. Een kantoor werkt zodra er minimaal een bureau en een stoel staan. Een mooiere inrichting geeft een kleine bonus.
-- Elke directeur heeft een eigen kantoor nodig. Een team heeft werkplekken nodig in een afdelingsruimte.
+- Alleen de directie (CEO, CFO, HR, sales en operations) heeft een eigen directiekamer nodig; de andere managers werken aan een bureau in een kantoorruimte (speeltest, 21 november 2026). Een team heeft werkplekken nodig in een afdelingsruimte.
 
 **Unlock-boom**
 
@@ -700,6 +712,7 @@ Zo werkt stap 4 (versie 0.3.0) nu echt in de game:
 - **Technische ruimtes**: transformatorruimte, schakelruimte, UPS-ruimte en accuruimte. Transformatoren, schakelkasten, UPS'en (500 kW), accukasten (40 kWh) en vloer-PDU's (150 kW) komen per vrachtwagen, monteurs zetten ze neer en de engineer sluit ze aan.
 - **Busbar**: een hal-upgrade met een A- en een B-rail van elk 400 kW boven de rijen, met een tap-off box per rack.
 - **Stroomverdeling en stroomboom** (infraschets 2026-11-21, borden 1 en 2): hoofdverdelers (MSB, 4.000 kW) hebben **8 uitgangen**, UPS'en (500 kW) **6 uitgangen**. Elke UPS hangt aan een MSB-uitgang, elke PDU of busbarrail aan een UPS-uitgang (eigen zijde eerst). Is er geen UPS-uitgang vrij, dan hangt de PDU direct aan de MSB (zonder UPS: uit bij een stroomstoring). Zonder vrije uitgang is een apparaat niet aangesloten.
+- **Waarom staan racks uit** (infraschets bord 4): elke melding over racks die uit of offline staan noemt de hal (DH-01 ...), de oorzaak en een oplossing. Oorzaken: buiten een datahal, geen PDU, PDU zonder voeding (geen vrije MSB/UPS-uitgang), PDU's vol (aansluitingen of kW), stroomketen te klein, stroomstoring zonder genoeg noodstroom, te weinig CRAH in de hal, te weinig koelmachines buiten, gasblussing; netwerk: geen carrier, geen ODF in de MMR, geen core router, geen edge switch in de hal, geen uplink, edge switches vol. De knop springt met de camera naar de hal en pakt meteen het juiste gereedschap (bijv. de passende PDU-maat voor het aantal racks), of opent de stroomboom/het netwerkscherm. Zichtbaar als klikbare melding rechtsboven, in Overzicht › Dashboard (Racks uit) en in de inspector van de hal en het rack.
 - **PDU's**: PDU 75 (12 racks, feeder 125 A), PDU 150 (24 racks, 250 A) en PDU 300 (42 racks, 500 A). Een PDU voedt **alleen racks in zijn eigen hal**, één aansluiting per rack, tot zijn kW (elk rack telt met zijn volle vermogen, zodat elke zijde bij uitval van de andere alles kan dragen). Racks zonder vrije aansluiting gaan uit met de reden en een tip.
 - **A- en B-zijde**: MSB's, UPS'en en PDU's staan aan de A- of de B-zijde. Een nieuw apparaat kiest zelf de zijde met de minste (PDU's per hal), de speler kan het omzetten. Racks krijgen eerst één voeding (zoveel mogelijk racks aan), daarna een tweede van de andere zijde. Een hal is **A+B** als elk rack twee voedingen heeft, en **2N** als de A- en B-zijde ook van verschillende MSB's komen; anders deels A+B of N.
 - **Stroomboom** (Infrastructuur › Stroomboom, of via de inspector van een MSB, UPS of PDU): per MSB wat hij voedt, vrije uitgangen en kW, de belasting nu en bij uitval van de andere zijde per UPS, PDU en busbar, met per apparaat een kaart (aansluitingen, gevoed door, tip). Oude savegames (formaat < 10) krijgen om en om A en B.
@@ -747,7 +760,7 @@ Zo werkt stap 5 (versie 0.4.0) nu echt in de game:
 
 Zo werkt stap 6 (versie 0.5.0) nu echt in de game:
 
-- **Organisatie**: je begint als eigenaar. Bouw een **directiekamer** met een bureau en een stoel; dan kun je een **CEO** aannemen. Elke directeur en manager heeft een eigen ingerichte directiekamer nodig. Het bedrijfsscherm (tabblad Organisatie) toont de boom: CEO → CFO (→ inkoopmanager), HR-manager, salesdirecteur (→ bedrijfsjurist, customer success manager) en operationeel manager (vereist ook HR; → facility-, netwerk- en securitymanager). Elke functie heeft een aannamebedrag, een maandsalaris en twee trainingen met kosten en dagen. Laten gaan kan, maar niet zolang er iemand onder valt.
+- **Organisatie**: je begint als eigenaar. Bouw een **directiekamer** met een bureau en een stoel; dan kun je een **CEO** aannemen. De directie (CEO, CFO, HR, sales en operations) heeft elk een eigen ingerichte directiekamer nodig; de andere managers delen de bureaus in kantoorruimtes met de verkopers. Het bedrijfsscherm (tabblad Organisatie) toont de boom: CEO → CFO (→ inkoopmanager), HR-manager, salesdirecteur (→ bedrijfsjurist, customer success manager) en operationeel manager (vereist ook HR; → facility-, netwerk- en securitymanager). Elke functie heeft een aannamebedrag, een maandsalaris en twee trainingen met kosten en dagen. Laten gaan kan, maar niet zolang er iemand onder valt.
 - **Wat ze ontgrendelen**: HR werft meer personeel dan de startploeg (4 bouwvakkers, 2 monteurs, 1 engineer); monteurs en engineers vragen ook een operationeel manager, die de ploegen 10% sneller laat werken (+10% per training). De facility manager ontgrendelt 10 MVA, zijn eerste training 20 MVA en de tweede 50 MVA. De netwerkmanager regelt carriers, de IX en peering. De security manager plus een portiersloge is nodig voor gemeentes, ministeries en banken. De CFO regelt leningen en investeerders. De inkoopmanager geeft 5% korting op energie en 10% op carriers (meer met training). De customer success manager laat de tevredenheid minder dalen en meer klanten verlengen. De bedrijfsjurist is nodig om op aanbestedingen te bieden.
 - **Sales**: zonder salesdirecteur komen er geen klanten. Verkopers hebben elk een bureau in een kantoorruimte nodig en kosten € 4.200 per maand. Hoe meer verkopers, training en reputatie, hoe meer en grotere aanvragen (maximaal 8 tegelijk, elk 12 tot 22 dagen geldig).
 - **Klanttypes**: startup, MKB, hostingbedrijf, websitehosting (ook adult), videostreaming, social media, cryptomining, clouddienst, gemeente en ministerie; voor aanbestedingen ook banken en hyperscalers. Elk type heeft eigen producten, omvang, verkeer per rack, aantal carriers, kans op 32 A, 2N, groene stroom en beveiliging, en een minimale reputatie.

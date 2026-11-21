@@ -72,7 +72,7 @@ cat_customers	Customers	Klanten
 hud_coming_soon	Coming in a later update	Komt in een volgende update
 hint_select	Click a building, room or rack for details. Right-drag rotates, wheel zooms, WASD pans, Q and E turn. T shows roofs, Page Up and Down change floor. P shows the power overlay, H the cooling overlay, N the network overlay. Ctrl+Z undoes, Ctrl+Y redoes.	Klik op een gebouw, ruimte of rack voor details. Rechts slepen draait, scrollwiel zoomt, WASD schuift, Q en E draaien. T toont daken, Page Up en Down wisselen van verdieping. P toont de stroomweergave, H de koelweergave, N de netwerkweergave. Ctrl+Z maakt ongedaan, Ctrl+Y doet opnieuw.
 hint_place	Click to place. R rotates. Red means it cannot go there.	Klik om te plaatsen. R draait. Rood betekent dat het daar niet kan.
-hint_erase	Drag over what you want to remove. Objects and doors go first, then rooms, then buildings and paving.	Sleep over wat je wilt weghalen. Eerst objecten en deuren, dan ruimtes, dan gebouwen en bestrating.
+hint_tool_erase	Drag over what you want to remove. Objects and doors go first, then walls and rooms, then buildings and paving.	Sleep over wat je wilt weghalen. Eerst objecten en deuren, dan muren en ruimtes, dan gebouwen en bestrating.
 hud_rotate_left	Rotate left (Q)	Links draaien (Q)
 hud_rotate_right	Rotate right (E)	Rechts draaien (E)
 hud_grid	Show or hide the grid	Grid tonen of verbergen
@@ -98,8 +98,8 @@ msg_start_hint	Start with an asphalt driveway from the road and a building mater
 hint_surface	Drag to pave. Trucks drive on asphalt, parking and the materials yard.	Sleep om te bestraten. Vrachtwagens rijden over asfalt, parkeerplaatsen en de materialenplek.
 hint_fence	Drag a line, or a rectangle to fence it all round. Put a sliding gate where the driveway crosses.	Sleep een lijn, of een rechthoek om alles te omheinen. Zet een schuifpoort waar de oprit het hek kruist.
 hint_building	Drag out the floor plan. Builders lay the foundation, put up the walls and the roof. Material comes by truck to your yard.	Sleep de plattegrond uit. Bouwvakkers storten de fundering en bouwen muren en dak. Materiaal komt per vrachtwagen naar je materialenplek.
-hint_room	Drag a room inside a finished building. Builders put up the inner walls. Lights are added automatically.	Sleep een ruimte binnen een afgebouwd gebouw. Bouwvakkers zetten de binnenmuren. Verlichting komt er vanzelf in.
-hint_door	Point at a wall and click. Racks only fit through double doors and roll-up doors.	Wijs een muur aan en klik. Racks passen alleen door dubbele deuren en roldeuren.
+hint_room	Paint floor tiles inside a building to give a space its function. Paint over another room to change its type. Tick 'room with walls' to drag a whole room with walls at once.	Verf vloertegels binnen een gebouw om een ruimte zijn functie te geven. Verf over een andere ruimte om het soort te wijzigen. Vink 'ruimte met muren' aan om in één keer een hele ruimte met muren te slepen.
+hint_door	Point at a wall and click. Racks fit through every door except a mantrap. Place a door over an existing one to swap it straight away.	Wijs een muur aan en klik. Racks passen door elke deur behalve een mantrap. Plaats een deur over een bestaande deur om hem meteen te wisselen.
 hint_row	Drag a row of up to 24 racks; R turns the fronts. Drag wider to fill a block of rows in one go: pairs face each other across a cold aisle, with hot aisles between the pairs (R starts with the backs).	Sleep een rij van maximaal 24 racks; R draait de voorkanten. Sleep breder om in één keer een blok rijen te vullen: paren kijken elkaar aan over een koude gang, met warme gangen ertussen (R begint met de achterkanten).
 cat_rooms	Rooms	Ruimtes
 cat_interior	Interior	Inrichting
@@ -209,9 +209,10 @@ room_storage	Storage	Opslag
 room_corridor	Corridor	Gang
 door_single	Single door	Enkele deur
 door_double	Double door	Dubbele deur
-door_fire	Fire door	Branddeur
-door_badge	Badge door	Badgedeur
+door_fire	Fire door (badge reader)	Branddeur (met paslezer)
+door_badge	Badge door	Deur met paslezer
 door_rollup	Roll-up door	Roldeur
+door_badge_double	Double badge door	Dubbele deur met paslezer
 stage_foundation	Foundation	Fundering
 stage_walls	Walls	Muren
 stage_roof	Roof	Dak
@@ -259,7 +260,7 @@ msg_room_done	{0} is ready.	{0} is klaar.
 msg_need_dock	Racks are waiting: build a loading dock with a roll-up door onto asphalt.	Er wachten racks: bouw een laadperron met een roldeur aan het asfalt.
 msg_dock_no_road	Trucks cannot reach the loading dock. Connect it to the road with asphalt.	Vrachtwagens kunnen het laadperron niet bereiken. Sluit het met asfalt aan op de weg.
 msg_dock_unreachable	Fitters cannot reach the loading dock.	Monteurs kunnen het laadperron niet bereiken.
-msg_hall_needs_wide_door	Fitters cannot get racks into the hall. Racks need double doors or roll-up doors all the way.	Monteurs krijgen de racks de hal niet in. Racks hebben de hele route dubbele deuren of roldeuren nodig.
+msg_hall_needs_wide_door	Fitters cannot get racks into the hall. There must be a route with doors; a rack does not fit through a mantrap.	Monteurs krijgen de racks de hal niet in. Er moet een route met deuren zijn; een rack past niet door een sluisdeur.
 msg_hall_needs_lift	Racks for an upper floor need a freight lift.	Racks voor een hogere verdieping hebben een goederenlift nodig.
 msg_rack_unreachable	An engineer cannot reach a rack. Leave an aisle next to it.	Een engineer kan een rack niet bereiken. Laat er een gang naast.
 msg_first_rack_live	Your first rack is live and ready to sell!	Je eerste rack is live en klaar voor verkoop!
@@ -646,7 +647,7 @@ msg_org_new	New: customers now sign contracts. Your current racks stay with your
 msg_needs_netmgr	Hire a network manager first: they arrange carrier and peering contracts.	Neem eerst een netwerkmanager aan: die regelt carrier- en peeringcontracten.
 msg_needs_exec	Hire the director or manager this role reports to first.	Neem eerst de directeur of manager aan waar deze functie onder valt.
 msg_needs_ceo_office	Build a director's office first: an executive room with a desk and a chair.	Bouw eerst een directiekamer: een directieruimte met een bureau en een stoel.
-msg_needs_office	Every director needs an own office: build another executive room with a desk and a chair.	Elke directeur heeft een eigen kantoor nodig: bouw nog een directieruimte met een bureau en een stoel.
+msg_needs_office	Every board member (CEO, CFO, HR, sales and operations) needs an own office: build another executive room with a desk and a chair.	Elk directielid (CEO, CFO, HR, sales en operations) heeft een eigen kantoor nodig: bouw nog een directieruimte met een bureau en een stoel.
 msg_exec_needed	Others report to this role. Let them go first.	Er vallen anderen onder deze functie. Laat die eerst gaan.
 msg_needs_workplace	No free workplace: put more desks in an office room.	Geen vrije werkplek: zet meer bureaus in een kantoorruimte.
 msg_needs_hr	Hire an HR manager to recruit more staff.	Neem een HR-manager aan om meer personeel te werven.
@@ -683,8 +684,8 @@ co_tab_tenders	Tenders	Aanbestedingen
 co_tab_finance	Finance	Financiën
 co_reputation	Reputation {0} / 100	Reputatie {0} / 100
 co_revenue	Revenue {0} / month	Omzet {0} / maand
-org_help	You are the owner. Directors and managers each need an own furnished office and unlock new parts of the game. They run their own teams: no micromanagement.	Jij bent de eigenaar. Directeuren en managers hebben elk een eigen ingericht kantoor nodig en ontgrendelen nieuwe onderdelen van het spel. Ze regelen hun eigen team: geen micromanagement.
-org_offices	Offices in use: {0} of {1} furnished director's offices	Kantoren in gebruik: {0} van {1} ingerichte directiekamers
+org_help	You are the owner. The board (CEO, CFO, HR, sales and operations) each need an own furnished director's office; the other managers work at a desk in an office room. They unlock new parts of the game and run their own teams: no micromanagement.	Jij bent de eigenaar. De directie (CEO, CFO, HR, sales en operations) heeft elk een eigen ingerichte directiekamer nodig; de andere managers werken aan een bureau in een kantoorruimte. Ze ontgrendelen nieuwe onderdelen van het spel en regelen hun eigen team: geen micromanagement.
+org_offices	Board: {0} of {1} furnished director's offices in use	Directie: {0} van {1} ingerichte directiekamers in gebruik
 org_all_unlocked	Creative mode: everything is unlocked.	Creatieve modus: alles is ontgrendeld.
 org_status_legacy	Arranged in your existing company	Geregeld in je bestaande bedrijf
 org_status_creative	Unlocked (creative)	Ontgrendeld (creatief)
@@ -1183,7 +1184,7 @@ sec_gate_tip	Guard booth, a barrier (number plate recognition after research), a
 sec_cameras	Cameras	Camera's
 sec_cameras_tip	Cameras on poles outside, and a dome camera in every hall and meet-me room. AI video analysis (research) adds more.	Camera's op palen buiten, en een dome-camera in elke hal en meet-me room. AI-videoanalyse (research) voegt meer toe.
 sec_access	Access control	Toegangscontrole
-sec_access_tip	Only badge doors (or fire doors) into halls and meet-me rooms, biometric readers (research) and a mantrap at the entrance (research).	Alleen badgedeuren (of branddeuren) naar hallen en meet-me rooms, biometrische lezers (research) en een sluisdeur bij de ingang (research).
+sec_access_tip	Only doors with a badge reader (badge doors, double badge doors, fire doors) into halls and meet-me rooms, biometric readers (research) and a mantrap at the entrance (research). Click a door to add a reader on the spot.	Alleen deuren met paslezer (deur met paslezer, dubbele deur met paslezer, branddeur) naar hallen en meet-me rooms, biometrische lezers (research) en een sluisdeur bij de ingang (research). Klik op een deur om er direct een lezer op te zetten.
 sec_room	Security room	Beveiligingsruimte
 sec_room_tip	A security video wall in the security room and a glass lodge where the guard sits.	Een videowall in de beveiligingsruimte en een glazen loge waar de beveiliger zit.
 sec_people	Guards and management	Beveiligers en leiding
@@ -1867,6 +1868,10 @@ hud_day_night_off	Always daylight. Click to let the sun follow the clock again.	
 hud_weather	Weather	Weer
 hud_weather_on	Weather: on (rain, fog, snow, storms). Click to always have clear skies.	Weer: aan (regen, mist, sneeuw, onweer). Klik voor altijd helder weer.
 hud_weather_off	Weather: off, always clear. Click to turn rain, fog and snow back on.	Weer: uit, altijd helder. Klik om regen, mist en sneeuw weer aan te zetten.
+net_pit_show	Show this cable entry on the site	Toon deze kabelinvoer op het terrein
+net_pit_goto_full	Go to the cable entry that needs a duct	Ga naar de kabelinvoer die een duct nodig heeft
+msg_needs_manager_desk	Managers work at a desk in an office room: put another desk in an office room.	Managers werken aan een bureau in een kantoorruimte: zet nog een bureau in een kantoorruimte.
+org_manager_desks	Managers and sales reps: {0} + {1} at {2} office desks	Managers en verkopers: {0} + {1} aan {2} kantoorbureaus
 spec_pdu	{0} kW · {1} racks	{0} kW · {1} racks
 spec_outputs	{0} kW · {1} outputs	{0} kW · {1} uitgangen
 msg_power_tree_new	New: the power tree. Switchboards, UPS units and PDUs now have an A or a B side, PDUs have a number of rack connections, and the power tree (Infrastructure, F4) shows what feeds what.	Nieuw: de stroomboom. Hoofdverdelers, UPS'en en PDU's hebben nu een A- of B-zijde, PDU's hebben een aantal rack-aansluitingen en de stroomboom (Infrastructuur, F4) laat zien wat wat voedt.
@@ -2019,3 +2024,50 @@ ntree_advice_uplink	An edge switch has no free uplink port: add a distribution s
 ntree_advice_dist	Many edge switches hang straight on the core: a distribution switch in the meet-me room keeps core ports free.	Veel edge-switches hangen rechtstreeks op de core: een distributieswitch in de meet-me room houdt corepoorten vrij.
 spof_dist	Single point of failure: only one distribution switch.	Enkel punt van falen: maar één distributieswitch.
 msg_nettree_new	New: the network tree (Infrastructure › Network tree) shows every switch with its ports. Spine switches now have 96 ports; Edge 24 and Edge 48 are cheaper switches for a hall.	Nieuw: de netwerkboom (Infrastructuur › Netwerkboom) toont elke switch met zijn poorten. Spine-switches hebben nu 96 poorten; Edge 24 en Edge 48 zijn goedkopere switches voor een hal.
+msg_door_swap_width	A door can only change into a type of the same width or narrower.	Een deur kan alleen veranderen in een type met dezelfde breedte of smaller.
+action_door_swap	Change to {0} · {1}	Wijzig naar {0} · {1}
+action_door_swap_back	Change to {0} · {1} back	Wijzig naar {0} · {1} terug
+inspect_door_width	{0} m wide · {1}	{0} m breed · {1}
+inspect_door_secure	Badge reader: counts for access control	Paslezer: telt mee voor toegangscontrole
+inspect_door_open	No badge reader	Geen paslezer
+inspect_door_racks	Racks fit through	Racks kunnen erdoor
+inspect_door_no_racks	Racks do not fit through	Racks kunnen er niet door
+inspect_door_rooms	Between: {0}	Tussen: {0}
+room_none	corridor / outside	gang / buiten
+msg_door_swapped	Door changed into {0}.	Deur gewijzigd in {0}.
+sec_secure_doors	Badge readers on all hall and MMR doors ({0}) · {1}	Paslezers op alle hal- en MMR-deuren ({0}) · {1}
+sec_doors_ok	All hall and MMR doors have a badge reader.	Alle hal- en MMR-deuren hebben een paslezer.
+msg_doors_secured	{0} doors got a badge reader.	{0} deuren hebben een paslezer gekregen.
+wall_inner	Inner wall	Binnenmuur
+wall_glass	Glass wall	Glazen wand
+hint_wall	Drag along the grid lines inside a building to put up a wall. Close a space with walls and a door, then paint it with a room type.	Sleep langs de rasterlijnen binnen een gebouw om een muur te zetten. Sluit een ruimte af met muren en een deur en verf hem daarna met een ruimtesoort.
+msg_wall_done	Wall finished.	Muur klaar.
+msg_wall_in_building	Walls go inside a finished building.	Muren horen binnen een afgebouwd gebouw.
+msg_wall_through_object	A wall cannot go through equipment.	Een muur kan niet door apparatuur heen.
+tool_unpaint	Remove room type	Ruimtesoort wissen
+hint_unpaint	Drag over painted tiles to remove the room type. Walls, doors and equipment stay.	Sleep over geverfde tegels om de ruimtesoort te wissen. Muren, deuren en apparatuur blijven staan.
+erase_all	Everything	Alles
+erase_room	Room	Ruimte
+erase_wall	Walls	Muren
+erase_door	Doors	Deuren
+erase_interior	Interior	Inrichting
+hint_erase_room	Drag over a room to remove it with its walls, doors and equipment.	Sleep over een ruimte om hem met muren, deuren en apparatuur te slopen.
+hint_erase_wall	Drag along walls to take them down. Doors in those walls go too.	Sleep langs muren om ze af te breken. Deuren in die muren gaan mee.
+hint_erase_door	Drag over doors to remove only the doors.	Sleep over deuren om alleen de deuren weg te halen.
+hint_erase_interior	Drag over a room to clear the equipment and furniture, the room stays.	Sleep over een ruimte om apparatuur en meubels weg te halen, de ruimte blijft.
+hud_room_fill	Fill space	Hele ruimte
+hud_room_fill_tip	One click paints the whole enclosed space.	Eén klik verft de hele afgesloten ruimte.
+hud_room_walls	Room with walls	Ruimte met muren
+hud_room_walls_tip	Drag a rectangle and get the room with walls at once (the old way).	Sleep een rechthoek en krijg de ruimte meteen met muren (de oude manier).
+paint_changes	Changes: {0}	Wijzigt: {0}
+msg_room_has_tenants	Customers rent racks here. Move them first.	Klanten huren hier racks. Verplaats ze eerst.
+room_issue_building	Not finished: the walls around this space are still being built.	Nog niet klaar: de muren rond deze ruimte worden nog gebouwd.
+room_issue_two_types	Not finished: two room types share this space. Add a wall.	Nog niet klaar: twee ruimtesoorten delen deze ruimte. Zet er een muur tussen.
+room_issue_no_door	Not finished: close the space with walls and add a door.	Nog niet klaar: sluit de ruimte af met muren en zet er een deur in.
+inspect_room_needs	Needs at least:	Heeft minimaal nodig:
+inspect_room_badges	Badge readers on {0} of {1} doors (advice)	Paslezer op {0} van {1} deuren (advies)
+need_closed	Closed space with a door	Afgesloten ruimte met deur
+need_door	A door	Een deur
+need_pdu	PDU or busbar	PDU of busbar
+need_hall_switch	Hall switch	Halswitch
+need_kitchen	Coffee machine, vending machine or microwave	Koffieautomaat, snoepautomaat of magnetron
