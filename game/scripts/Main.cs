@@ -2120,6 +2120,8 @@ public partial class Main : Node3D
             // --outage-fix: press the fix of the first warning (camera jump, hall inspector, tool in hand)
             if (args.Contains("--outage-fix")) { _playing = true; FixOutage(Outages.For(_state).FirstOrDefault()); }
         }
+        // --energy-demo: solar fields, wind turbines and batteries, 45 measured days and the green label (screenshots)
+        if (args.Contains("--energy-demo") && _state != null) EnergyDemo(_state);
         if (args.Contains("--nettree-demo") && _state != null)
         {
             // network tree: without the spine the demo hall runs on two Edge 48s, not every rack gets a B port
@@ -2148,6 +2150,29 @@ public partial class Main : Node3D
         }
         GetViewport().GetTexture().GetImage().SavePng(path);
         GetTree().Quit();
+    }
+
+    /// <summary>Screenshot setup for own energy: generation on free ground, 45 days measured, nominated and labelled.</summary>
+    void EnergyDemo(GameState s)
+    {
+        int Place(ObjKind k, int count, int step)
+        {
+            var n = 0;
+            for (var z = 2; z < s.PlotSize - 2 && n < count; z += step)
+                for (var x = 2; x < s.PlotSize - 2 && n < count; x += step)
+                    if (s.AddObject(k, x, z, 0, 0) is { } o) { o.Status = ObjStatus.Live; n++; }
+            return n;
+        }
+        Place(ObjKind.WindTurbine, 6, 5);
+        Place(ObjKind.BatteryContainer, 2, 4);
+        Place(ObjKind.SolarPanel, 30, 2);
+        s.Touch();
+        s.BatteryUse = BatteryMode.Own;
+        var today = (int)s.Day;
+        s.EnergyLog.Clear();
+        for (var d = Math.Max(1, today - 44); d <= today; d++) { s.SimulateEnergyDay(d); s.GreenDay(d); }
+        if (s.Cert(CertKind.Green) == null) s.Certs.Add(new Certificate { Kind = CertKind.Green, Valid = true, IssuedDay = s.Day - 10, ExpiresDay = s.Day + 1085, CheckDay = s.Day + 355 });
+        _world.Build(s, _sim);
     }
 
     /// <summary>Screenshot setup for step 11: two years of figures, a scenario with a medal, some achievements and a timelapse picture.</summary>

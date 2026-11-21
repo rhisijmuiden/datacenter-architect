@@ -216,7 +216,7 @@ public class NewGameOptions
 /// <summary>All state that goes into a savegame. Workers and trucks are not saved; they restart from this state.</summary>
 public partial class GameState
 {
-    public const int CurrentFormat = 13;
+    public const int CurrentFormat = 14;
     /// <summary>Floor value for objects that stand on the roof of a building.</summary>
     public const int RoofFloor = -1;
     /// <summary>Floor id of a basement. Kept apart from the storey numbers so roof (-1) and storeys (0..) stay as they were.</summary>
@@ -394,6 +394,11 @@ public partial class GameState
         {
             // own main fiber duct: there are no street fiber pits any more; old pits become cable entries with a free duct
             MigrateDucts();
+        }
+        if (SaveFormat < 14)
+        {
+            // own energy: hourly balance, battery policy, the green label is about your own power now
+            MigrateOwnEnergy();
         }
         MigrateGrowth();
         EnsureCompetitors();

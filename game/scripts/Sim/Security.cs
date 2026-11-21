@@ -6,7 +6,7 @@ using System.Text.Json.Serialization;
 namespace DatacenterArchitect.Sim;
 
 /// <summary>Certificates a compliance manager can have audited (step 8).</summary>
-public enum CertKind { Iso27001, TierIII, Pci, Government, Green }
+public enum CertKind { Iso27001, TierIII, Pci, Government, Green, GreenGold }
 
 /// <summary>An audit: cost, days the auditors take, and how long the certificate stays valid.</summary>
 public record CertDef(CertKind Kind, string Key, long Cost, int AuditDays, int ValidDays, double Reputation);
@@ -21,6 +21,8 @@ public class Certificate
     /// <summary>Next yearly surveillance check.</summary>
     public double CheckDay { get; set; }
     public bool Valid { get; set; }
+    /// <summary>Green labels: suspended after 60 days under the threshold; back as soon as the share is high enough again.</summary>
+    public bool Suspended { get; set; }
 }
 
 public static class CertCatalog
@@ -32,6 +34,7 @@ public static class CertCatalog
         [CertKind.Pci] = new(CertKind.Pci, "cert_pci", 40_000, 30, 1095, 3),
         [CertKind.Government] = new(CertKind.Government, "cert_gov", 60_000, 40, 1095, 4),
         [CertKind.Green] = new(CertKind.Green, "cert_green", 30_000, 20, 1095, 3),
+        [CertKind.GreenGold] = new(CertKind.GreenGold, "cert_green_gold", 45_000, 25, 1095, 4),
     };
 }
 
@@ -144,7 +147,7 @@ public partial class GameState
     };
 
     public Certificate Cert(CertKind k) => Certs.FirstOrDefault(c => c.Kind == k);
-    public bool HasCert(CertKind k) => Cert(k)?.Valid == true;
+    public bool HasCert(CertKind k) => Cert(k) is { Valid: true, Suspended: false };
 
     /// <summary>What the auditors check for each certificate, against what is built now.</summary>
     public List<Req> CertChecks(CertKind k)
@@ -184,13 +187,9 @@ public partial class GameState
                 list.Add(new Req("cert_req_office_hours", "", "", PolicyOfficeHours ? ReqStatus.Ok : ReqStatus.Fail));
                 break;
             case CertKind.Green:
-            {
-                var pue = Infra.Pue;
-                list.Add(new Req("cert_req_green_energy", Catalog.Suppliers[Supplier].Name, "", Catalog.Suppliers[Supplier].Green ? ReqStatus.Ok : ReqStatus.Fail));
-                var inv = System.Globalization.CultureInfo.InvariantCulture;
-                list.Add(new Req("cert_req_pue", pue > 0 ? pue.ToString("0.00", inv) : "-", "1.45", pue > 0 && pue <= 1.45 + 1e-9 ? ReqStatus.Ok : ReqStatus.Fail));
+            case CertKind.GreenGold:
+                GreenChecks(k, list);
                 break;
-            }
         }
         return list;
     }
@@ -229,7 +228,7 @@ public partial class GameState
         if (PassesAudit(c.Kind))
         {
             var renewed = c.Valid;
-            c.Valid = true; c.IssuedDay = Day; c.ExpiresDay = Day + def.ValidDays; c.CheckDay = Day + 365;
+            c.Valid = true; c.Suspended = false; c.IssuedDay = Day; c.ExpiresDay = Day + def.ValidDays; c.CheckDay = Day + 365;
             if (!renewed) Reputation = Math.Min(100, Reputation + def.Reputation);
             Notes.Add((renewed ? "msg_cert_renewed" : "msg_cert_passed", def.Key));
             Log("ev_cert_passed", def.Key);
@@ -262,7 +261,8 @@ public partial class GameState
             if (Day >= c.CheckDay && Day < c.ExpiresDay)
             {
                 c.CheckDay = Day + 365;
-                if (!PassesAudit(c.Kind)) { Withdraw(c); continue; }
+                // green labels have their own grace period for the energy share (GreenDay)
+                if (c.Kind is not (CertKind.Green or CertKind.GreenGold) && !PassesAudit(c.Kind)) { Withdraw(c); continue; }
                 Log("ev_cert_checked", CertCatalog.Defs[c.Kind].Key);
             }
             // renewals: the compliance manager starts the audit 60 days before the certificate runs out

@@ -15,7 +15,7 @@ public partial class WorldView
     void SyncLogo()
     {
         var logo = _state.Logo;
-        var key = HashCode.Combine(logo.Version, _state.Options.Company);
+        var key = HashCode.Combine(logo.Version, _state.Options.Company, _state.GreenLabel, _state.GoldLabel, Loc.Language);
         LogoArt.Instance?.Sync(logo, _state.Options.Company);
         if (key == _logoKey) return;
         var first = _logoKey == int.MinValue;
@@ -42,6 +42,7 @@ public partial class WorldView
         var plate = new Color(_state.Logo.Secondary);
         Box(root, new Vector3(b.X + 0.6f + plateW / 2f, y, z + 0.03f), new Vector3(plateW, 1.9f, 0.06f), plate, 0.6f);
         LogoArt.Quad(root, new Vector3(b.X + 1.6f, y, z + 0.065f), 1.6f);
+        GreenBadge(root, b.X + 0.6f + plateW + 0.2f, b.X + b.W - 0.4f, y, z);
         if (textW <= 0) return;
         root.AddChild(new Label3D
         {
@@ -50,6 +51,23 @@ public partial class WorldView
             Position = new Vector3(b.X + 2.65f, y, z + 0.065f), Shaded = true, DoubleSided = false,
         });
     }
+
+    /// <summary>Green datacenter label: a green (gold rim for Green Gold) badge next to the company sign.</summary>
+    void GreenBadge(Node3D root, float left, float right, float y, float z)
+    {
+        if (!_state.GreenLabel || right - left < 2.2f) return;
+        var gold = _state.GoldLabel;
+        var cx = left + 1.05f;
+        if (gold) Box(root, new Vector3(cx, y, z + 0.025f), new Vector3(2.1f, 1.7f, 0.05f), new Color("#FFD866"), 0.4f);
+        Box(root, new Vector3(cx, y, z + 0.04f), new Vector3(1.96f, 1.56f, 0.06f), new Color("#2F8A5B"), 0.6f);
+        root.AddChild(new Label3D
+        {
+            Text = Wrap2(Loc.T(gold ? "sign_green_gold" : "sign_green")), Font = _font, FontSize = 40, PixelSize = 0.0075f, OutlineSize = 0,
+            Modulate = new Color("#f4f1ea"), HorizontalAlignment = HorizontalAlignment.Center, Position = new Vector3(cx, y, z + 0.075f), Shaded = true, DoubleSided = false,
+        });
+    }
+
+    static string Wrap2(string t) { var i = t.LastIndexOf(' '); return i < 0 ? t : t[..i] + "\n" + t[(i + 1)..]; }
 
     /// <summary>Equipment trucks run in company colours: the logo and the name on both sides of the box trailer.</summary>
     internal Node3D Livery(Node3D truck, TruckLoad load)

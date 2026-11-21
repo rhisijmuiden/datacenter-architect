@@ -778,7 +778,7 @@ req_2n	2N UPS	2N UPS
 req_backup	Generators N+1	Generatoren N+1
 req_bandwidth	Unsold transit bandwidth	Onverkochte transitcapaciteit
 req_carriers	Carriers	Carriers
-req_green	Green energy contract	Groen energiecontract
+req_green	Green datacenter label	Groen datacenterlabel
 req_security	Security manager and security level	Security manager en beveiligingsniveau
 contracts_title	Active contracts	Lopende contracten
 contracts_building	To deliver	Op te leveren
@@ -1210,7 +1210,7 @@ cert_pci_desc	Card payment security. Banks will not sign without it.	Beveiliging
 cert_gov	Government seal	Overheidskeurmerk
 cert_gov_desc	Strict security for ministries and government agencies. They will not sign without it.	Strenge beveiliging voor ministeries en overheidsdiensten. Zij tekenen niet zonder.
 cert_green	Green datacenter label	Groen datacenterlabel
-cert_green_desc	Green energy and a low PUE.	Groene stroom en een lage PUE.
+cert_green_desc	At least 50% of your energy use from your own solar, wind and battery over 30 days, a nomination and a low PUE.	Minstens 50% van je verbruik uit eigen zon, wind en batterij over 30 dagen, een nominatie en een lage PUE.
 cert_none	Not certified	Niet gecertificeerd
 cert_auditing	Audit running: {0} days left	Audit loopt: nog {0} dagen
 cert_valid_until	Valid until {0}	Geldig tot {0}
@@ -1328,7 +1328,7 @@ gr_tab_locations	Locations	Locaties
 gr_tab_offices	Offices	Kantoren
 gr_tab_hosting	Hosting	Hosting
 gr_tab_market	Market	Markt
-gr_tab_energy	Energy and ESG	Energie en ESG
+gr_tab_energy	Energy market and ESG	Energiemarkt en ESG
 gr_tab_risks	Risks	Risico's
 gr_tab_people	Key people	Sleutelfiguren
 gr_share_short	Market share {0}	Marktaandeel {0}
@@ -1609,7 +1609,7 @@ esg_title	ESG score	ESG-score
 esg_help	Environment, social and governance in one score. Green customers, investors and the share price look at it.	Milieu, mens en bestuur in één score. Groene klanten, investeerders en de koers kijken ernaar.
 esg_water_line	Water: {0} m³ per day · WUE {1} l/kWh · {2} per month	Water: {0} m³ per dag · WUE {1} l/kWh · {2} per maand
 esg_renewable	Green energy	Groene energie
-esg_renewable_tip	A green supplier, or your own solar and wind.	Een groene leverancier, of je eigen zon en wind.
+esg_renewable_tip	A green supplier, or your own solar and wind (30-day share).	Een groene leverancier, of je eigen zon en wind (aandeel over 30 dagen).
 esg_pue	Energy efficiency (PUE)	Energie-efficiëntie (PUE)
 esg_pue_tip	Containment, free cooling and EC fans lower the PUE.	Containment, free cooling en EC-fans verlagen de PUE.
 esg_water	Water use	Waterverbruik
