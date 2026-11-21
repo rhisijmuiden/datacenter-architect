@@ -1024,11 +1024,12 @@ public partial class Hud : Control
     string _inspectSig;
 
     /// <summary>Show the inspector with info lines and optional action buttons (label, action, enabled).</summary>
-    public void Inspect(string title, IEnumerable<string> lines, IEnumerable<(string label, Action action, bool enabled)> actions = null)
+    /// <param name="body">Optional rich content under the lines (the data hall card): its signature and a builder, built only when the signature changes.</param>
+    public void Inspect(string title, IEnumerable<string> lines, IEnumerable<(string label, Action action, bool enabled)> actions = null, (string sig, Func<Control> build)? body = null)
     {
         var lineList = lines?.ToList() ?? new List<string>();
         var actList = actions?.ToList() ?? new List<(string, Action, bool)>();
-        var sig = title + "|" + string.Join("|", lineList) + "|" + string.Join("|", actList.Select(a => a.Item1 + a.Item3));
+        var sig = title + "|" + string.Join("|", lineList) + "|" + string.Join("|", actList.Select(a => a.Item1 + a.Item3)) + "|" + body?.sig;
         if (sig == _inspectSig && _inspectActions.Count == actList.Count)
         {
             for (var i = 0; i < actList.Count; i++) _inspectActions[i] = actList[i].Item2;
@@ -1045,6 +1046,11 @@ public partial class Hud : Control
         {
             var l = Ui.Text(line, 14, line.StartsWith("⚠") ? Brand.Critical : Brand.InkDim); l.AutoTranslateMode = AutoTranslateModeEnum.Disabled;
             _inspect.AddChild(l);
+        }
+        if (body?.build != null)
+        {
+            var c = body.Value.build();
+            if (c != null) _inspect.AddChild(Ui.Pad(c, 0, 6, 0, 4));
         }
         for (var i = 0; i < actList.Count; i++)
         {
