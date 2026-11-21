@@ -7,7 +7,7 @@ description: Wat je allemaal kunt in Datacenter Architect, en waar je begint.
   <img src="{{ '/assets/shots/photo.jpg' | relative_url }}" alt="Een datacentercampus met koelmachines op het dak, generatoren, een kantoor en een parkeerplaats">
   <div class="hero-text">
     <h1>Datacenter Architect</h1>
-    <p>Koop grond, ontwerp het hele terrein van parkeerplaats tot datazaal, houd stroom, koeling en glasvezel in balans en groei uit tot een campus. Een offline bouwgame voor Windows 11.</p>
+    <p>Koop grond, ontwerp het hele terrein van parkeerplaats tot datazaal, houd stroom, koeling en glasvezel in balans en groei uit tot een campus. Een offline bouwgame voor Windows 11 en macOS.</p>
     <div class="cta">
       <a class="btn" href="{{ site.repo }}/releases/latest">Download de game</a>
       <a class="lang" href="{{ '/nl/getting-started/' | relative_url }}">Bouw je eerste datacenter</a>
@@ -45,7 +45,7 @@ Jij bent de **directeur**. Jij bepaalt waar je bouwt, wat je bouwt en waarin je 
 
 | | |
 |---|---|
-| Platform | Windows 11, 64-bit. Offline; alleen de updatecheck gebruikt internet |
+| Platform | Windows 11 (64-bit) en macOS 12 of nieuwer (Apple Silicon en Intel). Offline; alleen de updatecheck gebruikt internet |
 | Taal | Engels en Nederlands (wissel wanneer je wilt in het hoofdmenu of onder Opties) |
 | Engine | Godot 4.5 met C# |
 | Savegames | Lokale savegames plus drie autosaves die elkaar afwisselen |

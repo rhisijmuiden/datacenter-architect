@@ -92,7 +92,9 @@ public static partial class TestRunner
     const string Releases = $$"""
     [
       {"tag_name":"v0.3.0-test.2","prerelease":true,"draft":false,"html_url":"{{Gh}}/tag/v0.3.0-test.2","body":"",
-       "assets":[{"name":"DatacenterArchitect-0.3.0-test.2-Setup.exe","browser_download_url":"{{Gh}}/download/v0.3.0-test.2/DatacenterArchitect-0.3.0-test.2-Setup.exe","size":10,"digest":"{{Sha}}"}]},
+       "assets":[{"name":"DatacenterArchitect-0.3.0-test.2-Setup.exe","browser_download_url":"{{Gh}}/download/v0.3.0-test.2/DatacenterArchitect-0.3.0-test.2-Setup.exe","size":10,"digest":"{{Sha}}"},
+                 {"name":"DatacenterArchitect-0.3.0-test.2-macOS.zip","browser_download_url":"{{Gh}}/download/v0.3.0-test.2/DatacenterArchitect-0.3.0-test.2-macOS.zip","size":20},
+                 {"name":"DatacenterArchitect-0.3.0-test.2-macOS.zip.sha256","browser_download_url":"{{Gh}}/download/v0.3.0-test.2/DatacenterArchitect-0.3.0-test.2-macOS.zip.sha256","size":100}]},
       {"tag_name":"v0.2.0","prerelease":false,"draft":false,"html_url":"{{Gh}}/tag/v0.2.0","body":"",
        "assets":[{"name":"DatacenterArchitect-0.2.0-Setup.exe","browser_download_url":"{{Gh}}/download/v0.2.0/DatacenterArchitect-0.2.0-Setup.exe","size":10},
                  {"name":"DatacenterArchitect-0.2.0-Setup.exe.sha256","browser_download_url":"{{Gh}}/download/v0.2.0/DatacenterArchitect-0.2.0-Setup.exe.sha256","size":100}]},
@@ -108,7 +110,7 @@ public static partial class TestRunner
 
     static void UpdateTests()
     {
-        var list = UpdateService.ParseReleases(Releases);
+        var list = UpdateService.ParseReleases(Releases, UpdatePlatform.Windows);
         Check(list.Count == 5, "drafts skipped");
         var stable = UpdateService.Decide(list, "stable", V("0.1.0"), "stable");
         Check(stable.Verdict == UpdateVerdict.NewerAvailable && stable.Release.Tag == "v0.2.0", "stable picks newest release");
@@ -135,6 +137,21 @@ public static partial class TestRunner
         try { UpdateService.DownloadAsync(list.First(r => r.Tag == "v9.0.0"), null).GetAwaiter().GetResult(); }
         catch (InvalidOperationException) { refused = true; }
         Check(refused, "download of an untrusted release refused");
+
+        // macOS: its own zip package, never the Windows installer; releases without a Mac build are not offered
+        var mac = UpdateService.ParseReleases(Releases, UpdatePlatform.MacOS);
+        var macTest = mac.First(r => r.Tag == "v0.3.0-test.2");
+        Check(macTest.InstallerName == "DatacenterArchitect-0.3.0-test.2-macOS.zip" && macTest.InstallerSize == 20, "mac picks the macOS zip");
+        Check(macTest.Sha256 == null && macTest.ChecksumUrl.EndsWith("-macOS.zip.sha256"), "mac zip checksum file found");
+        Check(list.First(r => r.Tag == "v0.3.0-test.2").InstallerName.EndsWith("-Setup.exe"), "windows still picks the installer");
+        Check(mac.First(r => r.Tag == "v0.2.0").InstallerUrl == null, "release without a Mac build has no mac package");
+        Check(UpdateService.Decide(mac, "stable", V("0.1.0"), "stable").Verdict == UpdateVerdict.NoReleases, "mac stable waits for a Mac build");
+        Check(UpdateService.Decide(mac, "test", V("0.2.0"), "test").Release?.Tag == "v0.3.0-test.2", "mac test channel finds the Mac build");
+        Check(UpdateService.IsInstallerName("DatacenterArchitect-1.0.0-macOS.zip", UpdatePlatform.MacOS) && !UpdateService.IsInstallerName("DatacenterArchitect-1.0.0-macOS.zip", UpdatePlatform.Windows)
+            && !UpdateService.IsInstallerName("DatacenterArchitect-1.0.0-Setup.exe", UpdatePlatform.MacOS) && !UpdateService.IsInstallerName("../DatacenterArchitect-1.0.0-macOS.zip", UpdatePlatform.MacOS), "package names per platform");
+        Check(UpdateService.MacBundle("/Applications/Datacenter Architect.app/Contents/MacOS/Datacenter Architect") == "/Applications/Datacenter Architect.app", "mac bundle found from the executable");
+        Check(UpdateService.MacBundle("/private/var/folders/x/AppTranslocation/ABC/d/Datacenter Architect.app/Contents/MacOS/Datacenter Architect") == null, "translocated bundle is not replaced");
+        Check(UpdateService.MacBundle("/home/me/godot/Godot") == null, "no bundle outside an .app");
     }
 
     static void TranslationTests()

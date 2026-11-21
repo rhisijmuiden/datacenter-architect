@@ -809,9 +809,11 @@ public partial class Main : Node3D
             }
             if (k.Keycode == Key.Space) { var s = _speed == 0 ? 1 : 0; _speed = s; _hud.SetSpeed(s); }
             if (k.Keycode is Key.Key1 or Key.Key2 or Key.Key3) { _speed = (int)(k.Keycode - Key.Key0); _hud.SetSpeed(_speed); }
-            if (k.Keycode == Key.S && k.CtrlPressed) { Autosave(); _hud.Notify(Loc.T("msg_autosaved"), Brand.Ok); }
-            if (k.CtrlPressed && (k.Keycode == Key.Y || (k.Keycode == Key.Z && k.ShiftPressed))) { DoRedo(); GetViewport().SetInputAsHandled(); return; }
-            if (k.CtrlPressed && k.Keycode == Key.Z) { DoUndo(); GetViewport().SetInputAsHandled(); return; }
+            // Cmd on a Mac works like Ctrl
+            var ctrl = k.CtrlPressed || k.MetaPressed;
+            if (k.Keycode == Key.S && ctrl) { Autosave(); _hud.Notify(Loc.T("msg_autosaved"), Brand.Ok); }
+            if (ctrl && (k.Keycode == Key.Y || (k.Keycode == Key.Z && k.ShiftPressed))) { DoRedo(); GetViewport().SetInputAsHandled(); return; }
+            if (ctrl && k.Keycode == Key.Z) { DoUndo(); GetViewport().SetInputAsHandled(); return; }
             var sec = Sections.ForKey(k.Keycode);
             if (sec >= 0) { ToggleSection(sec); GetViewport().SetInputAsHandled(); return; }
             if (k.Keycode == Key.Pageup) SetView(StepFloor(1), false);

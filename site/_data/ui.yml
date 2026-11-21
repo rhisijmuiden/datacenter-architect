@@ -6,7 +6,7 @@ en:
   menu: Menu
   on_this_page: On this page
   edit: Improve this page on GitHub
-  footer: Datacenter Architect is an offline building and management game for Windows 11. Screenshots are from the current build; the game keeps changing, so small details may differ.
+  footer: Datacenter Architect is an offline building and management game for Windows 11 and macOS. Screenshots are from the current build; the game keeps changing, so small details may differ.
   prev: Previous
   next: Next
 nl:
@@ -17,6 +17,6 @@ nl:
   menu: Menu
   on_this_page: Op deze pagina
   edit: Verbeter deze pagina op GitHub
-  footer: Datacenter Architect is een offline bouw- en managementgame voor Windows 11. De screenshots komen uit de huidige build; de game verandert nog steeds, dus kleine details kunnen afwijken.
+  footer: Datacenter Architect is een offline bouw- en managementgame voor Windows 11 en macOS. De screenshots komen uit de huidige build; de game verandert nog steeds, dus kleine details kunnen afwijken.
   prev: Vorige
   next: Volgende
