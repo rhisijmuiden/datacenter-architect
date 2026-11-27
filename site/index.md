@@ -7,7 +7,7 @@ description: What you can do in Datacenter Architect, and where to start.
   <img src="{{ '/assets/shots/photo.jpg' | relative_url }}" alt="A datacenter campus with chillers on the roof, generators, an office and a parking lot">
   <div class="hero-text">
     <h1>Datacenter Architect</h1>
-    <p>Buy land, design the whole site from the parking lot to the data hall, keep power, cooling and fiber in balance, and grow into a campus. An offline building game for Windows 11 and macOS.</p>
+    <p>Buy land, design the whole site from the parking lot to the data hall, keep power, cooling and fiber in balance, and grow into a campus. An offline building game for Windows 11, macOS and Linux.</p>
     <div class="cta">
       <a class="btn" href="{{ site.repo }}/releases/latest">Download the game</a>
       <a class="lang" href="{{ '/getting-started/' | relative_url }}">Build your first datacenter</a>
@@ -45,7 +45,7 @@ You are the **director**. You decide where to build, what to build and what to i
 
 | | |
 |---|---|
-| Platform | Windows 11 (64-bit) and macOS 12 or newer (Apple Silicon and Intel). Offline; only the update check uses the internet |
+| Platform | Windows 11 (64-bit) and macOS 12 or newer (Apple Silicon and Intel) and Linux (x86_64, Vulkan). Offline; only the update check uses the internet |
 | Language | English and Dutch (switch any time in the main menu or under Options) |
 | Engine | Godot 4.5 with C# |
 | Saves | Local savegames plus three rotating autosaves |

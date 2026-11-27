@@ -26,12 +26,23 @@ Nodig: macOS 12 Monterey of nieuwer, op een Mac met Apple Silicon (M1 of later) 
 
 > **Updates op een Mac** komen ook via het Info-scherm. Laat de game in **Programma's** staan (niet in Downloads): de updater vervangt de app daar en opent de nieuwe versie. Lukt dat niet (bijvoorbeeld als jouw gebruiker Programma's niet mag wijzigen), dan opent hij de gedownloade zip en sleep je de nieuwe versie er zelf in.
 
+## Installeren op Linux
+
+1. Ga naar de [nieuwste release]({{ site.repo }}/releases/latest) en download `DatacenterArchitect-<versie>-Linux-x86_64.tar.gz`.
+2. Pak hem uit ergens in je thuismap, bijvoorbeeld `~/Games`: `tar -xzf DatacenterArchitect-*-Linux-x86_64.tar.gz -C ~/Games`. Je krijgt één map, `DatacenterArchitect`.
+3. Start `DatacenterArchitect.x86_64` in die map (dubbelklik, of `./DatacenterArchitect.x86_64` in een terminal).
+4. Wil je hem in je programmamenu? Start dan `./install.sh` in dezelfde map. Met `./install.sh --remove` haal je hem er weer uit.
+
+Nodig: een 64-bit (x86_64) Linux-desktop met X11 of Wayland en een Vulkan-driver (Mesa 22 of nieuwer voor AMD en Intel, of de NVIDIA-driver). Getest op Ubuntu 24.04; andere actuele distributies werken op dezelfde manier.
+
+> **Updates op Linux** komen ook via het Info-scherm. Zet de gamemap op een plek waar jouw gebruiker mag schrijven (zoals `~/Games`): de updater vervangt de map en start de nieuwe versie. Lukt dat niet, dan opent hij het gedownloade archief en pak je het zelf uit over de oude map.
+
 ## Updates en kanalen
 
 Open het **Info**-scherm (de ⓘ-knop onderaan de balk links, of Info in het hoofdmenu). Je ziet welke versie je speelt en je kunt:
 
 - **Controleren op updates** – de game vraagt GitHub naar de nieuwste release op jouw kanaal.
-- **Updaten** – downloadt de installer (Windows) of de app (macOS), controleert de grootte en de SHA-256-vingerafdruk, installeert op de achtergrond en start de game opnieuw.
+- **Updaten** – downloadt de installer (Windows), de app (macOS) of de gamemap (Linux), controleert de grootte en de SHA-256-vingerafdruk, installeert op de achtergrond en start de game opnieuw.
 - **Van kanaal wisselen**:
   - **Stabiel** krijgt de geteste releases (van de branch `main`).
   - **Test** krijgt ook de testbuilds (van de branch `test`): nieuwe dingen eerst, soms met een ruw randje.
@@ -42,7 +53,7 @@ Je kunt altijd van test terug naar stabiel; de volgende update brengt je naar de
 
 ## Savegames
 
-- Savegames staan op Windows in `%APPDATA%\Datacenter Architect\saves` en op macOS in `~/Library/Application Support/Datacenter Architect/saves`. Geef ze elke naam die je wilt met **Opslaan** in het spelmenu (<kbd>Esc</kbd> of ☰ onderaan de balk links).
+- Savegames staan op Windows in `%APPDATA%\Datacenter Architect\saves` , op macOS in `~/Library/Application Support/Datacenter Architect/saves` en op Linux in `~/.local/share/Datacenter Architect/saves`. Geef ze elke naam die je wilt met **Opslaan** in het spelmenu (<kbd>Esc</kbd> of ☰ onderaan de balk links).
 - <kbd>Ctrl</kbd>+<kbd>S</kbd> slaat snel op (op een Mac werkt <kbd>Cmd</kbd> net zo goed als <kbd>Ctrl</kbd> voor opslaan, ongedaan maken en opnieuw).
 - **Autosave**: drie autosaves die elkaar afwisselen, standaard elke 5 minuten en bij afsluiten. Hoe vaak stel je in onder Opties › Spel.
 - **Verder spelen** in het hoofdmenu laadt je laatste savegame.
@@ -86,4 +97,4 @@ Opties open je vanuit het hoofdmenu, het pauzemenu en het tandwiel onderaan de b
 
 ## Problemen?
 
-Een bug gevonden of een idee? Open een [issue op GitHub]({{ site.repo }}/issues). Logbestanden staan in `%APPDATA%\Datacenter Architect\logs` (Windows) of `~/Library/Application Support/Datacenter Architect/logs` (macOS).
+Een bug gevonden of een idee? Open een [issue op GitHub]({{ site.repo }}/issues). Logbestanden staan in `%APPDATA%\Datacenter Architect\logs` (Windows) , `~/Library/Application Support/Datacenter Architect/logs` (macOS) of `~/.local/share/Datacenter Architect/logs` (Linux).

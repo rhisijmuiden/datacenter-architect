@@ -5,8 +5,8 @@ name: Release
 #   v0.2.0-test.1  -> pre-release on the test channel (from the test branch)
 #   v0.2.0         -> release on the stable channel (from main)
 # Every release carries a Windows installer and a macOS build (a universal .app for Intel and Apple Silicon, as .dmg
-# for people and as .zip for the in-game updater), each with a .sha256 file. "dry_run" builds and tests both on any
-# branch without publishing anything.
+# for people and as .zip for the in-game updater) and a Linux x86_64 build (.tar.gz of the game folder, also used by the
+# updater), each with a .sha256 file. "dry_run" builds and tests all three on any branch without publishing anything.
 on:
   push:
     tags: ['v*']
@@ -32,6 +32,7 @@ env:
   # from https://github.com/godotengine/godot/releases/download/4.5.1-stable/SHA512-SUMS.txt; update together with the version
   GODOT_WIN_SHA512: 168fb2502fe979f7a2258d036cae9e5d6a32c96263fe9193a3e34e2be60d5024732a28f713b1ce3f962a74b731a72b1501df891e80bc97ddc1638191199b8a13
   GODOT_MAC_SHA512: c990da4273e67be501e05276e68f266fd2175f72d2af5f149c334eaf6f8b79bf09d803c98cc36313725750940f6fa8f274bda90d08ffaa1e8682ddf96dd6c871
+  GODOT_LINUX_SHA512: 3823b13bba75ab5be49acf995137fff4609baace1ffdfb9ed359e0f75ab6f6be31d587370930e98521d8754ac7b2728c31aae8e972cc6a88752657df72a8fe89
   GODOT_TEMPLATES_SHA512: 5f4379634ca1cfc176a30da1ca5cee4407cdce0da18e1f60de12a3e7bf497f91b7e525479d90a8c13feaa4bee6a592b4ea332c81ac31501bf76f01804afe76ba
 
 jobs:
@@ -224,8 +225,79 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  linux:
+    needs: prepare
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      VERSION: ${{ needs.prepare.outputs.version }}
+      CHANNEL: ${{ needs.prepare.outputs.channel }}
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4.3.1
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Stamp version and channel
+        run: |
+          sed -i -e "s/^config\/version=\".*\"/config\/version=\"$VERSION\"/" -e "s/^build\/channel=\".*\"/build\/channel=\"$CHANNEL\"/" game/project.godot
+          grep -E '^(config/version|build/channel)=' game/project.godot
+
+      - name: Download Godot and export templates
+        run: |
+          base="https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable"
+          curl -sSfLo godot.zip "$base/Godot_v${GODOT_VERSION}-stable_mono_linux_x86_64.zip"
+          curl -sSfLo templates.zip "$base/Godot_v${GODOT_VERSION}-stable_mono_export_templates.tpz"
+          # both downloads must match the checksums Godot publishes and we pin here
+          echo "${GODOT_LINUX_SHA512}  godot.zip" | sha512sum -c -
+          echo "${GODOT_TEMPLATES_SHA512}  templates.zip" | sha512sum -c -
+          unzip -q godot.zip -d godot
+          unzip -q templates.zip 'templates/linux_*' 'templates/version.txt' -d tpl
+          dest="$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable.mono"
+          mkdir -p "$dest"
+          mv tpl/templates/* "$dest/"
+          echo "GODOT=$(find "$PWD/godot" -maxdepth 2 -type f -name 'Godot_v*_mono_linux.x86_64' | head -n 1)" >> "$GITHUB_ENV"
+
+      - name: Import, test and export
+        run: |
+          "$GODOT" --headless --path game --import || true
+          dotnet build game/DatacenterArchitect.csproj
+          "$GODOT" --headless --path game -- --run-tests
+          out=build/linux/DatacenterArchitect
+          mkdir -p "$out"
+          "$GODOT" --headless --path game --export-release "Linux" "../$out/DatacenterArchitect.x86_64"
+          test -x "$out/DatacenterArchitect.x86_64" || { echo "export failed"; exit 1; }
+          # a C# export without its .NET data folder starts and crashes immediately
+          test -f "$out/data_DatacenterArchitect_linuxbsd_x86_64/DatacenterArchitect.dll" || { echo "export is missing DatacenterArchitect.dll"; exit 1; }
+          test -f "$out/data_DatacenterArchitect_linuxbsd_x86_64/GodotSharp.dll" || { echo "export is missing GodotSharp.dll"; exit 1; }
+          cp game/icon.svg installer/linux/install.sh installer/linux/README.txt "$out/"
+          chmod +x "$out/install.sh" "$out/DatacenterArchitect.x86_64"
+          du -sh "$out"
+
+      - name: Smoke test the exported game
+        run: |
+          # start the real exported build headless and run the test suite inside it
+          cd build/linux/DatacenterArchitect && ./DatacenterArchitect.x86_64 --headless -- --run-tests
+
+      - name: Package tar.gz
+        run: |
+          mkdir -p dist
+          # people and the in-game updater download the same archive; it unpacks into one DatacenterArchitect folder
+          tar -C build/linux --owner=0 --group=0 --numeric-owner -czf "dist/DatacenterArchitect-$VERSION-Linux-x86_64.tar.gz" DatacenterArchitect
+          tar -tzf "dist/DatacenterArchitect-$VERSION-Linux-x86_64.tar.gz" | head -n 20
+          ls -l dist
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: linux
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
   publish:
-    needs: [prepare, windows, macos]
+    needs: [prepare, windows, macos, linux]
     if: ${{ !inputs.dry_run }}
     runs-on: ubuntu-latest
     # only this job may create the release
@@ -247,7 +319,7 @@ jobs:
           cd dist
           # the in-game updater checks each download against this SHA-256 (and GitHub's own asset digest)
           files=""
-          for f in "DatacenterArchitect-$VERSION-Setup.exe" "DatacenterArchitect-$VERSION-macOS.zip" "DatacenterArchitect-$VERSION-macOS.dmg"; do
+          for f in "DatacenterArchitect-$VERSION-Setup.exe" "DatacenterArchitect-$VERSION-macOS.zip" "DatacenterArchitect-$VERSION-macOS.dmg" "DatacenterArchitect-$VERSION-Linux-x86_64.tar.gz"; do
             test -f "$f" || { echo "missing $f"; exit 1; }
             sha256sum "$f" | tr -d '\n' > "$f.sha256"
             cat "$f.sha256"; echo
