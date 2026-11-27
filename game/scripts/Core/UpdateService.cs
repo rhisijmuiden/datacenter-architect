@@ -23,12 +23,13 @@ public record UpdateCheck(UpdateVerdict Verdict, ReleaseInfo Release, string Err
 /// Checks GitHub Releases of the game repository. Stable = newest normal release;
 /// test = newest release including pre-releases (tags like v0.2.0-test.1).
 /// Updating downloads the package for this platform: on Windows the installer, run silently; on macOS a zip of the
-/// app bundle that a small script swaps in after the game has closed (<see cref="RunInstaller"/>).
+/// app bundle that a small script swaps in after the game has closed; on Linux a tar.gz of the game folder that a
+/// script swaps in the same way (<see cref="RunInstaller"/>).
 /// Security: only HTTPS links into this repository's GitHub releases are used, the installer name must look like
 /// ours, and the download must match the SHA-256 that GitHub reports for the asset (or the release's .sha256 file)
 /// and its listed size before it is started. Anything else is refused.
 /// </summary>
-public enum UpdatePlatform { Windows, MacOS }
+public enum UpdatePlatform { Windows, MacOS, Linux }
 
 public static class UpdateService
 {
@@ -36,6 +37,9 @@ public static class UpdateService
     public const long MaxInstallerBytes = 2L << 30;
     static readonly Regex WindowsPattern = new(@"^DatacenterArchitect-[0-9A-Za-z.\-]+-Setup\.exe$", RegexOptions.CultureInvariant);
     static readonly Regex MacPattern = new(@"^DatacenterArchitect-[0-9A-Za-z.\-]+-macOS\.zip$", RegexOptions.CultureInvariant);
+    static readonly Regex LinuxPattern = new(@"^DatacenterArchitect-[0-9A-Za-z.\-]+-Linux-x86_64\.tar\.gz$", RegexOptions.CultureInvariant);
+    /// <summary>Name of the Linux executable inside the game folder (export preset "Linux").</summary>
+    public const string LinuxExecutable = "DatacenterArchitect.x86_64";
     static readonly Regex Sha256Pattern = new("^[0-9a-f]{64}$", RegexOptions.CultureInvariant);
     static readonly HttpClient Http = CreateClient();
 
@@ -57,15 +61,27 @@ public static class UpdateService
         return u.AbsolutePath.StartsWith($"/{GameVersion.Repository}/{kind}/", StringComparison.OrdinalIgnoreCase);
     }
 
-    /// <summary>The platform this build runs on; anything that is not macOS uses the Windows installer.</summary>
-    public static UpdatePlatform Platform => OS.GetName() == "macOS" ? UpdatePlatform.MacOS : UpdatePlatform.Windows;
+    /// <summary>The platform this build runs on; anything that is not macOS or Linux uses the Windows installer.</summary>
+    public static UpdatePlatform Platform => OS.GetName() switch
+    {
+        "macOS" => UpdatePlatform.MacOS,
+        "Linux" => UpdatePlatform.Linux,
+        _ => UpdatePlatform.Windows,
+    };
 
     /// <summary>A package file name we would have published ourselves for that platform: no folders, no odd characters.</summary>
     public static bool IsInstallerName(string name, UpdatePlatform platform) =>
-        name != null && (platform == UpdatePlatform.MacOS ? MacPattern : WindowsPattern).IsMatch(name) && Path.GetFileName(name) == name;
+        name != null && Pattern(platform).IsMatch(name) && Path.GetFileName(name) == name;
+
+    static Regex Pattern(UpdatePlatform platform) => platform switch
+    {
+        UpdatePlatform.MacOS => MacPattern,
+        UpdatePlatform.Linux => LinuxPattern,
+        _ => WindowsPattern,
+    };
 
     /// <summary>A package name of ours for any platform.</summary>
-    public static bool IsInstallerName(string name) => IsInstallerName(name, UpdatePlatform.Windows) || IsInstallerName(name, UpdatePlatform.MacOS);
+    public static bool IsInstallerName(string name) => Enum.GetValues<UpdatePlatform>().Any(p => IsInstallerName(name, p));
 
     static string Digest(JsonElement asset)
     {
@@ -226,7 +242,8 @@ public static class UpdateService
 
     /// <summary>
     /// Install the downloaded package. Windows: start the installer silently; it closes the game, updates and starts it
-    /// again. macOS: start a script that waits for the game to quit, swaps the app bundle and opens the new one. False
+    /// again. macOS: start a script that waits for the game to quit, swaps the app bundle and opens the new one. Linux: the
+    /// same with the game folder. False
     /// means the player has to install by hand (see <see cref="ManualKey"/>); the download folder is then opened.
     /// </summary>
     public static bool RunInstaller(string path)
@@ -238,6 +255,7 @@ public static class UpdateService
         {
             "Windows" => OS.CreateProcess(path, new[] { "/SILENT", "/SP-", "/NOCANCEL", "/CLOSEAPPLICATIONS", "/RESTARTAPPLICATIONS" }) > 0,
             "macOS" => SwapMacBundle(path, dir),
+            "Linux" => SwapLinuxFolder(path, dir),
             _ => false,
         };
         if (!ok) OS.ShellOpen(dir);
@@ -245,7 +263,64 @@ public static class UpdateService
     }
 
     /// <summary>Text key for "install it yourself", per platform.</summary>
-    public static string ManualKey => Platform == UpdatePlatform.MacOS ? "info_manual_mac" : "info_manual";
+    public static string ManualKey => Platform switch
+    {
+        UpdatePlatform.MacOS => "info_manual_mac",
+        UpdatePlatform.Linux => "info_manual_linux",
+        _ => "info_manual",
+    };
+
+    /// <summary>
+    /// The game folder that holds a Linux executable (".../DatacenterArchitect/DatacenterArchitect.x86_64"), or null when
+    /// the game does not run from our own unpacked folder (the editor, a system path, or an AppImage mount).
+    /// </summary>
+    public static string LinuxFolder(string executable)
+    {
+        if (string.IsNullOrEmpty(executable) || !executable.StartsWith('/')) return null;
+        var cut = executable.LastIndexOf('/');
+        if (executable[(cut + 1)..] != LinuxExecutable || cut <= 0) return null;
+        var folder = executable[..cut];
+        if (folder.StartsWith("/usr/", StringComparison.Ordinal) || folder.StartsWith("/tmp/.mount_", StringComparison.Ordinal)) return null;
+        return folder;
+    }
+
+    static bool SwapLinuxFolder(string archive, string dir)
+    {
+        var folder = LinuxFolder(OS.GetExecutablePath());
+        if (folder == null || !CanWrite(folder) || !CanWrite(Path.GetDirectoryName(folder))) return false;
+        var script = Path.Combine(dir, "apply-update.sh");
+        File.WriteAllText(script, LinuxScript);
+        // the paths go in as arguments, never into the script text
+        return OS.CreateProcess("/bin/sh", new[] { script, OS.GetProcessId().ToString(), archive, folder }) > 0;
+    }
+
+    /// <summary>Waits for the game (pid $1) to quit, unpacks the tar.gz ($2) next to the game folder ($3), swaps it in and
+    /// starts it. Any failure puts the old folder back and starts that one. Output goes to update.log in the download folder.</summary>
+    const string LinuxScript = """
+    #!/bin/sh
+    pid="$1"; pkg="$2"; dir="$3"; exe="DatacenterArchitect.x86_64"
+    exec >>"$(dirname "$pkg")/update.log" 2>&1
+    echo "update $(date): $pkg -> $dir"
+    i=0
+    while kill -0 "$pid" 2>/dev/null; do
+      i=$((i + 1)); if [ "$i" -gt 600 ]; then echo "game did not quit"; exit 1; fi
+      sleep 0.2
+    done
+    start() { cd "$1" && nohup "./$exe" >/dev/null 2>&1 & }
+    stage="$(dirname "$dir")/.DatacenterArchitect-update-$$"
+    fail() { echo "failed: $1"; if [ ! -d "$dir" ] && [ -d "$stage/old" ]; then mv "$stage/old" "$dir"; fi; rm -rf "$stage"; start "$dir"; exit 1; }
+    rm -rf "$stage"; mkdir "$stage" "$stage/new" || fail "no staging folder"
+    tar -xzf "$pkg" -C "$stage/new" --no-same-owner || fail "unpack"
+    new="$(find "$stage/new" -mindepth 1 -maxdepth 2 -name "$exe" -type f | head -n 1)"
+    [ -n "$new" ] || fail "no game in the package"
+    new="$(dirname "$new")"
+    chmod +x "$new/$exe"
+    mv "$dir" "$stage/old" || fail "cannot move the old game"
+    mv "$new" "$dir" || fail "cannot move the new game"
+    rm -rf "$stage" "$pkg"
+    echo "done"
+    start "$dir"
+    """;
 
     /// <summary>
     /// The .app bundle that holds a macOS executable (".../Name.app/Contents/MacOS/Name"), or null when the game does

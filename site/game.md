@@ -26,12 +26,23 @@ Requirements: macOS 12 Monterey or newer, on an Apple Silicon (M1 or later) or I
 
 > **Updates on a Mac** come from the Info screen too. Keep the game in **Applications** (not in Downloads): the updater replaces the app there and opens the new version. If it cannot (for example when your user may not change Applications), it opens the downloaded zip so you can drag the new version in yourself.
 
+## Install on Linux
+
+1. Go to the [latest release]({{ site.repo }}/releases/latest) and download `DatacenterArchitect-<version>-Linux-x86_64.tar.gz`.
+2. Unpack it somewhere in your home folder, for example `~/Games`: `tar -xzf DatacenterArchitect-*-Linux-x86_64.tar.gz -C ~/Games`. You get one folder, `DatacenterArchitect`.
+3. Start `DatacenterArchitect.x86_64` in that folder (double-click it, or run `./DatacenterArchitect.x86_64`).
+4. Optional: run `./install.sh` in the same folder to put the game in your application menu. `./install.sh --remove` takes it out again.
+
+Requirements: a 64-bit (x86_64) Linux desktop with X11 or Wayland and a Vulkan graphics driver (Mesa 22 or newer for AMD and Intel, or the NVIDIA driver). Tested on Ubuntu 24.04; other current distributions work the same way.
+
+> **Updates on Linux** come from the Info screen too. Keep the game folder somewhere your user may write (like `~/Games`): the updater replaces the folder and starts the new version. If it cannot, it opens the downloaded archive so you can unpack it over the old folder yourself.
+
 ## Updates and channels
 
 Open the **Info** screen (the ⓘ button at the bottom of the left rail, or Info in the main menu). It shows the version you are running and lets you:
 
 - **Check for updates** – the game asks GitHub for the newest release on your channel.
-- **Update** – downloads the installer (Windows) or the app (macOS), checks its size and SHA-256 fingerprint, installs it in the background and restarts the game.
+- **Update** – downloads the installer (Windows), the app (macOS) or the game folder (Linux), checks its size and SHA-256 fingerprint, installs it in the background and restarts the game.
 - **Switch channel**:
   - **Stable** gets the tested releases (from the `main` branch).
   - **Test** also gets the test builds (from the `test` branch): new features first, sometimes a rough edge.
@@ -42,7 +53,7 @@ You can switch back from test to stable at any time; the next update takes you t
 
 ## Savegames
 
-- Saves live in `%APPDATA%\Datacenter Architect\saves` on Windows and in `~/Library/Application Support/Datacenter Architect/saves` on macOS. Give them any name with **Save** in the game menu (<kbd>Esc</kbd> or ☰ at the bottom of the left rail).
+- Saves live in `%APPDATA%\Datacenter Architect\saves` on Windows , in `~/Library/Application Support/Datacenter Architect/saves` on macOS and in `~/.local/share/Datacenter Architect/saves` on Linux. Give them any name with **Save** in the game menu (<kbd>Esc</kbd> or ☰ at the bottom of the left rail).
 - <kbd>Ctrl</kbd>+<kbd>S</kbd> saves quickly (on a Mac <kbd>Cmd</kbd> works as well as <kbd>Ctrl</kbd> for save, undo and redo).
 - **Autosave**: three rotating autosaves, by default every 5 minutes and when you quit. Change how often under Options › Game.
 - **Continue** in the main menu loads your latest save.
@@ -86,4 +97,4 @@ Options open from the main menu, the pause menu and the gear at the bottom of th
 
 ## Problems?
 
-Found a bug or have an idea? Open an [issue on GitHub]({{ site.repo }}/issues). Log files are in `%APPDATA%\Datacenter Architect\logs` (Windows) or `~/Library/Application Support/Datacenter Architect/logs` (macOS).
+Found a bug or have an idea? Open an [issue on GitHub]({{ site.repo }}/issues). Log files are in `%APPDATA%\Datacenter Architect\logs` (Windows) , `~/Library/Application Support/Datacenter Architect/logs` (macOS) or `~/.local/share/Datacenter Architect/logs` (Linux).

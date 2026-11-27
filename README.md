@@ -2,9 +2,9 @@
 
 # Datacenter Architect
 
-An offline building and management sim for Windows 11. Buy land, design the whole site from parking lot to data hall, keep power, cooling and fiber in balance, and grow your datacenter.
+An offline building and management sim for Windows 11, macOS and Linux. Buy land, design the whole site from parking lot to data hall, keep power, cooling and fiber in balance, and grow your datacenter.
 
-*Een offline bouw- en managementsimulatie voor Windows 11. Koop grond, ontwerp het hele terrein van parkeerplaats tot datazaal, houd stroom, koeling en glasvezel in balans en laat je datacenter groeien.*
+*Een offline bouw- en managementsimulatie voor Windows 11, macOS en Linux. Koop grond, ontwerp het hele terrein van parkeerplaats tot datazaal, houd stroom, koeling en glasvezel in balans en laat je datacenter groeien.*
 
 **[Player guide](https://rhisijmuiden.github.io/datacenter-architect/)**: what you can do in the game, your first datacenter step by step, every room, power and redundancy, cooling, network, tips and troubleshooting. Also in Dutch: [Spelershandleiding](https://rhisijmuiden.github.io/datacenter-architect/nl/).
 
@@ -27,9 +27,9 @@ Design material:
 ## Tech
 
 - Godot 4.5 with C# (.NET 8), project in [`game/`](game)
-- Windows 11 installer (Inno Setup, per-user install, no admin prompt)
+- Windows 11 installer (Inno Setup, per-user install, no admin prompt), universal macOS app (.dmg) and Linux x86_64 build (.tar.gz with [`install.sh`](installer/linux/install.sh) for the application menu)
 - English by default, fully translated to Dutch: [`game/locale/strings.tsv`](game/locale/strings.tsv)
-- Local savegames and three rotating autosaves in `%APPDATA%\Datacenter Architect\saves`
+- Local savegames and three rotating autosaves in `%APPDATA%\Datacenter Architect\saves` (macOS: `~/Library/Application Support/Datacenter Architect/saves`, Linux: `~/.local/share/Datacenter Architect/saves`)
 - Updates via GitHub Releases, checked and installed from the in-game Info screen
 
 ## Developing
@@ -46,7 +46,7 @@ Controls: right-drag rotates, mouse wheel zooms, WASD or middle-drag pans, Q/E t
 
 ## Releasing
 
-Releases are built on GitHub by [`.github/workflows/release.yml`](.github/workflows/release.yml) when a tag is pushed, or when you run the workflow from the Actions tab with a version number. It stamps the version and channel, runs the tests, exports the Windows build and attaches `DatacenterArchitect-<version>-Setup.exe` to a GitHub Release.
+Releases are built on GitHub by [`.github/workflows/release.yml`](.github/workflows/release.yml) when a tag is pushed, or when you run the workflow from the Actions tab with a version number. It stamps the version and channel, runs the tests, exports the Windows, macOS and Linux builds and attaches `DatacenterArchitect-<version>-Setup.exe`, `-macOS.dmg`/`-macOS.zip` and `-Linux-x86_64.tar.gz` (each with a `.sha256`) to a GitHub Release.
 
 ```bash
 git checkout test && git tag v0.2.0-test.1 && git push origin v0.2.0-test.1   # test channel (pre-release)

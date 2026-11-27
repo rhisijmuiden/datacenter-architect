@@ -94,7 +94,9 @@ public static partial class TestRunner
       {"tag_name":"v0.3.0-test.2","prerelease":true,"draft":false,"html_url":"{{Gh}}/tag/v0.3.0-test.2","body":"",
        "assets":[{"name":"DatacenterArchitect-0.3.0-test.2-Setup.exe","browser_download_url":"{{Gh}}/download/v0.3.0-test.2/DatacenterArchitect-0.3.0-test.2-Setup.exe","size":10,"digest":"{{Sha}}"},
                  {"name":"DatacenterArchitect-0.3.0-test.2-macOS.zip","browser_download_url":"{{Gh}}/download/v0.3.0-test.2/DatacenterArchitect-0.3.0-test.2-macOS.zip","size":20},
-                 {"name":"DatacenterArchitect-0.3.0-test.2-macOS.zip.sha256","browser_download_url":"{{Gh}}/download/v0.3.0-test.2/DatacenterArchitect-0.3.0-test.2-macOS.zip.sha256","size":100}]},
+                 {"name":"DatacenterArchitect-0.3.0-test.2-macOS.zip.sha256","browser_download_url":"{{Gh}}/download/v0.3.0-test.2/DatacenterArchitect-0.3.0-test.2-macOS.zip.sha256","size":100},
+                 {"name":"DatacenterArchitect-0.3.0-test.2-Linux-x86_64.tar.gz","browser_download_url":"{{Gh}}/download/v0.3.0-test.2/DatacenterArchitect-0.3.0-test.2-Linux-x86_64.tar.gz","size":30},
+                 {"name":"DatacenterArchitect-0.3.0-test.2-Linux-x86_64.tar.gz.sha256","browser_download_url":"{{Gh}}/download/v0.3.0-test.2/DatacenterArchitect-0.3.0-test.2-Linux-x86_64.tar.gz.sha256","size":100}]},
       {"tag_name":"v0.2.0","prerelease":false,"draft":false,"html_url":"{{Gh}}/tag/v0.2.0","body":"",
        "assets":[{"name":"DatacenterArchitect-0.2.0-Setup.exe","browser_download_url":"{{Gh}}/download/v0.2.0/DatacenterArchitect-0.2.0-Setup.exe","size":10},
                  {"name":"DatacenterArchitect-0.2.0-Setup.exe.sha256","browser_download_url":"{{Gh}}/download/v0.2.0/DatacenterArchitect-0.2.0-Setup.exe.sha256","size":100}]},
@@ -152,6 +154,19 @@ public static partial class TestRunner
         Check(UpdateService.MacBundle("/Applications/Datacenter Architect.app/Contents/MacOS/Datacenter Architect") == "/Applications/Datacenter Architect.app", "mac bundle found from the executable");
         Check(UpdateService.MacBundle("/private/var/folders/x/AppTranslocation/ABC/d/Datacenter Architect.app/Contents/MacOS/Datacenter Architect") == null, "translocated bundle is not replaced");
         Check(UpdateService.MacBundle("/home/me/godot/Godot") == null, "no bundle outside an .app");
+
+        // Linux: its own tar.gz of the game folder
+        var lin = UpdateService.ParseReleases(Releases, UpdatePlatform.Linux);
+        var linTest = lin.First(r => r.Tag == "v0.3.0-test.2");
+        Check(linTest.InstallerName == "DatacenterArchitect-0.3.0-test.2-Linux-x86_64.tar.gz" && linTest.InstallerSize == 30, "linux picks the Linux tar.gz");
+        Check(linTest.ChecksumUrl.EndsWith("-Linux-x86_64.tar.gz.sha256"), "linux checksum file found");
+        Check(lin.First(r => r.Tag == "v0.2.0").InstallerUrl == null && UpdateService.Decide(lin, "stable", V("0.1.0"), "stable").Verdict == UpdateVerdict.NoReleases, "linux stable waits for a Linux build");
+        Check(UpdateService.IsInstallerName("DatacenterArchitect-1.0.0-Linux-x86_64.tar.gz", UpdatePlatform.Linux) && !UpdateService.IsInstallerName("DatacenterArchitect-1.0.0-Linux-x86_64.tar.gz", UpdatePlatform.MacOS)
+            && !UpdateService.IsInstallerName("DatacenterArchitect-1.0.0-macOS.zip", UpdatePlatform.Linux) && !UpdateService.IsInstallerName("DatacenterArchitect-1.0.0-Linux-x86_64.tar.gz.sh", UpdatePlatform.Linux)
+            && UpdateService.IsInstallerName("DatacenterArchitect-1.0.0-Linux-x86_64.tar.gz"), "linux package name");
+        Check(UpdateService.LinuxFolder("/home/me/Games/DatacenterArchitect/DatacenterArchitect.x86_64") == "/home/me/Games/DatacenterArchitect", "linux game folder found from the executable");
+        Check(UpdateService.LinuxFolder("/home/me/godot/Godot_v4.5.1-stable_mono_linux.x86_64") == null && UpdateService.LinuxFolder("/tmp/.mount_DcaXyz/DatacenterArchitect.x86_64") == null
+            && UpdateService.LinuxFolder("/usr/lib/dca/DatacenterArchitect.x86_64") == null && UpdateService.LinuxFolder("DatacenterArchitect.x86_64") == null, "linux folder only for our own unpacked game");
     }
 
     static void TranslationTests()

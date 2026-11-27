@@ -54,6 +54,7 @@ info_downloading	Downloading version {0}…	Versie {0} downloaden…
 info_installing	Installing. The game closes and starts again by itself.	Bezig met installeren. De game sluit en start daarna vanzelf opnieuw.
 info_manual	Downloaded to {0}. Run the installer to update.	Gedownload naar {0}. Start de installer om te updaten.
 info_manual_mac	Downloaded to {0}. Unzip it and drag Datacenter Architect into your Applications folder to update.	Gedownload naar {0}. Pak het uit en sleep Datacenter Architect naar je map Programma's om te updaten.
+info_manual_linux	Downloaded to {0}. Unpack it and replace your Datacenter Architect folder with the new one to update.	Gedownload naar {0}. Pak het uit en vervang je map Datacenter Architect door de nieuwe om te updaten.
 res_power	Power	Stroom
 res_backup	Backup	Noodstroom
 res_cooling	Cooling	Koeling
